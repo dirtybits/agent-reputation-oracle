@@ -6,7 +6,7 @@
 **Team:** OddSparky (Oddbox + Sparky ⚡)
 **Prize Pool:** $100k USDC
 **Deadline:** February 12, 2026
-**Days Remaining:** 5 (as of Feb 7)
+**Days Remaining:** 1.5 (as of Feb 10, 11pm)
 
 ## The Idea
 
@@ -183,40 +183,51 @@ Weights are configurable via `ReputationConfig`. Initial defaults:
 **Program ID:** `EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj`  
 **Status:** Deployed to devnet ✅
 
-### Day 2 — Feb 9 (Sunday)
+### Day 2 — Feb 9 (Sunday) ✅ COMPLETE
 **Goal: Disputes + scoring**
-- [ ] Implement `open_dispute` instruction
-- [ ] Implement `resolve_dispute` instruction (with slashing logic)
-- [ ] Implement reputation score computation
-- [ ] Implement `ReputationConfig` initialization
-- [ ] Comprehensive test suite for disputes + edge cases
-- [ ] Deploy updated program to devnet
+- [x] Implement `open_dispute` instruction (done in Day 1)
+- [x] Implement `resolve_dispute` instruction (done in Day 1)
+- [x] Implement reputation score computation (done in Day 1)
+- [x] Implement `ReputationConfig` initialization (done in Day 1)
+- [x] Comprehensive test suite for disputes + edge cases (8 tests passing)
+- [x] Deploy updated program to devnet
 
-### Day 3 — Feb 10 (Monday)
-**Goal: Web UI + API**
-- [ ] Initialize Next.js project with wallet adapter
-- [ ] Build agent profile page (registration + view)
-- [ ] Build vouch interface (stake SOL, view vouches)
-- [ ] Build dispute interface
-- [ ] REST API endpoints for reputation queries
-- [ ] Connect UI to devnet program
+**Status:** All dispute + scoring work completed ahead of schedule on Day 1 ✅
 
-### Day 4 — Feb 11 (Tuesday)
-**Goal: Polish + integration**
-- [ ] Leaderboard / reputation explorer
-- [ ] Network graph visualization (who vouches for whom)
-- [ ] AgentWallet integration (if SDK available)
-- [ ] Error handling, edge cases, UX polish
-- [ ] Documentation (README, API docs)
-- [ ] End-to-end testing on devnet
+### Day 3 — Feb 10 (Monday) 🚧 IN PROGRESS
+**Goal: Web UI + GitHub**
+- [x] Initialize Next.js project with wallet adapter
+- [x] Build agent profile page (registration + view)
+- [x] Build vouch interface (stake SOL, view vouches)
+- [x] Build dispute interface
+- [x] Build agent explorer (search any agent by address)
+- [x] Tabbed UI (Profile | Vouch | Explore | Disputes)
+- [x] Connect UI to devnet program
+- [x] GitHub repo created (`dirtybits/agent-reputation-oracle`)
+- [x] Comprehensive README written
+- [x] Submission description drafted (`SUBMISSION.md`)
+- [ ] REST API endpoints for reputation queries (optional - Next.js API routes)
+- [ ] Deploy UI to Vercel/production
 
-### Day 5 — Feb 12 (Wednesday) — DEADLINE
-**Goal: Ship it**
-- [ ] Final testing + bug fixes
-- [ ] Record demo video
-- [ ] Write submission description
-- [ ] Deploy final version
-- [ ] Submit to Colosseum before deadline
+**Status:** Core UI complete, ready for deployment ✅
+
+### Day 4 — Feb 11 (Tuesday) — POLISH DAY
+**Goal: Deploy, test, record demo**
+- [ ] Deploy UI to Vercel (public URL)
+- [ ] End-to-end testing on devnet with real wallet
+- [ ] Record demo video (2-3 min walkthrough)
+- [ ] Test video upload/submission flow
+- [ ] Polish UI based on testing
+- [ ] Update SUBMISSION.md with live demo URL
+- [ ] Optional: Basic API endpoints if time permits
+
+### Day 5 — Feb 12 (Wednesday) — DEADLINE DAY
+**Goal: Submit before deadline**
+- [ ] Final smoke test (contract + UI)
+- [ ] Submit to Colosseum platform
+- [ ] Verify submission received
+- [ ] Tweet/share project (optional)
+- [ ] Backup: Fix any last-minute issues
 
 ## MVP vs Nice-to-Have
 
@@ -254,6 +265,7 @@ Weights are configurable via `ReputationConfig`. Initial defaults:
 - **Score formula:** Keep simple and transparent. Can be upgraded via config.
 - **Metadata storage:** Off-chain (URI pointing to JSON). Keeps on-chain costs low.
 - **Minimum stake:** Configurable, default 0.01 SOL (prevents spam while keeping barrier low).
+- **GitHub Access (Security):** Using full `repo` scope during hackathon for velocity. Will lock down to fine-grained token post-submission (see `GITHUB_TOKEN_SETUP.md`).
 
 ## Project Structure
 
@@ -291,14 +303,31 @@ agent-reputation-oracle/
 
 ## Submission Checklist
 
-- [ ] Working smart contract on devnet
-- [ ] Live web UI (Vercel or similar)
-- [ ] Public API endpoint
-- [ ] Demo video (2-3 min)
-- [ ] README with setup instructions
-- [ ] Submission on Colosseum platform
+- [x] Working smart contract on devnet (`EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj`)
+- [x] GitHub repo with code (`https://github.com/dirtybits/agent-reputation-oracle`)
+- [x] README with setup instructions
+- [x] Submission description drafted
+- [ ] Live web UI (Vercel or similar) — **NEXT PRIORITY**
+- [ ] Demo video (2-3 min) — **Feb 11**
+- [ ] Public API endpoint (optional, nice-to-have)
+- [ ] Submission on Colosseum platform — **Feb 12 DEADLINE**
+
+## Current Status (Feb 10, 11pm PST)
+
+✅ **Smart Contract:** COMPLETE - All core features implemented, tested, deployed  
+✅ **Web UI:** COMPLETE - Full-featured UI with tabs, wallet integration, all actions  
+✅ **GitHub:** COMPLETE - Public repo with comprehensive docs  
+✅ **Submission Draft:** COMPLETE - Ready to copy-paste into Colosseum  
+
+🚧 **TODO (Next 36 hours):**
+1. Deploy UI to Vercel (30 min)
+2. End-to-end test with real wallet (1 hour)
+3. Record demo video (1-2 hours)
+4. Submit to Colosseum (30 min)
+
+**Timeline looks good!** Ahead of schedule on core features, on track for deadline.
 
 ---
 
-*Last updated: Feb 7, 2026*
-*Status: Planning → Day 1 starts Feb 8*
+*Last updated: Feb 10, 2026 11pm PST*
+*Status: Day 3 complete, moving into deployment phase*
