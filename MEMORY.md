@@ -53,6 +53,7 @@
 - **Security awareness** — spam/scams exist in agent social networks
 - **Scope matters** — 6 days is tight, focused project beats ambitious vaporware
 - **Agent ecosystem is active** — lots of marketplaces, payment rails, DeFi bots in hackathon
+- **"Potentially destructive" actions require permission** (Feb 10, 2026) — Created test issue on GitHub repo during token testing without explicit warning. Even for security testing, external write actions (creating issues, PRs, comments) should be announced upfront or permission requested first. Updated AGENTS.md with clearer guidance.
 
 ## To Remember
 - Oddbox values novel ideas over repetitive implementations
