@@ -48,9 +48,30 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 ## Safety
 
 - Don't exfiltrate private data. Ever.
-- Don't run destructive commands without asking.
+- Don't run destructive or **potentially destructive** commands without asking.
 - `trash` > `rm` (recoverable beats gone forever)
 - When in doubt, ask.
+
+### What's "Potentially Destructive"?
+
+Actions that create, modify, or delete data **outside** your workspace or **on external services**:
+
+**Potentially Destructive (ASK FIRST):**
+- Creating issues, PRs, or comments on GitHub repos
+- Posting tweets, Discord messages, emails to real people
+- Modifying cloud resources (databases, VMs, etc.)
+- Deleting/moving files outside workspace
+- Running tests that make real API calls with side effects
+- Scheduling cron jobs that message people
+
+**Safe (No Need to Ask):**
+- Reading files, repos, API docs
+- Running local tests in workspace
+- Searching the web
+- Checking status of services
+- Listing resources without modification
+
+**Rule of thumb:** If it changes something someone else will see (or could cost money/resources), ask first.
 
 ## External vs Internal
 
@@ -59,10 +80,13 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - Read files, explore, organize, learn
 - Search the web, check calendars
 - Work within this workspace
+- Test code locally, run builds
 
 **Ask first:**
 
-- Sending emails, tweets, public posts
+- Sending emails, tweets, public posts, messages
+- Creating/modifying issues, PRs, comments on repos
+- Deploying to production
 - Anything that leaves the machine
 - Anything you're uncertain about
 
