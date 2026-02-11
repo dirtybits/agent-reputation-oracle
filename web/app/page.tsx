@@ -6,14 +6,22 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PublicKey } from '@solana/web3.js';
 
+type Tab = 'profile' | 'vouch' | 'explorer' | 'disputes';
+
 export default function Home() {
   const { publicKey, connected } = useWallet();
   const oracle = useReputationOracle();
   
+  const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [metadataUri, setMetadataUri] = useState('');
   const [voucheeAddress, setVoucheeAddress] = useState('');
   const [vouchAmount, setVouchAmount] = useState('0.1');
+  const [searchAddress, setSearchAddress] = useState('');
+  const [searchedAgent, setSearchedAgent] = useState<any>(null);
+  const [disputeVouchAddress, setDisputeVouchAddress] = useState('');
+  const [disputeEvidence, setDisputeEvidence] = useState('');
   const [agentProfile, setAgentProfile] = useState<any>(null);
+  const [vouches, setVouches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
 
@@ -21,6 +29,7 @@ export default function Home() {
   useEffect(() => {
     if (connected && publicKey) {
       loadAgentProfile();
+      loadVouches();
     }
   }, [connected, publicKey]);
 
@@ -33,6 +42,67 @@ export default function Home() {
       setAgentProfile(profile);
     } catch (error) {
       console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadVouches = async () => {
+    if (!publicKey) return;
+    
+    try {
+      const vouchList = await oracle.getAllVouchesForAgent(publicKey);
+      setVouches(vouchList);
+    } catch (error) {
+      console.error('Error loading vouches:', error);
+    }
+  };
+
+  const searchAgent = async () => {
+    if (!searchAddress) {
+      setStatus('Please enter an agent address');
+      return;
+    }
+
+    setLoading(true);
+    setStatus('Searching...');
+    
+    try {
+      const agentKey = new PublicKey(searchAddress);
+      const profile = await oracle.getAgentProfile(agentKey);
+      
+      if (profile) {
+        setSearchedAgent(profile);
+        setStatus('Agent found!');
+      } else {
+        setSearchedAgent(null);
+        setStatus('Agent not found - they may not be registered yet');
+      }
+    } catch (error: any) {
+      setStatus(`Error: ${error.message}`);
+      setSearchedAgent(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDispute = async () => {
+    if (!disputeVouchAddress || !disputeEvidence) {
+      setStatus('Please enter vouch address and evidence');
+      return;
+    }
+
+    setLoading(true);
+    setStatus('Opening dispute...');
+    
+    try {
+      const vouchKey = new PublicKey(disputeVouchAddress);
+      const { tx } = await oracle.openDispute(vouchKey, disputeEvidence);
+      setStatus(`Dispute opened! TX: ${tx}`);
+      setDisputeVouchAddress('');
+      setDisputeEvidence('');
+    } catch (error: any) {
+      setStatus(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -89,18 +159,33 @@ export default function Home() {
     return new Date(timestamp * 1000).toLocaleString();
   };
 
+  const tabs: { id: Tab; label: string; icon: string }[] = [
+    { id: 'profile', label: 'My Profile', icon: '👤' },
+    { id: 'vouch', label: 'Vouch', icon: '⚡' },
+    { id: 'explorer', label: 'Explore', icon: '🔍' },
+    { id: 'disputes', label: 'Disputes', icon: '⚖️' },
+  ];
+
   return (
-    <main className="min-h-screen p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
               Agent Reputation Oracle ⚡
             </h1>
             <p className="text-blue-200">
               On-chain reputation system for AI agents on Solana
             </p>
+            <a 
+              href="https://github.com/dirtybits/agent-reputation-oracle" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-300 hover:text-blue-200 text-sm mt-1 inline-block"
+            >
+              GitHub →
+            </a>
           </div>
           <WalletMultiButton />
         </div>
@@ -110,14 +195,43 @@ export default function Home() {
             <p className="text-xl text-white mb-4">
               Connect your wallet to get started
             </p>
-            <p className="text-blue-200">
+            <p className="text-blue-200 mb-6">
               Register as an agent, vouch for others, or view reputation scores
             </p>
+            <div className="bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30 text-left max-w-2xl mx-auto">
+              <h3 className="text-lg font-bold text-white mb-3">How It Works:</h3>
+              <ul className="space-y-2 text-blue-100">
+                <li>✅ <strong>Register</strong> - Create your agent profile on-chain</li>
+                <li>⚡ <strong>Vouch</strong> - Stake SOL to vouch for other agents you trust</li>
+                <li>🔍 <strong>Explore</strong> - Search and view other agent profiles</li>
+                <li>⚖️ <strong>Dispute</strong> - Challenge bad vouches with evidence</li>
+                <li>💰 <strong>Reputation</strong> - Earn reputation points from vouches and time</li>
+                <li>⚠️ <strong>Slashing</strong> - Lose 50% of staked SOL if disputes prove you vouched for a bad agent</li>
+              </ul>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Agent Profile Card */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
+            {/* Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
+                    activeTab === tab.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white/10 text-blue-200 hover:bg-white/20'
+                  }`}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Profile Tab */}
+            {activeTab === 'profile' && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
               <h2 className="text-2xl font-bold text-white mb-4">Your Agent Profile</h2>
               
               {loading && !agentProfile ? (
@@ -190,9 +304,10 @@ export default function Home() {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Vouch Interface */}
-            {agentProfile && (
+            {/* Vouch Tab */}
+            {activeTab === 'vouch' && agentProfile && (
               <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
                 <h2 className="text-2xl font-bold text-white mb-4">Vouch for an Agent</h2>
                 <p className="text-blue-200 mb-4">
@@ -234,24 +349,184 @@ export default function Home() {
               </div>
             )}
 
-            {/* Status Messages */}
-            {status && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4">
-                <p className="text-white font-mono text-sm break-all">{status}</p>
+            {/* Vouch Tab - Not Registered */}
+            {activeTab === 'vouch' && !agentProfile && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Vouch for an Agent</h2>
+                <p className="text-yellow-300">
+                  You must register as an agent before you can vouch for others. Go to the "My Profile" tab to register.
+                </p>
               </div>
             )}
 
-            {/* Info Box */}
-            <div className="bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30">
-              <h3 className="text-lg font-bold text-white mb-2">How It Works:</h3>
-              <ul className="space-y-2 text-blue-100">
-                <li>✅ <strong>Register</strong> - Create your agent profile on-chain</li>
-                <li>⚡ <strong>Vouch</strong> - Stake SOL to vouch for other agents you trust</li>
-                <li>🔍 <strong>Dispute</strong> - Challenge bad vouches with evidence</li>
-                <li>💰 <strong>Reputation</strong> - Earn reputation points from vouches and time</li>
-                <li>⚠️ <strong>Slashing</strong> - Lose 50% of staked SOL if a dispute proves you vouched for a bad agent</li>
-              </ul>
-            </div>
+            {/* Explorer Tab */}
+            {activeTab === 'explorer' && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">🔍 Agent Explorer</h2>
+                <p className="text-blue-200 mb-4">
+                  Search for any agent by their Solana wallet address to view their reputation and vouches.
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={searchAddress}
+                      onChange={(e) => setSearchAddress(e.target.value)}
+                      placeholder="Enter agent's Solana public key"
+                      className="flex-1 px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                    />
+                    <button
+                      onClick={searchAgent}
+                      disabled={loading}
+                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition whitespace-nowrap"
+                    >
+                      {loading ? '...' : 'Search'}
+                    </button>
+                  </div>
+
+                  {searchedAgent && (
+                    <div className="bg-black/30 rounded-lg p-6 space-y-3">
+                      <h3 className="text-xl font-bold text-green-400 mb-3">Agent Found!</h3>
+                      <div className="space-y-2 text-white">
+                        <div className="flex justify-between">
+                          <span className="text-blue-200">Reputation Score:</span>
+                          <span className="font-bold text-2xl text-green-400">
+                            {formatScore(searchedAgent.reputationScore)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-blue-200">Total Staked:</span>
+                          <span>{(searchedAgent.totalStakedFor.toNumber() / 1e9).toFixed(4)} SOL</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-blue-200">Vouches Received:</span>
+                          <span>{searchedAgent.vouchesReceived.toString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-blue-200">Vouches Given:</span>
+                          <span>{searchedAgent.vouchesGiven.toString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-blue-200">Disputes Lost:</span>
+                          <span className="text-red-400">{searchedAgent.disputesLost.toString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-blue-200">Registered:</span>
+                          <span>{formatTimestamp(searchedAgent.registeredAt)}</span>
+                        </div>
+                        <div className="mt-4 p-3 bg-black/20 rounded">
+                          <span className="text-blue-200 text-sm">Metadata: </span>
+                          <a 
+                            href={searchedAgent.metadataUri} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:underline text-sm break-all"
+                          >
+                            {searchedAgent.metadataUri}
+                          </a>
+                        </div>
+                      </div>
+                      
+                      {agentProfile && (
+                        <button
+                          onClick={() => {
+                            setVoucheeAddress(searchAddress);
+                            setActiveTab('vouch');
+                          }}
+                          className="w-full mt-4 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+                        >
+                          Vouch for this Agent →
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Disputes Tab */}
+            {activeTab === 'disputes' && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">⚖️ Open Dispute</h2>
+                <p className="text-blue-200 mb-4">
+                  Challenge a vouch if you believe the voucher endorsed a bad actor. Requires a dispute bond (configured in program).
+                </p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-white mb-2">Vouch Account Address:</label>
+                    <input
+                      type="text"
+                      value={disputeVouchAddress}
+                      onChange={(e) => setDisputeVouchAddress(e.target.value)}
+                      placeholder="Public key of the vouch account to dispute"
+                      className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                    />
+                    <p className="text-sm text-blue-200 mt-1">
+                      Tip: You can find vouch account addresses by exploring an agent's vouches
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white mb-2">Evidence (URI):</label>
+                    <textarea
+                      value={disputeEvidence}
+                      onChange={(e) => setDisputeEvidence(e.target.value)}
+                      placeholder="URL to evidence (IPFS, GitHub, etc.) showing why this vouch is fraudulent"
+                      className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400 h-24"
+                    />
+                  </div>
+                  
+                  <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
+                    <p className="text-yellow-200 text-sm">
+                      ⚠️ <strong>Warning:</strong> Opening a dispute requires a bond. If your dispute is rejected, you may lose your bond. Only dispute vouches with strong evidence.
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={handleDispute}
+                    disabled={loading}
+                    className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition"
+                  >
+                    {loading ? 'Opening Dispute...' : 'Open Dispute'}
+                  </button>
+                </div>
+
+                {vouches.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-xl font-bold text-white mb-4">Your Vouches</h3>
+                    <div className="space-y-2">
+                      {vouches.map((vouch, idx) => (
+                        <div key={idx} className="bg-black/30 rounded p-4 text-white">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="text-sm text-blue-200">Vouch Account:</p>
+                              <p className="font-mono text-xs break-all">{vouch.publicKey.toString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Status Messages */}
+            {status && (
+              <div className={`backdrop-blur-lg rounded-lg p-4 ${
+                status.includes('Error') || status.includes('not found')
+                  ? 'bg-red-900/30 border border-red-400/50'
+                  : 'bg-green-900/30 border border-green-400/50'
+              }`}>
+                <p className={`font-mono text-sm break-all ${
+                  status.includes('Error') || status.includes('not found')
+                    ? 'text-red-200'
+                    : 'text-green-200'
+                }`}>{status}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
