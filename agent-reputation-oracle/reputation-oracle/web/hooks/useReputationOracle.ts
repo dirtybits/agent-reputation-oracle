@@ -139,7 +139,7 @@ export function useReputationOracle() {
     
     const agentProfile = getAgentPDA(agentKey);
     try {
-      const account = await program.account.agentProfile.fetch(agentProfile);
+      const account = await (program.account as any).agentProfile.fetch(agentProfile);
       return account;
     } catch {
       return null;
@@ -151,7 +151,7 @@ export function useReputationOracle() {
     
     const vouchAccount = getVouchPDA(voucher, vouchee);
     try {
-      const account = await program.account.vouch.fetch(vouchAccount);
+      const account = await (program.account as any).vouch.fetch(vouchAccount);
       return account;
     } catch {
       return null;
@@ -162,7 +162,7 @@ export function useReputationOracle() {
     if (!program) return [];
     
     try {
-      const vouches = await program.account.vouch.all([
+      const vouches = await (program.account as any).vouch.all([
         {
           memcmp: {
             offset: 8, // Discriminator
