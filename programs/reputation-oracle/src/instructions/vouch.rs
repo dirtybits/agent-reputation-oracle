@@ -76,6 +76,8 @@ pub fn handler(
     vouch.stake_amount = stake_amount;
     vouch.created_at = clock.unix_timestamp;
     vouch.status = VouchStatus::Active;
+    vouch.cumulative_revenue = 0; // Initialize marketplace revenue tracking
+    vouch.last_payout_at = clock.unix_timestamp;
     vouch.bump = ctx.bumps.vouch;
     
     // Update profiles

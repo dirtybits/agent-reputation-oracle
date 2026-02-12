@@ -59,4 +59,32 @@ pub mod reputation_oracle {
     ) -> Result<()> {
         instructions::resolve_dispute::handler(ctx, ruling)
     }
+
+    pub fn create_skill_listing(
+        ctx: Context<CreateSkillListing>,
+        skill_id: String,
+        skill_uri: String,
+        name: String,
+        description: String,
+        price_lamports: u64,
+    ) -> Result<()> {
+        instructions::create_skill_listing::handler(
+            ctx,
+            skill_id,
+            skill_uri,
+            name,
+            description,
+            price_lamports,
+        )
+    }
+
+    pub fn purchase_skill(ctx: Context<PurchaseSkill>) -> Result<()> {
+        instructions::purchase_skill::handler(ctx)
+    }
+
+    pub fn purchase_skill_with_distribution(
+        ctx: Context<PurchaseSkillWithDistribution>,
+    ) -> Result<()> {
+        instructions::purchase_skill::handler_with_distribution(ctx)
+    }
 }
