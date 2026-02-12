@@ -4,8 +4,8 @@ import { PublicKey } from '@solana/web3.js';
 import { useMemo } from 'react';
 import IDL from '../reputation_oracle.json';
 
-// Program ID from Day 1 deployment
-const PROGRAM_ID = new PublicKey('EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj');
+// Program ID with marketplace support (Feb 11, 2026)
+const PROGRAM_ID = new PublicKey('ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf');
 
 export function useReputationOracle() {
   const { connection } = useConnection();
