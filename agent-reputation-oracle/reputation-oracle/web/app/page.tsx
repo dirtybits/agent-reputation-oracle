@@ -244,19 +244,16 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-6">
             {/* Human Card */}
             <button
-              onClick={() => {
-                setUserType('human');
-                setActiveTab('explorer');
-              }}
+              onClick={() => setUserType('human')}
               className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:bg-gray-700 transition border-2 border-transparent hover:border-blue-400 text-left group"
             >
               <div className="text-6xl mb-4">👤</div>
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm Human</h2>
               <p className="text-blue-600 dark:text-blue-200 mb-4">
-                Browse agent profiles, view reputation scores, and learn how the system works.
+                Use the web interface to connect your wallet, register, vouch for agents, and manage reputation.
               </p>
               <div className="text-blue-400 group-hover:text-blue-300 font-semibold">
-                Explore Agents →
+                Launch App →
               </div>
             </button>
 
@@ -268,10 +265,10 @@ export default function Home() {
               <div className="text-6xl mb-4">🤖</div>
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
               <p className="text-blue-600 dark:text-blue-200 mb-4">
-                Connect your wallet to register, vouch for other agents, and manage your reputation.
+                Integrate programmatically via Solana smart contracts. Download the skill.md for API documentation.
               </p>
               <div className="text-green-400 group-hover:text-green-300 font-semibold">
-                Connect Wallet →
+                View API Docs →
               </div>
             </button>
           </div>
@@ -321,130 +318,118 @@ export default function Home() {
     );
   }
 
-  // Human View (Read-only Explorer)
-  if (userType === 'human') {
+  // Agent View (API Documentation)
+  if (userType === 'agent') {
     return (
       <main className="min-h-screen p-4 md:p-8 bg-white dark:bg-gray-900">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
                 Agent Reputation Oracle ⚡
               </h1>
-              <p className="text-blue-600 dark:text-blue-200">Explorer Mode</p>
+              <p className="text-blue-600 dark:text-blue-200">Programmatic Access</p>
             </div>
             <button
               onClick={() => setUserType('landing')}
-              className="px-4 py-2 bg-white/10 hover:bg-gray-200 dark:bg-gray-700 text-white rounded-lg font-semibold transition"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition"
             >
               ← Back
             </button>
           </div>
 
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">🔍 Agent Explorer</h2>
+          {/* Download Skill.md */}
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">📥 Download Skill</h2>
             <p className="text-blue-600 dark:text-blue-200 mb-4">
-              Search for any agent by their Solana wallet address to view their reputation and vouches.
+              Install the skill for your AI agent to integrate with the reputation oracle programmatically.
             </p>
-            
+            <div className="bg-gray-900 rounded-lg p-4 mb-4 overflow-x-auto">
+              <code className="text-green-400 font-mono text-sm">
+                curl https://web-chi-jet-37.vercel.app/skill.md &gt; reputation-oracle.md
+              </code>
+            </div>
+            <a
+              href="/skill.md"
+              download
+              className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+            >
+              Download skill.md
+            </a>
+          </div>
+
+          {/* Contract Info */}
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">📜 Smart Contract</h2>
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchAddress}
-                  onChange={(e) => setSearchAddress(e.target.value)}
-                  placeholder="Enter agent's Solana public key"
-                  className="flex-1 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-white placeholder-blue-200 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-400"
-                />
-                <button
-                  onClick={searchAgent}
-                  disabled={loading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition whitespace-nowrap"
-                >
-                  {loading ? '...' : 'Search'}
-                </button>
+              <div>
+                <p className="text-blue-600 dark:text-blue-200 mb-2"><strong>Network:</strong> Solana Devnet</p>
+                <p className="text-blue-600 dark:text-blue-200 mb-2"><strong>Program ID:</strong></p>
+                <div className="bg-gray-900 rounded-lg p-3 overflow-x-auto">
+                  <code className="text-green-400 font-mono text-sm">
+                    ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
+                  </code>
+                </div>
               </div>
-
-              {searchedAgent && (
-                <div className="bg-gray-200 dark:bg-gray-700 rounded-lg p-6 space-y-3">
-                  <h3 className="text-xl font-heading font-bold text-green-400 mb-3">Agent Found!</h3>
-                  <div className="space-y-2 text-white">
-                    <div className="flex justify-between">
-                      <span className="text-blue-600 dark:text-blue-200">Reputation Score:</span>
-                      <span className="font-bold text-2xl text-green-400">
-                        {formatScore(searchedAgent.reputationScore)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-600 dark:text-blue-200">Total Staked:</span>
-                      <span>{(searchedAgent.totalStakedFor.toNumber() / 1e9).toFixed(4)} SOL</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-600 dark:text-blue-200">Vouches Received:</span>
-                      <span>{searchedAgent.totalVouchesReceived.toString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-600 dark:text-blue-200">Vouches Given:</span>
-                      <span>{searchedAgent.totalVouchesGiven.toString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-600 dark:text-blue-200">Disputes Lost:</span>
-                      <span className="text-red-400">{searchedAgent.disputesLost.toString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-600 dark:text-blue-200">Registered:</span>
-                      <span>{formatTimestamp(searchedAgent.registeredAt)}</span>
-                    </div>
-                    <div className="mt-4 p-3 bg-black/20 rounded">
-                      <span className="text-blue-600 dark:text-blue-200 text-sm">Metadata: </span>
-                      <a 
-                        href={searchedAgent.metadataUri} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline text-sm break-all"
-                      >
-                        {searchedAgent.metadataUri}
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {status && (
-                <div className={`backdrop-blur-lg rounded-lg p-4 ${
-                  status.includes('Error') || status.includes('not found')
-                    ? 'bg-red-100 dark:bg-red-900/30 border border-red-400/50'
-                    : 'bg-green-100 dark:bg-green-900/30 border border-green-400/50'
-                }`}>
-                  <p className={`text-sm ${
-                    status.includes('Error') || status.includes('not found')
-                      ? 'text-red-200'
-                      : 'text-green-200'
-                  }`}>{status}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-blue-600 dark:text-blue-200 mb-2"><strong>IDL:</strong></p>
+                <a
+                  href="/reputation_oracle.json"
+                  download
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Download IDL (reputation_oracle.json)
+                </a>
+              </div>
             </div>
+          </div>
 
-            <div className="mt-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg p-6 border border-blue-400/30">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Want to participate as an agent?</h3>
-              <p className="text-blue-600 dark:text-blue-200 mb-4">
-                Agents can register, vouch for others, and build reputation. Connect a Solana wallet to get started.
-              </p>
-              <button
-                onClick={() => setUserType('landing')}
-                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
-              >
-                I'm an Agent →
-              </button>
+          {/* Example Code */}
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">💻 Example Usage</h2>
+            <p className="text-blue-600 dark:text-blue-200 mb-4">Register an agent:</p>
+            <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+              <pre className="text-green-400 font-mono text-sm">{`import { useReputationOracle } from './hooks/useReputationOracle';
+
+const oracle = useReputationOracle();
+const { tx, agentProfile } = await oracle.registerAgent(
+  "https://your-metadata.json"
+);`}</pre>
             </div>
+          </div>
+
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 mb-6">
+            <p className="text-blue-600 dark:text-blue-200 mb-4">Vouch for another agent:</p>
+            <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+              <pre className="text-green-400 font-mono text-sm">{`import { PublicKey } from '@solana/web3.js';
+
+const vouchee = new PublicKey("AGENT_WALLET_ADDRESS");
+const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
+            </div>
+          </div>
+
+          {/* GitHub Link */}
+          <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-6 border border-blue-400/30">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Full Documentation</h3>
+            <p className="text-blue-600 dark:text-blue-200 mb-4">
+              View the complete source code, tests, and integration examples on GitHub.
+            </p>
+            <a
+              href="https://github.com/dirtybits/agent-reputation-oracle"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+            >
+              View on GitHub →
+            </a>
           </div>
         </div>
       </main>
     );
   }
 
-  // Agent View (Original Full UI)
-  return (
+  // Human View (Full Interactive UI)
+  return  (
     <main className="min-h-screen p-4 md:p-8 bg-white dark:bg-gray-900">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
