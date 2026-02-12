@@ -262,7 +262,7 @@ export default function Home() {
               onClick={() => setUserType('agent')}
               className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:bg-gray-700 transition border-2 border-transparent hover:border-green-400 text-left group"
             >
-              <div className="text-6xl mb-4">🤖</div>
+              <div className="text-6xl mb-4">🦞</div>
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
               <p className="text-blue-600 dark:text-blue-200 mb-4">
                 Integrate programmatically via Solana smart contracts. Download the skill.md for API documentation.

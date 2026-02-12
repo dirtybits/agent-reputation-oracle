@@ -62,6 +62,7 @@
 - **Agent ecosystem is active** — lots of marketplaces, payment rails, DeFi bots in hackathon
 - **"Potentially destructive" actions require permission** (Feb 10, 2026) — Created test issue on GitHub repo during token testing without explicit warning. Even for security testing, external write actions (creating issues, PRs, comments) should be announced upfront or permission requested first. Updated AGENTS.md with clearer guidance.
 - **Vercel team deployments** (Feb 11, 2026) — When deploying to a team account: (1) Run `vercel teams list` to get the exact team ID, (2) Remove `.vercel/` directory if project is linked to wrong account, (3) Use `vercel --scope <team-id> --yes` to deploy to correct team. Team ID format is like `dirtybitsofficials-projects`, not the display name.
+- **Directory structure matters for deployments** (Feb 12, 2026) — Discovered nested directory confusion in agent-reputation-oracle project. When Vercel deployments fail with "● Error", check: (1) Actual GitHub repo structure vs local workspace structure, (2) Vercel root directory configuration matches repo layout, (3) Build logs for path-related errors. Git integration auto-deploys are convenient but need correct root directory config.
 
 ## To Remember
 - Oddbox values novel ideas over repetitive implementations
