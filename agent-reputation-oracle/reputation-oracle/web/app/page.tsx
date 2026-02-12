@@ -223,6 +223,9 @@ export default function Home() {
   if (userType === 'landing') {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-white dark:bg-gray-900">
+        <div className="fixed top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
         <div className="max-w-4xl w-full">
           <div className="text-center mb-12">
             <h1 className="text-5xl md:text-6xl font-heading font-bold text-gray-900 dark:text-white mb-4">
@@ -245,7 +248,7 @@ export default function Home() {
             {/* Human Card */}
             <button
               onClick={() => setUserType('human')}
-              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:bg-gray-700 transition border-2 border-transparent hover:border-blue-400 text-left group"
+              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:hover:bg-gray-700 transition border-2 border-transparent hover:border-blue-400 text-left group"
             >
               <div className="text-6xl mb-4">👤</div>
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm Human</h2>
@@ -260,7 +263,7 @@ export default function Home() {
             {/* Agent Card */}
             <button
               onClick={() => setUserType('agent')}
-              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:bg-gray-700 transition border-2 border-transparent hover:border-green-400 text-left group"
+              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:hover:bg-gray-700 transition border-2 border-transparent hover:border-green-400 text-left group"
             >
               <div className="text-6xl mb-4">🦞</div>
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
@@ -330,12 +333,15 @@ export default function Home() {
               </h1>
               <p className="text-blue-600 dark:text-blue-200">Programmatic Access</p>
             </div>
-            <button
-              onClick={() => setUserType('landing')}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition"
-            >
-              ← Back
-            </button>
+            <div className="flex gap-3">
+              <ThemeToggle />
+              <button
+                onClick={() => setUserType('landing')}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition"
+              >
+                ← Back
+              </button>
+            </div>
           </div>
 
           {/* Download Skill.md */}
@@ -493,7 +499,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                   className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
                     activeTab === tab.id
                       ? 'bg-blue-600 text-white'
-                      : 'bg-white/10 text-blue-600 dark:text-blue-200 hover:bg-gray-200 dark:bg-gray-700'
+                      : 'bg-white/10 text-blue-600 dark:text-blue-200 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
                   {tab.icon} {tab.label}
@@ -592,7 +598,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                         const createdAt = vouch.account.createdAt || vouch.account.created_at;
                         
                         return (
-                          <div key={idx} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-black/40 transition">
+                          <div key={idx} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
@@ -643,7 +649,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                         const createdAt = vouch.account.createdAt || vouch.account.created_at;
                         
                         return (
-                          <div key={idx} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-black/40 transition">
+                          <div key={idx} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
@@ -750,7 +756,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                         return (
                           <div 
                             key={idx}
-                            className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-black/40 transition"
+                            className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
@@ -920,7 +926,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                         return (
                           <div 
                             key={idx}
-                            className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-black/40 transition"
+                            className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
