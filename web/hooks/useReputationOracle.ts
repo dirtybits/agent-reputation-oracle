@@ -72,7 +72,7 @@ export function useReputationOracle() {
 
     const voucherProfile = getAgentPDA(wallet.publicKey);
     const voucheeProfile = getAgentPDA(voucheeKey);
-    const vouchAccount = getVouchPDA(wallet.publicKey, voucheeKey);
+    const vouchAccount = getVouchPDA(voucherProfile, voucheeProfile);
     const config = getConfigPDA();
 
     const tx = await program.methods
@@ -95,7 +95,7 @@ export function useReputationOracle() {
 
     const voucherProfile = getAgentPDA(wallet.publicKey);
     const voucheeProfile = getAgentPDA(voucheeKey);
-    const vouchAccount = getVouchPDA(wallet.publicKey, voucheeKey);
+    const vouchAccount = getVouchPDA(voucherProfile, voucheeProfile);
 
     const tx = await program.methods
       .revokeVouch()
