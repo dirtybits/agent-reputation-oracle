@@ -168,10 +168,30 @@ export default function Home() {
     
     try {
       const vouchee = new PublicKey(voucheeAddress);
+      console.log('Vouching for:', vouchee.toString());
+      console.log('Voucher (you):', publicKey?.toString());
+      
+      // Derive PDAs to show in logs
+      const voucherProfile = oracle.getAgentPDA(publicKey!);
+      const voucheeProfile = oracle.getAgentPDA(vouchee);
+      console.log('Voucher profile PDA:', voucherProfile.toString());
+      console.log('Vouchee profile PDA:', voucheeProfile.toString());
+      
+      // Check if vouchee profile exists first
+      const voucheeData = await oracle.getAgentProfile(vouchee);
+      if (!voucheeData) {
+        setStatus('Error: That agent is not registered yet. They need to register before you can vouch for them.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Vouchee profile found:', voucheeData);
+      
       const { tx } = await oracle.vouch(vouchee, parseFloat(vouchAmount));
       setStatus(`Vouch created! TX: ${tx}`);
       setTimeout(loadAgentProfile, 2000);
     } catch (error: any) {
+      console.error('Vouch error:', error);
       setStatus(`Error: ${error.message}`);
     } finally {
       setLoading(false);
