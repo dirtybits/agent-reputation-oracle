@@ -61,11 +61,6 @@ export function useReputationOracle() {
 
     const tx = await program.methods
       .registerAgent(metadataUri)
-      .accounts({
-        agent: wallet.publicKey,
-        agentProfile,
-        systemProgram: web3.SystemProgram.programId,
-      })
       .rpc();
 
     return { tx, agentProfile };
