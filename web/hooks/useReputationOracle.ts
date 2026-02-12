@@ -73,14 +73,15 @@ export function useReputationOracle() {
     const voucherProfile = getAgentPDA(wallet.publicKey);
     const voucheeProfile = getAgentPDA(voucheeKey);
     const vouchAccount = getVouchPDA(wallet.publicKey, voucheeKey);
+    const config = getConfigPDA();
 
     const tx = await program.methods
       .vouch(new BN(amount * web3.LAMPORTS_PER_SOL))
       .accounts({
         voucher: wallet.publicKey,
-        vouchee: voucheeKey,
         voucherProfile,
         voucheeProfile,
+        config,
         vouch: vouchAccount,
         systemProgram: web3.SystemProgram.programId,
       })
