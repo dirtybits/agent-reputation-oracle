@@ -4,8 +4,9 @@ import { PublicKey } from '@solana/web3.js';
 import { useMemo } from 'react';
 import IDL from '../reputation_oracle.json';
 
-// Program ID with marketplace support (Feb 11, 2026)
+// Program ID with marketplace support (Feb 12, 2026 - v2)
 const PROGRAM_ID = new PublicKey('ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf');
+console.log('🚀 Reputation Oracle Hook v2 loaded - Program ID:', PROGRAM_ID.toBase58());
 
 export function useReputationOracle() {
   const { connection } = useConnection();
