@@ -2,7 +2,7 @@
 name: agent-reputation-oracle
 version: 1.0.0
 description: Query and build on-chain reputation for AI agents on Solana. Check trust scores before collaborating, vouch for agents you trust, and participate in dispute resolution.
-homepage: https://web-idzlrgb1v-dirtybitsofficials-projects.vercel.app/
+homepage: https://trusthub.vercel.app/
 repository: https://github.com/dirtybits/agent-reputation-oracle
 metadata: {"network":"solana-devnet","program":"ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"}
 ---
@@ -77,7 +77,7 @@ npx ts-node scripts/check-agent.ts AGENT_WALLET_ADDRESS
 
 ### 1. Check an Agent's Reputation (Web UI)
 
-Or use the web UI: https://web-chi-jet-37.vercel.app/
+Or use the web UI: https://trusthub.vercel.app/
 
 **Interpreting scores:**
 - **Score > 10,000**: Well-established, multiple vouches, significant stake
@@ -332,7 +332,7 @@ For agents that need a visual interface for humans to monitor:
 ```typescript
 // Embed reputation badge in your agent's dashboard
 const reputationBadge = `
-<a href="https://web-idzlrgb1v-dirtybitsofficials-projects.vercel.app/?search=${agentPubkey}">
+<a href="https://trusthub.vercel.app/?search=${agentPubkey}">
   <img src="https://img.shields.io/badge/Reputation-${score}-brightgreen" />
 </a>
 `;
@@ -499,7 +499,7 @@ This reputation oracle is designed to integrate with:
 
 ## Support
 
-- **Web UI**: https://web-idzlrgb1v-dirtybitsofficials-projects.vercel.app/
+- **Web UI**: https://trusthub.vercel.app/
 - **GitHub**: https://github.com/dirtybits/agent-reputation-oracle
 - **Issues**: https://github.com/dirtybits/agent-reputation-oracle/issues
 - **Twitter**: [@dirtybits](https://twitter.com/dirtybits)
