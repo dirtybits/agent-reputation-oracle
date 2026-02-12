@@ -24,6 +24,8 @@ export default function Home() {
   const [disputeEvidence, setDisputeEvidence] = useState('');
   const [agentProfile, setAgentProfile] = useState<any>(null);
   const [vouches, setVouches] = useState<any[]>([]);
+  const [allAgents, setAllAgents] = useState<any[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
 
@@ -59,6 +61,31 @@ export default function Home() {
       console.error('Error loading vouches:', error);
     }
   };
+
+  const loadAllAgents = async () => {
+    setLoadingAgents(true);
+    try {
+      const agents = await oracle.getAllAgents();
+      // Sort by reputation score (highest first)
+      const sorted = agents.sort((a: any, b: any) => {
+        const scoreA = a.account.reputationScore?.toNumber?.() || a.account.reputationScore || 0;
+        const scoreB = b.account.reputationScore?.toNumber?.() || b.account.reputationScore || 0;
+        return scoreB - scoreA;
+      });
+      setAllAgents(sorted);
+    } catch (error) {
+      console.error('Error loading agents:', error);
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
+  // Load agents when vouch tab is activated
+  useEffect(() => {
+    if (activeTab === 'vouch' && connected && allAgents.length === 0) {
+      loadAllAgents();
+    }
+  }, [activeTab, connected]);
 
   const searchAgent = async () => {
     if (!searchAddress) {
@@ -539,43 +566,119 @@ export default function Home() {
             )}
 
             {activeTab === 'vouch' && agentProfile && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">Vouch for an Agent</h2>
-                <p className="text-blue-200 mb-4">
-                  Stake SOL to vouch for another agent's reputation. If they misbehave and lose a dispute, your stake gets slashed.
-                </p>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-white mb-2">Agent Address:</label>
-                    <input
-                      type="text"
-                      value={voucheeAddress}
-                      onChange={(e) => setVoucheeAddress(e.target.value)}
-                      placeholder="Agent's Solana public key"
-                      className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
-                    />
+              <div className="space-y-6">
+                {/* Vouch Form */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
+                  <h2 className="text-2xl font-bold text-white mb-4">Vouch for an Agent</h2>
+                  <p className="text-blue-200 mb-4">
+                    Stake SOL to vouch for another agent's reputation. If they misbehave and lose a dispute, your stake gets slashed.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-white mb-2">Agent Address:</label>
+                      <input
+                        type="text"
+                        value={voucheeAddress}
+                        onChange={(e) => setVoucheeAddress(e.target.value)}
+                        placeholder="Agent's Solana public key"
+                        className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white mb-2">Stake Amount (SOL):</label>
+                      <input
+                        type="number"
+                        value={vouchAmount}
+                        onChange={(e) => setVouchAmount(e.target.value)}
+                        min="0.01"
+                        step="0.01"
+                        className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={handleVouch}
+                      disabled={loading || !voucheeAddress}
+                      className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition"
+                    >
+                      {loading ? 'Creating Vouch...' : `Vouch with ${vouchAmount} SOL`}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Agent Directory */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-white">Registered Agents</h3>
+                    <button
+                      onClick={loadAllAgents}
+                      disabled={loadingAgents}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg text-sm font-semibold transition"
+                    >
+                      {loadingAgents ? 'Loading...' : 'Refresh'}
+                    </button>
                   </div>
                   
-                  <div>
-                    <label className="block text-white mb-2">Stake Amount (SOL):</label>
-                    <input
-                      type="number"
-                      value={vouchAmount}
-                      onChange={(e) => setVouchAmount(e.target.value)}
-                      min="0.01"
-                      step="0.01"
-                      className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
-                    />
-                  </div>
-                  
-                  <button
-                    onClick={handleVouch}
-                    disabled={loading}
-                    className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition"
-                  >
-                    {loading ? 'Creating Vouch...' : `Vouch with ${vouchAmount} SOL`}
-                  </button>
+                  {loadingAgents ? (
+                    <p className="text-blue-200">Loading agents...</p>
+                  ) : allAgents.length === 0 ? (
+                    <p className="text-blue-200">No agents found. Be the first to register!</p>
+                  ) : (
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {allAgents.map((agent: any, idx: number) => {
+                        const agentKey = agent.publicKey.toString();
+                        const isCurrentUser = agentKey === publicKey?.toString();
+                        
+                        return (
+                          <div 
+                            key={idx}
+                            className="bg-black/30 rounded-lg p-4 hover:bg-black/40 transition"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-lg font-bold text-green-400">
+                                    {formatScore(agent.account.reputationScore)}
+                                  </span>
+                                  <span className="text-xs text-blue-200">reputation</span>
+                                  {isCurrentUser && (
+                                    <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                                      You
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="font-mono text-xs text-blue-200 truncate mb-2">
+                                  {agentKey}
+                                </p>
+                                <div className="flex gap-4 text-xs text-white">
+                                  <span>
+                                    ⚡ {agent.account.totalVouchesReceived.toString()} vouches
+                                  </span>
+                                  <span>
+                                    💰 {(agent.account.totalStakedFor.toNumber() / 1e9).toFixed(2)} SOL
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {!isCurrentUser && (
+                                <button
+                                  onClick={() => {
+                                    setVoucheeAddress(agentKey);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  }}
+                                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition whitespace-nowrap"
+                                >
+                                  Vouch →
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

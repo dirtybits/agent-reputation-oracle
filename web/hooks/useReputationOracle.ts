@@ -172,6 +172,18 @@ export function useReputationOracle() {
     }
   };
 
+  const getAllAgents = async () => {
+    if (!program) return [];
+    
+    try {
+      const agents = await (program.account as any).agentProfile.all();
+      return agents;
+    } catch (error) {
+      console.error('Error fetching all agents:', error);
+      return [];
+    }
+  };
+
   return {
     program,
     provider,
@@ -182,6 +194,7 @@ export function useReputationOracle() {
     getAgentProfile,
     getVouch,
     getAllVouchesForAgent,
+    getAllAgents,
     getAgentPDA,
     getVouchPDA,
     getDisputePDA,
