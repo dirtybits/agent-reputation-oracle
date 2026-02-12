@@ -331,3 +331,236 @@ agent-reputation-oracle/
 
 *Last updated: Feb 10, 2026 11pm PST*
 *Status: Day 3 complete, moving into deployment phase*
+
+---
+
+## 💰 MARKETPLACE EVOLUTION (Feb 11, 22:19 PST)
+
+**BREAKTHROUGH INSIGHT:** Transform reputation oracle into revenue-generating skill marketplace!
+
+### The Vision
+
+Instead of just reputation scores, create a **secure marketplace** where:
+- Agents publish skill.md files with micropayment price ($0.50-$5)
+- Users/agents pay to download (SOL or x401 micropayments)
+- Revenue splits: **Author 60%** + **Vouchers 40%** (proportional to stake)
+- High-reputation skills earn passive income for authors + supporters
+- Vouchers profit from good skills, lose stake from malicious ones
+
+### Why This Changes Everything
+
+1. **Economic alignment** - Vouchers earn ongoing revenue from skills they vouch for
+2. **Solves supply chain attacks** - No one vouches for malicious skills (loses stake + future income)
+3. **Creates moat** - High-rep agents become valuable brands with recurring revenue
+4. **Network effects** - More vouches → more trust → more downloads → more revenue → stronger incentive to vouch for quality
+5. **Real utility** - Not just social scores, but actual income streams
+
+### Revenue Model
+
+```
+Example: Skill priced at $0.50 per download
+
+Purchase flow:
+├─ Author: 60% = $0.30
+├─ Vouchers: 40% = $0.20 (split proportional to stake weight)
+│   ├─ Voucher A (staked 0.5 SOL): $0.10
+│   └─ Voucher B (staked 0.5 SOL): $0.10
+└─ Protocol: 0% initially (add small % later for sustainability)
+
+Network effects:
+- 100 downloads = $30 author, $20 vouchers
+- 1000 downloads = $300 author, $200 vouchers
+- Popular skill = passive income machine
+```
+
+### Technical Architecture
+
+**New Smart Contract Accounts:**
+
+1. **SkillListing** (PDA per skill)
+```rust
+seeds = [b"skill", author.key().as_ref(), skill_id]
+
+{
+  author: Pubkey,
+  skill_uri: String,        // IPFS/Arweave hash
+  name: String,
+  description: String,
+  price_lamports: u64,
+  total_downloads: u64,
+  total_revenue: u64,
+  created_at: i64,
+  status: SkillStatus,      // Active, Suspended, Removed
+}
+```
+
+2. **Purchase** (PDA per download)
+```rust
+seeds = [b"purchase", buyer.key().as_ref(), skill_listing.key().as_ref()]
+
+{
+  buyer: Pubkey,
+  skill_listing: Pubkey,
+  purchased_at: i64,
+  price_paid: u64,
+}
+```
+
+3. **VoucherRevenue** (extends Vouch account)
+```rust
+// Add to existing Vouch account:
+{
+  cumulative_revenue: u64,  // Total earned from this vouch
+  last_payout_at: i64,
+}
+```
+
+**New Smart Contract Instructions:**
+
+1. `create_skill_listing` - Author publishes skill with metadata + price
+2. `purchase_skill` - Buyer pays, revenue distributed to author + vouchers
+3. `update_skill_listing` - Author can update metadata/price
+4. `suspend_skill_listing` - Admin/dispute resolution can suspend malicious skills
+5. `claim_voucher_revenue` - Vouchers withdraw accumulated earnings
+
+**Revenue Distribution Logic:**
+
+```rust
+fn distribute_revenue(
+  skill_listing: &SkillListing,
+  payment: u64,
+  author: &mut Account<AgentProfile>,
+  vouchee_profile: &Account<AgentProfile>
+) -> Result<()> {
+  let author_share = payment * 60 / 100;
+  let voucher_pool = payment * 40 / 100;
+  
+  // Pay author immediately
+  transfer_lamports(author, author_share)?;
+  
+  // Distribute to vouchers proportional to stake
+  let vouches = get_vouches_for_agent(vouchee_profile.authority)?;
+  let total_stake: u64 = vouches.iter().map(|v| v.stake_amount).sum();
+  
+  for vouch in vouches {
+    let voucher_share = (voucher_pool * vouch.stake_amount) / total_stake;
+    vouch.cumulative_revenue += voucher_share;
+  }
+  
+  Ok(())
+}
+```
+
+**Storage:**
+- Skill.md files: IPFS or Arweave (immutable, content-addressed)
+- Metadata: On-chain (name, description, price, author)
+- Access control: Purchase receipt = download permission
+
+**Payment Integration:**
+- Phase 1: Native SOL transfers (simple, works today)
+- Phase 2: x401 micropayment integration (lower fees, better UX)
+
+### Web UI Changes
+
+**New Pages:**
+
+1. **Marketplace** (`/marketplace`)
+   - Browse published skills
+   - Filter by: category, price, reputation, downloads
+   - Sort by: newest, popular, highest-rated
+   - Show author reputation + voucher count
+   - "Buy & Download" button
+
+2. **Publish Skill** (`/publish`)
+   - Upload skill.md file → IPFS
+   - Set name, description, category, tags
+   - Set price ($0.50, $1, $2, $5 preset options)
+   - Preview how revenue will split
+   - Submit → creates SkillListing on-chain
+
+3. **My Skills** (`/dashboard`)
+   - Skills I've published (downloads, revenue)
+   - Skills I've vouched for (earnings per vouch)
+   - Skills I've purchased (download again)
+   - Total earnings (author + voucher income)
+
+4. **Skill Detail** (`/skill/[id]`)
+   - Skill name, description, preview
+   - Author profile + reputation
+   - Voucher list (stakers + amounts)
+   - Download count, total revenue
+   - Reviews/ratings (future)
+   - "Buy for $X" button
+
+**Updated Components:**
+- Add "Marketplace" tab to main nav
+- Show "Total Earnings" in agent profile
+- "Vouch & Earn" CTA on skill pages
+- Revenue dashboard for authors
+
+### Implementation Timeline (34 hours remaining)
+
+**Phase 1: Smart Contract (6-8 hours)**
+- [ ] Design SkillListing + Purchase account structures
+- [ ] Implement create_skill_listing instruction
+- [ ] Implement purchase_skill with revenue distribution
+- [ ] Add cumulative_revenue to Vouch account
+- [ ] Write tests for marketplace instructions
+- [ ] Deploy updated program to devnet
+
+**Phase 2: Storage Integration (2-3 hours)**
+- [ ] IPFS integration (Pinata or NFT.Storage)
+- [ ] Upload skill.md → get IPFS hash
+- [ ] Store hash in SkillListing account
+- [ ] Download from IPFS after purchase
+
+**Phase 3: Web UI (8-10 hours)**
+- [ ] Marketplace browse page
+- [ ] Skill upload/publish flow
+- [ ] Purchase + download flow
+- [ ] Revenue dashboard
+- [ ] Skill detail pages
+
+**Phase 4: Polish & Test (4-6 hours)**
+- [ ] End-to-end purchase flow
+- [ ] Revenue distribution verification
+- [ ] UI/UX refinement
+- [ ] Update SKILL.md with marketplace docs
+- [ ] Update submission description
+
+**Phase 5: Documentation (2-3 hours)**
+- [ ] Demo video showing marketplace
+- [ ] Update README with marketplace section
+- [ ] Update Future Vision with network effects
+- [ ] Tweet/announce marketplace feature
+
+**Contingency:**
+- If tight on time: Ship Phase 1-2 (working contracts + basic UI)
+- Polish can happen in remaining hours
+- Marketplace is fully functional even if UI is minimal
+
+### Why This Wins
+
+**Original submission:** "Reputation oracle for agents" ← Useful but abstract
+
+**With marketplace:** "Revenue-generating secure skill marketplace" ← Tangible value proposition
+
+**For judges:**
+- Solves real problem (supply chain attacks)
+- Novel economic model (revenue-sharing vouches)
+- Network effects (self-reinforcing flywheel)
+- Immediate utility (agents can earn today)
+- Composable (other marketplaces can integrate)
+
+**For "Most Agentic" prize:**
+- Agents earn passive income
+- Agents self-police quality (voucher incentives)
+- Agents discover + install skills programmatically
+- Agent-first design (SKILL.md, API, CLI)
+
+This transforms us from "interesting infrastructure" to "must-have marketplace". Let's build it! ⚡
+
+---
+
+*Last updated: Feb 11, 2026 22:22 PST*
+*Status: MARKETPLACE BUILD IN PROGRESS*
