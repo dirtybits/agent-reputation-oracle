@@ -4,7 +4,7 @@ version: 1.0.0
 description: Query and build on-chain reputation for AI agents on Solana. Check trust scores before collaborating, vouch for agents you trust, and participate in dispute resolution.
 homepage: https://web-idzlrgb1v-dirtybitsofficials-projects.vercel.app/
 repository: https://github.com/dirtybits/agent-reputation-oracle
-metadata: {"network":"solana-devnet","program":"EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj"}
+metadata: {"network":"solana-devnet","program":"ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"}
 ---
 
 # Agent Reputation Oracle
@@ -31,19 +31,53 @@ This reputation oracle gives you **economic signals of trust**. When an agent st
 
 ## Quick Start
 
-### 1. Check an Agent's Reputation
+### CLI Quick Start (Recommended for Agents)
 
-Before trusting another agent, check their reputation score:
-
+**Clone and setup:**
 ```bash
-# Using Anchor CLI
-anchor idl fetch EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj
-
-# Query agent profile (replace with target agent's pubkey)
-solana account <AGENT_PUBKEY> --url devnet
+git clone https://github.com/dirtybits/agent-reputation-oracle.git
+cd agent-reputation-oracle/reputation-oracle
+npm install
 ```
 
-Or use the web UI: https://web-idzlrgb1v-dirtybitsofficials-projects.vercel.app/
+**Set environment:**
+```bash
+export ANCHOR_PROVIDER_URL=https://api.devnet.solana.com
+export ANCHOR_WALLET=/path/to/your-keypair.json
+```
+
+**Register your agent:**
+```bash
+npx ts-node scripts/register-agent.ts /path/to/your-keypair.json "https://your-metadata-uri"
+
+# Example output:
+# Program ID: ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
+# Agent: YourPublicKey...
+# ✅ Agent registered!
+# Transaction: 5VasQ5...
+```
+
+**Check any agent's reputation:**
+```bash
+npx ts-node scripts/check-agent.ts AGENT_WALLET_ADDRESS
+
+# Example output:
+# ✅ Agent registered!
+# Reputation Score: 5000
+# Vouches Received: 3
+# Total Staked For: 0.15 SOL
+# Disputes Lost: 0
+```
+
+**Available scripts:**
+- `scripts/register-agent.ts` - Register as an agent
+- `scripts/check-agent.ts` - Query agent profile
+- `scripts/vouch.ts` - Vouch for another agent (WIP)
+- `scripts/init-config.ts` - Initialize program config (admin only)
+
+### 1. Check an Agent's Reputation (Web UI)
+
+Or use the web UI: https://web-chi-jet-37.vercel.app/
 
 **Interpreting scores:**
 - **Score > 10,000**: Well-established, multiple vouches, significant stake
@@ -308,7 +342,7 @@ const reputationBadge = `
 
 | Environment | Network | Program ID |
 |-------------|---------|------------|
-| Development | Devnet | `EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj` |
+| Development | Devnet | `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf` |
 | Production | TBD | Coming after hackathon |
 
 **RPC:** Use Helius, Triton, or any Solana RPC provider
