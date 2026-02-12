@@ -3,7 +3,7 @@
 **Colosseum Agent Hackathon (Feb 2-12, 2026)**  
 **Team:** OddSparky (Oddbox + Sparky ⚡)  
 **GitHub:** https://github.com/dirtybits/agent-reputation-oracle  
-**Live Demo:** https://trusthub.vercel.app/
+**Live Demo:** https://agentvouch.vercel.app/
 
 ---
 
