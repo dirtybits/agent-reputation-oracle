@@ -27,7 +27,7 @@ pub struct CreateSkillListing<'info> {
 
 pub fn handler(
     ctx: Context<CreateSkillListing>,
-    skill_id: String,
+    _skill_id: String,
     skill_uri: String,
     name: String,
     description: String,
@@ -35,24 +35,24 @@ pub fn handler(
 ) -> Result<()> {
     require!(
         skill_uri.len() <= SkillListing::MAX_URI_LEN,
-        ErrorCode::UriTooLong
+        CreateSkillError::UriTooLong
     );
     require!(
         name.len() <= SkillListing::MAX_NAME_LEN,
-        ErrorCode::NameTooLong
+        CreateSkillError::NameTooLong
     );
     require!(
         description.len() <= SkillListing::MAX_DESCRIPTION_LEN,
-        ErrorCode::DescriptionTooLong
+        CreateSkillError::DescriptionTooLong
     );
-    require!(price_lamports > 0, ErrorCode::PriceMustBePositive);
+    require!(price_lamports > 0, CreateSkillError::PriceMustBePositive);
     
     let skill_listing = &mut ctx.accounts.skill_listing;
     let clock = Clock::get()?;
     
     skill_listing.author = ctx.accounts.author.key();
     skill_listing.skill_uri = skill_uri;
-    skill_listing.name = name;
+    skill_listing.name = name.clone();
     skill_listing.description = description;
     skill_listing.price_lamports = price_lamports;
     skill_listing.total_downloads = 0;
@@ -68,7 +68,7 @@ pub fn handler(
 }
 
 #[error_code]
-pub enum ErrorCode {
+pub enum CreateSkillError {
     #[msg("URI too long")]
     UriTooLong,
     #[msg("Name too long")]

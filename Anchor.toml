@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-reputation_oracle = "EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj"
+reputation_oracle = "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"
 
 [programs.devnet]
-reputation_oracle = "EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj"
+reputation_oracle = "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"
 
 [registry]
 url = "https://api.apr.dev"

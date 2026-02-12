@@ -6,7 +6,7 @@ pub mod instructions;
 use instructions::*;
 use state::DisputeRuling;
 
-declare_id!("EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj");
+declare_id!("ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf");
 
 #[program]
 pub mod reputation_oracle {
@@ -80,11 +80,5 @@ pub mod reputation_oracle {
 
     pub fn purchase_skill(ctx: Context<PurchaseSkill>) -> Result<()> {
         instructions::purchase_skill::handler(ctx)
-    }
-
-    pub fn purchase_skill_with_distribution(
-        ctx: Context<PurchaseSkillWithDistribution>,
-    ) -> Result<()> {
-        instructions::purchase_skill::handler_with_distribution(ctx)
     }
 }
