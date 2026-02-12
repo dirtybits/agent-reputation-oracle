@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
+import { ThemeProvider } from 'next-themes'
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -29,11 +30,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans`}>
-        <WalletContextProvider>
-          {children}
-        </WalletContextProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <WalletContextProvider>
+            {children}
+          </WalletContextProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

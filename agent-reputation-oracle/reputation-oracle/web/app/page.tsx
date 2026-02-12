@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PublicKey } from '@solana/web3.js';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 type UserType = 'landing' | 'human' | 'agent';
 type Tab = 'profile' | 'vouch' | 'explorer' | 'disputes';
@@ -221,20 +222,20 @@ export default function Home() {
   // Landing Page
   if (userType === 'landing') {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <main className="min-h-screen flex items-center justify-center p-4 bg-white dark:bg-gray-900">
         <div className="max-w-4xl w-full">
           <div className="text-center mb-12">
-            <h1 className="text-5xl md:text-6xl font-heading font-bold text-white mb-4">
+            <h1 className="text-5xl md:text-6xl font-heading font-bold text-gray-900 dark:text-white mb-4">
               Agent Reputation Oracle ⚡
             </h1>
-            <p className="text-xl text-blue-200 mb-2">
+            <p className="text-xl text-blue-600 dark:text-blue-200 mb-2">
               On-chain trust layer for AI agents on Solana
             </p>
             <a 
               href="https://github.com/dirtybits/agent-reputation-oracle" 
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-300 hover:text-blue-200 text-sm"
+              className="text-blue-300 hover:text-blue-600 dark:text-blue-200 text-sm"
             >
               GitHub →
             </a>
@@ -247,11 +248,11 @@ export default function Home() {
                 setUserType('human');
                 setActiveTab('explorer');
               }}
-              className="bg-white/10 backdrop-blur-lg rounded-lg p-8 hover:bg-white/20 transition border-2 border-transparent hover:border-blue-400 text-left group"
+              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:bg-gray-700 transition border-2 border-transparent hover:border-blue-400 text-left group"
             >
               <div className="text-6xl mb-4">👤</div>
-              <h2 className="text-2xl font-heading font-bold text-white mb-3">I'm Human</h2>
-              <p className="text-blue-200 mb-4">
+              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm Human</h2>
+              <p className="text-blue-600 dark:text-blue-200 mb-4">
                 Browse agent profiles, view reputation scores, and learn how the system works.
               </p>
               <div className="text-blue-400 group-hover:text-blue-300 font-semibold">
@@ -262,11 +263,11 @@ export default function Home() {
             {/* Agent Card */}
             <button
               onClick={() => setUserType('agent')}
-              className="bg-white/10 backdrop-blur-lg rounded-lg p-8 hover:bg-white/20 transition border-2 border-transparent hover:border-green-400 text-left group"
+              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:bg-gray-700 transition border-2 border-transparent hover:border-green-400 text-left group"
             >
               <div className="text-6xl mb-4">🤖</div>
-              <h2 className="text-2xl font-heading font-bold text-white mb-3">I'm an Agent</h2>
-              <p className="text-blue-200 mb-4">
+              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
+              <p className="text-blue-600 dark:text-blue-200 mb-4">
                 Connect your wallet to register, vouch for other agents, and manage your reputation.
               </p>
               <div className="text-green-400 group-hover:text-green-300 font-semibold">
@@ -279,11 +280,11 @@ export default function Home() {
             <div className="flex items-center gap-4 mb-4">
               <div className="text-4xl">🛍️</div>
               <div>
-                <h3 className="text-xl font-heading font-bold text-white">Skill Marketplace</h3>
+                <h3 className="text-xl font-heading font-bold text-gray-900 dark:text-white">Skill Marketplace</h3>
                 <p className="text-green-200 text-sm">Revenue-generating marketplace coming soon!</p>
               </div>
             </div>
-            <p className="text-blue-200 mb-4">
+            <p className="text-blue-600 dark:text-blue-200 mb-4">
               Buy and sell AI agent skills. Authors earn 60%, vouchers earn 40% of each sale. Economic security meets passive income.
             </p>
             <a
@@ -294,23 +295,23 @@ export default function Home() {
             </a>
           </div>
 
-          <div className="mt-8 bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30">
-            <h3 className="text-lg font-bold text-white mb-3">How It Works:</h3>
+          <div className="mt-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg p-6 border border-blue-400/30">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">How It Works:</h3>
             <div className="grid md:grid-cols-2 gap-4 text-blue-100">
               <div>
-                <div className="font-semibold text-white mb-1">✅ Register</div>
+                <div className="font-semibold text-gray-900 dark:text-white mb-1">✅ Register</div>
                 <div className="text-sm">Create your agent profile on-chain</div>
               </div>
               <div>
-                <div className="font-semibold text-white mb-1">⚡ Vouch</div>
+                <div className="font-semibold text-gray-900 dark:text-white mb-1">⚡ Vouch</div>
                 <div className="text-sm">Stake SOL to vouch for agents you trust</div>
               </div>
               <div>
-                <div className="font-semibold text-white mb-1">💰 Reputation</div>
+                <div className="font-semibold text-gray-900 dark:text-white mb-1">💰 Reputation</div>
                 <div className="text-sm">Earn reputation from vouches and time</div>
               </div>
               <div>
-                <div className="font-semibold text-white mb-1">⚖️ Disputes</div>
+                <div className="font-semibold text-gray-900 dark:text-white mb-1">⚖️ Disputes</div>
                 <div className="text-sm">Challenge bad vouches with evidence</div>
               </div>
             </div>
@@ -323,26 +324,26 @@ export default function Home() {
   // Human View (Read-only Explorer)
   if (userType === 'human') {
     return (
-      <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <main className="min-h-screen p-4 md:p-8 bg-white dark:bg-gray-900">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl md:text-4xl font-heading font-bold text-white mb-2">
+              <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
                 Agent Reputation Oracle ⚡
               </h1>
-              <p className="text-blue-200">Explorer Mode</p>
+              <p className="text-blue-600 dark:text-blue-200">Explorer Mode</p>
             </div>
             <button
               onClick={() => setUserType('landing')}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition"
+              className="px-4 py-2 bg-white/10 hover:bg-gray-200 dark:bg-gray-700 text-white rounded-lg font-semibold transition"
             >
               ← Back
             </button>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-            <h2 className="text-2xl font-heading font-bold text-white mb-4">🔍 Agent Explorer</h2>
-            <p className="text-blue-200 mb-4">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">🔍 Agent Explorer</h2>
+            <p className="text-blue-600 dark:text-blue-200 mb-4">
               Search for any agent by their Solana wallet address to view their reputation and vouches.
             </p>
             
@@ -353,7 +354,7 @@ export default function Home() {
                   value={searchAddress}
                   onChange={(e) => setSearchAddress(e.target.value)}
                   placeholder="Enter agent's Solana public key"
-                  className="flex-1 px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                  className="flex-1 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-white placeholder-blue-200 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-400"
                 />
                 <button
                   onClick={searchAgent}
@@ -365,37 +366,37 @@ export default function Home() {
               </div>
 
               {searchedAgent && (
-                <div className="bg-black/30 rounded-lg p-6 space-y-3">
+                <div className="bg-gray-200 dark:bg-gray-700 rounded-lg p-6 space-y-3">
                   <h3 className="text-xl font-heading font-bold text-green-400 mb-3">Agent Found!</h3>
                   <div className="space-y-2 text-white">
                     <div className="flex justify-between">
-                      <span className="text-blue-200">Reputation Score:</span>
+                      <span className="text-blue-600 dark:text-blue-200">Reputation Score:</span>
                       <span className="font-bold text-2xl text-green-400">
                         {formatScore(searchedAgent.reputationScore)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-200">Total Staked:</span>
+                      <span className="text-blue-600 dark:text-blue-200">Total Staked:</span>
                       <span>{(searchedAgent.totalStakedFor.toNumber() / 1e9).toFixed(4)} SOL</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-200">Vouches Received:</span>
+                      <span className="text-blue-600 dark:text-blue-200">Vouches Received:</span>
                       <span>{searchedAgent.totalVouchesReceived.toString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-200">Vouches Given:</span>
+                      <span className="text-blue-600 dark:text-blue-200">Vouches Given:</span>
                       <span>{searchedAgent.totalVouchesGiven.toString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-200">Disputes Lost:</span>
+                      <span className="text-blue-600 dark:text-blue-200">Disputes Lost:</span>
                       <span className="text-red-400">{searchedAgent.disputesLost.toString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-blue-200">Registered:</span>
+                      <span className="text-blue-600 dark:text-blue-200">Registered:</span>
                       <span>{formatTimestamp(searchedAgent.registeredAt)}</span>
                     </div>
                     <div className="mt-4 p-3 bg-black/20 rounded">
-                      <span className="text-blue-200 text-sm">Metadata: </span>
+                      <span className="text-blue-600 dark:text-blue-200 text-sm">Metadata: </span>
                       <a 
                         href={searchedAgent.metadataUri} 
                         target="_blank" 
@@ -412,8 +413,8 @@ export default function Home() {
               {status && (
                 <div className={`backdrop-blur-lg rounded-lg p-4 ${
                   status.includes('Error') || status.includes('not found')
-                    ? 'bg-red-900/30 border border-red-400/50'
-                    : 'bg-green-900/30 border border-green-400/50'
+                    ? 'bg-red-100 dark:bg-red-900/30 border border-red-400/50'
+                    : 'bg-green-100 dark:bg-green-900/30 border border-green-400/50'
                 }`}>
                   <p className={`text-sm ${
                     status.includes('Error') || status.includes('not found')
@@ -424,9 +425,9 @@ export default function Home() {
               )}
             </div>
 
-            <div className="mt-8 bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30">
-              <h3 className="text-lg font-bold text-white mb-3">Want to participate as an agent?</h3>
-              <p className="text-blue-200 mb-4">
+            <div className="mt-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg p-6 border border-blue-400/30">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Want to participate as an agent?</h3>
+              <p className="text-blue-600 dark:text-blue-200 mb-4">
                 Agents can register, vouch for others, and build reputation. Connect a Solana wallet to get started.
               </p>
               <button
@@ -444,14 +445,14 @@ export default function Home() {
 
   // Agent View (Original Full UI)
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <main className="min-h-screen p-4 md:p-8 bg-white dark:bg-gray-900">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-bold text-white mb-2">
+            <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
               Agent Reputation Oracle ⚡
             </h1>
-            <p className="text-blue-200">
+            <p className="text-blue-600 dark:text-blue-200">
               On-chain reputation system for AI agents on Solana
             </p>
             <div className="flex gap-4 mt-1">
@@ -459,31 +460,34 @@ export default function Home() {
                 href="https://github.com/dirtybits/agent-reputation-oracle" 
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-300 hover:text-blue-200 text-sm"
+                className="text-blue-300 hover:text-blue-600 dark:text-blue-200 text-sm"
               >
                 GitHub →
               </a>
               <button
                 onClick={() => setUserType('landing')}
-                className="text-blue-300 hover:text-blue-200 text-sm"
+                className="text-blue-300 hover:text-blue-600 dark:text-blue-200 text-sm"
               >
                 ← Back to Landing
               </button>
             </div>
           </div>
-          <WalletMultiButton />
+          <div className="flex gap-3">
+            <ThemeToggle />
+            <WalletMultiButton />
+          </div>
         </div>
 
         {!connected ? (
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center">
-            <p className="text-xl text-white mb-4">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 text-center">
+            <p className="text-xl text-gray-900 dark:text-white mb-4">
               Connect your wallet to get started
             </p>
-            <p className="text-blue-200 mb-6">
+            <p className="text-blue-600 dark:text-blue-200 mb-6">
               Register as an agent, vouch for others, or view reputation scores
             </p>
-            <div className="bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30 text-left max-w-2xl mx-auto">
-              <h3 className="text-lg font-bold text-white mb-3">How It Works:</h3>
+            <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-6 border border-blue-400/30 text-left max-w-2xl mx-auto">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">How It Works:</h3>
               <ul className="space-y-2 text-blue-100">
                 <li>✅ <strong>Register</strong> - Create your agent profile on-chain</li>
                 <li>⚡ <strong>Vouch</strong> - Stake SOL to vouch for other agents you trust</li>
@@ -504,7 +508,7 @@ export default function Home() {
                   className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
                     activeTab === tab.id
                       ? 'bg-blue-600 text-white'
-                      : 'bg-white/10 text-blue-200 hover:bg-white/20'
+                      : 'bg-white/10 text-blue-600 dark:text-blue-200 hover:bg-gray-200 dark:bg-gray-700'
                   }`}
                 >
                   {tab.icon} {tab.label}
@@ -514,41 +518,41 @@ export default function Home() {
 
             {activeTab === 'profile' && (
               <>
-                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                  <h2 className="text-2xl font-heading font-bold text-white mb-4">Your Agent Profile</h2>
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">Your Agent Profile</h2>
                   
                   {loading && !agentProfile ? (
-                    <p className="text-blue-200">Loading...</p>
+                    <p className="text-blue-600 dark:text-blue-200">Loading...</p>
                   ) : agentProfile ? (
                     <div className="space-y-3 text-white">
                       <div className="flex justify-between">
-                        <span className="text-blue-200">Reputation Score:</span>
+                        <span className="text-blue-600 dark:text-blue-200">Reputation Score:</span>
                         <span className="font-bold text-2xl text-green-400">
                           {formatScore(agentProfile.reputationScore)}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-blue-200">Total Staked:</span>
+                        <span className="text-blue-600 dark:text-blue-200">Total Staked:</span>
                         <span>{(agentProfile.totalStakedFor.toNumber() / 1e9).toFixed(4)} SOL</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-blue-200">Vouches Received:</span>
+                        <span className="text-blue-600 dark:text-blue-200">Vouches Received:</span>
                         <span>{agentProfile.totalVouchesReceived.toString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-blue-200">Vouches Given:</span>
+                        <span className="text-blue-600 dark:text-blue-200">Vouches Given:</span>
                         <span>{agentProfile.totalVouchesGiven.toString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-blue-200">Disputes Lost:</span>
+                        <span className="text-blue-600 dark:text-blue-200">Disputes Lost:</span>
                         <span className="text-red-400">{agentProfile.disputesLost.toString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-blue-200">Registered:</span>
+                        <span className="text-blue-600 dark:text-blue-200">Registered:</span>
                         <span>{formatTimestamp(agentProfile.registeredAt)}</span>
                       </div>
                       <div className="mt-4 p-3 bg-black/20 rounded">
-                        <span className="text-blue-200 text-sm">Metadata: </span>
+                        <span className="text-blue-600 dark:text-blue-200 text-sm">Metadata: </span>
                         <a 
                           href={agentProfile.metadataUri} 
                           target="_blank" 
@@ -561,18 +565,18 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-blue-200">You're not registered as an agent yet.</p>
+                      <p className="text-blue-600 dark:text-blue-200">You're not registered as an agent yet.</p>
                       
                       <div>
-                        <label className="block text-white mb-2">Metadata URI (optional):</label>
+                        <label className="block text-gray-900 dark:text-white mb-2">Metadata URI (optional):</label>
                         <input
                           type="text"
                           value={metadataUri}
                           onChange={(e) => setMetadataUri(e.target.value)}
                           placeholder="https://your-metadata.json or ipfs://..."
-                          className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                          className="w-full px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-white placeholder-blue-200 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-400"
                         />
-                        <p className="text-sm text-blue-200 mt-1">
+                        <p className="text-sm text-blue-600 dark:text-blue-200 mt-1">
                           Leave empty or enter a URL to metadata describing your agent
                         </p>
                       </div>
@@ -590,9 +594,9 @@ export default function Home() {
 
                 {/* Agents Vouching For You */}
                 {agentProfile && vouchesReceived.length > 0 && (
-                  <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                    <h2 className="text-2xl font-heading font-bold text-white mb-4">🤝 Agents Vouching For You</h2>
-                    <p className="text-blue-200 mb-4">
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+                    <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">🤝 Agents Vouching For You</h2>
+                    <p className="text-blue-600 dark:text-blue-200 mb-4">
                       {vouchesReceived.length} {vouchesReceived.length === 1 ? 'agent is' : 'agents are'} staking SOL to vouch for you.
                     </p>
                     
@@ -603,16 +607,16 @@ export default function Home() {
                         const createdAt = vouch.account.createdAt || vouch.account.created_at;
                         
                         return (
-                          <div key={idx} className="bg-black/30 rounded-lg p-4 hover:bg-black/40 transition">
+                          <div key={idx} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-black/40 transition">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
                                   <span className="text-lg font-bold text-green-400">
                                     {(stakeAmount.toNumber() / 1e9).toFixed(4)} SOL
                                   </span>
-                                  <span className="text-xs text-blue-200">staked</span>
+                                  <span className="text-xs text-blue-600 dark:text-blue-200">staked</span>
                                 </div>
-                                <p className="font-mono text-xs text-blue-200 truncate mb-2">
+                                <p className="font-mono text-xs text-blue-600 dark:text-blue-200 truncate mb-2">
                                   {voucher.toString()}
                                 </p>
                                 <div className="flex gap-4 text-xs text-white">
@@ -641,9 +645,9 @@ export default function Home() {
 
                 {/* Agents You're Vouching For */}
                 {agentProfile && vouches.length > 0 && (
-                  <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                    <h2 className="text-2xl font-heading font-bold text-white mb-4">⚡ Agents You're Vouching For</h2>
-                    <p className="text-blue-200 mb-4">
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+                    <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">⚡ Agents You're Vouching For</h2>
+                    <p className="text-blue-600 dark:text-blue-200 mb-4">
                       You're currently staking SOL to vouch for {vouches.length} {vouches.length === 1 ? 'agent' : 'agents'}.
                     </p>
                     
@@ -654,16 +658,16 @@ export default function Home() {
                         const createdAt = vouch.account.createdAt || vouch.account.created_at;
                         
                         return (
-                          <div key={idx} className="bg-black/30 rounded-lg p-4 hover:bg-black/40 transition">
+                          <div key={idx} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-black/40 transition">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
                                   <span className="text-lg font-bold text-green-400">
                                     {(stakeAmount.toNumber() / 1e9).toFixed(4)} SOL
                                   </span>
-                                  <span className="text-xs text-blue-200">staked</span>
+                                  <span className="text-xs text-blue-600 dark:text-blue-200">staked</span>
                                 </div>
-                                <p className="font-mono text-xs text-blue-200 truncate mb-2">
+                                <p className="font-mono text-xs text-blue-600 dark:text-blue-200 truncate mb-2">
                                   {vouchee.toString()}
                                 </p>
                                 <div className="flex gap-4 text-xs text-white">
@@ -695,33 +699,33 @@ export default function Home() {
             {activeTab === 'vouch' && agentProfile && (
               <div className="space-y-6">
                 {/* Vouch Form */}
-                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                  <h2 className="text-2xl font-heading font-bold text-white mb-4">Vouch for an Agent</h2>
-                  <p className="text-blue-200 mb-4">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">Vouch for an Agent</h2>
+                  <p className="text-blue-600 dark:text-blue-200 mb-4">
                     Stake SOL to vouch for another agent's reputation. If they misbehave and lose a dispute, your stake gets slashed.
                   </p>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-white mb-2">Agent Wallet Address:</label>
+                      <label className="block text-gray-900 dark:text-white mb-2">Agent Wallet Address:</label>
                       <input
                         type="text"
                         value={voucheeAddress}
                         onChange={(e) => setVoucheeAddress(e.target.value)}
                         placeholder="Enter agent's wallet address (not profile PDA)"
-                        className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                        className="w-full px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-white placeholder-blue-200 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-400"
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-white mb-2">Stake Amount (SOL):</label>
+                      <label className="block text-gray-900 dark:text-white mb-2">Stake Amount (SOL):</label>
                       <input
                         type="number"
                         value={vouchAmount}
                         onChange={(e) => setVouchAmount(e.target.value)}
                         min="0.01"
                         step="0.01"
-                        className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                        className="w-full px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-white placeholder-blue-200 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-400"
                       />
                     </div>
                     
@@ -736,9 +740,9 @@ export default function Home() {
                 </div>
 
                 {/* Agent Directory */}
-                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-heading font-bold text-white">Registered Agents</h3>
+                    <h3 className="text-xl font-heading font-bold text-gray-900 dark:text-white">Registered Agents</h3>
                     <button
                       onClick={loadAllAgents}
                       disabled={loadingAgents}
@@ -749,9 +753,9 @@ export default function Home() {
                   </div>
                   
                   {loadingAgents ? (
-                    <p className="text-blue-200">Loading agents...</p>
+                    <p className="text-blue-600 dark:text-blue-200">Loading agents...</p>
                   ) : allAgents.length === 0 ? (
-                    <p className="text-blue-200">No agents found. Be the first to register!</p>
+                    <p className="text-blue-600 dark:text-blue-200">No agents found. Be the first to register!</p>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {allAgents.map((agent: any, idx: number) => {
@@ -761,7 +765,7 @@ export default function Home() {
                         return (
                           <div 
                             key={idx}
-                            className="bg-black/30 rounded-lg p-4 hover:bg-black/40 transition"
+                            className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-black/40 transition"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
@@ -769,14 +773,14 @@ export default function Home() {
                                   <span className="text-lg font-bold text-green-400">
                                     {formatScore(agent.account.reputationScore)}
                                   </span>
-                                  <span className="text-xs text-blue-200">reputation</span>
+                                  <span className="text-xs text-blue-600 dark:text-blue-200">reputation</span>
                                   {isCurrentUser && (
                                     <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
                                       You
                                     </span>
                                   )}
                                 </div>
-                                <p className="font-mono text-xs text-blue-200 truncate mb-2">
+                                <p className="font-mono text-xs text-blue-600 dark:text-blue-200 truncate mb-2">
                                   {agentKey}
                                 </p>
                                 <div className="flex gap-4 text-xs text-white">
@@ -811,8 +815,8 @@ export default function Home() {
             )}
 
             {activeTab === 'vouch' && !agentProfile && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                <h2 className="text-2xl font-heading font-bold text-white mb-4">Vouch for an Agent</h2>
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+                <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">Vouch for an Agent</h2>
                 <p className="text-yellow-300">
                   You must register as an agent before you can vouch for others. Go to the "My Profile" tab to register.
                 </p>
@@ -822,9 +826,9 @@ export default function Home() {
             {activeTab === 'explorer' && (
               <div className="space-y-6">
                 {/* Search Box */}
-                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                  <h2 className="text-2xl font-heading font-bold text-white mb-4">🔍 Search Agents</h2>
-                  <p className="text-blue-200 mb-4">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">🔍 Search Agents</h2>
+                  <p className="text-blue-600 dark:text-blue-200 mb-4">
                     Search for any agent by their Solana wallet address to view their reputation and vouches.
                   </p>
                   
@@ -835,7 +839,7 @@ export default function Home() {
                         value={searchAddress}
                         onChange={(e) => setSearchAddress(e.target.value)}
                         placeholder="Enter agent's Solana public key"
-                        className="flex-1 px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                        className="flex-1 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-white placeholder-blue-200 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-400"
                       />
                       <button
                         onClick={searchAgent}
@@ -847,37 +851,37 @@ export default function Home() {
                     </div>
 
                     {searchedAgent && (
-                      <div className="bg-black/30 rounded-lg p-6 space-y-3">
+                      <div className="bg-gray-200 dark:bg-gray-700 rounded-lg p-6 space-y-3">
                         <h3 className="text-xl font-heading font-bold text-green-400 mb-3">Agent Found!</h3>
                         <div className="space-y-2 text-white">
                           <div className="flex justify-between">
-                            <span className="text-blue-200">Reputation Score:</span>
+                            <span className="text-blue-600 dark:text-blue-200">Reputation Score:</span>
                             <span className="font-bold text-2xl text-green-400">
                               {formatScore(searchedAgent.reputationScore)}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-blue-200">Total Staked:</span>
+                            <span className="text-blue-600 dark:text-blue-200">Total Staked:</span>
                             <span>{(searchedAgent.totalStakedFor.toNumber() / 1e9).toFixed(4)} SOL</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-blue-200">Vouches Received:</span>
+                            <span className="text-blue-600 dark:text-blue-200">Vouches Received:</span>
                             <span>{searchedAgent.totalVouchesReceived.toString()}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-blue-200">Vouches Given:</span>
+                            <span className="text-blue-600 dark:text-blue-200">Vouches Given:</span>
                             <span>{searchedAgent.totalVouchesGiven.toString()}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-blue-200">Disputes Lost:</span>
+                            <span className="text-blue-600 dark:text-blue-200">Disputes Lost:</span>
                             <span className="text-red-400">{searchedAgent.disputesLost.toString()}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-blue-200">Registered:</span>
+                            <span className="text-blue-600 dark:text-blue-200">Registered:</span>
                             <span>{formatTimestamp(searchedAgent.registeredAt)}</span>
                           </div>
                           <div className="mt-4 p-3 bg-black/20 rounded">
-                            <span className="text-blue-200 text-sm">Metadata: </span>
+                            <span className="text-blue-600 dark:text-blue-200 text-sm">Metadata: </span>
                             <a 
                               href={searchedAgent.metadataUri} 
                               target="_blank" 
@@ -906,9 +910,9 @@ export default function Home() {
                 </div>
 
                 {/* Agent Directory */}
-                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-heading font-bold text-white">All Registered Agents</h3>
+                    <h3 className="text-xl font-heading font-bold text-gray-900 dark:text-white">All Registered Agents</h3>
                     <button
                       onClick={loadAllAgents}
                       disabled={loadingAgents}
@@ -919,9 +923,9 @@ export default function Home() {
                   </div>
                   
                   {loadingAgents ? (
-                    <p className="text-blue-200">Loading agents...</p>
+                    <p className="text-blue-600 dark:text-blue-200">Loading agents...</p>
                   ) : allAgents.length === 0 ? (
-                    <p className="text-blue-200">No agents found. Click "Load Agents" to fetch the directory.</p>
+                    <p className="text-blue-600 dark:text-blue-200">No agents found. Click "Load Agents" to fetch the directory.</p>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {allAgents.map((agent: any, idx: number) => {
@@ -931,7 +935,7 @@ export default function Home() {
                         return (
                           <div 
                             key={idx}
-                            className="bg-black/30 rounded-lg p-4 hover:bg-black/40 transition"
+                            className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 hover:bg-black/40 transition"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
@@ -939,14 +943,14 @@ export default function Home() {
                                   <span className="text-lg font-bold text-green-400">
                                     {formatScore(agent.account.reputationScore)}
                                   </span>
-                                  <span className="text-xs text-blue-200">reputation</span>
+                                  <span className="text-xs text-blue-600 dark:text-blue-200">reputation</span>
                                   {isCurrentUser && (
                                     <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
                                       You
                                     </span>
                                   )}
                                 </div>
-                                <p className="font-mono text-xs text-blue-200 truncate mb-2">
+                                <p className="font-mono text-xs text-blue-600 dark:text-blue-200 truncate mb-2">
                                   {agent.account.authority.toString()}
                                 </p>
                                 <div className="flex gap-4 text-xs text-white">
@@ -981,38 +985,38 @@ export default function Home() {
             )}
 
             {activeTab === 'disputes' && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                <h2 className="text-2xl font-heading font-bold text-white mb-4">⚖️ Open Dispute</h2>
-                <p className="text-blue-200 mb-4">
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+                <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">⚖️ Open Dispute</h2>
+                <p className="text-blue-600 dark:text-blue-200 mb-4">
                   Challenge a vouch if you believe the voucher endorsed a bad actor. Requires a dispute bond (configured in program).
                 </p>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-white mb-2">Vouch Account Address:</label>
+                    <label className="block text-gray-900 dark:text-white mb-2">Vouch Account Address:</label>
                     <input
                       type="text"
                       value={disputeVouchAddress}
                       onChange={(e) => setDisputeVouchAddress(e.target.value)}
                       placeholder="Public key of the vouch account to dispute"
-                      className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
+                      className="w-full px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-white placeholder-blue-200 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-400"
                     />
-                    <p className="text-sm text-blue-200 mt-1">
+                    <p className="text-sm text-blue-600 dark:text-blue-200 mt-1">
                       Tip: You can find vouch account addresses by exploring an agent's vouches
                     </p>
                   </div>
                   
                   <div>
-                    <label className="block text-white mb-2">Evidence (URI):</label>
+                    <label className="block text-gray-900 dark:text-white mb-2">Evidence (URI):</label>
                     <textarea
                       value={disputeEvidence}
                       onChange={(e) => setDisputeEvidence(e.target.value)}
                       placeholder="URL to evidence (IPFS, GitHub, etc.) showing why this vouch is fraudulent"
-                      className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400 h-24"
+                      className="w-full px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-white placeholder-blue-200 border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-400 h-24"
                     />
                   </div>
                   
-                  <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
                     <p className="text-yellow-200 text-sm">
                       ⚠️ <strong>Warning:</strong> Opening a dispute requires a bond. If your dispute is rejected, you may lose your bond. Only dispute vouches with strong evidence.
                     </p>
@@ -1029,13 +1033,13 @@ export default function Home() {
 
                 {vouches.length > 0 && (
                   <div className="mt-8">
-                    <h3 className="text-xl font-heading font-bold text-white mb-4">Your Vouches</h3>
+                    <h3 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-4">Your Vouches</h3>
                     <div className="space-y-2">
                       {vouches.map((vouch, idx) => (
-                        <div key={idx} className="bg-black/30 rounded p-4 text-white">
+                        <div key={idx} className="bg-gray-200 dark:bg-gray-700 rounded p-4 text-white">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <p className="text-sm text-blue-200">Vouch Account:</p>
+                              <p className="text-sm text-blue-600 dark:text-blue-200">Vouch Account:</p>
                               <p className="font-mono text-xs break-all">{vouch.publicKey.toString()}</p>
                             </div>
                           </div>
@@ -1050,8 +1054,8 @@ export default function Home() {
             {status && (
               <div className={`backdrop-blur-lg rounded-lg p-4 ${
                 status.includes('Error') || status.includes('not found')
-                  ? 'bg-red-900/30 border border-red-400/50'
-                  : 'bg-green-900/30 border border-green-400/50'
+                  ? 'bg-red-100 dark:bg-red-900/30 border border-red-400/50'
+                  : 'bg-green-100 dark:bg-green-900/30 border border-green-400/50'
               }`}>
                 <p className={`font-mono text-sm break-all ${
                   status.includes('Error') || status.includes('not found')
