@@ -4,8 +4,9 @@ import { PublicKey } from '@solana/web3.js';
 import { useMemo } from 'react';
 import IDL from '../reputation_oracle.json';
 
-// Program ID from Day 1 deployment
-const PROGRAM_ID = new PublicKey('EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj');
+// Program ID with marketplace support (Feb 12, 2026 - v2)
+const PROGRAM_ID = new PublicKey('ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf');
+console.log('🚀 Reputation Oracle Hook v2 loaded - Program ID:', PROGRAM_ID.toBase58());
 
 export function useReputationOracle() {
   const { connection } = useConnection();
@@ -61,11 +62,6 @@ export function useReputationOracle() {
 
     const tx = await program.methods
       .registerAgent(metadataUri)
-      .accounts({
-        agent: wallet.publicKey,
-        agentProfile,
-        systemProgram: web3.SystemProgram.programId,
-      })
       .rpc();
 
     return { tx, agentProfile };
@@ -76,15 +72,16 @@ export function useReputationOracle() {
 
     const voucherProfile = getAgentPDA(wallet.publicKey);
     const voucheeProfile = getAgentPDA(voucheeKey);
-    const vouchAccount = getVouchPDA(wallet.publicKey, voucheeKey);
+    const vouchAccount = getVouchPDA(voucherProfile, voucheeProfile);
+    const config = getConfigPDA();
 
     const tx = await program.methods
       .vouch(new BN(amount * web3.LAMPORTS_PER_SOL))
       .accounts({
         voucher: wallet.publicKey,
-        vouchee: voucheeKey,
         voucherProfile,
         voucheeProfile,
+        config,
         vouch: vouchAccount,
         systemProgram: web3.SystemProgram.programId,
       })
@@ -98,7 +95,7 @@ export function useReputationOracle() {
 
     const voucherProfile = getAgentPDA(wallet.publicKey);
     const voucheeProfile = getAgentPDA(voucheeKey);
-    const vouchAccount = getVouchPDA(wallet.publicKey, voucheeKey);
+    const vouchAccount = getVouchPDA(voucherProfile, voucheeProfile);
 
     const tx = await program.methods
       .revokeVouch()
@@ -165,13 +162,43 @@ export function useReputationOracle() {
       const vouches = await (program.account as any).vouch.all([
         {
           memcmp: {
-            offset: 8, // Discriminator
+            offset: 8, // Discriminator + voucher field
             bytes: agentKey.toBase58(),
           },
         },
       ]);
       return vouches;
     } catch {
+      return [];
+    }
+  };
+
+  const getAllVouchesReceivedByAgent = async (agentKey: PublicKey) => {
+    if (!program) return [];
+    
+    try {
+      const vouches = await (program.account as any).vouch.all([
+        {
+          memcmp: {
+            offset: 40, // Discriminator (8) + voucher pubkey (32) = vouchee field
+            bytes: agentKey.toBase58(),
+          },
+        },
+      ]);
+      return vouches;
+    } catch {
+      return [];
+    }
+  };
+
+  const getAllAgents = async () => {
+    if (!program) return [];
+    
+    try {
+      const agents = await (program.account as any).agentProfile.all();
+      return agents;
+    } catch (error) {
+      console.error('Error fetching all agents:', error);
       return [];
     }
   };
@@ -186,6 +213,8 @@ export function useReputationOracle() {
     getAgentProfile,
     getVouch,
     getAllVouchesForAgent,
+    getAllVouchesReceivedByAgent,
+    getAllAgents,
     getAgentPDA,
     getVouchPDA,
     getDisputePDA,

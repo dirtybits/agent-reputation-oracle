@@ -1,5 +1,5 @@
 {
-  "address": "EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj",
+  "address": "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf",
   "metadata": {
     "name": "reputation_oracle",
     "version": "0.1.0",
@@ -7,6 +7,99 @@
     "description": "Created with Anchor"
   },
   "instructions": [
+    {
+      "name": "create_skill_listing",
+      "discriminator": [
+        101,
+        61,
+        26,
+        213,
+        47,
+        75,
+        13,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "skill_listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  107,
+                  105,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              },
+              {
+                "kind": "arg",
+                "path": "skill_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "skill_id",
+          "type": "string"
+        },
+        {
+          "name": "skill_uri",
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "price_lamports",
+          "type": "u64"
+        }
+      ]
+    },
     {
       "name": "initialize_config",
       "discriminator": [
@@ -143,6 +236,90 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "purchase_skill",
+      "discriminator": [
+        70,
+        41,
+        105,
+        156,
+        159,
+        169,
+        215,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "skill_listing",
+          "writable": true
+        },
+        {
+          "name": "purchase",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  114,
+                  99,
+                  104,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "writable": true
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing.author",
+                "account": "SkillListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "register_agent",
@@ -587,6 +764,19 @@
       ]
     },
     {
+      "name": "Purchase",
+      "discriminator": [
+        33,
+        203,
+        1,
+        252,
+        231,
+        228,
+        8,
+        67
+      ]
+    },
+    {
       "name": "ReputationConfig",
       "discriminator": [
         46,
@@ -597,6 +787,19 @@
         60,
         242,
         75
+      ]
+    },
+    {
+      "name": "SkillListing",
+      "discriminator": [
+        133,
+        247,
+        251,
+        51,
+        57,
+        31,
+        57,
+        30
       ]
     },
     {
@@ -616,13 +819,23 @@
   "errors": [
     {
       "code": 6000,
-      "name": "StakeBelowMinimum",
-      "msg": "Stake amount is below minimum"
+      "name": "DisputeNotOpen",
+      "msg": "Dispute is not open"
     },
     {
       "code": 6001,
-      "name": "CannotVouchForSelf",
-      "msg": "Cannot vouch for yourself"
+      "name": "VouchNotDisputed",
+      "msg": "Vouch is not disputed"
+    },
+    {
+      "code": 6002,
+      "name": "UnauthorizedResolver",
+      "msg": "Unauthorized resolver"
+    },
+    {
+      "code": 6003,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds"
     }
   ],
   "types": [
@@ -755,6 +968,34 @@
       }
     },
     {
+      "name": "Purchase",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "purchased_at",
+            "type": "i64"
+          },
+          {
+            "name": "price_paid",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "ReputationConfig",
       "type": {
         "kind": "struct",
@@ -803,6 +1044,79 @@
       }
     },
     {
+      "name": "SkillListing",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "skill_uri",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "price_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "total_downloads",
+            "type": "u64"
+          },
+          {
+            "name": "total_revenue",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "SkillStatus"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SkillStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Suspended"
+          },
+          {
+            "name": "Removed"
+          }
+        ]
+      }
+    },
+    {
       "name": "Vouch",
       "type": {
         "kind": "struct",
@@ -830,6 +1144,14 @@
                 "name": "VouchStatus"
               }
             }
+          },
+          {
+            "name": "cumulative_revenue",
+            "type": "u64"
+          },
+          {
+            "name": "last_payout_at",
+            "type": "i64"
           },
           {
             "name": "bump",

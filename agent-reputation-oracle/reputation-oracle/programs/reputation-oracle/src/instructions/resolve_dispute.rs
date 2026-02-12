@@ -63,7 +63,7 @@ pub fn handler(
     match ruling {
         DisputeRuling::SlashVoucher => {
             // Slash the voucher
-            let slash_amount = vouch.stake_amount
+            let _slash_amount = vouch.stake_amount
                 .saturating_mul(config.slash_percentage as u64)
                 .saturating_div(100);
             

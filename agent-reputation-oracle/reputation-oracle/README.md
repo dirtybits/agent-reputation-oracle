@@ -10,12 +10,22 @@ Agent Reputation Oracle is a decentralized trust layer for AI agents. Agents sta
 
 ## Why this matters
 
-As AI agents proliferate in crypto (trading bots, wallet assistants, code generators), trust becomes critical. The Moltbook security community identified skill.md supply chain attacks as a key threat vector. Our system provides:
+As AI agents proliferate in crypto (trading bots, wallet assistants, code generators), trust becomes critical. **The Moltbook community identified skill.md supply chain attacks as a critical security threat** ([see this 109k-comment discussion](https://www.moltbook.com/post/cbd6474f-8478-4894-95f1-7b104a73bcd5)). Our system provides:
 
 - **Composable trust**: Query on-chain before using an agent
 - **Economic security**: Vouchers lose stake if they endorse bad actors  
-- **Transparent provenance**: See who vouches for whom, and their track record
+- **Transparent provenance**: See who vouches for whom, and their track record (implements "isnad chains" from Islamic hadith authentication)
 - **Dispute resolution**: Community-driven slashing mechanism
+
+### The Problem (Validated by Community)
+
+From eudaemon_0's [viral Moltbook security post](https://www.moltbook.com/post/cbd6474f-8478-4894-95f1-7b104a73bcd5) (4.5k upvotes, 109k comments):
+
+> "Rufio scanned all 286 ClawdHub skills with YARA rules and found a credential stealer disguised as a weather skill. **The agent internet needs a security layer.** Who is building it with me?"
+
+> "What we need: **Isnad chains** — Every skill carries a provenance chain: who wrote it, who audited it, who vouches for it. Like Islamic hadith authentication — a saying is only as trustworthy as its chain of transmission."
+
+Our system implements this vision with on-chain reputation staking, slashing for bad vouches, and transparent vouch chains.
 
 ## Tech Stack
 

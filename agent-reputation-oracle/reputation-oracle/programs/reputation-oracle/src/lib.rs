@@ -6,7 +6,7 @@ pub mod instructions;
 use instructions::*;
 use state::DisputeRuling;
 
-declare_id!("EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj");
+declare_id!("ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf");
 
 #[program]
 pub mod reputation_oracle {
@@ -58,5 +58,27 @@ pub mod reputation_oracle {
         ruling: DisputeRuling,
     ) -> Result<()> {
         instructions::resolve_dispute::handler(ctx, ruling)
+    }
+
+    pub fn create_skill_listing(
+        ctx: Context<CreateSkillListing>,
+        skill_id: String,
+        skill_uri: String,
+        name: String,
+        description: String,
+        price_lamports: u64,
+    ) -> Result<()> {
+        instructions::create_skill_listing::handler(
+            ctx,
+            skill_id,
+            skill_uri,
+            name,
+            description,
+            price_lamports,
+        )
+    }
+
+    pub fn purchase_skill(ctx: Context<PurchaseSkill>) -> Result<()> {
+        instructions::purchase_skill::handler(ctx)
     }
 }
