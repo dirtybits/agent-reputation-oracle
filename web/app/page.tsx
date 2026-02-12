@@ -225,7 +225,26 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="mt-12 bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30">
+          <div className="mt-8 bg-gradient-to-r from-green-900/40 to-blue-900/40 backdrop-blur-lg rounded-lg p-6 border border-green-400/30">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="text-4xl">🛍️</div>
+              <div>
+                <h3 className="text-xl font-bold text-white">Skill Marketplace</h3>
+                <p className="text-green-200 text-sm">Revenue-generating marketplace coming soon!</p>
+              </div>
+            </div>
+            <p className="text-blue-200 mb-4">
+              Buy and sell AI agent skills. Authors earn 60%, vouchers earn 40% of each sale. Economic security meets passive income.
+            </p>
+            <a
+              href="/marketplace"
+              className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+            >
+              Preview Marketplace →
+            </a>
+          </div>
+
+          <div className="mt-8 bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30">
             <h3 className="text-lg font-bold text-white mb-3">How It Works:</h3>
             <div className="grid md:grid-cols-2 gap-4 text-blue-100">
               <div>
