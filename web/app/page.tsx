@@ -330,11 +330,11 @@ export default function Home() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-200">Vouches Received:</span>
-                      <span>{searchedAgent.vouchesReceived.toString()}</span>
+                      <span>{searchedAgent.totalVouchesReceived.toString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-200">Vouches Given:</span>
-                      <span>{searchedAgent.vouchesGiven.toString()}</span>
+                      <span>{searchedAgent.totalVouchesGiven.toString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-200">Disputes Lost:</span>
@@ -482,11 +482,11 @@ export default function Home() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-blue-200">Vouches Received:</span>
-                    <span>{agentProfile.vouchesReceived.toString()}</span>
+                    <span>{agentProfile.totalVouchesReceived.toString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-blue-200">Vouches Given:</span>
-                    <span>{agentProfile.vouchesGiven.toString()}</span>
+                    <span>{agentProfile.totalVouchesGiven.toString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-blue-200">Disputes Lost:</span>
@@ -630,11 +630,11 @@ export default function Home() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-blue-200">Vouches Received:</span>
-                          <span>{searchedAgent.vouchesReceived.toString()}</span>
+                          <span>{searchedAgent.totalVouchesReceived.toString()}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-blue-200">Vouches Given:</span>
-                          <span>{searchedAgent.vouchesGiven.toString()}</span>
+                          <span>{searchedAgent.totalVouchesGiven.toString()}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-blue-200">Disputes Lost:</span>
