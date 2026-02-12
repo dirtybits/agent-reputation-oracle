@@ -596,12 +596,12 @@ export default function Home() {
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-white mb-2">Agent Address:</label>
+                      <label className="block text-white mb-2">Agent Wallet Address:</label>
                       <input
                         type="text"
                         value={voucheeAddress}
                         onChange={(e) => setVoucheeAddress(e.target.value)}
-                        placeholder="Agent's Solana public key"
+                        placeholder="Enter agent's wallet address (not profile PDA)"
                         className="w-full px-4 py-2 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
                       />
                     </div>
@@ -685,7 +685,7 @@ export default function Home() {
                               {!isCurrentUser && (
                                 <button
                                   onClick={() => {
-                                    setVoucheeAddress(agentKey);
+                                    setVoucheeAddress(agent.account.authority.toString());
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                   }}
                                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition whitespace-nowrap"
