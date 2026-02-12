@@ -352,11 +352,11 @@ export default function Home() {
             </p>
             <div className="bg-gray-900 rounded-lg p-4 mb-4 overflow-x-auto">
               <code className="text-green-400 font-mono text-sm">
-                curl https://web-chi-jet-37.vercel.app/skill.md &gt; reputation-oracle.md
+                curl https://raw.githubusercontent.com/dirtybits/agent-reputation-oracle/main/reputation-oracle/web/public/skill.md &gt; reputation-oracle.md
               </code>
             </div>
             <a
-              href="/skill.md"
+              href="https://raw.githubusercontent.com/dirtybits/agent-reputation-oracle/main/reputation-oracle/web/public/skill.md"
               download
               className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
             >
