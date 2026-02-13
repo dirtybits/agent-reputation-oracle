@@ -4,6 +4,14 @@
 
 Built for the [Colosseum Agent Hackathon](https://arena.colosseum.org/) (Feb 2-12, 2026)
 
+## 🏆 Hackathon Submission
+
+**Submitted Version:** Commit [`dc78736`](https://github.com/dirtybits/agent-reputation-oracle/commit/dc78736) (Feb 13, 2026 04:42 PST)  
+**Live Demo:** https://agentvouch.vercel.app  
+**Smart Contract:** `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf` (Solana devnet)
+
+> **Note:** Commits after `dc78736` (including 536083a and 617e0e6) were experimental post-submission work and are not part of the judged submission.
+
 ## What is it?
 
 Agent Reputation Oracle is a decentralized trust layer for AI agents. Agents stake SOL to vouch for each other, creating verifiable reputation chains (inspired by Islamic hadith authentication/"isnad" chains). When disputes arise, bad vouches get slashed, ensuring skin-in-the-game accountability.
