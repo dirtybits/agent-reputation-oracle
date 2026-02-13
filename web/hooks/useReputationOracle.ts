@@ -55,6 +55,20 @@ export function useReputationOracle() {
     )[0];
   };
 
+  const getSkillListingPDA = (authorKey: PublicKey, skillId: string) => {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('skill'), authorKey.toBuffer(), Buffer.from(skillId)],
+      PROGRAM_ID
+    )[0];
+  };
+
+  const getPurchasePDA = (buyerKey: PublicKey, skillListing: PublicKey) => {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('purchase'), buyerKey.toBuffer(), skillListing.toBuffer()],
+      PROGRAM_ID
+    )[0];
+  };
+
   const registerAgent = async (metadataUri: string) => {
     if (!program || !wallet.publicKey) throw new Error('Wallet not connected');
 
@@ -185,6 +199,114 @@ export function useReputationOracle() {
     }
   };
 
+  const getAllSkillListings = async () => {
+    if (!program) return [];
+    
+    try {
+      const skills = await (program.account as any).skillListing.all();
+      return skills;
+    } catch (error) {
+      console.error('Error fetching skill listings:', error);
+      return [];
+    }
+  };
+
+  const getSkillListing = async (skillListingKey: PublicKey) => {
+    if (!program) return null;
+    
+    try {
+      const listing = await (program.account as any).skillListing.fetch(skillListingKey);
+      return listing;
+    } catch {
+      return null;
+    }
+  };
+
+  const createSkillListing = async (
+    skillId: string,
+    skillUri: string,
+    name: string,
+    description: string,
+    priceLamports: number
+  ) => {
+    if (!program || !wallet.publicKey) throw new Error('Wallet not connected');
+
+    const authorProfile = getAgentPDA(wallet.publicKey);
+    const skillListing = getSkillListingPDA(wallet.publicKey, skillId);
+
+    const tx = await program.methods
+      .createSkillListing(skillId, skillUri, name, description, new BN(priceLamports))
+      .accounts({
+        skillListing,
+        authorProfile,
+        author: wallet.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    return { tx, skillListing };
+  };
+
+  const purchaseSkill = async (skillListingKey: PublicKey, authorKey: PublicKey) => {
+    if (!program || !wallet.publicKey) throw new Error('Wallet not connected');
+
+    const authorProfile = getAgentPDA(authorKey);
+    const purchase = getPurchasePDA(wallet.publicKey, skillListingKey);
+
+    const tx = await program.methods
+      .purchaseSkill()
+      .accounts({
+        skillListing: skillListingKey,
+        purchase,
+        author: authorKey,
+        authorProfile,
+        buyer: wallet.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    return { tx, purchase };
+  };
+
+  const getMyPurchases = async () => {
+    if (!program || !wallet.publicKey) return [];
+    
+    try {
+      const purchases = await (program.account as any).purchase.all([
+        {
+          memcmp: {
+            offset: 8, // After discriminator
+            bytes: wallet.publicKey.toBase58(),
+          },
+        },
+      ]);
+      return purchases;
+    } catch (error) {
+      console.error('Error fetching purchases:', error);
+      return [];
+    }
+  };
+
+  const getMyListings = async () => {
+    if (!program || !wallet.publicKey) return [];
+    
+    try {
+      const authorProfile = getAgentPDA(wallet.publicKey);
+      const listings = await (program.account as any).skillListing.all([
+        {
+          memcmp: {
+            offset: 8 + 32, // After discriminator + author pubkey
+            bytes: authorProfile.toBase58(),
+          },
+        },
+      ]);
+      return listings;
+    } catch (error) {
+      console.error('Error fetching my listings:', error);
+      return [];
+    }
+  };
+
   return {
     program,
     provider,
@@ -196,9 +318,17 @@ export function useReputationOracle() {
     getVouch,
     getAllVouchesForAgent,
     getAllAgents,
+    getAllSkillListings,
+    getSkillListing,
+    createSkillListing,
+    purchaseSkill,
+    getMyPurchases,
+    getMyListings,
     getAgentPDA,
     getVouchPDA,
     getDisputePDA,
     getConfigPDA,
+    getSkillListingPDA,
+    getPurchasePDA,
   };
 }
