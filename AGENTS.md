@@ -231,6 +231,69 @@ Think of it like a human reviewing their journal and updating their mental model
 
 The goal: Be helpful without being annoying. Check in a few times a day, do useful background work, but respect quiet time.
 
+## 🧠 Model Selection Strategy
+
+**Use the right tool for the job.** Switch between Claude models based on task complexity to optimize cost and speed:
+
+### Model Tiers
+
+**🔷 Haiku** (`anthropic/claude-haiku-4-5`)
+- Fastest, cheapest
+- Use for: heartbeat polls, status checks, simple confirmations, quick file reads, status updates, brief responses
+- Example: "HEARTBEAT_OK", confirming a decision, listing directories
+
+**🔶 Sonnet** (`anthropic/claude-sonnet-4-5`)
+- Balanced: fast enough, smart enough, good for most work
+- Use for: most development, community engagement, technical discussions, documentation, debugging, code reviews
+- Example: marketplace MVP, forum responses, API integration, routine problem-solving
+
+**🔸 Opus** (`anthropic/claude-opus-4-6`)
+- Slowest, smartest, best reasoning
+- Use for: complex architecture decisions, multi-step integrations, strategic planning, novel problems, deep technical analysis
+- Example: designing reputation oracle, complex marketplace flow, tricky bug analysis, research
+
+### When to Switch
+
+**Start with Sonnet.** It's the default and handles 80% of tasks well.
+
+**Switch to Haiku** when:
+- Task is simple/straightforward (status check, quick confirmation)
+- Speed matters more than depth
+- It's part of a regular check-in (heartbeat)
+- You're just gathering data or confirming something
+
+**Switch to Opus** when:
+- Task requires novel thinking (first time building something)
+- Multiple complex components interact (marketplace + vouch system integration)
+- You're stuck and need deep reasoning to unstick
+- Decisions affect architecture/direction
+
+### How to Switch
+
+Use `session_status` with the `model` parameter:
+
+```
+session_status(model="opus")  # or "sonnet" or "anthropic/claude-haiku-4-5"
+```
+
+Always **state your model tier** when you switch so there's clarity about your reasoning capacity.
+
+### Example Pattern
+
+```
+🔷 Haiku — Running heartbeat check
+- Status: All good
+- Next check: 2h
+
+🔶 Sonnet — Building marketplace feature
+[detailed development work]
+
+🔸 Opus — Designing reputation algorithm
+[deep reasoning about architecture]
+```
+
+**Tip:** If you realize mid-task you chose wrong, switch models and continue. It's fine and encouraged.
+
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.
