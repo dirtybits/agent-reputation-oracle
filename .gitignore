@@ -18,3 +18,10 @@ BOOTSTRAP.md
 TOOLS.md
 memory/
 config/
+
+# SECURITY: Never commit keypairs or secrets
+.agent-keys/
+**/keypair*.json
+*.secret
+.env
+.env.local
