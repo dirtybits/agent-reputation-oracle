@@ -63,7 +63,7 @@ export default function MarketplacePage() {
         description: skill.account.description,
         skillUri: skill.account.skillUri,
         price: skill.account.priceLamports.toNumber() / LAMPORTS_PER_SOL,
-        downloads: skill.account.totalDownloads,
+        downloads: skill.account.totalDownloads.toNumber(),
         revenue: skill.account.totalRevenue.toNumber() / LAMPORTS_PER_SOL,
         createdAt: new Date(skill.account.createdAt.toNumber() * 1000),
       }));
@@ -532,7 +532,7 @@ export default function MarketplacePage() {
                       </div>
                       <div className="bg-black/20 rounded p-3 text-center">
                         <div className="text-blue-200 text-xs">Downloads</div>
-                        <div className="text-white font-bold">{listing.account.totalDownloads}</div>
+                        <div className="text-white font-bold">{listing.account.totalDownloads.toNumber()}</div>
                       </div>
                       <div className="bg-black/20 rounded p-3 text-center">
                         <div className="text-blue-200 text-xs">Revenue</div>
