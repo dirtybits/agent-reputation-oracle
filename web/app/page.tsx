@@ -218,25 +218,25 @@ export default function Home() {
   // Landing Page
   if (userType === 'landing') {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
+      <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-purple-900 dark:via-blue-900 dark:to-indigo-900 relative">
         {/* Network backdrop */}
         <div 
-          className="absolute inset-0 opacity-20 bg-center bg-no-repeat bg-cover"
+          className="absolute inset-0 opacity-10 dark:opacity-20 bg-center bg-no-repeat bg-cover"
           style={{ backgroundImage: 'url(/network-backdrop.png)' }}
         />
         <div className="max-w-4xl w-full relative z-10">
           <div className="text-center mb-12">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
               Agent Reputation Oracle ⚡
             </h1>
-            <p className="text-xl text-blue-200 mb-2">
+            <p className="text-xl text-gray-700 dark:text-blue-200 mb-2">
               On-chain trust layer for AI agents on Solana
             </p>
             <a 
               href="https://github.com/dirtybits/agent-reputation-oracle" 
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-300 hover:text-blue-200 text-sm"
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200 text-sm"
             >
               GitHub →
             </a>
@@ -249,14 +249,14 @@ export default function Home() {
                 setUserType('human');
                 setActiveTab('explorer');
               }}
-              className="bg-white/10 backdrop-blur-lg rounded-lg p-8 hover:bg-white/20 transition border-2 border-transparent hover:border-blue-400 text-left group"
+              className="bg-white backdrop-blur-lg dark:bg-white/10 rounded-lg p-8 hover:shadow-lg dark:hover:bg-white/20 transition border-2 border-gray-200 dark:border-transparent hover:border-blue-500 dark:hover:border-blue-400 text-left group"
             >
               <div className="text-6xl mb-4">👤</div>
-              <h2 className="text-2xl font-bold text-white mb-3">I'm Human</h2>
-              <p className="text-blue-200 mb-4">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">I'm Human</h2>
+              <p className="text-gray-700 dark:text-blue-200 mb-4">
                 Browse agent profiles, view reputation scores, and learn how the system works.
               </p>
-              <div className="text-blue-400 group-hover:text-blue-300 font-semibold">
+              <div className="text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 font-semibold">
                 Explore Agents →
               </div>
             </button>
@@ -264,14 +264,14 @@ export default function Home() {
             {/* Agent Card */}
             <button
               onClick={() => setUserType('agent')}
-              className="bg-white/10 backdrop-blur-lg rounded-lg p-8 hover:bg-white/20 transition border-2 border-transparent hover:border-green-400 text-left group"
+              className="bg-white backdrop-blur-lg dark:bg-white/10 rounded-lg p-8 hover:shadow-lg dark:hover:bg-white/20 transition border-2 border-gray-200 dark:border-transparent hover:border-green-500 dark:hover:border-green-400 text-left group"
             >
               <div className="text-6xl mb-4">🤖</div>
-              <h2 className="text-2xl font-bold text-white mb-3">I'm an Agent</h2>
-              <p className="text-blue-200 mb-4">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
+              <p className="text-gray-700 dark:text-blue-200 mb-4">
                 Connect your wallet to register, vouch for other agents, and manage your reputation.
               </p>
-              <div className="text-green-400 group-hover:text-green-300 font-semibold">
+              <div className="text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300 font-semibold">
                 Connect Wallet →
               </div>
             </button>
@@ -325,9 +325,9 @@ export default function Home() {
   // Human View (Read-only Explorer)
   if (userType === 'human') {
     return (
-      <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
+      <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-purple-900 dark:via-blue-900 dark:to-indigo-900 relative">
         <div 
-          className="absolute inset-0 opacity-15 bg-center bg-no-repeat bg-cover"
+          className="absolute inset-0 opacity-10 dark:opacity-15 bg-center bg-no-repeat bg-cover"
           style={{ backgroundImage: 'url(/network-backdrop.png)' }}
         />
         <div className="max-w-6xl mx-auto relative z-10">
@@ -450,9 +450,9 @@ export default function Home() {
 
   // Agent View (Original Full UI)
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
+    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-purple-900 dark:via-blue-900 dark:to-indigo-900 relative">
       <div 
-        className="absolute inset-0 opacity-15 bg-center bg-no-repeat bg-cover"
+        className="absolute inset-0 opacity-10 dark:opacity-15 bg-center bg-no-repeat bg-cover"
         style={{ backgroundImage: 'url(/network-backdrop.png)' }}
       />
       <div className="max-w-6xl mx-auto relative z-10">
