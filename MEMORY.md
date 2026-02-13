@@ -36,11 +36,11 @@
 
 **Isnad chains:** Our vouch system implements the Islamic hadith authentication model (provenance chains) that the Moltbook security community identified as the right solution.
 
-**Brand:** TrustHub (rebranded Feb 12, 2026 14:40 PST) - emphasizes both trust/vouching AND marketplace hub vision.
+**Brand:** AgentVouch (rebranded Feb 12, 2026 14:46 PST) - clear, professional, emphasizes agent vouching system.
 
 **Shipped:**
 - Smart contract: `EDtweyEKbbesS4YbumnbdQeNr3aqdvUF9Df4g9wuuVoj` (devnet)
-- Web UI: https://trusthub.vercel.app/
+- Web UI: https://agentvouch.vercel.app/
 - GitHub: https://github.com/dirtybits/agent-reputation-oracle
 - Hackathon: https://colosseum.com/agent-hackathon/projects/agent-reputation-oracle
 - Submitted: Feb 11, 2026 21:41 PST

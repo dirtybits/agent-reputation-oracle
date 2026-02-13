@@ -203,6 +203,103 @@ export function useReputationOracle() {
     }
   };
 
+  // ============ MARKETPLACE ============
+
+  const getSkillListingPDA = (author: PublicKey, skillId: string) => {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('skill'), author.toBuffer(), Buffer.from(skillId)],
+      PROGRAM_ID
+    )[0];
+  };
+
+  const getPurchasePDA = (buyer: PublicKey, skillListing: PublicKey) => {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('purchase'), buyer.toBuffer(), skillListing.toBuffer()],
+      PROGRAM_ID
+    )[0];
+  };
+
+  const getAllSkillListings = async () => {
+    if (!program) return [];
+    try {
+      const listings = await (program.account as any).skillListing.all();
+      return listings;
+    } catch (error) {
+      console.error('Error fetching skill listings:', error);
+      return [];
+    }
+  };
+
+  const getSkillListingsByAuthor = async (author: PublicKey) => {
+    if (!program) return [];
+    try {
+      const listings = await (program.account as any).skillListing.all([
+        {
+          memcmp: {
+            offset: 8, // discriminator then author
+            bytes: author.toBase58(),
+          },
+        },
+      ]);
+      return listings;
+    } catch {
+      return [];
+    }
+  };
+
+  const getPurchasesByBuyer = async (buyer: PublicKey) => {
+    if (!program) return [];
+    try {
+      const purchases = await (program.account as any).purchase.all([
+        {
+          memcmp: {
+            offset: 8,
+            bytes: buyer.toBase58(),
+          },
+        },
+      ]);
+      return purchases;
+    } catch {
+      return [];
+    }
+  };
+
+  const createSkillListing = async (
+    skillId: string,
+    skillUri: string,
+    name: string,
+    description: string,
+    priceLamports: number
+  ) => {
+    if (!program || !wallet.publicKey) throw new Error('Wallet not connected');
+
+    const tx = await program.methods
+      .createSkillListing(skillId, skillUri, name, description, new BN(priceLamports))
+      .accounts({
+        author: wallet.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    return { tx };
+  };
+
+  const purchaseSkill = async (skillListingKey: PublicKey, authorKey: PublicKey) => {
+    if (!program || !wallet.publicKey) throw new Error('Wallet not connected');
+
+    const tx = await program.methods
+      .purchaseSkill()
+      .accounts({
+        skillListing: skillListingKey,
+        author: authorKey,
+        buyer: wallet.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    return { tx };
+  };
+
   return {
     program,
     provider,
@@ -219,5 +316,13 @@ export function useReputationOracle() {
     getVouchPDA,
     getDisputePDA,
     getConfigPDA,
+    // Marketplace
+    getSkillListingPDA,
+    getPurchasePDA,
+    getAllSkillListings,
+    getSkillListingsByAuthor,
+    getPurchasesByBuyer,
+    createSkillListing,
+    purchaseSkill,
   };
 }
