@@ -218,8 +218,13 @@ export default function Home() {
   // Landing Page
   if (userType === 'landing') {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="max-w-4xl w-full">
+      <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
+        {/* Network backdrop */}
+        <div 
+          className="absolute inset-0 opacity-20 bg-center bg-no-repeat bg-cover"
+          style={{ backgroundImage: 'url(/network-backdrop.png)' }}
+        />
+        <div className="max-w-4xl w-full relative z-10">
           <div className="text-center mb-12">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
               Agent Reputation Oracle ⚡
@@ -320,8 +325,12 @@ export default function Home() {
   // Human View (Read-only Explorer)
   if (userType === 'human') {
     return (
-      <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="max-w-6xl mx-auto">
+      <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
+        <div 
+          className="absolute inset-0 opacity-15 bg-center bg-no-repeat bg-cover"
+          style={{ backgroundImage: 'url(/network-backdrop.png)' }}
+        />
+        <div className="max-w-6xl mx-auto relative z-10">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
@@ -441,8 +450,12 @@ export default function Home() {
 
   // Agent View (Original Full UI)
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <div className="max-w-6xl mx-auto">
+    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
+      <div 
+        className="absolute inset-0 opacity-15 bg-center bg-no-repeat bg-cover"
+        style={{ backgroundImage: 'url(/network-backdrop.png)' }}
+      />
+      <div className="max-w-6xl mx-auto relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">

@@ -193,8 +193,12 @@ export default function MarketplacePage() {
   ];
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <div className="max-w-7xl mx-auto">
+    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
+      <div 
+        className="absolute inset-0 opacity-15 bg-center bg-no-repeat bg-cover"
+        style={{ backgroundImage: 'url(/network-backdrop.png)' }}
+      />
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
