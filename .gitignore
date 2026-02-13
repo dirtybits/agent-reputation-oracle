@@ -6,3 +6,15 @@ node_modules
 test-ledger
 .yarn
 .vercel
+
+# OpenClaw workspace configuration (local only)
+AGENTS.md
+SOUL.md
+USER.md
+IDENTITY.md
+MEMORY.md
+HEARTBEAT.md
+BOOTSTRAP.md
+TOOLS.md
+memory/
+config/
