@@ -317,6 +317,29 @@ export default function MarketplacePage() {
                         </span>
                       </div>
 
+                      <div className="mb-4 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Skill Address</div>
+                        <div className="flex items-center gap-2 justify-between">
+                          <span className="font-mono text-xs text-gray-900 dark:text-gray-100 truncate">
+                            {shortAddr(listing.publicKey.toBase58())}
+                          </span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(listing.publicKey.toBase58());
+                              const btn = event?.target as HTMLButtonElement;
+                              const originalText = btn.textContent;
+                              btn.textContent = '✅ Copied';
+                              setTimeout(() => {
+                                btn.textContent = originalText;
+                              }, 2000);
+                            }}
+                            className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
                         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 text-center">
                           <div className="text-gray-500 dark:text-gray-400 text-xs">Downloads</div>
