@@ -285,8 +285,8 @@ export default function MarketplacePage() {
                     className="bg-white/10 backdrop-blur-lg rounded-lg p-6 hover:bg-white/15 transition border border-white/20"
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-xl font-bold text-white">{skill.name}</h3>
-                      <div className="text-green-400 font-bold text-2xl whitespace-nowrap ml-2">
+                      <h3 className="text-xl font-bold font-heading text-white">{skill.name}</h3>
+                      <div className="text-green-400 font-bold font-heading text-2xl whitespace-nowrap ml-2">
                         {skill.price} SOL
                       </div>
                     </div>
@@ -304,11 +304,11 @@ export default function MarketplacePage() {
                     <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
                       <div className="bg-black/30 rounded p-3 text-center">
                         <div className="text-blue-200">Downloads</div>
-                        <div className="text-white font-bold text-lg">{skill.downloads}</div>
+                        <div className="text-white font-bold font-heading text-lg">{skill.downloads}</div>
                       </div>
                       <div className="bg-black/30 rounded p-3 text-center">
                         <div className="text-blue-200">Revenue</div>
-                        <div className="text-green-400 font-bold text-lg">{skill.revenue.toFixed(2)} SOL</div>
+                        <div className="text-green-400 font-bold font-heading text-lg">{skill.revenue.toFixed(2)} SOL</div>
                       </div>
                     </div>
                     
@@ -349,7 +349,7 @@ export default function MarketplacePage() {
         {/* Publish Skill Tab */}
         {activeTab === 'publish' && (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-white mb-4">📦 Publish a New Skill</h2>
+            <h2 className="text-2xl font-bold font-heading text-white mb-4">📦 Publish a New Skill</h2>
             <p className="text-blue-200 mb-6">
               Publish your agent skill and earn 60% of each sale. Vouchers earn the remaining 40%.
             </p>
@@ -440,7 +440,7 @@ export default function MarketplacePage() {
         {/* My Purchases Tab */}
         {activeTab === 'purchases' && (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-white mb-4">🛒 My Purchases</h2>
+            <h2 className="text-2xl font-bold font-heading text-white mb-4">🛒 My Purchases</h2>
             
             {!connected ? (
               <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-6 text-center">
@@ -473,7 +473,7 @@ export default function MarketplacePage() {
                           {purchase.account.skillListing.toString()}
                         </p>
                       </div>
-                      <div className="text-green-400 font-bold text-xl ml-4">
+                      <div className="text-green-400 font-bold font-heading text-xl ml-4">
                         {(purchase.account.pricePaid.toNumber() / LAMPORTS_PER_SOL).toFixed(2)} SOL
                       </div>
                     </div>
@@ -491,7 +491,7 @@ export default function MarketplacePage() {
         {/* My Listings Tab */}
         {activeTab === 'listings' && (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-white mb-4">📦 My Listings</h2>
+            <h2 className="text-2xl font-bold font-heading text-white mb-4">📦 My Listings</h2>
             
             {!connected ? (
               <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-6 text-center">
@@ -514,7 +514,7 @@ export default function MarketplacePage() {
                 {myListings.map((listing, idx) => (
                   <div key={idx} className="bg-black/30 rounded-lg p-6">
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-xl font-bold text-white">{listing.account.name}</h3>
+                      <h3 className="text-xl font-bold font-heading text-white">{listing.account.name}</h3>
                       <span className="px-3 py-1 bg-blue-600 text-white text-sm rounded">Your Skill</span>
                     </div>
                     
@@ -530,17 +530,17 @@ export default function MarketplacePage() {
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div className="bg-black/20 rounded p-3 text-center">
                         <div className="text-blue-200 text-xs">Price</div>
-                        <div className="text-green-400 font-bold">
+                        <div className="text-green-400 font-bold font-heading">
                           {(listing.account.priceLamports.toNumber() / LAMPORTS_PER_SOL).toFixed(2)}
                         </div>
                       </div>
                       <div className="bg-black/20 rounded p-3 text-center">
                         <div className="text-blue-200 text-xs">Downloads</div>
-                        <div className="text-white font-bold">{listing.account.totalDownloads.toNumber()}</div>
+                        <div className="text-white font-bold font-heading">{listing.account.totalDownloads.toNumber()}</div>
                       </div>
                       <div className="bg-black/20 rounded p-3 text-center">
                         <div className="text-blue-200 text-xs">Revenue</div>
-                        <div className="text-green-400 font-bold">
+                        <div className="text-green-400 font-bold font-heading">
                           {(listing.account.totalRevenue.toNumber() / LAMPORTS_PER_SOL).toFixed(2)}
                         </div>
                       </div>
@@ -569,11 +569,11 @@ export default function MarketplacePage() {
 
         {/* How It Works */}
         <div className="mt-12 bg-blue-900/30 backdrop-blur-lg rounded-lg p-8 border border-blue-400/30">
-          <h2 className="text-2xl font-bold text-white mb-6">How the Marketplace Works</h2>
+          <h2 className="text-2xl font-bold font-heading text-white mb-6">How the Marketplace Works</h2>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-lg font-bold text-white mb-3">💰 Revenue Sharing</h3>
+              <h3 className="text-lg font-bold font-heading text-white mb-3">💰 Revenue Sharing</h3>
               <p className="text-blue-200 mb-3">
                 Every skill purchase splits revenue:
               </p>
@@ -586,7 +586,7 @@ export default function MarketplacePage() {
             </div>
             
             <div>
-              <h3 className="text-lg font-bold text-white mb-3">🛡️ Security Through Economics</h3>
+              <h3 className="text-lg font-bold font-heading text-white mb-3">🛡️ Security Through Economics</h3>
               <p className="text-blue-200 mb-3">
                 Vouchers have skin in the game:
               </p>

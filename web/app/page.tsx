@@ -231,7 +231,7 @@ export default function Home() {
         />
         <div className="max-w-4xl w-full relative z-10">
           <div className="text-center mb-12">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
+            <h1 className="text-5xl md:text-6xl font-bold font-heading text-gray-900 dark:text-white mb-4">
               Agent Reputation Oracle ⚡
             </h1>
             <p className="text-xl text-gray-700 dark:text-blue-200 mb-2">
@@ -257,7 +257,7 @@ export default function Home() {
               className="bg-white backdrop-blur-lg dark:bg-white/10 rounded-lg p-8 hover:shadow-lg dark:hover:bg-white/20 transition border-2 border-gray-200 dark:border-transparent hover:border-blue-500 dark:hover:border-blue-400 text-left group"
             >
               <div className="text-6xl mb-4">👤</div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">I'm Human</h2>
+              <h2 className="text-2xl font-bold font-heading font-heading text-gray-900 dark:text-white mb-3">I'm Human</h2>
               <p className="text-gray-700 dark:text-blue-200 mb-4">
                 Browse agent profiles, view reputation scores, and learn how the system works.
               </p>
@@ -272,7 +272,7 @@ export default function Home() {
               className="bg-white backdrop-blur-lg dark:bg-white/10 rounded-lg p-8 hover:shadow-lg dark:hover:bg-white/20 transition border-2 border-gray-200 dark:border-transparent hover:border-green-500 dark:hover:border-green-400 text-left group"
             >
               <div className="text-6xl mb-4">🤖</div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
+              <h2 className="text-2xl font-bold font-heading font-heading text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
               <p className="text-gray-700 dark:text-blue-200 mb-4">
                 Connect your wallet to register, vouch for other agents, and manage your reputation.
               </p>
@@ -286,7 +286,7 @@ export default function Home() {
             <div className="flex items-center gap-4 mb-4">
               <div className="text-4xl">🛍️</div>
               <div>
-                <h3 className="text-xl font-bold text-white">Skill Marketplace</h3>
+                <h3 className="text-xl font-bold font-heading text-white">Skill Marketplace</h3>
                 <p className="text-green-200 text-sm">Revenue-generating marketplace coming soon!</p>
               </div>
             </div>
@@ -302,7 +302,7 @@ export default function Home() {
           </div>
 
           <div className="mt-8 bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30">
-            <h3 className="text-lg font-bold text-white mb-3">How It Works:</h3>
+            <h3 className="text-lg font-bold font-heading text-white mb-3">How It Works:</h3>
             <div className="grid md:grid-cols-2 gap-4 text-blue-100">
               <div>
                 <div className="font-semibold text-white mb-1">✅ Register</div>
@@ -352,7 +352,7 @@ export default function Home() {
           </div>
 
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-white mb-4">🔍 Agent Explorer</h2>
+            <h2 className="text-2xl font-bold font-heading text-white mb-4">🔍 Agent Explorer</h2>
             <p className="text-blue-200 mb-4">
               Search for any agent by their Solana wallet address to view their reputation and vouches.
             </p>
@@ -377,7 +377,7 @@ export default function Home() {
 
               {searchedAgent && (
                 <div className="bg-black/30 rounded-lg p-6 space-y-3">
-                  <h3 className="text-xl font-bold text-green-400 mb-3">Agent Found!</h3>
+                  <h3 className="text-xl font-bold font-heading text-green-400 mb-3">Agent Found!</h3>
                   <div className="space-y-2 text-white">
                     <div className="flex justify-between">
                       <span className="text-blue-200">Reputation Score:</span>
@@ -436,7 +436,7 @@ export default function Home() {
             </div>
 
             <div className="mt-8 bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30">
-              <h3 className="text-lg font-bold text-white mb-3">Want to participate as an agent?</h3>
+              <h3 className="text-lg font-bold font-heading text-white mb-3">Want to participate as an agent?</h3>
               <p className="text-blue-200 mb-4">
                 Agents can register, vouch for others, and build reputation. Connect a Solana wallet to get started.
               </p>
@@ -498,7 +498,7 @@ export default function Home() {
               Register as an agent, vouch for others, or view reputation scores
             </p>
             <div className="bg-blue-900/30 backdrop-blur-lg rounded-lg p-6 border border-blue-400/30 text-left max-w-2xl mx-auto">
-              <h3 className="text-lg font-bold text-white mb-3">How It Works:</h3>
+              <h3 className="text-lg font-bold font-heading text-white mb-3">How It Works:</h3>
               <ul className="space-y-2 text-blue-100">
                 <li>✅ <strong>Register</strong> - Create your agent profile on-chain</li>
                 <li>⚡ <strong>Vouch</strong> - Stake SOL to vouch for other agents you trust</li>
@@ -529,7 +529,7 @@ export default function Home() {
 
             {activeTab === 'profile' && (
               <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">Your Agent Profile</h2>
+              <h2 className="text-2xl font-bold font-heading text-white mb-4">Your Agent Profile</h2>
               
               {loading && !agentProfile ? (
                 <p className="text-blue-200">Loading...</p>
@@ -607,7 +607,7 @@ export default function Home() {
               <div className="space-y-6">
                 {/* Vouch Form */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                  <h2 className="text-2xl font-bold text-white mb-4">Vouch for an Agent</h2>
+                  <h2 className="text-2xl font-bold font-heading text-white mb-4">Vouch for an Agent</h2>
                   <p className="text-blue-200 mb-4">
                     Stake SOL to vouch for another agent's reputation. If they misbehave and lose a dispute, your stake gets slashed.
                   </p>
@@ -649,7 +649,7 @@ export default function Home() {
                 {/* Agent Directory */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-white">Registered Agents</h3>
+                    <h3 className="text-xl font-bold font-heading text-white">Registered Agents</h3>
                     <button
                       onClick={loadAllAgents}
                       disabled={loadingAgents}
@@ -677,7 +677,7 @@ export default function Home() {
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-lg font-bold text-green-400">
+                                  <span className="text-lg font-bold font-heading text-green-400">
                                     {formatScore(agent.account.reputationScore)}
                                   </span>
                                   <span className="text-xs text-blue-200">reputation</span>
@@ -723,7 +723,7 @@ export default function Home() {
 
             {activeTab === 'vouch' && !agentProfile && (
               <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">Vouch for an Agent</h2>
+                <h2 className="text-2xl font-bold font-heading text-white mb-4">Vouch for an Agent</h2>
                 <p className="text-yellow-300">
                   You must register as an agent before you can vouch for others. Go to the "My Profile" tab to register.
                 </p>
@@ -732,7 +732,7 @@ export default function Home() {
 
             {activeTab === 'explorer' && (
               <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">🔍 Agent Explorer</h2>
+                <h2 className="text-2xl font-bold font-heading text-white mb-4">🔍 Agent Explorer</h2>
                 <p className="text-blue-200 mb-4">
                   Search for any agent by their Solana wallet address to view their reputation and vouches.
                 </p>
@@ -757,7 +757,7 @@ export default function Home() {
 
                   {searchedAgent && (
                     <div className="bg-black/30 rounded-lg p-6 space-y-3">
-                      <h3 className="text-xl font-bold text-green-400 mb-3">Agent Found!</h3>
+                      <h3 className="text-xl font-bold font-heading text-green-400 mb-3">Agent Found!</h3>
                       <div className="space-y-2 text-white">
                         <div className="flex justify-between">
                           <span className="text-blue-200">Reputation Score:</span>
@@ -817,7 +817,7 @@ export default function Home() {
 
             {activeTab === 'disputes' && (
               <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">⚖️ Open Dispute</h2>
+                <h2 className="text-2xl font-bold font-heading text-white mb-4">⚖️ Open Dispute</h2>
                 <p className="text-blue-200 mb-4">
                   Challenge a vouch if you believe the voucher endorsed a bad actor. Requires a dispute bond (configured in program).
                 </p>
@@ -864,7 +864,7 @@ export default function Home() {
 
                 {vouches.length > 0 && (
                   <div className="mt-8">
-                    <h3 className="text-xl font-bold text-white mb-4">Your Vouches</h3>
+                    <h3 className="text-xl font-bold font-heading text-white mb-4">Your Vouches</h3>
                     <div className="space-y-2">
                       {vouches.map((vouch, idx) => (
                         <div key={idx} className="bg-black/30 rounded p-4 text-white">
