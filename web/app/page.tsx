@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PublicKey } from '@solana/web3.js';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 type UserType = 'landing' | 'human' | 'agent';
 type Tab = 'profile' | 'vouch' | 'explorer' | 'disputes';
@@ -219,6 +220,10 @@ export default function Home() {
   if (userType === 'landing') {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-purple-900 dark:via-blue-900 dark:to-indigo-900 relative">
+        {/* Theme Toggle */}
+        <div className="absolute top-4 right-4 z-20">
+          <ThemeToggle />
+        </div>
         {/* Network backdrop */}
         <div 
           className="absolute inset-0 opacity-10 dark:opacity-20 bg-center bg-no-repeat bg-cover"

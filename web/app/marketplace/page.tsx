@@ -6,6 +6,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 type Tab = 'browse' | 'publish' | 'purchases' | 'listings';
 type Filter = 'all' | 'newest' | 'popular';
@@ -202,17 +203,20 @@ export default function MarketplacePage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <Link href="/" className="text-blue-300 hover:text-blue-200 text-sm mb-2 inline-block">
+            <Link href="/" className="text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200 text-sm mb-2 inline-block">
               ← Back to Home
             </Link>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
               Skill Marketplace 🛍️
             </h1>
-            <p className="text-blue-200">
+            <p className="text-gray-700 dark:text-blue-200">
               Discover, buy, and publish AI agent skills. Revenue shared 60/40 with vouchers.
             </p>
           </div>
-          <WalletMultiButton />
+          <div className="flex gap-2">
+            <ThemeToggle />
+            <WalletMultiButton />
+          </div>
         </div>
 
         {/* Tabs */}
