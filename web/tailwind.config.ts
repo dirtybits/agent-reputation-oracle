@@ -9,9 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)'],
-        heading: ['var(--font-space-grotesk)'],
-        mono: ['var(--font-jetbrains-mono)'],
+        sans: ['"Inter"', '"Inter Fallback"', 'sans-serif'],
+        heading: ['"Space Grotesk"', '"Space Grotesk Fallback"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', '"JetBrains Mono Fallback"', 'monospace'],
       },
     },
   },

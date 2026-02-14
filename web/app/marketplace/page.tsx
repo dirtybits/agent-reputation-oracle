@@ -1,234 +1,237 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import Link from 'next/link';
+import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ClientWalletButton } from '@/components/ClientWalletButton';
 
-type Tab = 'browse' | 'publish' | 'purchases' | 'listings';
-type Filter = 'all' | 'newest' | 'popular';
+type MarketTab = 'browse' | 'publish' | 'my-purchases' | 'my-listings';
 
-interface SkillListing {
-  publicKey: string;
-  author: string;
-  name: string;
-  description: string;
-  skillUri: string;
-  price: number; // SOL
-  downloads: number;
-  revenue: number;
-  createdAt: Date;
+interface SkillListingData {
+  publicKey: PublicKey;
+  account: {
+    author: PublicKey;
+    skillUri: string;
+    name: string;
+    description: string;
+    priceLamports: { toNumber(): number };
+    totalDownloads: { toNumber(): number };
+    totalRevenue: { toNumber(): number };
+    createdAt: { toNumber(): number };
+    updatedAt: { toNumber(): number };
+    status: { active?: {} };
+    bump: number;
+  };
+}
+
+interface PurchaseData {
+  publicKey: PublicKey;
+  account: {
+    buyer: PublicKey;
+    skillListing: PublicKey;
+    purchasedAt: { toNumber(): number };
+    pricePaid: { toNumber(): number };
+    bump: number;
+  };
 }
 
 export default function MarketplacePage() {
   const { publicKey, connected } = useWallet();
   const oracle = useReputationOracle();
-  
-  const [activeTab, setActiveTab] = useState<Tab>('browse');
-  const [filter, setFilter] = useState<Filter>('all');
-  const [skills, setSkills] = useState<SkillListing[]>([]);
-  const [myPurchases, setMyPurchases] = useState<any[]>([]);
-  const [myListings, setMyListings] = useState<any[]>([]);
+
+  const [activeTab, setActiveTab] = useState<MarketTab>('browse');
+  const [listings, setListings] = useState<SkillListingData[]>([]);
+  const [myPurchases, setMyPurchases] = useState<PurchaseData[]>([]);
+  const [myListings, setMyListings] = useState<SkillListingData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('');
-  
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'newest' | 'popular'>('all');
+  const [txSuccess, setTxSuccess] = useState<string | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
+
   // Publish form state
-  const [skillId, setSkillId] = useState('');
-  const [skillName, setSkillName] = useState('');
-  const [skillDescription, setSkillDescription] = useState('');
-  const [skillUri, setSkillUri] = useState('');
-  const [skillPrice, setSkillPrice] = useState('0.05');
+  const [publishForm, setPublishForm] = useState({
+    skillId: '',
+    name: '',
+    description: '',
+    skillUri: '',
+    price: '0.1',
+  });
+  const [publishing, setPublishing] = useState(false);
+
+  // Set of purchased skill listing keys for the current user
+  const [purchasedKeys, setPurchasedKeys] = useState<Set<string>>(new Set());
+
+  const loadListings = useCallback(async () => {
+    if (!oracle.program) return;
+    setLoading(true);
+    try {
+      const all = await oracle.getAllSkillListings();
+      // Filter active only
+      let active = all.filter((l: SkillListingData) => l.account.status?.active !== undefined);
+
+      if (filter === 'newest') {
+        active.sort((a: SkillListingData, b: SkillListingData) =>
+          b.account.createdAt.toNumber() - a.account.createdAt.toNumber()
+        );
+      } else if (filter === 'popular') {
+        active.sort((a: SkillListingData, b: SkillListingData) =>
+          b.account.totalDownloads.toNumber() - a.account.totalDownloads.toNumber()
+        );
+      }
+
+      setListings(active);
+    } catch (e) {
+      console.error('Failed to load listings:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [oracle.program, filter]);
+
+  const loadMyData = useCallback(async () => {
+    if (!oracle.program || !publicKey) return;
+    try {
+      const [purchases, authorListings] = await Promise.all([
+        oracle.getPurchasesByBuyer(publicKey),
+        oracle.getSkillListingsByAuthor(publicKey),
+      ]);
+      setMyPurchases(purchases);
+      setMyListings(authorListings);
+      setPurchasedKeys(new Set(purchases.map((p: PurchaseData) => p.account.skillListing.toBase58())));
+    } catch (e) {
+      console.error('Failed to load user data:', e);
+    }
+  }, [oracle.program, publicKey]);
 
   useEffect(() => {
-    if (activeTab === 'browse') {
-      loadAllSkills();
-    } else if (activeTab === 'purchases' && connected) {
-      loadMyPurchases();
-    } else if (activeTab === 'listings' && connected) {
-      loadMyListings();
-    }
-  }, [activeTab, connected]);
+    loadListings();
+  }, [loadListings]);
 
-  const loadAllSkills = async () => {
-    setLoading(true);
+  useEffect(() => {
+    loadMyData();
+  }, [loadMyData]);
+
+  const handlePurchase = async (listing: SkillListingData) => {
+    if (!connected) return;
+    setPurchasing(listing.publicKey.toBase58());
+    setTxError(null);
+    setTxSuccess(null);
+
     try {
-      const allSkills = await oracle.getAllSkillListings();
-      
-      const formatted: SkillListing[] = allSkills.map((skill: any) => ({
-        publicKey: skill.publicKey.toString(),
-        author: skill.account.author.toString(),
-        name: skill.account.name,
-        description: skill.account.description,
-        skillUri: skill.account.skillUri,
-        price: skill.account.priceLamports.toNumber() / LAMPORTS_PER_SOL,
-        downloads: skill.account.totalDownloads.toNumber(),
-        revenue: skill.account.totalRevenue.toNumber() / LAMPORTS_PER_SOL,
-        createdAt: new Date(skill.account.createdAt.toNumber() * 1000),
-      }));
-
-      // Apply filter
-      let sorted = [...formatted];
-      if (filter === 'newest') {
-        sorted.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      } else if (filter === 'popular') {
-        sorted.sort((a, b) => b.downloads - a.downloads);
-      }
-      
-      setSkills(sorted);
-    } catch (error: any) {
-      console.error('Error loading skills:', error);
-      setStatus(`Error: ${error.message}`);
+      const { tx } = await oracle.purchaseSkill(listing.publicKey, listing.account.author);
+      setTxSuccess(tx);
+      // Refresh data
+      await Promise.all([loadListings(), loadMyData()]);
+    } catch (e: any) {
+      console.error('Purchase failed:', e);
+      setTxError(e.message || 'Transaction failed');
     } finally {
-      setLoading(false);
+      setPurchasing(null);
     }
   };
 
-  const loadMyPurchases = async () => {
-    setLoading(true);
-    try {
-      const purchases = await oracle.getMyPurchases();
-      setMyPurchases(purchases);
-    } catch (error: any) {
-      console.error('Error loading purchases:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handlePublish = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!connected) return;
+    setPublishing(true);
+    setTxError(null);
+    setTxSuccess(null);
 
-  const loadMyListings = async () => {
-    setLoading(true);
     try {
-      const listings = await oracle.getMyListings();
-      setMyListings(listings);
-    } catch (error: any) {
-      console.error('Error loading listings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePublishSkill = async () => {
-    if (!skillId || !skillName || !skillDescription || !skillUri) {
-      setStatus('Please fill in all fields');
-      return;
-    }
-
-    setLoading(true);
-    setStatus('Publishing skill...');
-    
-    try {
-      const priceLamports = parseFloat(skillPrice) * LAMPORTS_PER_SOL;
+      const priceLamports = Math.round(parseFloat(publishForm.price) * LAMPORTS_PER_SOL);
       const { tx } = await oracle.createSkillListing(
-        skillId,
-        skillUri,
-        skillName,
-        skillDescription,
+        publishForm.skillId,
+        publishForm.skillUri,
+        publishForm.name,
+        publishForm.description,
         priceLamports
       );
-      
-      setStatus(`Skill published! TX: ${tx}`);
-      setSkillId('');
-      setSkillName('');
-      setSkillDescription('');
-      setSkillUri('');
-      
-      // Refresh listings
-      setTimeout(() => {
-        setActiveTab('listings');
-        loadMyListings();
-      }, 2000);
-    } catch (error: any) {
-      setStatus(`Error: ${error.message}`);
+      setTxSuccess(tx);
+      setPublishForm({ skillId: '', name: '', description: '', skillUri: '', price: '0.1' });
+      setActiveTab('browse');
+      await Promise.all([loadListings(), loadMyData()]);
+    } catch (e: any) {
+      console.error('Publish failed:', e);
+      setTxError(e.message || 'Transaction failed');
     } finally {
-      setLoading(false);
+      setPublishing(false);
     }
   };
 
-  const handlePurchaseSkill = async (skillListingKey: string, authorKey: string) => {
-    if (!connected) {
-      setStatus('Please connect your wallet first');
-      return;
-    }
+  const formatSOL = (lamports: number) => (lamports / LAMPORTS_PER_SOL).toFixed(2);
+  const formatDate = (ts: number) => new Date(ts * 1000).toLocaleDateString();
+  const shortAddr = (addr: string) => `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 
-    setLoading(true);
-    setStatus('Purchasing skill...');
-    
-    try {
-      const { tx } = await oracle.purchaseSkill(
-        new PublicKey(skillListingKey),
-        new PublicKey(authorKey)
-      );
-      
-      setStatus(`Skill purchased! TX: ${tx}`);
-      
-      // Refresh purchases and skills
-      setTimeout(() => {
-        loadAllSkills();
-        if (activeTab === 'purchases') {
-          loadMyPurchases();
-        }
-      }, 2000);
-    } catch (error: any) {
-      setStatus(`Error: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-  };
-
-  const shortenAddress = (address: string) => {
-    return `${address.slice(0, 4)}...${address.slice(-4)}`;
-  };
-
-  const tabs = [
-    { id: 'browse' as Tab, label: 'Browse Skills', icon: '📚' },
-    { id: 'publish' as Tab, label: 'Publish Skill', icon: '📦' },
-    { id: 'purchases' as Tab, label: 'My Purchases', icon: '🛒' },
-    { id: 'listings' as Tab, label: 'My Listings', icon: '📦' },
+  const tabs: { key: MarketTab; label: string; icon: string }[] = [
+    { key: 'browse', label: 'Browse Skills', icon: '📚' },
+    { key: 'publish', label: 'Publish Skill', icon: '📝' },
+    { key: 'my-purchases', label: 'My Purchases', icon: '🛒' },
+    { key: 'my-listings', label: 'My Listings', icon: '📦' },
   ];
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-gray-50 dark:bg-[#0a1628] relative">
-      <div 
-        className="absolute inset-0 opacity-0 dark:opacity-100 bg-center bg-no-repeat bg-cover"
-        style={{ backgroundImage: 'url(/network-backdrop.png)' }}
-      />
-      <div className="max-w-7xl mx-auto relative z-10">
+    <main className="min-h-screen p-4 md:p-8 bg-white dark:bg-gray-900 transition-colors">
+      <ThemeToggle />
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <Link href="/" className="text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200 text-sm mb-2 inline-block">
+            <Link href="/" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm mb-2 inline-block">
               ← Back to Home
             </Link>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
               Skill Marketplace 🛍️
             </h1>
-            <p className="text-gray-700 dark:text-blue-200">
+            <p className="text-gray-600 dark:text-gray-400">
               Discover, buy, and publish AI agent skills. Revenue shared 60/40 with vouchers.
             </p>
           </div>
-          <div className="flex gap-2">
-            <ThemeToggle />
-            <WalletMultiButton />
-          </div>
+          <ClientWalletButton />
         </div>
+
+        {/* Toast notifications */}
+        {txSuccess && (
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-green-600 dark:text-green-400">✅</span>
+              <span className="text-green-800 dark:text-green-200 text-sm">
+                Transaction confirmed:{' '}
+                <a
+                  href={`https://explorer.solana.com/tx/${txSuccess}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-mono"
+                >
+                  {shortAddr(txSuccess)}
+                </a>
+              </span>
+            </div>
+            <button onClick={() => setTxSuccess(null)} className="text-green-600 dark:text-green-400 hover:text-green-800">✕</button>
+          </div>
+        )}
+        {txError && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-red-600 dark:text-red-400">❌</span>
+              <span className="text-red-800 dark:text-red-200 text-sm">{txError}</span>
+            </div>
+            <button onClick={() => setTxError(null)} className="text-red-600 dark:text-red-400 hover:text-red-800">✕</button>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {tabs.map((tab) => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
-                activeTab === tab.id
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition text-sm ${
+                activeTab === tab.key
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white/10 text-blue-200 hover:bg-white/20'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {tab.icon} {tab.label}
@@ -236,22 +239,19 @@ export default function MarketplacePage() {
           ))}
         </div>
 
-        {/* Browse Skills Tab */}
+        {/* ===== BROWSE TAB ===== */}
         {activeTab === 'browse' && (
-          <div className="space-y-6">
+          <>
             {/* Filters */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-6">
               {(['all', 'newest', 'popular'] as const).map((f) => (
                 <button
                   key={f}
-                  onClick={() => {
-                    setFilter(f);
-                    loadAllSkills();
-                  }}
-                  className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
                     filter === f
-                      ? 'bg-white text-blue-900'
-                      : 'bg-white/10 text-blue-200 hover:bg-white/20'
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
                   {f === 'all' && 'All'}
@@ -261,344 +261,416 @@ export default function MarketplacePage() {
               ))}
             </div>
 
-            {/* Skills Grid */}
             {loading ? (
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center">
-                <p className="text-xl text-white">Loading skills...</p>
+              <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+                <div className="animate-spin text-4xl mb-4">🔄</div>
+                <p>Loading skills from chain...</p>
               </div>
-            ) : skills.length === 0 ? (
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center">
-                <p className="text-xl text-white mb-4">No skills published yet</p>
-                <p className="text-blue-200 mb-6">Be the first to publish a skill!</p>
+            ) : listings.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-6xl mb-4">🏗️</div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No skills listed yet</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Be the first to publish a skill on the marketplace!
+                </p>
                 <button
                   onClick={() => setActiveTab('publish')}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
                 >
-                  Publish Skill →
+                  📝 Publish a Skill
                 </button>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
-                {skills.map((skill) => (
-                  <div
-                    key={skill.publicKey}
-                    className="bg-white/10 backdrop-blur-lg rounded-lg p-6 hover:bg-white/15 transition border border-white/20"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-xl font-bold font-heading text-white">{skill.name}</h3>
-                      <div className="text-green-400 font-bold font-heading text-2xl whitespace-nowrap ml-2">
-                        {skill.price} SOL
-                      </div>
-                    </div>
-                    
-                    <p className="text-blue-200 text-sm mb-4">
-                      {skill.description}
-                    </p>
-                    
-                    <div className="flex items-center gap-2 mb-3 text-sm text-blue-200">
-                      <span>👤 {shortenAddress(skill.author)}</span>
-                      <span className="text-blue-300">•</span>
-                      <span>{formatDate(skill.createdAt)}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
-                      <div className="bg-black/30 rounded p-3 text-center">
-                        <div className="text-blue-200">Downloads</div>
-                        <div className="text-white font-bold font-heading text-lg">{skill.downloads}</div>
-                      </div>
-                      <div className="bg-black/30 rounded p-3 text-center">
-                        <div className="text-blue-200">Revenue</div>
-                        <div className="text-green-400 font-bold font-heading text-lg">{skill.revenue.toFixed(2)} SOL</div>
-                      </div>
-                    </div>
-                    
-                    {/* Skill Address */}
-                    <div className="mb-4 bg-black/30 rounded p-3">
-                      <div className="text-blue-200 text-xs mb-1">📄 Skill Address</div>
-                      <div className="font-mono text-xs text-white break-all">
-                        {skill.publicKey}
-                      </div>
-                    </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {listings.map((listing) => {
+                  const price = listing.account.priceLamports.toNumber();
+                  const downloads = listing.account.totalDownloads.toNumber();
+                  const revenue = listing.account.totalRevenue.toNumber();
+                  const alreadyPurchased = purchasedKeys.has(listing.publicKey.toBase58());
+                  const isOwn = publicKey && listing.account.author.equals(publicKey);
+                  const isPurchasing = purchasing === listing.publicKey.toBase58();
 
-                    {/* Skill URI Link */}
-                    <div className="mb-4">
-                      <a
-                        href={skill.skillUri}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1"
-                      >
-                        📄 {skill.skillUri.startsWith('http') ? 'View skill.md' : 'IPFS Link'} →
-                      </a>
-                    </div>
-                    
-                    <button
-                      onClick={() => handlePurchaseSkill(skill.publicKey, skill.author)}
-                      disabled={!connected || loading}
-                      className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition"
+                  return (
+                    <div
+                      key={listing.publicKey.toBase58()}
+                      className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition shadow-sm"
                     >
-                      {!connected ? 'Connect Wallet' : loading ? '...' : `Buy for ${skill.price} SOL`}
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
+                          {listing.account.name}
+                        </h3>
+                        <div className="text-green-600 dark:text-green-400 font-bold text-xl whitespace-nowrap ml-2 font-mono">
+                          {formatSOL(price)} SOL
+                        </div>
+                      </div>
+
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                        {listing.account.description}
+                      </p>
+
+                      <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
+                        <span className="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                          👤 {shortAddr(listing.account.author.toBase58())}
+                        </span>
+                        <span className="text-xs">
+                          {formatDate(listing.account.createdAt.toNumber())}
+                        </span>
+                      </div>
+
+                      <div className="mb-4 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Skill Address</div>
+                        <div className="flex items-center gap-2 justify-between">
+                          <span className="font-mono text-xs text-gray-900 dark:text-gray-100 truncate">
+                            {shortAddr(listing.publicKey.toBase58())}
+                          </span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(listing.publicKey.toBase58());
+                              const btn = event?.target as HTMLButtonElement;
+                              const originalText = btn.textContent;
+                              btn.textContent = '✅ Copied';
+                              setTimeout(() => {
+                                btn.textContent = originalText;
+                              }, 2000);
+                            }}
+                            className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
+                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 text-center">
+                          <div className="text-gray-500 dark:text-gray-400 text-xs">Downloads</div>
+                          <div className="text-gray-900 dark:text-white font-bold">{downloads}</div>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 text-center">
+                          <div className="text-gray-500 dark:text-gray-400 text-xs">Revenue</div>
+                          <div className="text-green-600 dark:text-green-400 font-bold font-mono">
+                            {formatSOL(revenue)} SOL
+                          </div>
+                        </div>
+                      </div>
+
+                      {listing.account.skillUri && (
+                        <a
+                          href={listing.account.skillUri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 truncate"
+                        >
+                          📄 {listing.account.skillUri}
+                        </a>
+                      )}
+
+                      {isOwn ? (
+                        <div className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg font-semibold text-center text-sm">
+                          Your Skill
+                        </div>
+                      ) : alreadyPurchased ? (
+                        <div className="w-full px-4 py-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-semibold text-center text-sm border border-green-200 dark:border-green-800">
+                          ✅ Purchased
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handlePurchase(listing)}
+                          disabled={!connected || isPurchasing}
+                          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg font-semibold transition text-sm"
+                        >
+                          {isPurchasing ? (
+                            <span className="animate-pulse">Processing...</span>
+                          ) : connected ? (
+                            `Buy for ${formatSOL(price)} SOL`
+                          ) : (
+                            'Connect Wallet'
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </div>
+          </>
         )}
 
-        {/* Publish Skill Tab */}
+        {/* ===== PUBLISH TAB ===== */}
         {activeTab === 'publish' && (
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-            <h2 className="text-2xl font-bold font-heading text-white mb-4">📦 Publish a New Skill</h2>
-            <p className="text-blue-200 mb-6">
-              Publish your agent skill and earn 60% of each sale. Vouchers earn the remaining 40%.
-            </p>
-            
+          <div className="max-w-2xl mx-auto">
             {!connected ? (
-              <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-6 text-center">
-                <p className="text-yellow-200 mb-4">Connect your wallet to publish skills</p>
-                <WalletMultiButton />
+              <div className="text-center py-20">
+                <div className="text-6xl mb-4">🔗</div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Connect Wallet to Publish</h3>
+                <p className="text-gray-600 dark:text-gray-400">You need a connected wallet and a registered agent profile to publish skills.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-white mb-2 font-semibold">Skill ID (unique identifier)</label>
-                  <input
-                    type="text"
-                    value={skillId}
-                    onChange={(e) => setSkillId(e.target.value)}
-                    placeholder="my-trading-bot-v1"
-                    className="w-full px-4 py-3 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
-                  />
-                  <p className="text-xs text-blue-200 mt-1">Use lowercase, hyphens, no spaces (e.g., "jupiter-swap-v2")</p>
+              <form onSubmit={handlePublish} className="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6">
+                  📝 Publish a New Skill
+                </h2>
+
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Skill ID <span className="text-gray-400 text-xs">(unique identifier, no spaces)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={publishForm.skillId}
+                      onChange={(e) => setPublishForm({ ...publishForm, skillId: e.target.value.replace(/\s/g, '-').toLowerCase() })}
+                      placeholder="e.g., jupiter-swap-v2"
+                      required
+                      maxLength={32}
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Name <span className="text-gray-400 text-xs">(max 64 chars)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={publishForm.name}
+                      onChange={(e) => setPublishForm({ ...publishForm, name: e.target.value })}
+                      placeholder="e.g., Jupiter Swap Automation"
+                      required
+                      maxLength={64}
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Description <span className="text-gray-400 text-xs">(max 256 chars)</span>
+                    </label>
+                    <textarea
+                      value={publishForm.description}
+                      onChange={(e) => setPublishForm({ ...publishForm, description: e.target.value })}
+                      placeholder="Describe what your skill does and why agents should buy it..."
+                      required
+                      maxLength={256}
+                      rows={3}
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                    <div className="text-xs text-gray-400 mt-1 text-right">
+                      {publishForm.description.length}/256
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Skill URL <span className="text-gray-400 text-xs">(IPFS, Arweave, or HTTPS)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={publishForm.skillUri}
+                      onChange={(e) => setPublishForm({ ...publishForm, skillUri: e.target.value })}
+                      placeholder="https://example.com/skill.md or ipfs://..."
+                      required
+                      maxLength={256}
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Price (SOL)
+                    </label>
+                    <input
+                      type="number"
+                      value={publishForm.price}
+                      onChange={(e) => setPublishForm({ ...publishForm, price: e.target.value })}
+                      placeholder="0.1"
+                      required
+                      min="0.001"
+                      step="0.001"
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      💰 Revenue split: You get <strong>60%</strong> ({(parseFloat(publishForm.price || '0') * 0.6).toFixed(3)} SOL) per sale.
+                      Vouchers split <strong>40%</strong> ({(parseFloat(publishForm.price || '0') * 0.4).toFixed(3)} SOL).
+                    </div>
+                  </div>
                 </div>
-                
-                <div>
-                  <label className="block text-white mb-2 font-semibold">Skill Name</label>
-                  <input
-                    type="text"
-                    value={skillName}
-                    onChange={(e) => setSkillName(e.target.value)}
-                    placeholder="Jupiter Trading Bot"
-                    className="w-full px-4 py-3 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-white mb-2 font-semibold">Description</label>
-                  <textarea
-                    value={skillDescription}
-                    onChange={(e) => setSkillDescription(e.target.value)}
-                    placeholder="Automated trading strategies using Jupiter aggregator..."
-                    className="w-full px-4 py-3 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400 h-24"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-white mb-2 font-semibold">Skill URI (IPFS or HTTPS)</label>
-                  <input
-                    type="text"
-                    value={skillUri}
-                    onChange={(e) => setSkillUri(e.target.value)}
-                    placeholder="ipfs://QmXxx... or https://example.com/skill.md"
-                    className="w-full px-4 py-3 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
-                  />
-                  <p className="text-xs text-blue-200 mt-1">Link to your skill.md file</p>
-                </div>
-                
-                <div>
-                  <label className="block text-white mb-2 font-semibold">Price (SOL)</label>
-                  <input
-                    type="number"
-                    value={skillPrice}
-                    onChange={(e) => setSkillPrice(e.target.value)}
-                    min="0.01"
-                    step="0.01"
-                    className="w-full px-4 py-3 rounded bg-white/20 text-white placeholder-blue-200 border border-white/30 focus:outline-none focus:border-blue-400"
-                  />
-                </div>
-                
-                <div className="bg-blue-900/30 border border-blue-400/50 rounded-lg p-4">
-                  <p className="text-blue-200 text-sm">
-                    💡 <strong>Revenue split:</strong> You earn 60% ({(parseFloat(skillPrice) * 0.6).toFixed(2)} SOL per sale), 
-                    vouchers earn 40% ({(parseFloat(skillPrice) * 0.4).toFixed(2)} SOL distributed by stake)
-                  </p>
-                </div>
-                
+
                 <button
-                  onClick={handlePublishSkill}
-                  disabled={loading || !skillId || !skillName || !skillDescription || !skillUri}
-                  className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-bold text-lg transition"
+                  type="submit"
+                  disabled={publishing || !publishForm.skillId || !publishForm.name || !publishForm.skillUri}
+                  className="w-full mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg font-semibold transition"
                 >
-                  {loading ? 'Publishing...' : 'Publish Skill'}
+                  {publishing ? (
+                    <span className="animate-pulse">Publishing on-chain...</span>
+                  ) : (
+                    '🚀 Publish Skill'
+                  )}
                 </button>
-              </div>
+              </form>
             )}
           </div>
         )}
 
-        {/* My Purchases Tab */}
-        {activeTab === 'purchases' && (
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-            <h2 className="text-2xl font-bold font-heading text-white mb-4">🛒 My Purchases</h2>
-            
+        {/* ===== MY PURCHASES TAB ===== */}
+        {activeTab === 'my-purchases' && (
+          <div>
             {!connected ? (
-              <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-6 text-center">
-                <p className="text-yellow-200">Connect your wallet to view purchases</p>
+              <div className="text-center py-20">
+                <div className="text-6xl mb-4">🔗</div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
+                <p className="text-gray-600 dark:text-gray-400">Connect your wallet to see your purchases.</p>
               </div>
-            ) : loading ? (
-              <p className="text-blue-200">Loading purchases...</p>
             ) : myPurchases.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-xl text-white mb-4">No purchases yet</p>
+              <div className="text-center py-20">
+                <div className="text-6xl mb-4">🛒</div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No purchases yet</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Browse the marketplace to find useful skills.</p>
                 <button
                   onClick={() => setActiveTab('browse')}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
                 >
-                  Browse Skills →
+                  📚 Browse Skills
                 </button>
               </div>
             ) : (
               <div className="space-y-4">
-                {myPurchases.map((purchase, idx) => (
-                  <div key={idx} className="bg-black/30 rounded-lg p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <p className="text-sm text-blue-200 mb-1">Purchase Address:</p>
-                        <p className="font-mono text-xs text-white break-all mb-3">
-                          {purchase.publicKey.toString()}
-                        </p>
-                        <p className="text-sm text-blue-200 mb-1">Skill Address:</p>
-                        <p className="font-mono text-xs text-white break-all">
-                          {purchase.account.skillListing.toString()}
+                {myPurchases.map((purchase) => {
+                  // Find the matching listing
+                  const listing = listings.find(
+                    (l) => l.publicKey.toBase58() === purchase.account.skillListing.toBase58()
+                  );
+
+                  return (
+                    <div
+                      key={purchase.publicKey.toBase58()}
+                      className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 flex items-center justify-between"
+                    >
+                      <div>
+                        <h3 className="font-heading font-bold text-gray-900 dark:text-white">
+                          {listing?.account.name || 'Unknown Skill'}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Purchased {formatDate(purchase.account.purchasedAt.toNumber())} ·{' '}
+                          <span className="font-mono">{formatSOL(purchase.account.pricePaid.toNumber())} SOL</span>
                         </p>
                       </div>
-                      <div className="text-green-400 font-bold font-heading text-xl ml-4">
-                        {(purchase.account.pricePaid.toNumber() / LAMPORTS_PER_SOL).toFixed(2)} SOL
-                      </div>
+                      {listing?.account.skillUri && (
+                        <a
+                          href={listing.account.skillUri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition"
+                        >
+                          📥 Download
+                        </a>
+                      )}
                     </div>
-                    
-                    <div className="text-xs text-blue-200">
-                      Purchased: {new Date(purchase.account.purchasedAt.toNumber() * 1000).toLocaleString()}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
-        {/* My Listings Tab */}
-        {activeTab === 'listings' && (
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
-            <h2 className="text-2xl font-bold font-heading text-white mb-4">📦 My Listings</h2>
-            
+        {/* ===== MY LISTINGS TAB ===== */}
+        {activeTab === 'my-listings' && (
+          <div>
             {!connected ? (
-              <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-6 text-center">
-                <p className="text-yellow-200">Connect your wallet to view your listings</p>
+              <div className="text-center py-20">
+                <div className="text-6xl mb-4">🔗</div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
+                <p className="text-gray-600 dark:text-gray-400">Connect your wallet to see your listings.</p>
               </div>
-            ) : loading ? (
-              <p className="text-blue-200">Loading your listings...</p>
             ) : myListings.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-xl text-white mb-4">No listings yet</p>
+              <div className="text-center py-20">
+                <div className="text-6xl mb-4">📦</div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No skills published</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Publish your first skill to start earning.</p>
                 <button
                   onClick={() => setActiveTab('publish')}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
                 >
-                  Publish a Skill →
+                  📝 Publish a Skill
                 </button>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {myListings.map((listing, idx) => (
-                  <div key={idx} className="bg-black/30 rounded-lg p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-xl font-bold font-heading text-white">{listing.account.name}</h3>
-                      <span className="px-3 py-1 bg-blue-600 text-white text-sm rounded">Your Skill</span>
-                    </div>
-                    
-                    <p className="text-blue-200 text-sm mb-4">{listing.account.description}</p>
-                    
-                    <div className="mb-4 bg-black/20 rounded p-3">
-                      <div className="text-blue-200 text-xs mb-1">📄 Skill Address</div>
-                      <div className="font-mono text-xs text-white break-all">
-                        {listing.publicKey.toString()}
-                      </div>
-                    </div>
+              <div className="space-y-4">
+                {myListings.map((listing) => {
+                  const price = listing.account.priceLamports.toNumber();
+                  const downloads = listing.account.totalDownloads.toNumber();
+                  const revenue = listing.account.totalRevenue.toNumber();
+                  const authorEarnings = revenue * 0.6;
 
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="bg-black/20 rounded p-3 text-center">
-                        <div className="text-blue-200 text-xs">Price</div>
-                        <div className="text-green-400 font-bold font-heading">
-                          {(listing.account.priceLamports.toNumber() / LAMPORTS_PER_SOL).toFixed(2)}
-                        </div>
+                  return (
+                    <div
+                      key={listing.publicKey.toBase58()}
+                      className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-heading font-bold text-gray-900 dark:text-white">
+                          {listing.account.name}
+                        </h3>
+                        <span className="text-green-600 dark:text-green-400 font-mono font-bold">
+                          {formatSOL(price)} SOL
+                        </span>
                       </div>
-                      <div className="bg-black/20 rounded p-3 text-center">
-                        <div className="text-blue-200 text-xs">Downloads</div>
-                        <div className="text-white font-bold font-heading">{listing.account.totalDownloads.toNumber()}</div>
-                      </div>
-                      <div className="bg-black/20 rounded p-3 text-center">
-                        <div className="text-blue-200 text-xs">Revenue</div>
-                        <div className="text-green-400 font-bold font-heading">
-                          {(listing.account.totalRevenue.toNumber() / LAMPORTS_PER_SOL).toFixed(2)}
-                        </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        {listing.account.description}
+                      </p>
+                      <div className="flex gap-4 text-sm">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          📥 {downloads} downloads
+                        </span>
+                        <span className="text-green-600 dark:text-green-400 font-mono">
+                          💰 {formatSOL(revenue)} SOL total ({formatSOL(authorEarnings)} your share)
+                        </span>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
-        {/* Status Messages */}
-        {status && (
-          <div className={`mt-6 backdrop-blur-lg rounded-lg p-4 ${
-            status.includes('Error')
-              ? 'bg-red-900/30 border border-red-400/50'
-              : 'bg-green-900/30 border border-green-400/50'
-          }`}>
-            <p className={`font-mono text-sm break-all ${
-              status.includes('Error')
-                ? 'text-red-200'
-                : 'text-green-200'
-            }`}>{status}</p>
+        {/* How It Works - shown on browse tab only */}
+        {activeTab === 'browse' && (
+          <div className="mt-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-8 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6">How the Marketplace Works</h2>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">💰 Revenue Sharing</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">When someone buys a skill:</p>
+                <ul className="space-y-1 text-gray-600 dark:text-gray-400 text-sm">
+                  <li>• Author gets <strong>60%</strong></li>
+                  <li>• Vouchers split <strong>40%</strong> by stake weight</li>
+                  <li>• No protocol fees</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">🛡️ Quality Through Economics</h3>
+                <ul className="space-y-1 text-gray-600 dark:text-gray-400 text-sm">
+                  <li>• Vouchers earn from successful skills</li>
+                  <li>• Lose stake if vouching for bad actors</li>
+                  <li>• Creates self-policing marketplace</li>
+                  <li>• Reputation = quality signal</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">🚀 For Authors</h3>
+                <ol className="space-y-1 text-gray-600 dark:text-gray-400 text-sm list-decimal list-inside">
+                  <li>Register as an agent</li>
+                  <li>Get vouches from trusted agents</li>
+                  <li>Publish your skill with pricing</li>
+                  <li>Earn passive income from sales</li>
+                </ol>
+              </div>
+            </div>
           </div>
         )}
-
-        {/* How It Works */}
-        <div className="mt-12 bg-blue-900/30 backdrop-blur-lg rounded-lg p-8 border border-blue-400/30">
-          <h2 className="text-2xl font-bold font-heading text-white mb-6">How the Marketplace Works</h2>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-bold font-heading text-white mb-3">💰 Revenue Sharing</h3>
-              <p className="text-blue-200 mb-3">
-                Every skill purchase splits revenue:
-              </p>
-              <ul className="space-y-2 text-blue-100 text-sm">
-                <li>• <strong>60% to author</strong> (you earn from your work)</li>
-                <li>• <strong>40% to vouchers</strong> (distributed by stake weight)</li>
-                <li>• Creates passive income for vouchers</li>
-                <li>• Incentivizes quality vouching</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-bold font-heading text-white mb-3">🛡️ Security Through Economics</h3>
-              <p className="text-blue-200 mb-3">
-                Vouchers have skin in the game:
-              </p>
-              <ul className="space-y-2 text-blue-100 text-sm">
-                <li>• Earn passive income from quality skills</li>
-                <li>• Lose stake if vouching for bad actors</li>
-                <li>• Economic incentive to vouch wisely</li>
-                <li>• Self-policing marketplace</li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </div>
     </main>
   );
