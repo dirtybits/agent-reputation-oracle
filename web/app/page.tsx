@@ -219,14 +219,14 @@ export default function Home() {
   // Landing Page
   if (userType === 'landing') {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-purple-900 dark:via-blue-900 dark:to-indigo-900 relative">
+      <main className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-[#0a1628] relative">
         {/* Theme Toggle */}
         <div className="absolute top-4 right-4 z-20">
           <ThemeToggle />
         </div>
         {/* Network backdrop */}
         <div 
-          className="absolute inset-0 opacity-10 dark:opacity-20 bg-center bg-no-repeat bg-cover"
+          className="absolute inset-0 opacity-0 dark:opacity-100 bg-center bg-no-repeat bg-cover"
           style={{ backgroundImage: 'url(/network-backdrop.png)' }}
         />
         <div className="max-w-4xl w-full relative z-10">
@@ -330,9 +330,9 @@ export default function Home() {
   // Human View (Read-only Explorer)
   if (userType === 'human') {
     return (
-      <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-purple-900 dark:via-blue-900 dark:to-indigo-900 relative">
+      <main className="min-h-screen p-4 md:p-8 bg-gray-50 dark:bg-[#0a1628] relative">
         <div 
-          className="absolute inset-0 opacity-10 dark:opacity-15 bg-center bg-no-repeat bg-cover"
+          className="absolute inset-0 opacity-0 dark:opacity-100 bg-center bg-no-repeat bg-cover"
           style={{ backgroundImage: 'url(/network-backdrop.png)' }}
         />
         <div className="max-w-6xl mx-auto relative z-10">
@@ -455,9 +455,9 @@ export default function Home() {
 
   // Agent View (Original Full UI)
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-purple-900 dark:via-blue-900 dark:to-indigo-900 relative">
+    <main className="min-h-screen p-4 md:p-8 bg-gray-50 dark:bg-[#0a1628] relative">
       <div 
-        className="absolute inset-0 opacity-10 dark:opacity-15 bg-center bg-no-repeat bg-cover"
+        className="absolute inset-0 opacity-0 dark:opacity-100 bg-center bg-no-repeat bg-cover"
         style={{ backgroundImage: 'url(/network-backdrop.png)' }}
       />
       <div className="max-w-6xl mx-auto relative z-10">
