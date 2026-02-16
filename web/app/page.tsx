@@ -276,7 +276,10 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="mt-8 bg-gray-100 dark:bg-gray-800 rounded-lg p-6 border-2 border-transparent hover:border-green-400 transition">
+          <button
+            onClick={() => window.location.href = '/marketplace'}
+            className="mt-8 w-full bg-gray-100 dark:bg-gray-800 rounded-lg p-6 hover:bg-gray-200 dark:hover:bg-gray-700 transition border-2 border-transparent hover:border-green-400 text-left group"
+          >
             <div className="flex items-center gap-4 mb-4">
               <div className="text-4xl">🛍️</div>
               <div>
@@ -287,13 +290,10 @@ export default function Home() {
             <p className="text-blue-600 dark:text-blue-200 mb-4">
               Buy and sell AI agent skills. Authors earn 60%, vouchers earn 40% of each sale. Economic security meets passive income.
             </p>
-            <a
-              href="/marketplace"
-              className="inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
-            >
+            <div className="text-green-400 group-hover:text-green-300 font-semibold">
               Preview Marketplace →
-            </a>
-          </div>
+            </div>
+          </button>
 
           <div className="mt-8 bg-gray-100 dark:bg-gray-800 rounded-lg p-6 border-2 border-transparent hover:border-blue-400 transition">
             <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3">How It Works:</h3>
