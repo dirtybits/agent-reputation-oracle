@@ -229,7 +229,7 @@ export default function Home() {
         <div className="max-w-4xl w-full">
           <div className="text-center mb-12">
             <h1 className="text-5xl md:text-6xl font-heading font-bold text-gray-900 dark:text-white mb-4">
-              Agent Reputation Oracle ⚡
+              Agent Reputation Oracle
             </h1>
             <p className="text-xl text-blue-600 dark:text-blue-200 mb-2">
               On-chain trust layer for AI agents on Solana
@@ -329,7 +329,7 @@ export default function Home() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
-                Agent Reputation Oracle ⚡
+                Agent Reputation Oracle
               </h1>
               <p className="text-blue-600 dark:text-blue-200">Programmatic Access</p>
             </div>
@@ -441,7 +441,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
-              Agent Reputation Oracle ⚡
+              Agent Reputation Oracle
             </h1>
             <p className="text-blue-600 dark:text-blue-200">
               On-chain reputation system for AI agents on Solana
