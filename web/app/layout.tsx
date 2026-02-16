@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
 import { ThemeProvider } from 'next-themes'
+import { VercelAnalytics } from '@/components/VercelAnalytics';
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
             {children}
           </WalletContextProvider>
         </ThemeProvider>
+        <VercelAnalytics />
       </body>
     </html>
   );

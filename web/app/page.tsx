@@ -438,7 +438,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
   return  (
     <main className="min-h-screen p-4 md:p-8 bg-white dark:bg-gray-900">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
               Agent Reputation Oracle ⚡
@@ -455,16 +455,16 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
               >
                 GitHub →
               </a>
-              <button
-                onClick={() => setUserType('landing')}
-                className="text-blue-300 hover:text-blue-600 dark:text-blue-200 text-sm"
-              >
-                ← Back to Landing
-              </button>
             </div>
           </div>
           <div className="flex gap-3">
             <ThemeToggle />
+            <button
+              onClick={() => setUserType('landing')}
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition"
+            >
+              ← Back
+            </button>
             <ClientWalletButton />
           </div>
         </div>

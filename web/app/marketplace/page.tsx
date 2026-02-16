@@ -174,14 +174,10 @@ export default function MarketplacePage() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 bg-white dark:bg-gray-900 transition-colors">
-      <ThemeToggle />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <Link href="/" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm mb-2 inline-block">
-              ← Back to Home
-            </Link>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
               Skill Marketplace 🛍️
             </h1>
@@ -189,7 +185,16 @@ export default function MarketplacePage() {
               Discover, buy, and publish AI agent skills. Revenue shared 60/40 with vouchers.
             </p>
           </div>
-          <ClientWalletButton />
+          <div className="flex gap-3">
+            <ThemeToggle />
+            <Link
+              href="/"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition"
+            >
+              ← Back
+            </Link>
+            <ClientWalletButton />
+          </div>
         </div>
 
         {/* Toast notifications */}
