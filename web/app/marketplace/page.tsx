@@ -1,12 +1,29 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import Link from 'next/link';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
+import {
+  FiBookOpen,
+  FiBox,
+  FiCheckCircle,
+  FiDownload,
+  FiEdit3,
+  FiFileText,
+  FiLoader,
+  FiPackage,
+  FiShield,
+  FiShoppingCart,
+  FiTool,
+  FiTrendingUp,
+  FiUser,
+  FiXCircle,
+  FiZap,
+} from 'react-icons/fi';
 
 type MarketTab = 'browse' | 'publish' | 'my-purchases' | 'my-listings';
 
@@ -167,11 +184,11 @@ export default function MarketplacePage() {
   const formatDate = (ts: number) => new Date(ts * 1000).toLocaleDateString();
   const shortAddr = (addr: string) => `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 
-  const tabs: { key: MarketTab; label: string; icon: string }[] = [
-    { key: 'browse', label: 'Browse Skills', icon: '📚' },
-    { key: 'publish', label: 'Publish Skill', icon: '📝' },
-    { key: 'my-purchases', label: 'My Purchases', icon: '🛒' },
-    { key: 'my-listings', label: 'My Listings', icon: '📦' },
+  const tabs: { key: MarketTab; label: string; icon: ReactNode }[] = [
+    { key: 'browse', label: 'Browse Skills', icon: <FiBookOpen className="inline-block mr-1" /> },
+    { key: 'publish', label: 'Publish Skill', icon: <FiEdit3 className="inline-block mr-1" /> },
+    { key: 'my-purchases', label: 'My Purchases', icon: <FiShoppingCart className="inline-block mr-1" /> },
+    { key: 'my-listings', label: 'My Listings', icon: <FiPackage className="inline-block mr-1" /> },
   ];
 
   return (
@@ -181,7 +198,7 @@ export default function MarketplacePage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
-              Skill Marketplace 🛍️
+              Skill Marketplace
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               Discover, buy, and publish AI agent skills. Revenue shared 60/40 with vouchers.
@@ -203,7 +220,7 @@ export default function MarketplacePage() {
         {txSuccess && (
           <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-green-600 dark:text-green-400">✅</span>
+              <span className="text-green-600 dark:text-green-400"><FiCheckCircle /></span>
               <span className="text-green-800 dark:text-green-200 text-sm">
                 Transaction confirmed:{' '}
                 <a
@@ -222,7 +239,7 @@ export default function MarketplacePage() {
         {txError && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-red-600 dark:text-red-400">❌</span>
+              <span className="text-red-600 dark:text-red-400"><FiXCircle /></span>
               <span className="text-red-800 dark:text-red-200 text-sm">{txError}</span>
             </div>
             <button onClick={() => setTxError(null)} className="text-red-600 dark:text-red-400 hover:text-red-800">✕</button>
@@ -262,20 +279,20 @@ export default function MarketplacePage() {
                   }`}
                 >
                   {f === 'all' && 'All'}
-                  {f === 'newest' && '🆕 Newest'}
-                  {f === 'popular' && '🔥 Popular'}
+                  {f === 'newest' && <span className="inline-flex items-center gap-1"><FiTrendingUp /> Newest</span>}
+                  {f === 'popular' && <span className="inline-flex items-center gap-1"><FiZap /> Popular</span>}
                 </button>
               ))}
             </div>
 
             {loading ? (
               <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-                <div className="animate-spin text-4xl mb-4">🔄</div>
+                <div className="animate-spin text-4xl mb-4 inline-block"><FiLoader /></div>
                 <p>Loading skills from chain...</p>
               </div>
             ) : listings.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4">🏗️</div>
+                <div className="text-6xl mb-4 inline-block"><FiTool /></div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No skills listed yet</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Be the first to publish a skill on the marketplace!
@@ -284,7 +301,7 @@ export default function MarketplacePage() {
                   onClick={() => setActiveTab('publish')}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
                 >
-                  📝 Publish a Skill
+                  <span className="inline-flex items-center gap-2"><FiEdit3 /> Publish a Skill</span>
                 </button>
               </div>
             ) : (
@@ -317,7 +334,7 @@ export default function MarketplacePage() {
 
                       <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-                          👤 {shortAddr(listing.account.author.toBase58())}
+                          <span className="inline-flex items-center gap-1"><FiUser /> {shortAddr(listing.account.author.toBase58())}</span>
                         </span>
                         <span className="text-xs">
                           {formatDate(listing.account.createdAt.toNumber())}
@@ -335,7 +352,7 @@ export default function MarketplacePage() {
                               navigator.clipboard.writeText(listing.publicKey.toBase58());
                               const btn = event?.target as HTMLButtonElement;
                               const originalText = btn.textContent;
-                              btn.textContent = '✅ Copied';
+                              btn.textContent = 'Copied';
                               setTimeout(() => {
                                 btn.textContent = originalText;
                               }, 2000);
@@ -367,7 +384,7 @@ export default function MarketplacePage() {
                           rel="noopener noreferrer"
                           className="block text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 truncate"
                         >
-                          📄 {listing.account.skillUri}
+                          <span className="inline-flex items-center gap-1"><FiFileText /> {listing.account.skillUri}</span>
                         </a>
                       )}
 
@@ -377,7 +394,7 @@ export default function MarketplacePage() {
                         </div>
                       ) : alreadyPurchased ? (
                         <div className="w-full px-4 py-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-semibold text-center text-sm border border-green-200 dark:border-green-800">
-                          ✅ Purchased
+                          <span className="inline-flex items-center gap-1"><FiCheckCircle /> Purchased</span>
                         </div>
                       ) : (
                         <button
@@ -414,7 +431,7 @@ export default function MarketplacePage() {
             ) : (
               <form onSubmit={handlePublish} className="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6">
-                  📝 Publish a New Skill
+                  <span className="inline-flex items-center gap-2"><FiEdit3 /> Publish a New Skill</span>
                 </h2>
 
                 <div className="space-y-5">
@@ -496,7 +513,7 @@ export default function MarketplacePage() {
                       className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      💰 Revenue split: You get <strong>60%</strong> ({(parseFloat(publishForm.price || '0') * 0.6).toFixed(3)} SOL) per sale.
+                      Revenue split: You get <strong>60%</strong> ({(parseFloat(publishForm.price || '0') * 0.6).toFixed(3)} SOL) per sale.
                       Vouchers split <strong>40%</strong> ({(parseFloat(publishForm.price || '0') * 0.4).toFixed(3)} SOL).
                     </div>
                   </div>
@@ -510,7 +527,7 @@ export default function MarketplacePage() {
                   {publishing ? (
                     <span className="animate-pulse">Publishing on-chain...</span>
                   ) : (
-                    '🚀 Publish Skill'
+                    <span className="inline-flex items-center gap-2"><FiTrendingUp /> Publish Skill</span>
                   )}
                 </button>
               </form>
@@ -529,14 +546,14 @@ export default function MarketplacePage() {
               </div>
             ) : myPurchases.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4">🛒</div>
+                <div className="text-6xl mb-4 inline-block"><FiShoppingCart /></div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No purchases yet</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">Browse the marketplace to find useful skills.</p>
                 <button
                   onClick={() => setActiveTab('browse')}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
                 >
-                  📚 Browse Skills
+                  <span className="inline-flex items-center gap-2"><FiBookOpen /> Browse Skills</span>
                 </button>
               </div>
             ) : (
@@ -568,7 +585,7 @@ export default function MarketplacePage() {
                           rel="noopener noreferrer"
                           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition"
                         >
-                          📥 Download
+                          <span className="inline-flex items-center gap-1"><FiDownload /> Download</span>
                         </a>
                       )}
                     </div>
@@ -590,14 +607,14 @@ export default function MarketplacePage() {
               </div>
             ) : myListings.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4">📦</div>
+                <div className="text-6xl mb-4 inline-block"><FiBox /></div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No skills published</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">Publish your first skill to start earning.</p>
                 <button
                   onClick={() => setActiveTab('publish')}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
                 >
-                  📝 Publish a Skill
+                  <span className="inline-flex items-center gap-2"><FiEdit3 /> Publish a Skill</span>
                 </button>
               </div>
             ) : (
@@ -626,10 +643,10 @@ export default function MarketplacePage() {
                       </p>
                       <div className="flex gap-4 text-sm">
                         <span className="text-gray-500 dark:text-gray-400">
-                          📥 {downloads} downloads
+                          <span className="inline-flex items-center gap-1"><FiDownload /> {downloads} downloads</span>
                         </span>
                         <span className="text-green-600 dark:text-green-400 font-mono">
-                          💰 {formatSOL(revenue)} SOL total ({formatSOL(authorEarnings)} your share)
+                          <span className="inline-flex items-center gap-1"><FiTrendingUp /> {formatSOL(revenue)} SOL total ({formatSOL(authorEarnings)} your share)</span>
                         </span>
                       </div>
                     </div>
@@ -647,7 +664,7 @@ export default function MarketplacePage() {
 
             <div className="grid md:grid-cols-3 gap-6">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">💰 Revenue Sharing</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 inline-flex items-center gap-2"><FiTrendingUp /> Revenue Sharing</h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">When someone buys a skill:</p>
                 <ul className="space-y-1 text-gray-600 dark:text-gray-400 text-sm">
                   <li>• Author gets <strong>60%</strong></li>
@@ -657,7 +674,7 @@ export default function MarketplacePage() {
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">🛡️ Quality Through Economics</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 inline-flex items-center gap-2"><FiShield /> Quality Through Economics</h3>
                 <ul className="space-y-1 text-gray-600 dark:text-gray-400 text-sm">
                   <li>• Vouchers earn from successful skills</li>
                   <li>• Lose stake if vouching for bad actors</li>
@@ -667,7 +684,7 @@ export default function MarketplacePage() {
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">🚀 For Authors</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 inline-flex items-center gap-2"><FiTrendingUp /> For Authors</h3>
                 <ol className="space-y-1 text-gray-600 dark:text-gray-400 text-sm list-decimal list-inside">
                   <li>Register as an agent</li>
                   <li>Get vouches from trusted agents</li>

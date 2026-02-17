@@ -1,11 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PublicKey } from '@solana/web3.js';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
+import {
+  FiAlertTriangle,
+  FiCalendar,
+  FiCheckCircle,
+  FiCode,
+  FiCpu,
+  FiDollarSign,
+  FiDownload,
+  FiFileText,
+  FiSearch,
+  FiShield,
+  FiShoppingBag,
+  FiTrendingUp,
+  FiUser,
+  FiUsers,
+  FiZap,
+} from 'react-icons/fi';
+import { GiCrab } from 'react-icons/gi';
 
 type UserType = 'landing' | 'human' | 'agent';
 type Tab = 'profile' | 'vouch' | 'explorer' | 'disputes';
@@ -212,11 +230,11 @@ export default function Home() {
     return new Date(timestamp * 1000).toLocaleString();
   };
 
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'profile', label: 'My Profile', icon: '👤' },
-    { id: 'vouch', label: 'Vouch', icon: '⚡' },
-    { id: 'explorer', label: 'Explore', icon: '🔍' },
-    { id: 'disputes', label: 'Disputes', icon: '⚖️' },
+  const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
+    { id: 'profile', label: 'My Profile', icon: <FiUser className="inline-block mr-1" /> },
+    { id: 'vouch', label: 'Vouch', icon: <FiZap className="inline-block mr-1" /> },
+    { id: 'explorer', label: 'Explore', icon: <FiSearch className="inline-block mr-1" /> },
+    { id: 'disputes', label: 'Disputes', icon: <FiShield className="inline-block mr-1" /> },
   ];
 
   // Landing Page
@@ -248,14 +266,14 @@ export default function Home() {
             {/* Human Card */}
             <button
               onClick={() => setUserType('human')}
-              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:hover:bg-gray-700 transition border-2 border-transparent hover:border-blue-400 text-left group"
+              className="h-full flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:hover:bg-gray-700 transition border-2 border-transparent hover:border-blue-400 text-left group"
             >
-              <div className="text-6xl mb-4">👤</div>
+              <div className="text-6xl mb-4 text-blue-500"><FiUser /></div>
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm Human</h2>
               <p className="text-blue-600 dark:text-blue-200 mb-4">
                 Use the web interface to connect your wallet, register, vouch for agents, and manage reputation.
               </p>
-              <div className="text-blue-400 group-hover:text-blue-300 font-semibold">
+              <div className="mt-auto text-blue-400 group-hover:text-blue-300 font-semibold">
                 Launch App →
               </div>
             </button>
@@ -263,9 +281,9 @@ export default function Home() {
             {/* Agent Card */}
             <button
               onClick={() => setUserType('agent')}
-              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:hover:bg-gray-700 transition border-2 border-transparent hover:border-green-400 text-left group"
+              className="h-full flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg p-8 hover:bg-gray-200 dark:hover:bg-gray-700 transition border-2 border-transparent hover:border-green-400 text-left group"
             >
-              <div className="text-6xl mb-4">🦞</div>
+              <div className="text-6xl mb-4 text-orange-500"><GiCrab /></div>
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
               <p className="text-blue-600 dark:text-blue-200 mb-4">
                 Install the skill for your AI agent to integrate with the reputation oracle programmatically.
@@ -275,7 +293,7 @@ export default function Home() {
                   curl -s https://agentvouch.vercel.app/skill.md
                 </code>
               </div>
-              <div className="text-green-400 group-hover:text-green-300 font-semibold">
+              <div className="mt-auto text-green-400 group-hover:text-green-300 font-semibold">
                 View API Docs →
               </div>
             </button>
@@ -286,7 +304,7 @@ export default function Home() {
             className="mt-8 w-full bg-gray-100 dark:bg-gray-800 rounded-lg p-6 hover:bg-gray-200 dark:hover:bg-gray-700 transition border-2 border-transparent hover:border-green-400 text-left group"
           >
             <div className="flex items-center gap-4 mb-4">
-              <div className="text-4xl">🛍️</div>
+              <div className="text-4xl text-green-500"><FiShoppingBag /></div>
               <div>
                 <h3 className="text-xl font-heading font-bold text-gray-900 dark:text-white">Skill Marketplace</h3>
                 <p className="text-green-600 dark:text-green-300 text-sm">Revenue-generating marketplace coming soon!</p>
@@ -304,19 +322,19 @@ export default function Home() {
             <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3">How It Works:</h3>
             <div className="grid md:grid-cols-2 gap-4 text-blue-600 dark:text-blue-200">
               <div>
-                <div className="font-semibold text-gray-900 dark:text-white mb-1">✅ Register</div>
+                <div className="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiCheckCircle /> Register</div>
                 <div className="text-sm">Create your agent profile on-chain</div>
               </div>
               <div>
-                <div className="font-semibold text-gray-900 dark:text-white mb-1">⚡ Vouch</div>
+                <div className="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiZap /> Vouch</div>
                 <div className="text-sm">Stake SOL to vouch for agents you trust</div>
               </div>
               <div>
-                <div className="font-semibold text-gray-900 dark:text-white mb-1">💰 Reputation</div>
+                <div className="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiTrendingUp /> Reputation</div>
                 <div className="text-sm">Earn reputation from vouches and time</div>
               </div>
               <div>
-                <div className="font-semibold text-gray-900 dark:text-white mb-1">⚖️ Disputes</div>
+                <div className="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiShield /> Disputes</div>
                 <div className="text-sm">Challenge bad vouches with evidence</div>
               </div>
             </div>
@@ -351,7 +369,7 @@ export default function Home() {
 
           {/* Download Skill.md */}
           <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 mb-6">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">📥 Download Skill</h2>
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiDownload /> Download Skill</h2>
             <p className="text-blue-600 dark:text-blue-200 mb-4">
               Install the skill for your AI agent to integrate with the reputation oracle programmatically.
             </p>
@@ -371,7 +389,7 @@ export default function Home() {
 
           {/* Contract Info */}
           <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 mb-6">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">📜 Smart Contract</h2>
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiFileText /> Smart Contract</h2>
             <div className="space-y-4">
               <div>
                 <p className="text-blue-600 dark:text-blue-200 mb-2"><strong>Network:</strong> Solana Devnet</p>
@@ -397,7 +415,7 @@ export default function Home() {
 
           {/* Example Code */}
           <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 mb-6">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">💻 Example Usage</h2>
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiCode /> Example Usage</h2>
             <p className="text-blue-600 dark:text-blue-200 mb-4">Register an agent:</p>
             <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
               <pre className="text-green-400 font-mono text-sm">{`import { useReputationOracle } from './hooks/useReputationOracle';
@@ -485,12 +503,12 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
             <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-6 border border-blue-400/30 text-left max-w-2xl mx-auto">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">How It Works:</h3>
               <ul className="space-y-2 text-blue-100">
-                <li>✅ <strong>Register</strong> - Create your agent profile on-chain</li>
-                <li>⚡ <strong>Vouch</strong> - Stake SOL to vouch for other agents you trust</li>
-                <li>🔍 <strong>Explore</strong> - Search and view other agent profiles</li>
-                <li>⚖️ <strong>Dispute</strong> - Challenge bad vouches with evidence</li>
-                <li>💰 <strong>Reputation</strong> - Earn reputation points from vouches and time</li>
-                <li>⚠️ <strong>Slashing</strong> - Lose 50% of staked SOL if disputes prove you vouched for a bad agent</li>
+                <li className="flex items-center gap-2"><FiCheckCircle /> <strong>Register</strong> - Create your agent profile on-chain</li>
+                <li className="flex items-center gap-2"><FiZap /> <strong>Vouch</strong> - Stake SOL to vouch for other agents you trust</li>
+                <li className="flex items-center gap-2"><FiSearch /> <strong>Explore</strong> - Search and view other agent profiles</li>
+                <li className="flex items-center gap-2"><FiShield /> <strong>Dispute</strong> - Challenge bad vouches with evidence</li>
+                <li className="flex items-center gap-2"><FiTrendingUp /> <strong>Reputation</strong> - Earn reputation points from vouches and time</li>
+                <li className="flex items-center gap-2"><FiAlertTriangle /> <strong>Slashing</strong> - Lose 50% of staked SOL if disputes prove you vouched for a bad agent</li>
               </ul>
             </div>
           </div>
@@ -591,7 +609,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                 {/* Agents Vouching For You */}
                 {agentProfile && vouchesReceived.length > 0 && (
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-                    <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">🤝 Agents Vouching For You</h2>
+                    <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiUsers /> Agents Vouching For You</h2>
                     <p className="text-blue-600 dark:text-blue-200 mb-4">
                       {vouchesReceived.length} {vouchesReceived.length === 1 ? 'agent is' : 'agents are'} staking SOL to vouch for you.
                     </p>
@@ -617,7 +635,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                                 </p>
                                 <div className="flex gap-4 text-xs text-white">
                                   <span>
-                                    📅 {formatTimestamp(createdAt)}
+                                    <span className="inline-flex items-center gap-1"><FiCalendar /> {formatTimestamp(createdAt)}</span>
                                   </span>
                                 </div>
                               </div>
@@ -642,7 +660,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                 {/* Agents You're Vouching For */}
                 {agentProfile && vouches.length > 0 && (
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-                    <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">⚡ Agents You're Vouching For</h2>
+                    <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiZap /> Agents You're Vouching For</h2>
                     <p className="text-blue-600 dark:text-blue-200 mb-4">
                       You're currently staking SOL to vouch for {vouches.length} {vouches.length === 1 ? 'agent' : 'agents'}.
                     </p>
@@ -668,7 +686,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                                 </p>
                                 <div className="flex gap-4 text-xs text-white">
                                   <span>
-                                    📅 {formatTimestamp(createdAt)}
+                                    <span className="inline-flex items-center gap-1"><FiCalendar /> {formatTimestamp(createdAt)}</span>
                                   </span>
                                 </div>
                               </div>
@@ -781,10 +799,10 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                                 </p>
                                 <div className="flex gap-4 text-xs text-white">
                                   <span>
-                                    ⚡ {agent.account.totalVouchesReceived.toString()} vouches
+                                    <span className="inline-flex items-center gap-1"><FiZap /> {agent.account.totalVouchesReceived.toString()} vouches</span>
                                   </span>
                                   <span>
-                                    💰 {(agent.account.totalStakedFor.toNumber() / 1e9).toFixed(2)} SOL
+                                    <span className="inline-flex items-center gap-1"><FiDollarSign /> {(agent.account.totalStakedFor.toNumber() / 1e9).toFixed(2)} SOL</span>
                                   </span>
                                 </div>
                               </div>
@@ -823,7 +841,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
               <div className="space-y-6">
                 {/* Search Box */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-                  <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">🔍 Search Agents</h2>
+                  <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiSearch /> Search Agents</h2>
                   <p className="text-blue-600 dark:text-blue-200 mb-4">
                     Search for any agent by their Solana wallet address to view their reputation and vouches.
                   </p>
@@ -951,10 +969,10 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                                 </p>
                                 <div className="flex gap-4 text-xs text-white">
                                   <span>
-                                    ⚡ {agent.account.totalVouchesReceived.toString()} vouches
+                                    <span className="inline-flex items-center gap-1"><FiZap /> {agent.account.totalVouchesReceived.toString()} vouches</span>
                                   </span>
                                   <span>
-                                    💰 {(agent.account.totalStakedFor.toNumber() / 1e9).toFixed(2)} SOL
+                                    <span className="inline-flex items-center gap-1"><FiDollarSign /> {(agent.account.totalStakedFor.toNumber() / 1e9).toFixed(2)} SOL</span>
                                   </span>
                                 </div>
                               </div>
@@ -982,7 +1000,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
 
             {activeTab === 'disputes' && (
               <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
-                <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">⚖️ Open Dispute</h2>
+                <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><FiShield /> Open Dispute</h2>
                 <p className="text-blue-600 dark:text-blue-200 mb-4">
                   Challenge a vouch if you believe the voucher endorsed a bad actor. Requires a dispute bond (configured in program).
                 </p>
@@ -1014,7 +1032,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                   
                   <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
                     <p className="text-yellow-200 text-sm">
-                      ⚠️ <strong>Warning:</strong> Opening a dispute requires a bond. If your dispute is rejected, you may lose your bond. Only dispute vouches with strong evidence.
+                      <span className="inline-flex items-center gap-1"><FiAlertTriangle /></span> <strong>Warning:</strong> Opening a dispute requires a bond. If your dispute is rejected, you may lose your bond. Only dispute vouches with strong evidence.
                     </p>
                   </div>
                   
