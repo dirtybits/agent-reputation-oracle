@@ -9,9 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-roboto-mono)', '"Roboto Mono"', 'monospace'],
-        heading: ['var(--font-roboto-mono)', '"Roboto Mono"', 'monospace'],
-        mono: ['var(--font-roboto-mono)', '"Roboto Mono"', 'monospace'],
+        sans: ['var(--font-inconsolata)', '"Inconsolata"', 'monospace'],
+        heading: ['var(--font-inconsolata)', '"Inconsolata"', 'monospace'],
+        mono: ['var(--font-inconsolata)', '"Inconsolata"', 'monospace'],
       },
     },
   },

@@ -16,7 +16,7 @@ body {
   color: var(--foreground);
 }
 
-/* Roboto Mono for all text */
+/* Inconsolata for all text */
 .font-heading {
-  font-family: var(--font-roboto-mono), "Roboto Mono", monospace !important;
+  font-family: var(--font-inconsolata), "Inconsolata", monospace !important;
 }

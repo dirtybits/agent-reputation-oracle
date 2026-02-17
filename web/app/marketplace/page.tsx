@@ -66,7 +66,8 @@ export default function MarketplacePage() {
   const [purchasedKeys, setPurchasedKeys] = useState<Set<string>>(new Set());
 
   const loadListings = useCallback(async () => {
-    if (!oracle.program) return;
+    // Don't require wallet connection to view listings
+    if (!oracle.readOnlyProgram) return;
     setLoading(true);
     try {
       const all = await oracle.getAllSkillListings();
@@ -89,10 +90,11 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false);
     }
-  }, [oracle.program, filter]);
+  }, [oracle.readOnlyProgram, filter]);
 
   const loadMyData = useCallback(async () => {
-    if (!oracle.program || !publicKey) return;
+    // Use readOnlyProgram so it works even without wallet for initial load
+    if (!oracle.readOnlyProgram || !publicKey) return;
     try {
       const [purchases, authorListings] = await Promise.all([
         oracle.getPurchasesByBuyer(publicKey),
@@ -104,7 +106,7 @@ export default function MarketplacePage() {
     } catch (e) {
       console.error('Failed to load user data:', e);
     }
-  }, [oracle.program, publicKey]);
+  }, [oracle.readOnlyProgram, publicKey]);
 
   useEffect(() => {
     loadListings();

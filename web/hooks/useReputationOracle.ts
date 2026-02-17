@@ -27,6 +27,16 @@ export function useReputationOracle() {
     return new Program(IDL as any, provider);
   }, [provider]);
 
+  // Read-only program for fetching data without wallet connection
+  const readOnlyProgram = useMemo(() => {
+    const readOnlyProvider = new AnchorProvider(
+      connection,
+      {} as any, // Empty wallet for read-only operations
+      { commitment: 'confirmed' }
+    );
+    return new Program(IDL as any, readOnlyProvider);
+  }, [connection]);
+
   const getAgentPDA = (agentKey: PublicKey) => {
     return PublicKey.findProgramAddressSync(
       [Buffer.from('agent'), agentKey.toBuffer()],
@@ -192,10 +202,12 @@ export function useReputationOracle() {
   };
 
   const getAllAgents = async () => {
-    if (!program) return [];
+    // Use read-only program so it works without wallet connection
+    const programToUse = program || readOnlyProgram;
+    if (!programToUse) return [];
     
     try {
-      const agents = await (program.account as any).agentProfile.all();
+      const agents = await (programToUse.account as any).agentProfile.all();
       return agents;
     } catch (error) {
       console.error('Error fetching all agents:', error);
@@ -220,9 +232,11 @@ export function useReputationOracle() {
   };
 
   const getAllSkillListings = async () => {
-    if (!program) return [];
+    // Use read-only program so it works without wallet connection
+    const programToUse = program || readOnlyProgram;
+    if (!programToUse) return [];
     try {
-      const listings = await (program.account as any).skillListing.all();
+      const listings = await (programToUse.account as any).skillListing.all();
       return listings;
     } catch (error) {
       console.error('Error fetching skill listings:', error);
@@ -231,9 +245,11 @@ export function useReputationOracle() {
   };
 
   const getSkillListingsByAuthor = async (author: PublicKey) => {
-    if (!program) return [];
+    // Use read-only program so it works without wallet connection
+    const programToUse = program || readOnlyProgram;
+    if (!programToUse) return [];
     try {
-      const listings = await (program.account as any).skillListing.all([
+      const listings = await (programToUse.account as any).skillListing.all([
         {
           memcmp: {
             offset: 8, // discriminator then author
@@ -248,9 +264,11 @@ export function useReputationOracle() {
   };
 
   const getPurchasesByBuyer = async (buyer: PublicKey) => {
-    if (!program) return [];
+    // Use read-only program so it works without wallet connection
+    const programToUse = program || readOnlyProgram;
+    if (!programToUse) return [];
     try {
-      const purchases = await (program.account as any).purchase.all([
+      const purchases = await (programToUse.account as any).purchase.all([
         {
           memcmp: {
             offset: 8,
@@ -302,6 +320,7 @@ export function useReputationOracle() {
 
   return {
     program,
+    readOnlyProgram,
     provider,
     registerAgent,
     vouch,

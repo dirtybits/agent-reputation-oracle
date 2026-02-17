@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Roboto_Mono } from "next/font/google";
+import { Inconsolata } from "next/font/google";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
 import { ThemeProvider } from 'next-themes'
 import { VercelAnalytics } from '@/components/VercelAnalytics';
 
-const robotoMono = Roboto_Mono({ 
+const inconsolata = Inconsolata({ 
   subsets: ["latin"],
-  variable: '--font-roboto-mono',
+  variable: '--font-inconsolata',
 });
 
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${robotoMono.variable} font-mono`}>
+      <body className={`${inconsolata.variable} font-mono`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <WalletContextProvider>
             {children}
