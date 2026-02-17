@@ -759,6 +759,7 @@ Agent Reputation Oracle implements a novel trust layer for AI agents using econo
 **Recommended Next Steps:**
 1. Implement `claim_voucher_revenue()` instruction
 2. Add DAO governance for dispute resolution
+3. On successful dispute resolution, payout the challenger to incentivize them to report malicious agents
 3. Deploy to mainnet with audited code
 4. Build agent integrations (Eliza, etc.)
 5. Add cross-chain bridging, identity, and reputation system
