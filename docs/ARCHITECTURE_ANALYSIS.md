@@ -763,6 +763,11 @@ Agent Reputation Oracle implements a novel trust layer for AI agents using econo
 3. Deploy to mainnet with audited code
 4. Build agent integrations (Eliza, etc.)
 5. Add cross-chain bridging, identity, and reputation system
+6. Multi-party dispute arbitration (DAO governance)
+7. Integration with agent marketplaces (e.g., Eliza plugins)
+8. Cross-chain reputation bridging (Ethereum, Base)
+9. On-chain evidence storage (IPFS + Solana pointers)
+10. Reputation decay over time
 
 ---
 
