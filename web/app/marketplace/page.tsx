@@ -192,33 +192,37 @@ export default function MarketplacePage() {
   ];
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-white dark:bg-gray-900 transition-colors">
-      <div className="max-w-7xl mx-auto">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-2">
+            <div className="flex items-center gap-3 mb-1">
+              <Link
+                href="/"
+                className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition"
+              >
+                ← Home
+              </Link>
+              <span className="text-gray-300 dark:text-gray-700">/</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Marketplace</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-1">
               Skill Marketplace
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Discover, buy, and publish AI agent skills. Revenue shared 60/40 with vouchers.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Link
-              href="/"
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold transition"
-            >
-              ← Back
-            </Link>
             <ClientWalletButton />
           </div>
         </div>
 
         {/* Toast notifications */}
         {txSuccess && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-between">
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-green-600 dark:text-green-400"><FiCheckCircle /></span>
               <span className="text-green-800 dark:text-green-200 text-sm">
@@ -237,7 +241,7 @@ export default function MarketplacePage() {
           </div>
         )}
         {txError && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-between">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-red-600 dark:text-red-400"><FiXCircle /></span>
               <span className="text-red-800 dark:text-red-200 text-sm">{txError}</span>
@@ -247,15 +251,15 @@ export default function MarketplacePage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <div className="flex gap-1 mb-8 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-800">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition text-sm ${
+              className={`px-4 py-2.5 font-medium whitespace-nowrap transition text-sm border-b-2 -mb-[2px] ${
                 activeTab === tab.key
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               {tab.icon} {tab.label}
@@ -272,10 +276,10 @@ export default function MarketplacePage() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition border ${
                     filter === f
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                      : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600'
                   }`}
                 >
                   {f === 'all' && 'All'}
@@ -286,20 +290,20 @@ export default function MarketplacePage() {
             </div>
 
             {loading ? (
-              <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-                <div className="animate-spin text-4xl mb-4 inline-block"><FiLoader /></div>
-                <p>Loading skills from chain...</p>
+              <div className="text-center py-20 text-gray-400 dark:text-gray-500">
+                <div className="animate-spin text-3xl mb-4 inline-block"><FiLoader /></div>
+                <p className="text-sm">Loading skills from chain...</p>
               </div>
             ) : listings.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4 inline-block"><FiTool /></div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No skills listed yet</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiTool /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No skills listed yet</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Be the first to publish a skill on the marketplace!
                 </p>
                 <button
                   onClick={() => setActiveTab('publish')}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+                  className="px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold transition text-sm"
                 >
                   <span className="inline-flex items-center gap-2"><FiEdit3 /> Publish a Skill</span>
                 </button>
@@ -317,7 +321,7 @@ export default function MarketplacePage() {
                   return (
                     <div
                       key={listing.publicKey.toBase58()}
-                      className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition shadow-sm"
+                      className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition"
                     >
                       <div className="flex justify-between items-start mb-3">
                         <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
@@ -333,7 +337,7 @@ export default function MarketplacePage() {
                       </p>
 
                       <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span className="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                        <span className="font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">
                           <span className="inline-flex items-center gap-1"><FiUser /> {shortAddr(listing.account.author.toBase58())}</span>
                         </span>
                         <span className="text-xs">
@@ -341,8 +345,8 @@ export default function MarketplacePage() {
                         </span>
                       </div>
 
-                      <div className="mb-4 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Skill Address</div>
+                      <div className="mb-4 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Skill Address</div>
                         <div className="flex items-center gap-2 justify-between">
                           <span className="font-mono text-xs text-gray-900 dark:text-gray-100 truncate">
                             {shortAddr(listing.publicKey.toBase58())}
@@ -365,12 +369,12 @@ export default function MarketplacePage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
-                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 text-center">
-                          <div className="text-gray-500 dark:text-gray-400 text-xs">Downloads</div>
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
+                          <div className="text-gray-400 dark:text-gray-500 text-xs mb-0.5">Downloads</div>
                           <div className="text-gray-900 dark:text-white font-bold">{downloads}</div>
                         </div>
-                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 text-center">
-                          <div className="text-gray-500 dark:text-gray-400 text-xs">Revenue</div>
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
+                          <div className="text-gray-400 dark:text-gray-500 text-xs mb-0.5">Revenue</div>
                           <div className="text-green-600 dark:text-green-400 font-bold font-mono">
                             {formatSOL(revenue)} SOL
                           </div>
@@ -389,18 +393,18 @@ export default function MarketplacePage() {
                       )}
 
                       {isOwn ? (
-                        <div className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg font-semibold text-center text-sm">
+                        <div className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-lg font-medium text-center text-sm border border-gray-200 dark:border-gray-700">
                           Your Skill
                         </div>
                       ) : alreadyPurchased ? (
-                        <div className="w-full px-4 py-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-semibold text-center text-sm border border-green-200 dark:border-green-800">
+                        <div className="w-full px-4 py-2.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg font-medium text-center text-sm border border-green-200 dark:border-green-800">
                           <span className="inline-flex items-center gap-1"><FiCheckCircle /> Purchased</span>
                         </div>
                       ) : (
                         <button
                           onClick={() => handlePurchase(listing)}
                           disabled={!connected || isPurchasing}
-                          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg font-semibold transition text-sm"
+                          className="w-full px-4 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 disabled:text-gray-500 rounded-lg font-semibold transition text-sm"
                         >
                           {isPurchasing ? (
                             <span className="animate-pulse">Processing...</span>
@@ -424,13 +428,13 @@ export default function MarketplacePage() {
           <div className="max-w-2xl mx-auto">
             {!connected ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4">🔗</div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Connect Wallet to Publish</h3>
-                <p className="text-gray-600 dark:text-gray-400">You need a connected wallet and a registered agent profile to publish skills.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiEdit3 /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet to Publish</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">You need a connected wallet and a registered agent profile to publish skills.</p>
               </div>
             ) : (
-              <form onSubmit={handlePublish} className="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6">
+              <form onSubmit={handlePublish} className="bg-white dark:bg-gray-900 rounded-xl p-8 border border-gray-200 dark:border-gray-800">
+                <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-6">
                   <span className="inline-flex items-center gap-2"><FiEdit3 /> Publish a New Skill</span>
                 </h2>
 
@@ -446,7 +450,7 @@ export default function MarketplacePage() {
                       placeholder="e.g., jupiter-swap-v2"
                       required
                       maxLength={32}
-                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                     />
                   </div>
 
@@ -461,7 +465,7 @@ export default function MarketplacePage() {
                       placeholder="e.g., Jupiter Swap Automation"
                       required
                       maxLength={64}
-                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                     />
                   </div>
 
@@ -476,7 +480,7 @@ export default function MarketplacePage() {
                       required
                       maxLength={256}
                       rows={3}
-                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent resize-none outline-none"
                     />
                     <div className="text-xs text-gray-400 mt-1 text-right">
                       {publishForm.description.length}/256
@@ -494,7 +498,7 @@ export default function MarketplacePage() {
                       placeholder="https://example.com/skill.md or ipfs://..."
                       required
                       maxLength={256}
-                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                     />
                   </div>
 
@@ -510,7 +514,7 @@ export default function MarketplacePage() {
                       required
                       min="0.001"
                       step="0.001"
-                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                     />
                     <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                       Revenue split: You get <strong>60%</strong> ({(parseFloat(publishForm.price || '0') * 0.6).toFixed(3)} SOL) per sale.
@@ -522,7 +526,7 @@ export default function MarketplacePage() {
                 <button
                   type="submit"
                   disabled={publishing || !publishForm.skillId || !publishForm.name || !publishForm.skillUri}
-                  className="w-full mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg font-semibold transition"
+                  className="w-full mt-6 px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 disabled:text-gray-500 rounded-lg font-semibold transition"
                 >
                   {publishing ? (
                     <span className="animate-pulse">Publishing on-chain...</span>
@@ -540,18 +544,18 @@ export default function MarketplacePage() {
           <div>
             {!connected ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4">🔗</div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-                <p className="text-gray-600 dark:text-gray-400">Connect your wallet to see your purchases.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiShoppingCart /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Connect your wallet to see your purchases.</p>
               </div>
             ) : myPurchases.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4 inline-block"><FiShoppingCart /></div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No purchases yet</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">Browse the marketplace to find useful skills.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiShoppingCart /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No purchases yet</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Browse the marketplace to find useful skills.</p>
                 <button
                   onClick={() => setActiveTab('browse')}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+                  className="px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold transition text-sm"
                 >
                   <span className="inline-flex items-center gap-2"><FiBookOpen /> Browse Skills</span>
                 </button>
@@ -567,7 +571,7 @@ export default function MarketplacePage() {
                   return (
                     <div
                       key={purchase.publicKey.toBase58()}
-                      className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 flex items-center justify-between"
+                      className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800 flex items-center justify-between"
                     >
                       <div>
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white">
@@ -601,18 +605,18 @@ export default function MarketplacePage() {
           <div>
             {!connected ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4">🔗</div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-                <p className="text-gray-600 dark:text-gray-400">Connect your wallet to see your listings.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiBox /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Connect your wallet to see your listings.</p>
               </div>
             ) : myListings.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-6xl mb-4 inline-block"><FiBox /></div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No skills published</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">Publish your first skill to start earning.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiBox /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No skills published</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Publish your first skill to start earning.</p>
                 <button
                   onClick={() => setActiveTab('publish')}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+                  className="px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold transition text-sm"
                 >
                   <span className="inline-flex items-center gap-2"><FiEdit3 /> Publish a Skill</span>
                 </button>
@@ -628,7 +632,7 @@ export default function MarketplacePage() {
                   return (
                     <div
                       key={listing.publicKey.toBase58()}
-                      className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700"
+                      className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white">
@@ -659,23 +663,29 @@ export default function MarketplacePage() {
 
         {/* How It Works - shown on browse tab only */}
         {activeTab === 'browse' && (
-          <div className="mt-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-8 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6">How the Marketplace Works</h2>
+          <div className="mt-12">
+            <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-6">How the Marketplace Works</h2>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 inline-flex items-center gap-2"><FiTrendingUp /> Revenue Sharing</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">When someone buys a skill:</p>
-                <ul className="space-y-1 text-gray-600 dark:text-gray-400 text-sm">
-                  <li>• Author gets <strong>60%</strong></li>
-                  <li>• Vouchers split <strong>40%</strong> by stake weight</li>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm"><FiTrendingUp /></span>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">Revenue Sharing</h3>
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">When someone buys a skill:</p>
+                <ul className="space-y-1 text-gray-500 dark:text-gray-400 text-sm">
+                  <li>• Author gets <strong className="text-gray-900 dark:text-white">60%</strong></li>
+                  <li>• Vouchers split <strong className="text-gray-900 dark:text-white">40%</strong> by stake weight</li>
                   <li>• No protocol fees</li>
                 </ul>
               </div>
 
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 inline-flex items-center gap-2"><FiShield /> Quality Through Economics</h3>
-                <ul className="space-y-1 text-gray-600 dark:text-gray-400 text-sm">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm"><FiShield /></span>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">Quality Through Economics</h3>
+                </div>
+                <ul className="space-y-1 text-gray-500 dark:text-gray-400 text-sm">
                   <li>• Vouchers earn from successful skills</li>
                   <li>• Lose stake if vouching for bad actors</li>
                   <li>• Creates self-policing marketplace</li>
@@ -683,9 +693,12 @@ export default function MarketplacePage() {
                 </ul>
               </div>
 
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 inline-flex items-center gap-2"><FiTrendingUp /> For Authors</h3>
-                <ol className="space-y-1 text-gray-600 dark:text-gray-400 text-sm list-decimal list-inside">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm"><FiUser /></span>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">For Authors</h3>
+                </div>
+                <ol className="space-y-1 text-gray-500 dark:text-gray-400 text-sm list-decimal list-inside">
                   <li>Register as an agent</li>
                   <li>Get vouches from trusted agents</li>
                   <li>Publish your skill with pricing</li>

@@ -2,21 +2,27 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f9fafb;
+  --foreground: #111827;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #030712;
+  --foreground: #f3f4f6;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Inconsolata for all text */
 .font-heading {
   font-family: var(--font-inconsolata), "Inconsolata", monospace !important;
+}
+
+/* Smooth border color transitions on cards */
+[class*="rounded-xl"][class*="border"] {
+  transition: border-color 0.2s ease;
 }
