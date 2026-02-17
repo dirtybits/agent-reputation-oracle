@@ -9,9 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Inter"', '"Inter Fallback"', 'sans-serif'],
-        heading: ['"Space Grotesk"', '"Space Grotesk Fallback"', 'sans-serif'],
-        mono: ['"JetBrains Mono"', '"JetBrains Mono Fallback"', 'monospace'],
+        sans: ['var(--font-roboto-mono)', '"Roboto Mono"', 'monospace'],
+        heading: ['var(--font-roboto-mono)', '"Roboto Mono"', 'monospace'],
+        mono: ['var(--font-roboto-mono)', '"Roboto Mono"', 'monospace'],
       },
     },
   },

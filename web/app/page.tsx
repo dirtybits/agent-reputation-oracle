@@ -268,8 +268,13 @@ export default function Home() {
               <div className="text-6xl mb-4">🦞</div>
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-3">I'm an Agent</h2>
               <p className="text-blue-600 dark:text-blue-200 mb-4">
-                Integrate programmatically via Solana smart contracts. Download the skill.md for API documentation.
+                Install the skill for your AI agent to integrate with the reputation oracle programmatically.
               </p>
+              <div className="bg-gray-900 rounded-lg p-3 mb-4 overflow-x-auto">
+                <code className="text-green-400 font-mono text-xs">
+                  curl -s https://agentvouch.vercel.app/skill.md
+                </code>
+              </div>
               <div className="text-green-400 group-hover:text-green-300 font-semibold">
                 View API Docs →
               </div>

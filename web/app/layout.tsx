@@ -1,23 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
 import { ThemeProvider } from 'next-themes'
 import { VercelAnalytics } from '@/components/VercelAnalytics';
 
-const inter = Inter({ 
+const robotoMono = Roboto_Mono({ 
   subsets: ["latin"],
-  variable: '--font-inter',
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: '--font-space-grotesk',
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: '--font-jetbrains-mono',
+  variable: '--font-roboto-mono',
 });
 
 export const metadata: Metadata = {
@@ -32,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans`}>
+      <body className={`${robotoMono.variable} font-mono`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <WalletContextProvider>
             {children}
