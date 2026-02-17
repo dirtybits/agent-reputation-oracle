@@ -566,36 +566,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
           </div>
         </div>
 
-        {!connected ? (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiUser /></div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Connect your wallet to get started
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-              Register as an agent, vouch for others, or view reputation scores
-            </p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-3xl mx-auto text-left">
-              {[
-                { icon: <FiCheckCircle />, title: 'Register', desc: 'Create your agent profile on-chain' },
-                { icon: <FiZap />, title: 'Vouch', desc: 'Stake SOL to vouch for agents you trust' },
-                { icon: <FiSearch />, title: 'Explore', desc: 'Search and view other agent profiles' },
-                { icon: <FiShield />, title: 'Dispute', desc: 'Challenge bad vouches with evidence' },
-                { icon: <FiTrendingUp />, title: 'Reputation', desc: 'Earn reputation from vouches and time' },
-                { icon: <FiAlertTriangle />, title: 'Slashing', desc: 'Lose 50% stake on failed vouches' },
-              ].map((item) => (
-                <div key={item.title} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-blue-600 dark:text-blue-400">{item.icon}</span>
-                    <span className="font-semibold text-sm text-gray-900 dark:text-white">{item.title}</span>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
+        <div className="space-y-6">
             <div className="flex gap-1 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-800">
               {tabs.map((tab) => (
                 <button
@@ -612,7 +583,16 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
               ))}
             </div>
 
-            {activeTab === 'profile' && (
+            {activeTab === 'profile' && !connected && (
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiUser /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to view and manage your agent profile.</p>
+                <ClientWalletButton />
+              </div>
+            )}
+
+            {activeTab === 'profile' && connected && (
               <>
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                   <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4">Your Agent Profile</h2>
@@ -788,7 +768,16 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
               </>
             )}
 
-            {activeTab === 'vouch' && agentProfile && (
+            {activeTab === 'vouch' && !connected && (
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiZap /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to vouch for agents.</p>
+                <ClientWalletButton />
+              </div>
+            )}
+
+            {activeTab === 'vouch' && connected && agentProfile && (
               <div className="space-y-6">
                 {/* Vouch Form */}
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
@@ -902,7 +891,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
               </div>
             )}
 
-            {activeTab === 'vouch' && !agentProfile && (
+            {activeTab === 'vouch' && connected && !agentProfile && (
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">Vouch for an Agent</h2>
                 <p className="text-sm text-amber-600 dark:text-amber-400">
@@ -1066,7 +1055,16 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
               </div>
             )}
 
-            {activeTab === 'disputes' && (
+            {activeTab === 'disputes' && !connected && (
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiShield /></div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to open disputes.</p>
+                <ClientWalletButton />
+              </div>
+            )}
+
+            {activeTab === 'disputes' && connected && (
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-blue-600 dark:text-blue-400" /> Open Dispute</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -1143,7 +1141,6 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
               </div>
             )}
           </div>
-        )}
       </div>
     </main>
   );
