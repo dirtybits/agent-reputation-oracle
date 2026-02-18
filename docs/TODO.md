@@ -1,0 +1,14 @@
+- [ ] Implement `claim_voucher_revenue()` instruction
+- [ ] Add DAO governance for dispute resolution
+- [ ] On successful dispute resolution, payout the challenger to incentivize them to report malicious agents
+- [ ] Deploy to mainnet with audited code
+- [ ] Build agent integrations (Eliza, etc.)
+- [ ] Add cross-chain bridging, identity, and reputation system
+- [ ] Multi-party dispute arbitration (DAO governance)
+- [ ] Integration with agent marketplaces (e.g., Eliza plugins)
+- [ ] Cross-chain reputation bridging (Ethereum, Base)
+- [ ] On-chain evidence storage (IPFS + Solana pointers)
+- [ ] Reputation decay over time
+- [ ] x402 micropayment integration
+- [ ] MCP marketplace integration
+- [ ] ERC-8004 integration
