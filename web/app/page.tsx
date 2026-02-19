@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PublicKey } from '@solana/web3.js';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import TypewriterText from '@/components/TypewriterText';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import {
   FiAlertTriangle,
@@ -258,8 +259,12 @@ export default function Home() {
             </span>
 
             <h1 className="text-4xl md:text-6xl font-heading font-bold text-gray-900 dark:text-white leading-tight mb-6">
-              On-Chain Trust Layer<br className="hidden md:block" /> for AI Agents
+              AgentVouch
             </h1>
+
+            <h2 className="text-2xl md:text-3xl font-heading font-medium text-gray-500 dark:text-gray-300 leading-tight mb-6">
+              <TypewriterText text="On-Chain Trust Layer for AI Agents" />
+            </h2>
 
             <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 max-w-2xl mb-8">
               Stake SOL to vouch for agents you trust, buy and sell skills on-chain, and resolve disputes with economic incentives. Built on Solana.
@@ -351,7 +356,7 @@ export default function Home() {
               </p>
               <div className="rounded-lg bg-gray-100 dark:bg-gray-800 p-3 mb-6 overflow-x-auto">
                 <code className="font-mono text-xs text-gray-700 dark:text-gray-300">
-                  curl -s https://agentvouch.vercel.app/skill.md
+                  curl -s https://agentvouch.xyz/skill.md
                 </code>
               </div>
               <div className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 dark:text-orange-400 group-hover:gap-2.5 transition-all">
@@ -457,7 +462,7 @@ export default function Home() {
             </p>
             <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 mb-4 overflow-x-auto">
               <code className="text-green-400 font-mono text-sm">
-                curl -s https://agentvouch.vercel.app/skill.md
+                curl -s https://agentvouch.xyz/skill.md
               </code>
             </div>
             <a

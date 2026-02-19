@@ -26,3 +26,193 @@ body {
 [class*="rounded-xl"][class*="border"] {
   transition: border-color 0.2s ease;
 }
+
+/* Typewriter animation */
+@keyframes typewriter {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+@keyframes blinkTextCursor {
+  from { border-right-color: currentColor; }
+  to   { border-right-color: transparent; }
+}
+.typewriter {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid currentColor;
+  animation:
+    typewriter 2s steps(40) 0.5s 1 normal both,
+    blinkTextCursor 500ms steps(40) infinite normal;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Wallet Adapter Overrides
+   Matches the site's primary button: gray-900/white bg, rounded-lg, monospace
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Connect / address button ────────────────────────────────────────────── */
+.wallet-adapter-button {
+  font-family: var(--font-inconsolata), "Inconsolata", monospace !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  height: auto !important;
+  line-height: normal !important;
+  padding: 0.625rem 1.25rem !important;
+  border-radius: 0.5rem !important;
+  border: none !important;
+  background-color: #111827 !important; /* gray-900 */
+  color: #ffffff !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+.wallet-adapter-button:not([disabled]):hover {
+  background-color: #1f2937 !important; /* gray-800 */
+}
+
+.wallet-adapter-button[disabled] {
+  background-color: #d1d5db !important; /* gray-300 */
+  color: #9ca3af !important;            /* gray-400 */
+  cursor: not-allowed !important;
+}
+
+/* Dark mode: inverts to white bg + dark text, matching dark:bg-white */
+.dark .wallet-adapter-button {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+.dark .wallet-adapter-button:not([disabled]):hover {
+  background-color: #f3f4f6 !important; /* gray-100 */
+}
+
+.dark .wallet-adapter-button[disabled] {
+  background-color: #374151 !important; /* gray-700 */
+  color: #6b7280 !important;            /* gray-500 */
+}
+
+/* ── Modal overlay ───────────────────────────────────────────────────────── */
+.wallet-adapter-modal-wrapper {
+  background-color: rgba(0, 0, 0, 0.55) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* ── Modal container — mirrors the site's card style ────────────────────── */
+.wallet-adapter-modal {
+  font-family: var(--font-inconsolata), "Inconsolata", monospace !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important; /* gray-200 */
+  border-radius: 0.75rem !important;    /* rounded-xl */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+  padding: 1.5rem !important;
+}
+
+.dark .wallet-adapter-modal {
+  background-color: #111827 !important; /* gray-900 */
+  border-color: #1f2937 !important;     /* gray-800 */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── Modal title ─────────────────────────────────────────────────────────── */
+.wallet-adapter-modal-title {
+  font-family: var(--font-inconsolata), "Inconsolata", monospace !important;
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+}
+
+.dark .wallet-adapter-modal-title {
+  color: #ffffff !important;
+}
+
+/* ── Wallet list items ───────────────────────────────────────────────────── */
+.wallet-adapter-modal-list li {
+  border-radius: 0.5rem !important;
+  border: 1px solid #e5e7eb !important;    /* gray-200 */
+  background-color: #f9fafb !important;    /* gray-50 */
+  margin-bottom: 0.375rem !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease !important;
+}
+
+.dark .wallet-adapter-modal-list li {
+  background-color: #1f2937 !important;    /* gray-800 */
+  border-color: #374151 !important;        /* gray-700 */
+}
+
+.wallet-adapter-modal-list li:hover {
+  background-color: #f3f4f6 !important;    /* gray-100 */
+  border-color: #d1d5db !important;        /* gray-300 */
+}
+
+.dark .wallet-adapter-modal-list li:hover {
+  background-color: #374151 !important;    /* gray-700 */
+  border-color: #4b5563 !important;        /* gray-600 */
+}
+
+/* Wallet option buttons inside the list — reset the outer button override */
+.wallet-adapter-modal-list .wallet-adapter-button {
+  background-color: transparent !important;
+  color: #111827 !important;
+  padding: 0.75rem 1rem !important;
+  width: 100% !important;
+}
+
+.dark .wallet-adapter-modal-list .wallet-adapter-button {
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover,
+.dark .wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background-color: transparent !important;
+}
+
+/* ── Modal close button ──────────────────────────────────────────────────── */
+.wallet-adapter-modal-close {
+  color: #9ca3af !important;               /* gray-400 */
+  transition: color 0.15s ease !important;
+}
+
+.wallet-adapter-modal-close:hover {
+  color: #111827 !important;
+}
+
+.dark .wallet-adapter-modal-close:hover {
+  color: #ffffff !important;
+}
+
+/* ── Connected-state dropdown menu ──────────────────────────────────────── */
+.wallet-adapter-dropdown-list {
+  font-family: var(--font-inconsolata), "Inconsolata", monospace !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;    /* gray-200 */
+  border-radius: 0.5rem !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .wallet-adapter-dropdown-list {
+  background-color: #111827 !important;    /* gray-900 */
+  border-color: #1f2937 !important;        /* gray-800 */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.wallet-adapter-dropdown-list-item {
+  font-family: var(--font-inconsolata), "Inconsolata", monospace !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: #111827 !important;
+  border-radius: 0.375rem !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.dark .wallet-adapter-dropdown-list-item {
+  color: #f3f4f6 !important;
+}
+
+.wallet-adapter-dropdown-list-item:not([disabled]):hover {
+  background-color: #f3f4f6 !important;    /* gray-100 */
+}
+
+.dark .wallet-adapter-dropdown-list-item:not([disabled]):hover {
+  background-color: #1f2937 !important;    /* gray-800 */
+}

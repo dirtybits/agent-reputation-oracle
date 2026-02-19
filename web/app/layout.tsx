@@ -12,7 +12,7 @@ const inconsolata = Inconsolata({
 });
 
 export const metadata: Metadata = {
-  title: "Agent Reputation Oracle",
+  title: "AgentVouch",
   description: "On-chain reputation system for AI agents on Solana",
 };
 
