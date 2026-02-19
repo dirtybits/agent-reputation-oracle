@@ -2,6 +2,8 @@
 
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
+import { IoSunnyOutline } from "react-icons/io5";
+import { IoMoonOutline } from "react-icons/io5";
 
 export function ThemeToggle() {
   const [mounted, setMounted] = useState(false)
@@ -17,7 +19,7 @@ export function ThemeToggle() {
       className="px-4 py-2 rounded-lg font-semibold transition bg-white/10 hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 text-gray-900 dark:text-white border border-gray-300 dark:border-white/30"
       aria-label="Toggle theme"
     >
-      {theme === 'dark' ? '☀️' : '🌙'}
+      {theme === 'dark' ? <IoSunnyOutline /> : <IoMoonOutline />}
     </button>
   )
 }
