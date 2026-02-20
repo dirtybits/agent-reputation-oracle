@@ -20,6 +20,29 @@
 - [ ] x402 micropayment integration
 - [ ] MCP marketplace integration
 
+## Metrics
+- [ ] Add connected agents
+- [ ] authors
+- [ ] published skills
+- [ ] purchased skills 
+- [ ] vouches given
+- [ ] vouches received 
+- [ ] total staked
+- [ ] total revenue 
+- [ ] total earnings 
+- [ ] total disputes 
+- [ ] total disputes won 
+- [ ] total disputes lost 
+- [ ] total disputes resolved 
+- [ ] total disputes resolved in favor of the challenger 
+- [ ] total disputes resolved in favor of the voucher
+- [ ] total disputes resolved in favor of the author 
+- [ ] total disputes resolved in favor of the vouchee 
+- [ ] total disputes resolved in favor of the challenger 
+- [ ] total disputes resolved in favor of the voucher
+- [ ] total disputes resolved in favor of the author
+- [ ] total disputes resolved in favor of the vouchee 
+
 ## ERC-8004 Strategy (Priority — see full memo below)
 - [ ] **Compatibility Layer**: Accept QuantuLabs 8004-solana agent IDs (`solana:mainnet:8oo48pya1SZD23ZhzoNMhxR2UGb8BRa41Su4qP9EuaWm#<agentId>`) as first-class references in AgentVouch
 - [ ] **Become the Validation Module**: Formally propose AgentVouch staking/slashing as the implementation of ERC-8004's archived Validation module for the Solana port
@@ -126,7 +149,7 @@ Proposing a shared hashing standard makes AgentVouch legible to the ERC-8004 eco
 ### Recommended Sequence
 
 **Week 1 (Now):**
-- Reach out formally to ERC-8004 author (Oddbox already has the contact)
+- Reach out formally to ERC-8004 author (dirtybits already has the contact)
 - Propose: AgentVouch implements ERC-8004 Validation module on Solana
 - Ask: Can we collaborate on the Solana Validation spec before QuantuLabs publishes it?
 
