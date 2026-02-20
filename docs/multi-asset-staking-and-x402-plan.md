@@ -82,6 +82,70 @@ Introduce a payment adapter layer:
 - split revenue (60/40) in paid asset
 - optionally route % into stake reserve per policy
 
+### 3.2.1 x402 Integration Spec (v2.0)
+
+#### A) Accepted Payment Requirements schema
+
+AgentVouch adapter should accept x402-style requirements with explicit, typed fields:
+
+- `scheme`: `exact` (required in v2.0)
+- `network`: `solana`
+- `mint`: SPL mint pubkey (USDC first, allowlist-gated)
+- `amount`: integer in base units (no floats)
+- `recipient`: settlement vault or seller destination
+- `resource`: canonical resource identifier (`skill_id`, endpoint route, or purchase intent id)
+- `expiry`: unix timestamp
+- `nonce`: replay protection token
+- `metadata`: optional map for UI/display only (non-authoritative)
+
+Validation rules:
+- Reject unknown scheme values in v2.0.
+- Reject unsupported mints (must be allowlisted).
+- Reject expired requirements.
+- Bind requirement to a canonical `resource` hash to prevent cross-endpoint replay.
+
+#### B) Verification/settlement interface compatibility
+
+Adapter should support two integration modes:
+
+1. **Native mode (minimal verifier)**
+   - Verify proof against Solana transaction data + program/account constraints.
+   - Settle by writing a deterministic purchase record and payout entries.
+
+2. **Facilitated mode (optional)**
+   - Compatibility shims for common x402 facilitator patterns:
+     - `POST /verify`
+     - `POST /settle`
+     - optional `GET /supported`
+
+Canonical adapter outputs:
+- `verification_status`: `valid | invalid | pending`
+- `payment_ref`: deterministic id (tx sig + instruction index + resource hash)
+- `settlement_id`: unique settlement record id
+- `final_amount`, `final_mint`, `final_recipient_set`
+
+Idempotency:
+- `/verify` and `/settle` must be safe to retry.
+- duplicate `payment_ref` must return prior result, never double-settle.
+
+#### C) Conformance test vectors
+
+Maintain a test vector suite that runs against at least one external x402 SDK implementation (Coinbase-targeted first), then expands.
+
+Minimum vectors:
+- Valid exact payment (happy path)
+- Invalid signature/header encoding
+- Wrong mint / unsupported mint
+- Wrong amount (off by 1)
+- Expired requirement
+- Replay attack attempt (`nonce` reuse)
+- Double-settlement attempt (idempotency)
+- Resource mismatch replay (pay once, attempt access to different resource)
+
+Pass criteria:
+- Adapter verdict matches expected outcome for every vector.
+- No vector can produce duplicate settlement side effects.
+
 ## 3.3 Valuation strategy
 
 v2.0:
@@ -213,11 +277,16 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 
 ## 5.3 Marketplace / x402 Adapter
 
-- [ ] Define x402 payment proof format accepted by adapter.
-- [ ] Implement adapter verification + settlement record.
+- [ ] Define accepted x402 Payment Requirements schema (`scheme`, `network`, `mint`, `amount`, `recipient`, `resource`, `expiry`, `nonce`).
+- [ ] Enforce strict validation rules (allowlisted mint, non-expired, exact amount, canonical resource hash binding).
+- [ ] Implement native adapter verify flow (Solana tx/proof validation).
+- [ ] Implement settlement flow with deterministic `payment_ref` and idempotent `settlement_id`.
+- [ ] Add compatibility layer for facilitator-style endpoints (`/verify`, `/settle`, optional `/supported`).
 - [ ] Integrate 60/40 split in arbitrary supported mint.
 - [ ] Add optional auto-stake routing policy.
 - [ ] Build reconciliation script (events vs balances).
+- [ ] Build conformance test vectors against at least one external x402 SDK (Coinbase-targeted first).
+- [ ] Add replay and double-settlement tests (`nonce` reuse, duplicate `payment_ref`, resource mismatch replay).
 
 ## 5.4 Indexer / API / UI
 
