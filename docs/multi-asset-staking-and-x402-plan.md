@@ -155,6 +155,38 @@ v2.0:
 v2.1 (optional):
 - Add oracle-backed normalization with stale-price guards.
 
+## 3.4 Multichain groundwork (Solana now, EVM next)
+
+### Strategic separation (must preserve)
+
+Keep these layers decoupled:
+
+1. **Reputation core** — vouch, dispute, slash, and scoring semantics.
+2. **Payment rails** — x402, marketplace payments, facilitators.
+3. **Chain settlement adapters** — Solana adapter today, Base/EVM adapters later.
+
+This prevents per-chain rewrites and keeps expansion additive.
+
+### Non-negotiable data model rules
+
+- Represent stake as **`{chain, asset, amount}`** (not just amount).
+- Represent payment/stake proofs as **verifiable claim format**, not Solana-only structs.
+- Keep dispute/slash policy chain-agnostic; execution is adapter-specific.
+- Use canonical cross-chain IDs for agents/skills:
+  - `namespace:chain:contract#id`
+- Treat indexer/event layer as source for global cross-chain reputation view.
+
+### Immediate v2.0 action to lock this in
+
+Add explicit `chain_context` to all core records now (even if value is always `solana` initially):
+
+- stake positions
+- payment/settlement records
+- dispute/slash records
+- emitted events
+
+This is a small schema choice now that avoids a painful migration later.
+
 ---
 
 ## 4) Implementation Phases
@@ -258,6 +290,7 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 ## 5.1 Protocol / Program
 
 - [ ] Add `StakePosition` and role enums.
+- [ ] Add explicit `chain_context` to stake/payment/dispute schemas (default `solana` in v2.0).
 - [ ] Add account versioning and decode paths for v1/v2.
 - [ ] Implement per-mint vault PDA derivation strategy.
 - [ ] Add mint allowlist config account and admin controls.
@@ -290,7 +323,8 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 
 ## 5.4 Indexer / API / UI
 
-- [ ] Extend indexer schema for multi-mint positions.
+- [ ] Extend indexer schema for multi-mint positions with `chain_context`.
+- [ ] Add canonical cross-chain ID support (`namespace:chain:contract#id`) for agents/skills.
 - [ ] Add endpoints for stake composition by agent.
 - [ ] Add UI cards for per-mint stake and composition pie.
 - [ ] Add warnings for unsupported/stale/disabled mints.
