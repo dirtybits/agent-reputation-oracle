@@ -1,8 +1,8 @@
 # AgentVouch TODO
 
 ## UI / Branding
-- [ ] Add AgentVouch to title of the project
-- [ ] Keep current title as a scrolling-typing type intro
+- [x] Add AgentVouch to title of the project
+- [x] Keep current title as a scrolling-typing type intro
 
 ## Smart Contract
 - [ ] Implement `claim_voucher_revenue()` instruction
@@ -19,6 +19,7 @@
 - [ ] Integration with agent marketplaces (e.g., Eliza plugins)
 - [ ] x402 micropayment integration
 - [ ] MCP marketplace integration
+- [ ] Multi-asset staking + x402 — see [implementation plan](docs/multi-asset-staking-and-x402-plan.md)
 
 ## Metrics
 - [ ] Add connected agents

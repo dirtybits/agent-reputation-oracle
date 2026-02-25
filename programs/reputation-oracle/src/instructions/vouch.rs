@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use crate::state::{AgentProfile, Vouch, VouchStatus, ReputationConfig};
+use crate::events::VouchCreated;
 
 #[derive(Accounts)]
 #[instruction(stake_amount: u64)]
@@ -90,6 +91,14 @@ pub fn handler(
     
     // Recompute reputation
     vouchee_profile.reputation_score = vouchee_profile.compute_reputation(config);
+
+    emit!(VouchCreated {
+        vouch: ctx.accounts.vouch.key(),
+        voucher: ctx.accounts.voucher_profile.key(),
+        vouchee: ctx.accounts.vouchee_profile.key(),
+        stake_amount,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
     
     Ok(())
 }

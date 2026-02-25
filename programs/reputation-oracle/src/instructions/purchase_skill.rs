@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use crate::state::{SkillListing, SkillStatus, Purchase, AgentProfile};
+use crate::events::SkillPurchased;
 
 #[derive(Accounts)]
 pub struct PurchaseSkill<'info> {
@@ -39,13 +40,11 @@ pub fn handler(ctx: Context<PurchaseSkill>) -> Result<()> {
     // Get immutable values first
     let skill_listing_key = ctx.accounts.skill_listing.key();
     let price = ctx.accounts.skill_listing.price_lamports;
-    let skill_name = ctx.accounts.skill_listing.name.clone();
-    
     // Calculate splits: 60% author, 40% vouchers
     let author_share = price.checked_mul(60).unwrap().checked_div(100).unwrap();
     let voucher_pool = price.checked_mul(40).unwrap().checked_div(100).unwrap();
     
-    // Transfer author share
+    // Transfer 60% to author
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -56,15 +55,25 @@ pub fn handler(ctx: Context<PurchaseSkill>) -> Result<()> {
         ),
         author_share,
     )?;
-    
-    // Note: Voucher distribution happens lazily
-    // Vouchers can claim their proportional share later
-    // This keeps the transaction simple and avoids needing all vouch accounts
+
+    // Transfer 40% voucher pool to skill listing PDA (claimable by vouchers later)
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.buyer.to_account_info(),
+                to: ctx.accounts.skill_listing.to_account_info(),
+            },
+        ),
+        voucher_pool,
+    )?;
     
     // Update skill listing stats
     let skill_listing = &mut ctx.accounts.skill_listing;
     skill_listing.total_downloads = skill_listing.total_downloads.checked_add(1).unwrap();
     skill_listing.total_revenue = skill_listing.total_revenue.checked_add(price).unwrap();
+    skill_listing.unclaimed_voucher_revenue = skill_listing.unclaimed_voucher_revenue
+        .checked_add(voucher_pool).unwrap();
     
     // Create purchase record
     let purchase = &mut ctx.accounts.purchase;
@@ -75,14 +84,15 @@ pub fn handler(ctx: Context<PurchaseSkill>) -> Result<()> {
     purchase.price_paid = price;
     purchase.bump = ctx.bumps.purchase;
     
-    msg!(
-        "Skill purchased by {}: {} for {} lamports (author: {}, voucher pool: {})",
-        ctx.accounts.buyer.key(),
-        skill_name,
+    emit!(SkillPurchased {
+        purchase: ctx.accounts.purchase.key(),
+        skill_listing: skill_listing_key,
+        buyer: ctx.accounts.buyer.key(),
         price,
         author_share,
-        voucher_pool
-    );
+        voucher_pool,
+        timestamp: clock.unix_timestamp,
+    });
     
     Ok(())
 }

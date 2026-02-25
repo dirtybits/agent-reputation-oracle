@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use crate::state::{Vouch, VouchStatus, Dispute, DisputeStatus, ReputationConfig};
+use crate::events::DisputeOpened as DisputeOpenedEvent;
 
 #[derive(Accounts)]
 pub struct OpenDispute<'info> {
@@ -69,6 +70,14 @@ pub fn handler(
     // Mark vouch as disputed
     let vouch = &mut ctx.accounts.vouch;
     vouch.status = VouchStatus::Disputed;
+
+    emit!(DisputeOpenedEvent {
+        dispute: ctx.accounts.dispute.key(),
+        vouch: ctx.accounts.vouch.key(),
+        challenger: ctx.accounts.challenger.key(),
+        bond_amount: config.dispute_bond,
+        timestamp: clock.unix_timestamp,
+    });
     
     Ok(())
 }

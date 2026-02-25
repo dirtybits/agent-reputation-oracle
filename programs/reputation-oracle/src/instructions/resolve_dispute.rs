@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::state::{Vouch, VouchStatus, Dispute, DisputeStatus, DisputeRuling, AgentProfile, ReputationConfig};
+use crate::events::DisputeResolved as DisputeResolvedEvent;
 
 #[derive(Accounts)]
 pub struct ResolveDispute<'info> {
@@ -111,6 +112,17 @@ pub fn handler(
             // For MVP, just keep it in dispute PDA
         }
     }
+
+    let ruling_str = match ruling {
+        DisputeRuling::SlashVoucher => "SlashVoucher",
+        DisputeRuling::Vindicate => "Vindicate",
+    };
+    emit!(DisputeResolvedEvent {
+        dispute: ctx.accounts.dispute.key(),
+        vouch: ctx.accounts.vouch.key(),
+        ruling: ruling_str.to_string(),
+        timestamp: clock.unix_timestamp,
+    });
     
     Ok(())
 }

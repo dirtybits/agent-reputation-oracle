@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 pub mod state;
 pub mod instructions;
+pub mod events;
 
 use instructions::*;
 use state::DisputeRuling;
@@ -80,5 +81,9 @@ pub mod reputation_oracle {
 
     pub fn purchase_skill(ctx: Context<PurchaseSkill>) -> Result<()> {
         instructions::purchase_skill::handler(ctx)
+    }
+
+    pub fn claim_voucher_revenue(ctx: Context<ClaimVoucherRevenue>) -> Result<()> {
+        instructions::claim_voucher_revenue::handler(ctx)
     }
 }

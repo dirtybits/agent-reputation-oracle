@@ -41,16 +41,19 @@ describe("reputation-oracle", () => {
     const slashPercentage = 50;
     const cooldownPeriod = new anchor.BN(86400); // 1 day
     
-    const tx = await program.methods
-      .initializeConfig(minStake, disputeBond, slashPercentage, cooldownPeriod)
-      .accounts({
-        config: configPda,
-        authority: provider.wallet.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
-    
-    console.log("Initialize config tx:", tx);
+    try {
+      const tx = await program.methods
+        .initializeConfig(minStake, disputeBond, slashPercentage, cooldownPeriod)
+        .accounts({
+          config: configPda,
+          authority: provider.wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      console.log("Initialize config tx:", tx);
+    } catch {
+      console.log("Config already initialized (shared validator state)");
+    }
     
     const config = await program.account.reputationConfig.fetch(configPda);
     assert.equal(config.minStake.toString(), minStake.toString());

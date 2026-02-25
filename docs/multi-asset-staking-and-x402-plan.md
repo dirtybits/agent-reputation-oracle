@@ -1,8 +1,9 @@
 # AgentVouch v2 Plan: Multi-Asset Staking + x402 Payments
 
-**Status:** Draft implementation plan  
+**Status:** Ready for implementation  
 **Author:** Sparky  
-**Date:** 2026-02-20
+**Date:** 2026-02-20  
+**Last revised:** 2026-02-25
 
 ---
 
@@ -75,6 +76,30 @@ Where:
 
 Use per-mint vault PDAs/ATAs for custody.
 
+### 3.1.1 SOL representation decision
+
+**Decision: Use Wrapped SOL (So11111111111111111111111111111111111111112)**
+
+All stake positions use SPL token accounts uniformly. SOL stakes are wrapped on deposit and unwrapped on withdrawal. This avoids branching logic between native SOL and SPL paths throughout the program.
+
+Trade-off: slightly more UX friction (wrapping step), but dramatically simpler program code and fewer edge cases in slashing/vault logic.
+
+### 3.1.2 Position cardinality
+
+One `StakePosition` PDA per (vouch, mint) pair. An agent vouching with both SOL and USDC creates two position accounts. Max positions per vouch is bounded by the mint allowlist size (governance-controlled, starting at 2: wSOL + USDC).
+
+Rent impact: ~82 bytes per position vs 8 bytes for the current `stake_amount: u64`. At 2 positions per vouch, worst case ~164 bytes additional rent (~0.001 SOL). Acceptable.
+
+### 3.1.3 Slashing policy (default)
+
+**Decision: Proportional slashing across mints.**
+
+When a vouch is slashed, each position under that vouch is slashed by `slash_percentage` of its amount. This is simpler, fairer, and avoids ordering ambiguity.
+
+Example: vouch has 1 SOL + 100 USDC staked, slash_percentage = 50% → slash 0.5 SOL + 50 USDC.
+
+This can be overridden by governance in a future version (e.g., slash stablecoins first). The default must be deterministic and easy to verify.
+
 ## 3.2 Payment adapter changes
 
 Introduce a payment adapter layer:
@@ -146,6 +171,13 @@ Pass criteria:
 - Adapter verdict matches expected outcome for every vector.
 - No vector can produce duplicate settlement side effects.
 
+### 3.2.2 Settlement failure handling
+
+- **Settlement timeout**: If the Solana tx confirms but the adapter's `/settle` call fails, the settlement record is written with `status: pending`. A background reconciler retries pending settlements.
+- **Partial settlement**: If the 60/40 split partially succeeds (e.g., author paid but voucher pool write fails), the settlement is marked `partial_failure`. Reconciliation script detects and replays the failed leg. No manual intervention for single-leg failures.
+- **Settlement status enum**: `pending | complete | partial_failure | failed`
+- **Access control**: Facilitator-mode endpoints (`/verify`, `/settle`) require API key authentication. Unauthenticated callers cannot use the adapter as a free proof-of-payment oracle.
+
 ## 3.3 Valuation strategy
 
 v2.0:
@@ -187,9 +219,48 @@ Add explicit `chain_context` to all core records now (even if value is always `s
 
 This is a small schema choice now that avoids a painful migration later.
 
+## 3.5 Event schema (v2.0)
+
+The current program uses `msg!` only — no structured events. v2 must use Anchor `#[event]` macros so indexers can subscribe reliably.
+
+| Event | Fields |
+|---|---|
+| `StakeDeposited` | `vouch: Pubkey, mint: Pubkey, amount: u64, role: StakeRole, chain_context: String, position_id: Pubkey` |
+| `StakeWithdrawn` | `vouch: Pubkey, mint: Pubkey, amount: u64, chain_context: String, position_id: Pubkey` |
+| `StakeSlashed` | `vouch: Pubkey, dispute: Pubkey, mint: Pubkey, amount_slashed: u64, chain_context: String` |
+| `DisputeOpened` | `dispute: Pubkey, vouch: Pubkey, challenger: Pubkey, bond_mint: Pubkey, bond_amount: u64, chain_context: String` |
+| `DisputeResolved` | `dispute: Pubkey, ruling: DisputeRuling, chain_context: String` |
+| `SkillPurchased` | `purchase: Pubkey, skill: Pubkey, buyer: Pubkey, mint: Pubkey, amount: u64, payment_ref: String, chain_context: String` |
+| `RevenueDistributed` | `skill: Pubkey, mint: Pubkey, author_amount: u64, voucher_pool_amount: u64, chain_context: String` |
+| `MintAllowlistUpdated` | `mint: Pubkey, action: AllowlistAction, authority: Pubkey` |
+
+All events include `chain_context` from day one. Indexer team can build against this schema in parallel with program work.
+
 ---
 
 ## 4) Implementation Phases
+
+## Phase 0 — Prerequisites (Fix v1 gaps before refactoring)
+
+### Objective
+Ship the missing `claim_voucher_revenue()` instruction and replace `msg!` logging with Anchor events. These are prerequisites — refactoring revenue splits to multi-mint is meaningless without a working claim mechanism, and the indexer needs structured events.
+
+### Current state (as of 2026-02-25)
+- `cumulative_revenue` and `last_payout_at` fields exist on Vouch but are **never written to**.
+- `purchase_skill` calculates 40% voucher pool but **does not distribute or record it**.
+- No Anchor `#[event]` structs — only `msg!` logging.
+- No account versioning.
+
+### Deliverables
+- `claim_voucher_revenue()` instruction: vouchers claim proportional share of the 40% pool based on stake weight.
+- Fix `purchase_skill` to actually write `cumulative_revenue` on each vouch for the purchased skill's author.
+- Replace all `msg!` logging with Anchor `emit!` events (use v1 event schema — `mint` field can be hardcoded to `native` for now).
+
+### Exit criteria
+- Voucher can claim accumulated revenue on devnet (end-to-end: purchase → claim → balance check).
+- Events are parseable by a test indexer subscriber.
+
+---
 
 ## Phase 1 — State Model Refactor (No behavior change)
 
@@ -202,10 +273,11 @@ Do schema work first to reduce risk. If we add USDC before schema is solid, we w
 ### Deliverables
 - New stake position structs and enums.
 - Account versioning (`v1` compatibility + `v2` state).
-- Event schema updates with `mint`.
+- Event schema updates with `mint` and `chain_context`.
 
 ### Exit criteria
 - Existing SOL stake/vouch flows pass unchanged behavior tests.
+- v1 accounts decode correctly through v2 code paths.
 
 ---
 
@@ -287,6 +359,13 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 
 ## 5) Detailed TO-DO Checklist
 
+## 5.0 Phase 0 Prerequisites
+
+- [ ] Implement `claim_voucher_revenue()` instruction (proportional by stake weight).
+- [ ] Fix `purchase_skill` to update `cumulative_revenue` on vouches for the skill author.
+- [ ] Add Anchor `#[event]` structs and replace `msg!` logging with `emit!`.
+- [ ] Add integration test: purchase skill → claim revenue → verify balances.
+
 ## 5.1 Protocol / Program
 
 - [ ] Add `StakePosition` and role enums.
@@ -337,6 +416,9 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 - [ ] Run migration on local validator snapshot.
 - [ ] Run migration on devnet test cohort.
 - [ ] Publish rollback criteria and execution checklist.
+- [ ] Document upgrade authority plan (single key now, multisig path for mainnet).
+- [ ] Define zero-downtime migration strategy: v2 program reads both v1 and v2 account formats via versioned deserialization. No program pause required.
+- [ ] Define mint removal policy: grace period → freeze new stakes → forced unstake deadline → remove from allowlist.
 
 ## 5.6 Testing / QA
 
@@ -365,6 +447,10 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 ### Risk E: x402 verification ambiguity
 **Mitigation:** adapter schema lock + conformance test vectors.
 
+### Risk F: Building on broken foundation (v1 revenue gap)
+`claim_voucher_revenue()` is unimplemented and `cumulative_revenue` is never written. Shipping multi-mint on top of a broken revenue path compounds the problem.
+**Mitigation:** Phase 0 fixes this before any refactoring begins. No Phase 1 work starts until claim flow works end-to-end on devnet.
+
 ---
 
 ## 7) Rollout Strategy
@@ -384,11 +470,16 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 
 ## 8) Success Metrics
 
-- % of total stake represented in stable assets.
-- Successful mixed-mint dispute resolutions.
-- x402 purchase success rate and reconciliation integrity.
-- Time-to-detect for broken payment/mint routes.
-- Agent adoption: # agents with >1 supported stake asset.
+All baselines measured from devnet beta launch date (T+0).
+
+| Metric | Target (T+30 days) | Target (T+90 days) |
+|---|---|---|
+| % of total stake in stable assets | >10% | >30% |
+| Mixed-mint dispute resolutions (successful) | ≥3 simulated | ≥10 real |
+| x402 purchase success rate | >95% | >99% |
+| Settlement reconciliation errors | 0 | 0 |
+| Agents with >1 stake asset | ≥5 | ≥20 |
+| Time-to-detect broken mint/payment route | <1 hour | <15 min (alerting) |
 
 ---
 
@@ -400,13 +491,26 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 
 ---
 
-## 10) Immediate Next Actions (This Week)
+## 10) Immediate Next Actions
 
-- [ ] Finalize v2 account schema draft (`StakePosition`, vault model, versioning).
-- [ ] Decide mixed-collateral slashing policy (proportional vs ordered).
-- [ ] Implement mint allowlist + USDC integration on devnet.
-- [ ] Write x402 adapter interface spec.
-- [ ] Produce migration dry-run prototype and test against current devnet state.
+### This week (Phase 0 — fix v1 gaps)
+
+1. **Implement `claim_voucher_revenue()`** — the 40% voucher pool is calculated but never distributed. This is the #1 blocker; multi-mint revenue splits are meaningless without a working claim path.
+2. **Fix `purchase_skill` revenue tracking** — `cumulative_revenue` on vouch accounts is never written to. Fix so claims have data to claim against.
+3. **Add Anchor events** — replace all `msg!` with `emit!` using structured event types. Start with v1-compatible fields; `mint` and `chain_context` get added in Phase 1.
+4. **Write integration test** — end-to-end: register agents → vouch → list skill → purchase → claim revenue → assert balances.
+
+### Next week (Phase 1 — schema refactor)
+
+5. **Draft v2 account schemas** — `StakePosition` struct, vault PDA derivation, account version discriminator. Use Wrapped SOL for uniform token handling.
+6. **Add account versioning** — v2 program reads both v1 and v2 formats. Test round-trip deserialization.
+7. **Add `chain_context` and `mint` to all event types** — defaults to `solana` and `native` until Phase 2 activates multi-mint.
+
+### Week after (Phase 2 start)
+
+8. **Implement mint allowlist config** — governance-controlled, starting with wSOL + USDC.
+9. **Implement `stake_token` / `unstake_token`** — per-mint vault PDAs with ATA custody.
+10. **Deploy USDC staking to devnet** — end-to-end lifecycle test.
 
 ---
 

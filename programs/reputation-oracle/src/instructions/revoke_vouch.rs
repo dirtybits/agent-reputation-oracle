@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::state::{AgentProfile, Vouch, VouchStatus, ReputationConfig};
+use crate::events::VouchRevoked;
 
 #[derive(Accounts)]
 pub struct RevokeVouch<'info> {
@@ -68,6 +69,14 @@ pub fn handler(ctx: Context<RevokeVouch>) -> Result<()> {
     // Recompute reputation
     let config = &ctx.accounts.config;
     vouchee_profile.reputation_score = vouchee_profile.compute_reputation(config);
+
+    emit!(VouchRevoked {
+        vouch: ctx.accounts.vouch.key(),
+        voucher: ctx.accounts.voucher_profile.key(),
+        vouchee: ctx.accounts.vouchee_profile.key(),
+        stake_returned: stake_amount,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
     
     Ok(())
 }

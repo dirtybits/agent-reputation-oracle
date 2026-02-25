@@ -16,6 +16,7 @@ pub struct SkillListing {
     pub price_lamports: u64,      // Price in lamports
     pub total_downloads: u64,     // Number of purchases
     pub total_revenue: u64,       // Total revenue generated
+    pub unclaimed_voucher_revenue: u64, // 40% pool available for voucher claims
     pub created_at: i64,          // Unix timestamp
     pub updated_at: i64,          // Last update timestamp
     pub status: SkillStatus,      // Active, Suspended, or Removed
@@ -35,6 +36,7 @@ impl SkillListing {
         8 + // price_lamports
         8 + // total_downloads
         8 + // total_revenue
+        8 + // unclaimed_voucher_revenue
         8 + // created_at
         8 + // updated_at
         1 + // status
