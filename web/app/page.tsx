@@ -74,6 +74,41 @@ export default function Home() {
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [landingMetrics, setLandingMetrics] = useState<{
+    agents: number; authors: number; skills: number; revenue: number; staked: number;
+  } | null>(null);
+
+  // Fetch landing page metrics
+  useEffect(() => {
+    if (userType !== 'landing' || !oracle.readOnlyProgram) return;
+    (async () => {
+      try {
+        const [agents, skills] = await Promise.all([
+          oracle.getAllAgents(),
+          oracle.getAllSkillListings(),
+        ]);
+        const authorSet = new Set(skills.map((s: any) => s.account.author.toString()));
+        const totalRevenue = skills.reduce((sum: number, s: any) => {
+          const rev = s.account.totalRevenue?.toNumber?.() ?? s.account.totalRevenue ?? 0;
+          return sum + rev;
+        }, 0);
+        const totalStaked = agents.reduce((sum: number, a: any) => {
+          const staked = a.account.totalStakedFor?.toNumber?.() ?? a.account.totalStakedFor ?? 0;
+          return sum + staked;
+        }, 0);
+        setLandingMetrics({
+          agents: agents.length,
+          authors: authorSet.size,
+          skills: skills.length,
+          revenue: totalRevenue,
+          staked: totalStaked,
+        });
+      } catch (e) {
+        console.error('Failed to load landing metrics:', e);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userType, oracle.readOnlyProgram]);
 
   // Load agent profile when wallet connects
   useEffect(() => {
@@ -323,6 +358,28 @@ export default function Home() {
               >
                 <FiExternalLink className="w-3.5 h-3.5" /> GitHub
               </a>
+            </div>
+          </div>
+        </section>
+
+        {/* Network Metrics */}
+        <section className="px-6 pb-16">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                { label: 'Agents', value: landingMetrics?.agents, format: (v: number) => v.toLocaleString() },
+                { label: 'Authors', value: landingMetrics?.authors, format: (v: number) => v.toLocaleString() },
+                { label: 'Skills Published', value: landingMetrics?.skills, format: (v: number) => v.toLocaleString() },
+                { label: 'Revenue', value: landingMetrics?.revenue, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
+                { label: 'Total Staked', value: landingMetrics?.staked, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
+              ].map((m) => (
+                <div key={m.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center">
+                  <div className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-1">
+                    {landingMetrics ? m.format(m.value!) : '—'}
+                  </div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">{m.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
