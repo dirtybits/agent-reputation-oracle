@@ -40,6 +40,26 @@ export default function Home() {
   
   const [userType, setUserType] = useState<UserType>('landing');
   const [activeTab, setActiveTab] = useState<Tab>('profile');
+
+  // Restore state from URL hash after hydration
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    const [type, tab] = hash.split('/');
+    if (type === 'human' || type === 'agent') {
+      setUserType(type as UserType);
+      const validTab = (['profile', 'vouch', 'explorer', 'disputes'] as Tab[]).includes(tab as Tab);
+      if (validTab) setActiveTab(tab as Tab);
+    }
+  }, []);
+
+  // Sync state to URL hash
+  useEffect(() => {
+    if (userType === 'landing') {
+      history.replaceState(null, '', window.location.pathname);
+    } else {
+      history.replaceState(null, '', `#${userType}/${activeTab}`);
+    }
+  }, [userType, activeTab]);
   const [metadataUri, setMetadataUri] = useState('');
   const [voucheeAddress, setVoucheeAddress] = useState('');
   const [vouchAmount, setVouchAmount] = useState('0.1');
@@ -110,10 +130,14 @@ export default function Home() {
 
   // Load agents when vouch or explorer tab is activated
   useEffect(() => {
-    if ((activeTab === 'vouch' || activeTab === 'explorer') && connected && allAgents.length === 0) {
+    if (!oracle.readOnlyProgram) return;
+    if (activeTab === 'explorer' && allAgents.length === 0) {
+      loadAllAgents();
+    } else if (activeTab === 'vouch' && connected && allAgents.length === 0) {
       loadAllAgents();
     }
-  }, [activeTab, connected]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, connected, oracle.readOnlyProgram]);
 
   const searchAgent = async () => {
     if (!searchAddress) {
@@ -1005,7 +1029,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                   {loadingAgents ? (
                     <p className="text-sm text-gray-500 dark:text-gray-400">Loading agents...</p>
                   ) : allAgents.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No agents found. Click &quot;Load Agents&quot; to fetch the directory.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No agents found.</p>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {allAgents.map((agent: any, idx: number) => {

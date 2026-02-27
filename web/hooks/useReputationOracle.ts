@@ -11,16 +11,18 @@ console.log('🚀 Reputation Oracle Hook v2 loaded - Program ID:', PROGRAM_ID.to
 export function useReputationOracle() {
   const { connection } = useConnection();
   const wallet = useWallet();
+  const { publicKey, signTransaction, signAllTransactions } = wallet;
 
   const provider = useMemo(() => {
-    if (!wallet.publicKey) return null;
+    if (!publicKey) return null;
     
     return new AnchorProvider(
       connection,
-      wallet as any,
+      { publicKey, signTransaction, signAllTransactions } as any,
       { commitment: 'confirmed' }
     );
-  }, [connection, wallet]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection, publicKey, signTransaction, signAllTransactions]);
 
   const program = useMemo(() => {
     if (!provider) return null;
