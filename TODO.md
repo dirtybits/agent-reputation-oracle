@@ -167,3 +167,10 @@ Proposing a shared hashing standard makes AgentVouch legible to the ERC-8004 eco
 **Month 3+:**
 - Cross-chain skill verification (a skill verified on Solana is attestable to Ethereum agents)
 - Joint marketing with QuantuLabs/ERC-8004 ecosystem
+
+
+
+Minor concerns (not blockers)
+Trust resolver latency: Every browse/detail request hits Solana RPC for on-chain data. For the browse page showing 20+ cards, that's 20+ getAgentProfile calls. We should add short-lived caching (even 60 seconds) in the trust resolver to keep the page snappy. Easy to add during implementation.
+Pinata dependency for free uploads: If Pinata goes down, uploads fail. We could make IPFS pinning async (store in Postgres immediately, pin to IPFS in background). Not critical for v1 but worth noting.
+9 todos is a lot for one pass: Phase 1 (db-setup, ipfs-setup, trust-resolver, api-routes) is the heaviest lift. Phases 2-4 build on that foundation cleanly.
