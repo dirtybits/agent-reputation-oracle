@@ -77,6 +77,7 @@ export default function Home() {
   const [landingMetrics, setLandingMetrics] = useState<{
     agents: number; authors: number; skills: number; revenue: number; staked: number;
   } | null>(null);
+  const [featuredSkills, setFeaturedSkills] = useState<any[]>([]);
 
   // Fetch landing page metrics
   useEffect(() => {
@@ -103,6 +104,15 @@ export default function Home() {
           revenue: totalRevenue,
           staked: totalStaked,
         });
+        const topSkills = [...skills]
+          .filter((s: any) => s.account.status?.active !== undefined || s.account.status?.Active !== undefined || !s.account.status)
+          .sort((a: any, b: any) => {
+            const dlA = a.account.totalDownloads?.toNumber?.() ?? a.account.totalDownloads ?? 0;
+            const dlB = b.account.totalDownloads?.toNumber?.() ?? b.account.totalDownloads ?? 0;
+            return dlB - dlA;
+          })
+          .slice(0, 3);
+        setFeaturedSkills(topSkills);
       } catch (e) {
         console.error('Failed to load landing metrics:', e);
       }
@@ -384,27 +394,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Feature badges */}
-        <section className="px-6 pb-16">
-          <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-3">
-            {[
-              { icon: <FiZap />, label: 'Stake-Weighted Vouching', desc: 'economic skin-in-the-game' },
-              { icon: <FiLayers />, label: 'Solana / Anchor', desc: 'fast, low-cost transactions' },
-              { icon: <FiShoppingBag />, label: 'Skill Marketplace', desc: '60/40 revenue sharing' },
-              { icon: <FiShield />, label: 'Dispute Resolution', desc: 'on-chain slashing' },
-              { icon: <FiTerminal />, label: 'skill.md', desc: 'single-file agent integration' },
-              { icon: <FiGitBranch />, label: 'Open Source', desc: 'MIT licensed' },
-            ].map((f) => (
-              <div key={f.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition">
-                <div className="flex items-center gap-2 mb-1 text-gray-900 dark:text-white font-semibold text-sm">
-                  <span className="text-blue-600 dark:text-blue-400">{f.icon}</span> {f.label}
-                </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* Role cards */}
         <section className="px-6 pb-16">
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-4">
@@ -467,6 +456,57 @@ export default function Home() {
                 Browse <FiArrowRight />
               </span>
             </button>
+
+            {featuredSkills.length > 0 && (
+              <div className="grid md:grid-cols-3 gap-3 mt-4">
+                {featuredSkills.map((skill: any) => {
+                  const price = skill.account.priceLamports?.toNumber?.() ?? skill.account.priceLamports ?? 0;
+                  const downloads = skill.account.totalDownloads?.toNumber?.() ?? skill.account.totalDownloads ?? 0;
+                  const revenue = skill.account.totalRevenue?.toNumber?.() ?? skill.account.totalRevenue ?? 0;
+                  return (
+                    <div
+                      key={skill.publicKey.toString()}
+                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 flex flex-col"
+                    >
+                      <h4 className="font-heading font-bold text-gray-900 dark:text-white text-sm mb-1 truncate">
+                        {skill.account.name || 'Untitled Skill'}
+                      </h4>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 line-clamp-2">
+                        {skill.account.description || 'No description'}
+                      </p>
+                      <div className="mt-auto flex items-center justify-between text-xs">
+                        <span className="font-semibold text-gray-900 dark:text-white">{(price / 1e9).toFixed(2)} SOL</span>
+                        <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
+                          <span className="flex items-center gap-1"><FiDownload className="w-3 h-3" />{downloads}</span>
+                          <span className="flex items-center gap-1"><FiTrendingUp className="w-3 h-3" />{(revenue / 1e9).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Feature badges */}
+        <section className="px-6 pb-16">
+          <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { icon: <FiZap />, label: 'Stake-Weighted Vouching', desc: 'economic skin-in-the-game' },
+              { icon: <FiLayers />, label: 'Solana / Anchor', desc: 'fast, low-cost transactions' },
+              { icon: <FiShoppingBag />, label: 'Skill Marketplace', desc: '60/40 revenue sharing' },
+              { icon: <FiShield />, label: 'Dispute Resolution', desc: 'on-chain slashing' },
+              { icon: <FiTerminal />, label: 'skill.md', desc: 'single-file agent integration' },
+              { icon: <FiGitBranch />, label: 'Open Source', desc: 'MIT licensed' },
+            ].map((f) => (
+              <div key={f.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition">
+                <div className="flex items-center gap-2 mb-1 text-gray-900 dark:text-white font-semibold text-sm">
+                  <span className="text-blue-600 dark:text-blue-400">{f.icon}</span> {f.label}
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{f.desc}</p>
+              </div>
+            ))}
           </div>
         </section>
 
