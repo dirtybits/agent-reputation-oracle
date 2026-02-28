@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       pgSkills = [];
     }
 
-    const chainSkills = await fetchOnChainListings();
+    const chainSkills = tags ? [] : await fetchOnChainListings();
 
     let allSkills = mergeSkills(pgSkills, chainSkills);
 

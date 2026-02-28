@@ -17,6 +17,7 @@ import {
   FiBookOpen,
   FiCopy,
   FiPlus,
+  FiAward,
 } from 'react-icons/fi';
 
 interface SkillRow {
@@ -131,6 +132,13 @@ export default function SkillsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/competition"
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm font-semibold hover:border-yellow-300 dark:hover:border-yellow-700 transition"
+            >
+              <FiAward className="w-4 h-4" />
+              Competition
+            </Link>
             <Link
               href="/skills/publish"
               className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
