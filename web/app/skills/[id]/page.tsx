@@ -46,6 +46,7 @@ interface SkillDetail {
   ipfs_cid: string | null;
   on_chain_address: string | null;
   total_installs: number;
+  contact: string | null;
   created_at: string;
   updated_at: string;
   versions: SkillVersion[];
@@ -171,6 +172,11 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               </span>
             ) : null}
           </div>
+          {skill.contact && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Contact: <span className="text-gray-900 dark:text-white">{skill.contact}</span>
+            </p>
+          )}
           <TrustBadge trust={skill.author_trust} />
         </div>
 

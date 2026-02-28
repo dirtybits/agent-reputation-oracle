@@ -160,13 +160,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { auth, skill_id, name, description, tags, content } = body as {
+    const { auth, skill_id, name, description, tags, content, contact } = body as {
       auth: AuthPayload;
       skill_id: string;
       name: string;
       description?: string;
       tags?: string[];
       content: string;
+      contact?: string;
     };
 
     if (!auth || !skill_id || !name || !content) {
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
     const pinResult = await pinSkillContent(content, skill_id, 1);
 
     const [skill] = await sql()`
-      INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, ipfs_cid)
+      INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, ipfs_cid, contact)
       VALUES (
         ${skill_id},
         ${authorPubkey},
@@ -197,7 +198,8 @@ export async function POST(request: NextRequest) {
         ${description || null},
         ${tags || []}::text[],
         1,
-        ${pinResult.success ? pinResult.cid : null}
+        ${pinResult.success ? pinResult.cid : null},
+        ${contact || null}
       )
       RETURNING *
     `;

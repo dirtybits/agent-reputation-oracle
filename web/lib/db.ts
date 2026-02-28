@@ -28,6 +28,7 @@ export async function initializeDatabase() {
       on_chain_address VARCHAR(44),
       chain_context VARCHAR(16) DEFAULT 'solana',
       total_installs INTEGER DEFAULT 0,
+      contact VARCHAR(128),
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(author_pubkey, skill_id)

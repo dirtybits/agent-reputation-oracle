@@ -68,6 +68,7 @@ export default function PublishSkillPage() {
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [contact, setContact] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; id?: string } | null>(null);
@@ -161,6 +162,7 @@ export default function PublishSkillPage() {
           description,
           tags,
           content,
+          contact: contact || undefined,
         }),
       });
 
@@ -422,6 +424,23 @@ export default function PublishSkillPage() {
                 </button>
               </div>
             )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Contact Handle <span className="text-gray-400 dark:text-gray-500">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              placeholder="@twitter, discord#1234, t.me/handle, etc."
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              maxLength={128}
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              So we can reach you about competitions, features, or issues.
+            </p>
           </div>
         </div>
 
