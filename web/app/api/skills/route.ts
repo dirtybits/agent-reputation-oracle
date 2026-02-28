@@ -1,10 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { resolveMultipleAuthorTrust } from '@/lib/trust';
+import { resolveMultipleAuthorTrust, getReadOnlyProgram } from '@/lib/trust';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 import { pinSkillContent } from '@/lib/ipfs';
 
 const PAGE_SIZE = 20;
+
+const toNum = (v: any) => v?.toNumber?.() ?? v ?? 0;
+
+async function fetchOnChainListings(): Promise<any[]> {
+  try {
+    const program = getReadOnlyProgram();
+    const listings = await (program.account as any).skillListing.all();
+    return listings
+      .filter((l: any) => l.account.status?.active !== undefined)
+      .map((l: any) => ({
+        id: `chain-${l.publicKey.toBase58()}`,
+        skill_id: l.publicKey.toBase58(),
+        author_pubkey: l.account.author.toBase58(),
+        name: l.account.name,
+        description: l.account.description,
+        tags: [],
+        current_version: 1,
+        ipfs_cid: null,
+        on_chain_address: l.publicKey.toBase58(),
+        chain_context: 'solana',
+        total_installs: 0,
+        total_downloads: toNum(l.account.totalDownloads),
+        price_lamports: toNum(l.account.priceLamports),
+        total_revenue: toNum(l.account.totalRevenue),
+        created_at: new Date(toNum(l.account.createdAt) * 1000).toISOString(),
+        updated_at: new Date(toNum(l.account.updatedAt) * 1000).toISOString(),
+        source: 'chain' as const,
+      }));
+  } catch (err) {
+    console.error('Failed to fetch on-chain listings:', err);
+    return [];
+  }
+}
+
+function mergeSkills(pgSkills: any[], chainSkills: any[]): any[] {
+  const merged = pgSkills.map(s => ({ ...s, source: 'repo' }));
+
+  const pgKeys = new Set(
+    pgSkills.map(s => `${s.author_pubkey}::${s.name.toLowerCase()}`)
+  );
+
+  for (const chain of chainSkills) {
+    const key = `${chain.author_pubkey}::${chain.name.toLowerCase()}`;
+    const existing = merged.find(
+      s => `${s.author_pubkey}::${s.name.toLowerCase()}` === key
+    );
+    if (existing) {
+      existing.price_lamports = chain.price_lamports;
+      existing.on_chain_address = chain.on_chain_address;
+      existing.total_downloads = chain.total_downloads;
+      existing.total_revenue = chain.total_revenue;
+    } else {
+      merged.push(chain);
+    }
+  }
+
+  return merged;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,57 +72,78 @@ export async function GET(request: NextRequest) {
     const author = searchParams.get('author');
     const tags = searchParams.get('tags');
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const offset = (page - 1) * PAGE_SIZE;
 
-    let skills: any[];
-
-    if (q) {
-      skills = await sql()`
-        SELECT *, ts_rank(to_tsvector('english', name || ' ' || COALESCE(description, '')), plainto_tsquery('english', ${q})) AS rank
-        FROM skills
-        WHERE to_tsvector('english', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('english', ${q})
-        ${author ? sql()`AND author_pubkey = ${author}` : sql()``}
-        ${tags ? sql()`AND tags && ${tags.split(',').filter(Boolean)}::text[]` : sql()``}
-        ORDER BY rank DESC
-        LIMIT ${PAGE_SIZE} OFFSET ${offset}
-      `;
-    } else {
-      const orderClause =
-        sort === 'installs' ? sql()`ORDER BY total_installs DESC` :
-        sort === 'name'     ? sql()`ORDER BY name ASC` :
-                              sql()`ORDER BY created_at DESC`;
-
-      skills = await sql()`
-        SELECT *
-        FROM skills
-        WHERE 1=1
-        ${author ? sql()`AND author_pubkey = ${author}` : sql()``}
-        ${tags ? sql()`AND tags && ${tags.split(',').filter(Boolean)}::text[]` : sql()``}
-        ${orderClause}
-        LIMIT ${PAGE_SIZE} OFFSET ${offset}
-      `;
+    let pgSkills: any[] = [];
+    try {
+      if (q) {
+        pgSkills = await sql()`
+          SELECT *
+          FROM skills
+          WHERE to_tsvector('english', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('english', ${q})
+          ${author ? sql()`AND author_pubkey = ${author}` : sql()``}
+          ${tags ? sql()`AND tags && ${tags.split(',').filter(Boolean)}::text[]` : sql()``}
+        `;
+      } else {
+        pgSkills = await sql()`
+          SELECT *
+          FROM skills
+          WHERE 1=1
+          ${author ? sql()`AND author_pubkey = ${author}` : sql()``}
+          ${tags ? sql()`AND tags && ${tags.split(',').filter(Boolean)}::text[]` : sql()``}
+        `;
+      }
+    } catch {
+      pgSkills = [];
     }
 
-    const countResult = await sql()`
-      SELECT COUNT(*) as total FROM skills
-      WHERE 1=1
-      ${author ? sql()`AND author_pubkey = ${author}` : sql()``}
-      ${tags ? sql()`AND tags && ${tags.split(',').filter(Boolean)}::text[]` : sql()``}
-    `;
-    const total = parseInt(countResult[0]?.total || '0');
+    const chainSkills = await fetchOnChainListings();
 
-    const authorPubkeys = [...new Set(skills.map(s => s.author_pubkey))];
+    let allSkills = mergeSkills(pgSkills, chainSkills);
+
+    if (author) {
+      allSkills = allSkills.filter(s => s.author_pubkey === author);
+    }
+    if (q) {
+      const lower = q.toLowerCase();
+      allSkills = allSkills.filter(s =>
+        s.source === 'repo' ||
+        s.name.toLowerCase().includes(lower) ||
+        (s.description || '').toLowerCase().includes(lower)
+      );
+    }
+
+    const authorPubkeys = [...new Set(allSkills.map(s => s.author_pubkey))];
     const trustMap = authorPubkeys.length > 0
       ? await resolveMultipleAuthorTrust(authorPubkeys)
       : new Map();
 
-    const enriched = skills.map(skill => ({
+    const enriched = allSkills.map(skill => ({
       ...skill,
       author_trust: trustMap.get(skill.author_pubkey) || null,
     }));
 
+    if (sort === 'trusted') {
+      enriched.sort((a, b) =>
+        (b.author_trust?.reputationScore ?? 0) - (a.author_trust?.reputationScore ?? 0)
+      );
+    } else if (sort === 'installs') {
+      enriched.sort((a, b) =>
+        (b.total_installs + (b.total_downloads ?? 0)) - (a.total_installs + (a.total_downloads ?? 0))
+      );
+    } else if (sort === 'name') {
+      enriched.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      enriched.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+
+    const total = enriched.length;
+    const offset = (page - 1) * PAGE_SIZE;
+    const paged = enriched.slice(offset, offset + PAGE_SIZE);
+
     return NextResponse.json({
-      skills: enriched,
+      skills: paged,
       pagination: {
         page,
         pageSize: PAGE_SIZE,

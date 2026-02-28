@@ -75,17 +75,12 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     async function fetchSkill() {
       try {
-        const [detailRes, rawRes] = await Promise.all([
-          fetch(`/api/skills/${id}?include=trust`),
-          fetch(`/api/skills/${id}/raw`),
-        ]);
-
+        const detailRes = await fetch(`/api/skills/${id}?include=trust`);
         if (!detailRes.ok) throw new Error('Skill not found');
         const data = await detailRes.json();
         setSkill(data);
-
-        if (rawRes.ok) {
-          setContent(await rawRes.text());
+        if (data.content) {
+          setContent(data.content);
         }
       } catch (err) {
         console.error('Error fetching skill:', err);

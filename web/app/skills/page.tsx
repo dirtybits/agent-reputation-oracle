@@ -8,6 +8,7 @@ import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import {
   FiSearch,
   FiDownload,
+  FiDollarSign,
   FiTag,
   FiClock,
   FiTrendingUp,
@@ -28,6 +29,10 @@ interface SkillRow {
   current_version: number;
   ipfs_cid: string | null;
   total_installs: number;
+  total_downloads?: number;
+  price_lamports?: number;
+  on_chain_address?: string;
+  source?: 'repo' | 'chain';
   created_at: string;
   author_trust: TrustData | null;
 }
@@ -42,7 +47,11 @@ interface ApiResponse {
   };
 }
 
-type SortOption = 'newest' | 'installs' | 'name';
+type SortOption = 'newest' | 'installs' | 'trusted' | 'name';
+
+function formatSol(lamports: number): string {
+  return (lamports / 1e9).toFixed(2);
+}
 
 function shortAddr(addr: string): string {
   return addr.slice(0, 4) + '...' + addr.slice(-4);
@@ -92,6 +101,7 @@ export default function SkillsPage() {
 
   const sortOptions: { value: SortOption; label: string; icon: React.ReactNode }[] = [
     { value: 'newest', label: 'Newest', icon: <FiClock className="w-3.5 h-3.5" /> },
+    { value: 'trusted', label: 'Most Trusted', icon: <FiShield className="w-3.5 h-3.5" /> },
     { value: 'installs', label: 'Most Installed', icon: <FiTrendingUp className="w-3.5 h-3.5" /> },
     { value: 'name', label: 'Name', icon: <FiBookOpen className="w-3.5 h-3.5" /> },
   ];
@@ -179,62 +189,84 @@ export default function SkillsPage() {
         ) : (
           <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {skills.map((skill) => (
-                <Link
-                  key={skill.id}
-                  href={`/skills/${skill.id}`}
-                  className="group rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
-                      {skill.name}
-                    </h3>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                      v{skill.current_version}
-                    </span>
-                  </div>
+              {skills.map((skill) => {
+                const href = skill.source === 'chain'
+                  ? '/marketplace'
+                  : `/skills/${skill.id}`;
+                const downloads = (skill.total_installs ?? 0) + (skill.total_downloads ?? 0);
 
-                  {skill.description && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
-                      {skill.description}
-                    </p>
-                  )}
+                return (
+                  <Link
+                    key={skill.id}
+                    href={href}
+                    className="group rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                        {skill.name}
+                      </h3>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {skill.price_lamports != null && skill.price_lamports > 0 && (
+                          <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
+                            <FiDollarSign className="w-3 h-3" />
+                            {formatSol(skill.price_lamports)} SOL
+                          </span>
+                        )}
+                        {skill.source !== 'chain' && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                            v{skill.current_version}
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* Trust signals */}
-                  <div className="mb-3">
-                    <TrustBadge trust={skill.author_trust} compact />
-                  </div>
+                    {skill.description && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+                        {skill.description}
+                      </p>
+                    )}
 
-                  {/* Meta */}
-                  <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <FiDownload className="w-3.5 h-3.5" />
-                        {skill.total_installs}
-                      </span>
-                      {skill.tags?.length > 0 && (
+                    {/* Trust signals */}
+                    <div className="mb-3">
+                      <TrustBadge trust={skill.author_trust} compact />
+                    </div>
+
+                    {/* Meta */}
+                    <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+                      <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1">
-                          <FiTag className="w-3.5 h-3.5" />
-                          {skill.tags.slice(0, 2).join(', ')}
+                          <FiDownload className="w-3.5 h-3.5" />
+                          {downloads}
                         </span>
-                      )}
-                    </div>
-                    <span className="font-mono" title={skill.author_pubkey}>
-                      {shortAddr(skill.author_pubkey)}
-                    </span>
-                  </div>
-
-                  {/* IPFS CID */}
-                  {skill.ipfs_cid && (
-                    <div className="mt-2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                      <FiShield className="w-3 h-3" />
-                      <span className="font-mono truncate" title={skill.ipfs_cid}>
-                        {skill.ipfs_cid.slice(0, 12)}...
+                        {skill.tags?.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <FiTag className="w-3.5 h-3.5" />
+                            {skill.tags.slice(0, 2).join(', ')}
+                          </span>
+                        )}
+                        {skill.source === 'chain' && (
+                          <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium">
+                            On-chain
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-mono" title={skill.author_pubkey}>
+                        {shortAddr(skill.author_pubkey)}
                       </span>
                     </div>
-                  )}
-                </Link>
-              ))}
+
+                    {/* IPFS CID */}
+                    {skill.ipfs_cid && (
+                      <div className="mt-2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                        <FiShield className="w-3 h-3" />
+                        <span className="font-mono truncate" title={skill.ipfs_cid}>
+                          {skill.ipfs_cid.slice(0, 12)}...
+                        </span>
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Pagination */}

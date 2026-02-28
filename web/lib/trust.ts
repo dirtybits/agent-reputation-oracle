@@ -18,7 +18,7 @@ export interface AuthorTrust {
 const cache = new Map<string, { data: AuthorTrust; expires: number }>();
 const CACHE_TTL_MS = 60_000;
 
-function getReadOnlyProgram() {
+export function getReadOnlyProgram() {
   const connection = new Connection(RPC_URL, 'confirmed');
   const provider = new AnchorProvider(
     connection,

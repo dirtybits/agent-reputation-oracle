@@ -22,11 +22,13 @@ export async function GET(
     const skill = rows[0];
 
     const versions = await sql()`
-      SELECT id, version, ipfs_cid, changelog, created_at
+      SELECT id, version, content, ipfs_cid, changelog, created_at
       FROM skill_versions
       WHERE skill_id = ${id}::uuid
       ORDER BY version DESC
     `;
+
+    const latestContent = versions[0]?.content ?? null;
 
     let author_trust = null;
     if (includeTrust) {
@@ -49,9 +51,12 @@ export async function GET(
         : 'drift_detected',
     };
 
+    const versionsWithoutContent = versions.map(({ content, ...rest }: any) => rest);
+
     return NextResponse.json({
       ...skill,
-      versions,
+      content: latestContent,
+      versions: versionsWithoutContent,
       author_trust,
       content_verification,
     });
