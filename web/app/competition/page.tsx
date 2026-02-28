@@ -166,7 +166,15 @@ export default function CompetitionPage() {
               {
                 step: '3',
                 title: 'Get vouched',
-                desc: 'Other participants and community members can vouch for your skill by staking SOL on your author profile. More vouches with higher stakes = stronger signal.',
+                desc: (
+                  <>
+                    Other participants and community members can vouch for your skill by staking SOL on your author profile. More vouches with higher stakes = stronger signal.
+                    {' '}
+                    <a href="https://faucet.solana.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                      Get devnet SOL at faucet.solana.com
+                    </a>
+                  </>
+                ),
                 icon: <FiShield className="w-4 h-4" />,
               },
             ].map((item) => (
