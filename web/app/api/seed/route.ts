@@ -3,15 +3,15 @@ import { sql } from '@/lib/db';
 
 export async function POST() {
   try {
-    const [existing] = await sql()`
+    const existingRows = await sql()`
       SELECT COUNT(*) as count FROM skills
-    `;
+    ` as any[];
 
-    if (parseInt(existing.count) > 0) {
+    if (parseInt(existingRows[0]?.count) > 0) {
       return NextResponse.json({ message: 'Seed data already exists', skipped: true });
     }
 
-    const [skill] = await sql()`
+    const skillRows = await sql()`
       INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version)
       VALUES (
         'solana-dev-skill',
@@ -22,7 +22,8 @@ export async function POST() {
         1
       )
       RETURNING id
-    `;
+    ` as any[];
+    const skill = skillRows[0];
 
     await sql()`
       INSERT INTO skill_versions (skill_id, version, content, changelog)

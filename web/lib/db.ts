@@ -2,14 +2,14 @@ import { neon } from '@neondatabase/serverless';
 
 let _sql: ReturnType<typeof neon> | null = null;
 
-export function sql() {
+export function sql(): (strings: TemplateStringsArray, ...values: any[]) => Promise<any[]> {
   if (!_sql) {
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is required. Set it in web/.env.local');
     }
     _sql = neon(process.env.DATABASE_URL);
   }
-  return _sql;
+  return _sql as any;
 }
 
 export async function initializeDatabase() {
