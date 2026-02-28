@@ -386,11 +386,18 @@ export default function MarketplacePage() {
                           href={listing.account.skillUri}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 truncate"
+                          className="block text-xs text-blue-600 dark:text-blue-400 hover:underline mb-2 truncate"
                         >
                           <span className="inline-flex items-center gap-1"><FiFileText /> {listing.account.skillUri}</span>
                         </a>
                       )}
+
+                      <Link
+                        href={`/skills?author=${listing.account.author.toBase58()}`}
+                        className="block text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-3 transition"
+                      >
+                        <span className="inline-flex items-center gap-1"><FiBookOpen className="w-3 h-3" /> View author in Skill Repo →</span>
+                      </Link>
 
                       {isOwn ? (
                         <div className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-lg font-medium text-center text-sm border border-gray-200 dark:border-gray-700">

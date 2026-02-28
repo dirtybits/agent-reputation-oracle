@@ -7,9 +7,11 @@ import { PublicKey } from '@solana/web3.js';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import TypewriterText from '@/components/TypewriterText';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
+import Link from 'next/link';
 import {
   FiAlertTriangle,
   FiArrowRight,
+  FiBookOpen,
   FiCalendar,
   FiCheckCircle,
   FiCode,
@@ -75,7 +77,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [landingMetrics, setLandingMetrics] = useState<{
-    agents: number; authors: number; skills: number; revenue: number; staked: number;
+    agents: number; authors: number; skills: number; revenue: number; staked: number; downloads: number;
   } | null>(null);
   const [featuredSkills, setFeaturedSkills] = useState<any[]>([]);
 
@@ -84,9 +86,10 @@ export default function Home() {
     if (userType !== 'landing' || !oracle.readOnlyProgram) return;
     (async () => {
       try {
-        const [agents, skills] = await Promise.all([
+        const [agents, skills, repoRes] = await Promise.all([
           oracle.getAllAgents(),
           oracle.getAllSkillListings(),
+          fetch('/api/skills?page=1').then(r => r.ok ? r.json() : null).catch(() => null),
         ]);
         const authorSet = new Set(skills.map((s: any) => s.account.author.toString()));
         const totalRevenue = skills.reduce((sum: number, s: any) => {
@@ -97,12 +100,14 @@ export default function Home() {
           const staked = a.account.totalStakedFor?.toNumber?.() ?? a.account.totalStakedFor ?? 0;
           return sum + staked;
         }, 0);
+        const totalDownloads = repoRes?.skills?.reduce((sum: number, s: any) => sum + (s.total_installs ?? 0), 0) ?? 0;
         setLandingMetrics({
           agents: agents.length,
           authors: authorSet.size,
           skills: skills.length,
           revenue: totalRevenue,
           staked: totalStaked,
+          downloads: totalDownloads,
         });
         const topSkills = [...skills]
           .filter((s: any) => s.account.status?.active !== undefined || s.account.status?.Active !== undefined || !s.account.status)
@@ -375,11 +380,12 @@ export default function Home() {
         {/* Network Metrics */}
         <section className="px-6 pb-16">
           <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {[
                 { label: 'Agents', value: landingMetrics?.agents, format: (v: number) => v.toLocaleString() },
                 { label: 'Authors', value: landingMetrics?.authors, format: (v: number) => v.toLocaleString() },
                 { label: 'Skills Published', value: landingMetrics?.skills, format: (v: number) => v.toLocaleString() },
+                { label: 'Skills Downloaded', value: landingMetrics?.downloads, format: (v: number) => v.toLocaleString() },
                 { label: 'Revenue', value: landingMetrics?.revenue, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
                 { label: 'Total Staked', value: landingMetrics?.staked, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
               ].map((m) => (
@@ -438,7 +444,25 @@ export default function Home() {
 
         {/* Marketplace CTA */}
         <section className="px-6 pb-16">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto space-y-4">
+            <Link
+              href="/skills"
+              className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-left group hover:border-blue-400 dark:hover:border-blue-500 transition"
+            >
+              <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl shrink-0">
+                <FiBookOpen />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1">Skill Repository</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Browse, publish, and install verified AI agent skills. Every skill shows author trust signals.
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 shrink-0 group-hover:gap-2.5 transition-all">
+                Explore <FiArrowRight />
+              </span>
+            </Link>
+
             <button
               onClick={() => window.location.href = '/marketplace'}
               className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-left group hover:border-green-400 dark:hover:border-green-500 transition"
@@ -495,6 +519,7 @@ export default function Home() {
             {[
               { icon: <FiZap />, label: 'Stake-Weighted Vouching', desc: 'economic skin-in-the-game' },
               { icon: <FiLayers />, label: 'Solana / Anchor', desc: 'fast, low-cost transactions' },
+              { icon: <FiBookOpen />, label: 'Skill Repository', desc: 'publish & install SKILL.md' },
               { icon: <FiShoppingBag />, label: 'Skill Marketplace', desc: '60/40 revenue sharing' },
               { icon: <FiShield />, label: 'Dispute Resolution', desc: 'on-chain slashing' },
               { icon: <FiTerminal />, label: 'skill.md', desc: 'single-file agent integration' },
