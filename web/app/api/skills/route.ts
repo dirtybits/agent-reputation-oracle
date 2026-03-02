@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { resolveMultipleAuthorTrust, getReadOnlyProgram } from '@/lib/trust';
+import { resolveAuthorTrust, resolveMultipleAuthorTrust, getReadOnlyProgram } from '@/lib/trust';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 import { pinSkillContent } from '@/lib/ipfs';
 
@@ -186,6 +186,23 @@ export async function POST(request: NextRequest) {
     }
 
     const authorPubkey = verification.pubkey!;
+
+    let trust;
+    try {
+      trust = await resolveAuthorTrust(authorPubkey);
+    } catch {
+      return NextResponse.json(
+        { error: 'Unable to verify on-chain registration. Please try again.' },
+        { status: 503 }
+      );
+    }
+
+    if (!trust.isRegistered) {
+      return NextResponse.json(
+        { error: 'You must register an on-chain AgentProfile before publishing. Go to your Profile tab to register.' },
+        { status: 403 }
+      );
+    }
 
     const pinResult = await pinSkillContent(content, skill_id, 1);
 

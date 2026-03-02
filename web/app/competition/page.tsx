@@ -158,7 +158,7 @@ export default function CompetitionPage() {
                     <Link href="/skills/publish" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
                       Publish Skill
                     </Link>{' '}
-                    and add <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-sm font-mono">competition</code> as one of your tags. Connect your wallet and sign to submit.
+                    and add <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-sm font-mono">competition</code> as one of your tags. You&apos;ll need an on-chain AgentProfile to publish — you can register directly on the publish page if you haven&apos;t already.
                   </>
                 ),
                 icon: <FiTag className="w-4 h-4" />,

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { useReputationOracle } from '@/hooks/useReputationOracle';
 import {
   FiUpload,
   FiFileText,
@@ -17,6 +18,8 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiX,
+  FiShield,
+  FiAlertTriangle,
 } from 'react-icons/fi';
 
 function parseFrontmatter(content: string): {
@@ -61,6 +64,7 @@ function slugify(text: string): string {
 export default function PublishSkillPage() {
   const { publicKey, signMessage, connected } = useWallet();
   const router = useRouter();
+  const oracle = useReputationOracle();
 
   const [content, setContent] = useState('');
   const [name, setName] = useState('');
@@ -73,8 +77,37 @@ export default function PublishSkillPage() {
   const [publishing, setPublishing] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; id?: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [agentProfile, setAgentProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [registering, setRegistering] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!connected || !publicKey) {
+      setAgentProfile(null);
+      return;
+    }
+    setProfileLoading(true);
+    oracle.getAgentProfile(publicKey)
+      .then(setAgentProfile)
+      .catch(() => setAgentProfile(null))
+      .finally(() => setProfileLoading(false));
+  }, [connected, publicKey]);
+
+  const handleRegister = async () => {
+    if (!connected || !publicKey) return;
+    setRegistering(true);
+    try {
+      await oracle.registerAgent('');
+      const profile = await oracle.getAgentProfile(publicKey);
+      setAgentProfile(profile);
+    } catch (err: any) {
+      setResult({ success: false, message: `Registration failed: ${err.message}` });
+    } finally {
+      setRegistering(false);
+    }
+  };
 
   const handleContentChange = useCallback((text: string) => {
     setContent(text);
@@ -246,6 +279,43 @@ export default function PublishSkillPage() {
             <button onClick={() => setResult(null)} className="text-gray-400 hover:text-gray-600">
               <FiX className="w-4 h-4" />
             </button>
+          </div>
+        )}
+
+        {/* Registration gate */}
+        {connected && !profileLoading && !agentProfile && (
+          <div className="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-5">
+            <div className="flex items-start gap-3">
+              <FiAlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                  On-chain registration required
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Publishing requires a registered AgentProfile on Solana. This connects your skills to the trust system so others can vouch for you.
+                </p>
+                <button
+                  onClick={handleRegister}
+                  disabled={registering}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+                >
+                  {registering ? (
+                    <>
+                      <FiLoader className="w-4 h-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <FiShield className="w-4 h-4" />
+                      Register Now
+                    </>
+                  )}
+                </button>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                  One-time on-chain transaction (~0.003 SOL rent).
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -451,7 +521,7 @@ export default function PublishSkillPage() {
           </p>
           <button
             onClick={handlePublish}
-            disabled={publishing || !connected || !content || !name || !skillId}
+            disabled={publishing || !connected || !content || !name || !skillId || !agentProfile}
             className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {publishing ? (

@@ -488,22 +488,33 @@ All baselines measured from devnet beta launch date (T+0).
 - Full oracle-based on-chain USD normalization (defer to v2.1).
 - Support for every stablecoin at launch.
 - Cross-chain collateral in core program (can be future adapter layer).
+- Account versioning for devnet Phase 1 (clean break — see note below).
+
+---
+
+## 9.1) Versioning Decision: Devnet vs Mainnet
+
+**Devnet (Phase 1): Clean break.** Rewrite account schemas directly, redeploy fresh. No v1/v2 discrimination needed. Existing devnet accounts are test data — recreatable in seconds via the test suite. This keeps Phase 1 simple and focused on getting the schema right.
+
+**Mainnet (future): Versioned deserialization from day one.** When the program ships to mainnet, every account schema must include a version discriminator byte. The program must support reading both current and previous account formats via versioned deserialization, enabling zero-downtime upgrades. This is a hard requirement — mainnet accounts hold real stake and cannot be abandoned.
+
+The versioning infrastructure (version byte, dual decode paths, migration tooling) should be designed and implemented as part of the mainnet readiness phase, not Phase 1.
 
 ---
 
 ## 10) Immediate Next Actions
 
-### This week (Phase 0 — fix v1 gaps)
+### Phase 0 — fix v1 gaps (COMPLETED)
 
-1. **Implement `claim_voucher_revenue()`** — the 40% voucher pool is calculated but never distributed. This is the #1 blocker; multi-mint revenue splits are meaningless without a working claim path.
-2. **Fix `purchase_skill` revenue tracking** — `cumulative_revenue` on vouch accounts is never written to. Fix so claims have data to claim against.
-3. **Add Anchor events** — replace all `msg!` with `emit!` using structured event types. Start with v1-compatible fields; `mint` and `chain_context` get added in Phase 1.
-4. **Write integration test** — end-to-end: register agents → vouch → list skill → purchase → claim revenue → assert balances.
+1. ~~**Implement `claim_voucher_revenue()`**~~ — Done. 40% voucher pool collects and distributes correctly.
+2. ~~**Fix `purchase_skill` revenue tracking**~~ — Done. `cumulative_revenue` and `unclaimed_voucher_revenue` written on purchase.
+3. ~~**Add Anchor events**~~ — Done. All `msg!` replaced with `emit!` using structured event types.
+4. ~~**Write integration test**~~ — Done. End-to-end purchase → claim → balance verification passes.
 
-### Next week (Phase 1 — schema refactor)
+### Next: Phase 1 — schema refactor (clean break on devnet)
 
-5. **Draft v2 account schemas** — `StakePosition` struct, vault PDA derivation, account version discriminator. Use Wrapped SOL for uniform token handling.
-6. **Add account versioning** — v2 program reads both v1 and v2 formats. Test round-trip deserialization.
+5. **Draft v2 account schemas** — `StakePosition` struct, vault PDA derivation. Use Wrapped SOL for uniform token handling.
+6. **Rewrite account schemas directly** — clean break, no v1 compatibility needed on devnet. Fresh redeploy.
 7. **Add `chain_context` and `mint` to all event types** — defaults to `solana` and `native` until Phase 2 activates multi-mint.
 
 ### Week after (Phase 2 start)
