@@ -1,9 +1,15 @@
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
-import { Program, AnchorProvider } from '@coral-xyz/anchor';
-import IDL from '../reputation_oracle.json';
+import {
+  createSolanaRpc,
+  getAddressEncoder,
+  getProgramDerivedAddress,
+  getUtf8Encoder,
+  type Address,
+} from '@solana/kit';
+import { fetchMaybeAgentProfile } from '../generated/reputation-oracle/src/generated';
+import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../generated/reputation-oracle/src/generated/programs';
 
-const PROGRAM_ID = new PublicKey('ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf');
-const RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl('devnet');
+const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+const rpc = createSolanaRpc(RPC_URL);
 
 export interface AuthorTrust {
   reputationScore: number;
@@ -18,21 +24,18 @@ export interface AuthorTrust {
 const cache = new Map<string, { data: AuthorTrust; expires: number }>();
 const CACHE_TTL_MS = 60_000;
 
-export function getReadOnlyProgram() {
-  const connection = new Connection(RPC_URL, 'confirmed');
-  const provider = new AnchorProvider(
-    connection,
-    {} as any,
-    { commitment: 'confirmed' }
-  );
-  return new Program(IDL as any, provider);
-}
+const textEncoder = getUtf8Encoder();
+const addressEncoder = getAddressEncoder();
 
-function getAgentPDA(agentKey: PublicKey): PublicKey {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('agent'), agentKey.toBuffer()],
-    PROGRAM_ID
-  )[0];
+async function getAgentPDA(agentKey: Address): Promise<Address> {
+  const [derived] = await getProgramDerivedAddress({
+    programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+    seeds: [
+      textEncoder.encode('agent'),
+      addressEncoder.encode(agentKey),
+    ],
+  });
+  return derived;
 }
 
 export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
@@ -53,19 +56,22 @@ export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
   };
 
   try {
-    const program = getReadOnlyProgram();
-    const agentPDA = getAgentPDA(new PublicKey(pubkey));
-    const account = await (program.account as any).agentProfile.fetch(agentPDA);
+    const agentPDA = await getAgentPDA(pubkey as Address);
+    const account = await fetchMaybeAgentProfile(rpc, agentPDA);
 
-    const toNum = (v: any) => v?.toNumber?.() ?? v ?? 0;
+    if (!account.exists) {
+      cache.set(pubkey, { data: defaultTrust, expires: now + CACHE_TTL_MS });
+      return defaultTrust;
+    }
 
+    const d = account.data;
     const trust: AuthorTrust = {
-      reputationScore: toNum(account.reputationScore),
-      totalVouchesReceived: toNum(account.totalVouchesReceived),
-      totalStakedFor: toNum(account.totalStakedFor),
-      disputesWon: toNum(account.disputesWon),
-      disputesLost: toNum(account.disputesLost),
-      registeredAt: toNum(account.registeredAt),
+      reputationScore: Number(d.reputationScore),
+      totalVouchesReceived: d.totalVouchesReceived,
+      totalStakedFor: Number(d.totalStakedFor),
+      disputesWon: d.disputesWon,
+      disputesLost: d.disputesLost,
+      registeredAt: Number(d.registeredAt),
       isRegistered: true,
     };
 

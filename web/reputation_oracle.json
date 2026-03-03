@@ -8,6 +8,104 @@
   },
   "instructions": [
     {
+      "name": "claim_voucher_revenue",
+      "discriminator": [
+        197,
+        41,
+        210,
+        196,
+        139,
+        237,
+        188,
+        183
+      ],
+      "accounts": [
+        {
+          "name": "skill_listing",
+          "writable": true
+        },
+        {
+          "name": "vouch",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  117,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher_profile"
+              },
+              {
+                "kind": "account",
+                "path": "author_profile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voucher_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing.author",
+                "account": "SkillListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voucher",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "create_skill_listing",
       "discriminator": [
         101,
@@ -816,26 +914,109 @@
       ]
     }
   ],
+  "events": [
+    {
+      "name": "DisputeOpened",
+      "discriminator": [
+        239,
+        222,
+        102,
+        235,
+        193,
+        85,
+        1,
+        214
+      ]
+    },
+    {
+      "name": "DisputeResolved",
+      "discriminator": [
+        121,
+        64,
+        249,
+        153,
+        139,
+        128,
+        236,
+        187
+      ]
+    },
+    {
+      "name": "RevenueClaimed",
+      "discriminator": [
+        5,
+        254,
+        104,
+        87,
+        133,
+        137,
+        45,
+        116
+      ]
+    },
+    {
+      "name": "SkillListingCreated",
+      "discriminator": [
+        70,
+        77,
+        153,
+        20,
+        48,
+        144,
+        124,
+        224
+      ]
+    },
+    {
+      "name": "SkillPurchased",
+      "discriminator": [
+        90,
+        255,
+        155,
+        123,
+        29,
+        16,
+        39,
+        75
+      ]
+    },
+    {
+      "name": "VouchCreated",
+      "discriminator": [
+        127,
+        98,
+        245,
+        5,
+        1,
+        172,
+        112,
+        42
+      ]
+    },
+    {
+      "name": "VouchRevoked",
+      "discriminator": [
+        229,
+        20,
+        21,
+        98,
+        75,
+        95,
+        120,
+        64
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
-      "name": "DisputeNotOpen",
-      "msg": "Dispute is not open"
+      "name": "StakeBelowMinimum",
+      "msg": "Stake amount is below minimum"
     },
     {
       "code": 6001,
-      "name": "VouchNotDisputed",
-      "msg": "Vouch is not disputed"
-    },
-    {
-      "code": 6002,
-      "name": "UnauthorizedResolver",
-      "msg": "Unauthorized resolver"
-    },
-    {
-      "code": 6003,
-      "name": "InsufficientFunds",
-      "msg": "Insufficient funds"
+      "name": "CannotVouchForSelf",
+      "msg": "Cannot vouch for yourself"
     }
   ],
   "types": [
@@ -935,6 +1116,58 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DisputeOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "dispute",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "challenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "bond_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DisputeResolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "dispute",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "ruling",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }
@@ -1044,6 +1277,34 @@
       }
     },
     {
+      "name": "RevenueClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "SkillListing",
       "type": {
         "kind": "struct",
@@ -1077,6 +1338,10 @@
             "type": "u64"
           },
           {
+            "name": "unclaimed_voucher_revenue",
+            "type": "u64"
+          },
+          {
             "name": "created_at",
             "type": "i64"
           },
@@ -1095,6 +1360,70 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SkillListingCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "price_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SkillPurchased",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "purchase",
+            "type": "pubkey"
+          },
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "author_share",
+            "type": "u64"
+          },
+          {
+            "name": "voucher_pool",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }
@@ -1156,6 +1485,62 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VouchCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouchee",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VouchRevoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouchee",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_returned",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }

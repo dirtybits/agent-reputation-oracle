@@ -1,4 +1,4 @@
-import { PublicKey } from '@solana/web3.js';
+import { getAddressCodec, type Address } from '@solana/kit';
 import nacl from 'tweetnacl';
 
 const NONCE_WINDOW_MS = 5 * 60_000; // 5 minutes
@@ -9,6 +9,8 @@ export interface AuthPayload {
   message: string;   // the signed message string
   timestamp: number; // unix ms included in message
 }
+
+const addressCodec = getAddressCodec();
 
 export function verifyWalletSignature(payload: AuthPayload): {
   valid: boolean;
@@ -23,14 +25,14 @@ export function verifyWalletSignature(payload: AuthPayload): {
       return { valid: false, pubkey: null, error: 'Signature expired' };
     }
 
-    const publicKey = new PublicKey(pubkey);
+    const publicKeyBytes = new Uint8Array(addressCodec.encode(pubkey as Address));
     const messageBytes = new TextEncoder().encode(message);
     const signatureBytes = Uint8Array.from(Buffer.from(signature, 'base64'));
 
     const verified = nacl.sign.detached.verify(
       messageBytes,
       signatureBytes,
-      publicKey.toBytes()
+      publicKeyBytes,
     );
 
     if (!verified) {

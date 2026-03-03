@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { useWalletConnection } from '@solana/react-hooks';
+import { type Address } from '@solana/kit';
 import Link from 'next/link';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
+import type { SkillListing, Purchase } from '../../generated/reputation-oracle/src/generated';
 import {
   FiBookOpen,
   FiBox,
@@ -27,36 +28,14 @@ import {
 
 type MarketTab = 'browse' | 'publish' | 'my-purchases' | 'my-listings';
 
-interface SkillListingData {
-  publicKey: PublicKey;
-  account: {
-    author: PublicKey;
-    skillUri: string;
-    name: string;
-    description: string;
-    priceLamports: { toNumber(): number };
-    totalDownloads: { toNumber(): number };
-    totalRevenue: { toNumber(): number };
-    createdAt: { toNumber(): number };
-    updatedAt: { toNumber(): number };
-    status: { active?: {} };
-    bump: number;
-  };
-}
-
-interface PurchaseData {
-  publicKey: PublicKey;
-  account: {
-    buyer: PublicKey;
-    skillListing: PublicKey;
-    purchasedAt: { toNumber(): number };
-    pricePaid: { toNumber(): number };
-    bump: number;
-  };
-}
+type SkillListingData = { publicKey: Address; account: SkillListing };
+type PurchaseData = { publicKey: Address; account: Purchase };
 
 export default function MarketplacePage() {
-  const { publicKey, connected } = useWallet();
+  const LAMPORTS_PER_SOL = 1_000_000_000;
+  const { wallet, status } = useWalletConnection();
+  const connected = status === 'connected' && !!wallet;
+  const publicKey = wallet?.account.address ?? null;
   const oracle = useReputationOracle();
 
   const [activeTab, setActiveTab] = useState<MarketTab>('browse');
@@ -80,24 +59,22 @@ export default function MarketplacePage() {
   const [publishing, setPublishing] = useState(false);
 
   // Set of purchased skill listing keys for the current user
-  const [purchasedKeys, setPurchasedKeys] = useState<Set<string>>(new Set());
+  const [purchasedKeys, setPurchasedKeys] = useState<Set<Address>>(new Set());
 
   const loadListings = useCallback(async () => {
     // Don't require wallet connection to view listings
-    if (!oracle.readOnlyProgram) return;
     setLoading(true);
     try {
       const all = await oracle.getAllSkillListings();
-      // Filter active only
-      let active = all.filter((l: SkillListingData) => l.account.status?.active !== undefined);
+      let active = [...all];
 
       if (filter === 'newest') {
-        active.sort((a: SkillListingData, b: SkillListingData) =>
-          b.account.createdAt.toNumber() - a.account.createdAt.toNumber()
+        active.sort((a, b) =>
+          Number(b.account.createdAt) - Number(a.account.createdAt)
         );
       } else if (filter === 'popular') {
-        active.sort((a: SkillListingData, b: SkillListingData) =>
-          b.account.totalDownloads.toNumber() - a.account.totalDownloads.toNumber()
+        active.sort((a, b) =>
+          Number(b.account.totalDownloads) - Number(a.account.totalDownloads)
         );
       }
 
@@ -107,11 +84,10 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false);
     }
-  }, [oracle.readOnlyProgram, filter]);
+  }, [filter]);
 
   const loadMyData = useCallback(async () => {
-    // Use readOnlyProgram so it works even without wallet for initial load
-    if (!oracle.readOnlyProgram || !publicKey) return;
+    if (!publicKey) return;
     try {
       const [purchases, authorListings] = await Promise.all([
         oracle.getPurchasesByBuyer(publicKey),
@@ -119,11 +95,11 @@ export default function MarketplacePage() {
       ]);
       setMyPurchases(purchases);
       setMyListings(authorListings);
-      setPurchasedKeys(new Set(purchases.map((p: PurchaseData) => p.account.skillListing.toBase58())));
+      setPurchasedKeys(new Set(purchases.map((p) => p.account.skillListing)));
     } catch (e) {
       console.error('Failed to load user data:', e);
     }
-  }, [oracle.readOnlyProgram, publicKey]);
+  }, [publicKey]);
 
   useEffect(() => {
     loadListings();
@@ -135,12 +111,12 @@ export default function MarketplacePage() {
 
   const handlePurchase = async (listing: SkillListingData) => {
     if (!connected) return;
-    setPurchasing(listing.publicKey.toBase58());
+    setPurchasing(listing.publicKey);
     setTxError(null);
     setTxSuccess(null);
 
     try {
-      const { tx } = await oracle.purchaseSkill(listing.publicKey, listing.account.author);
+      const { tx } = await oracle.purchaseSkill(listing.publicKey as Address, listing.account.author);
       setTxSuccess(tx);
       // Refresh data
       await Promise.all([loadListings(), loadMyData()]);
@@ -311,16 +287,16 @@ export default function MarketplacePage() {
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listings.map((listing) => {
-                  const price = listing.account.priceLamports.toNumber();
-                  const downloads = listing.account.totalDownloads.toNumber();
-                  const revenue = listing.account.totalRevenue.toNumber();
-                  const alreadyPurchased = purchasedKeys.has(listing.publicKey.toBase58());
-                  const isOwn = publicKey && listing.account.author.equals(publicKey);
-                  const isPurchasing = purchasing === listing.publicKey.toBase58();
+                  const price = Number(listing.account.priceLamports);
+                  const downloads = Number(listing.account.totalDownloads);
+                  const revenue = Number(listing.account.totalRevenue);
+                  const alreadyPurchased = purchasedKeys.has(listing.publicKey);
+                  const isOwn = publicKey && listing.account.author === publicKey;
+                  const isPurchasing = purchasing === listing.publicKey;
 
                   return (
                     <div
-                      key={listing.publicKey.toBase58()}
+                      key={listing.publicKey}
                       className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition"
                     >
                       <div className="flex justify-between items-start mb-3">
@@ -338,10 +314,10 @@ export default function MarketplacePage() {
 
                       <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">
-                          <span className="inline-flex items-center gap-1"><FiUser /> {shortAddr(listing.account.author.toBase58())}</span>
+                          <span className="inline-flex items-center gap-1"><FiUser /> {shortAddr(listing.account.author)}</span>
                         </span>
                         <span className="text-xs">
-                          {formatDate(listing.account.createdAt.toNumber())}
+                          {formatDate(Number(listing.account.createdAt))}
                         </span>
                       </div>
 
@@ -349,11 +325,11 @@ export default function MarketplacePage() {
                         <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Skill Address</div>
                         <div className="flex items-center gap-2 justify-between">
                           <span className="font-mono text-xs text-gray-900 dark:text-gray-100 truncate">
-                            {shortAddr(listing.publicKey.toBase58())}
+                            {shortAddr(listing.publicKey)}
                           </span>
                           <button
                             onClick={() => {
-                              navigator.clipboard.writeText(listing.publicKey.toBase58());
+                              navigator.clipboard.writeText(listing.publicKey);
                               const btn = event?.target as HTMLButtonElement;
                               const originalText = btn.textContent;
                               btn.textContent = 'Copied';
@@ -393,7 +369,7 @@ export default function MarketplacePage() {
                       )}
 
                       <Link
-                        href={`/skills?author=${listing.account.author.toBase58()}`}
+                        href={`/skills?author=${listing.account.author}`}
                         className="block text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-3 transition"
                       >
                         <span className="inline-flex items-center gap-1"><FiBookOpen className="w-3 h-3" /> View author in Skill Repo →</span>
@@ -572,12 +548,12 @@ export default function MarketplacePage() {
                 {myPurchases.map((purchase) => {
                   // Find the matching listing
                   const listing = listings.find(
-                    (l) => l.publicKey.toBase58() === purchase.account.skillListing.toBase58()
+                    (l) => l.publicKey === purchase.account.skillListing
                   );
 
                   return (
                     <div
-                      key={purchase.publicKey.toBase58()}
+                      key={purchase.publicKey}
                       className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800 flex items-center justify-between"
                     >
                       <div>
@@ -585,8 +561,8 @@ export default function MarketplacePage() {
                           {listing?.account.name || 'Unknown Skill'}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Purchased {formatDate(purchase.account.purchasedAt.toNumber())} ·{' '}
-                          <span className="font-mono">{formatSOL(purchase.account.pricePaid.toNumber())} SOL</span>
+                          Purchased {formatDate(Number(purchase.account.purchasedAt))} ·{' '}
+                          <span className="font-mono">{formatSOL(Number(purchase.account.pricePaid))} SOL</span>
                         </p>
                       </div>
                       {listing?.account.skillUri && (
@@ -631,14 +607,14 @@ export default function MarketplacePage() {
             ) : (
               <div className="space-y-4">
                 {myListings.map((listing) => {
-                  const price = listing.account.priceLamports.toNumber();
-                  const downloads = listing.account.totalDownloads.toNumber();
-                  const revenue = listing.account.totalRevenue.toNumber();
+                  const price = Number(listing.account.priceLamports);
+                  const downloads = Number(listing.account.totalDownloads);
+                  const revenue = Number(listing.account.totalRevenue);
                   const authorEarnings = revenue * 0.6;
 
                   return (
                     <div
-                      key={listing.publicKey.toBase58()}
+                      key={listing.publicKey}
                       className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800"
                     >
                       <div className="flex items-center justify-between mb-2">

@@ -1,16 +1,49 @@
+# dependencies
+node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# anchor / solana
 .anchor
-.DS_Store
 target
 **/*.rs.bk
-node_modules
 test-ledger
-.yarn
-.vercel
-.cursor
 
-# SECURITY: Never commit keypairs or secrets
-.agent-keys/
-**/keypair*.json
-*.secret
+# next.js
+.next/
+out/
+
+# build / testing
+build
+coverage
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# env / secrets
 .env
 .env.local
+.env*.local
+*.secret
+.agent-keys/
+**/keypair*.json
+
+# tooling
+.vercel
+.cursor

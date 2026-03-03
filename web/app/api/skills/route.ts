@@ -1,36 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { resolveAuthorTrust, resolveMultipleAuthorTrust, getReadOnlyProgram } from '@/lib/trust';
+import { resolveAuthorTrust, resolveMultipleAuthorTrust } from '@/lib/trust';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 import { pinSkillContent } from '@/lib/ipfs';
+import { createSolanaRpc } from '@solana/kit';
+import type { Base64EncodedBytes } from '@solana/rpc-types';
+import {
+  getSkillListingDecoder,
+  SKILL_LISTING_DISCRIMINATOR,
+} from '../../../generated/reputation-oracle/src/generated';
+import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../../../generated/reputation-oracle/src/generated/programs';
 
 const PAGE_SIZE = 20;
-
-const toNum = (v: any) => v?.toNumber?.() ?? v ?? 0;
+const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com');
+const asBase64 = (bytes: Uint8Array) =>
+  Buffer.from(bytes).toString('base64') as Base64EncodedBytes;
 
 async function fetchOnChainListings(): Promise<any[]> {
   try {
-    const program = getReadOnlyProgram();
-    const listings = await (program.account as any).skillListing.all();
-    return listings
-      .filter((l: any) => l.account.status?.active !== undefined)
-      .map((l: any) => ({
-        id: `chain-${l.publicKey.toBase58()}`,
-        skill_id: l.publicKey.toBase58(),
-        author_pubkey: l.account.author.toBase58(),
-        name: l.account.name,
-        description: l.account.description,
+    const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+      encoding: 'base64',
+      filters: [{ memcmp: { offset: 0n, bytes: asBase64(SKILL_LISTING_DISCRIMINATOR), encoding: 'base64' } }],
+    }).send();
+    const decoder = getSkillListingDecoder();
+    return accounts
+      .map((a) => {
+        const data = decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64')));
+        return { pubkey: a.pubkey, data };
+      })
+      .map((l) => ({
+        id: `chain-${l.pubkey}`,
+        skill_id: l.pubkey,
+        author_pubkey: l.data.author,
+        name: l.data.name,
+        description: l.data.description,
         tags: [],
         current_version: 1,
         ipfs_cid: null,
-        on_chain_address: l.publicKey.toBase58(),
+        on_chain_address: l.pubkey,
         chain_context: 'solana',
         total_installs: 0,
-        total_downloads: toNum(l.account.totalDownloads),
-        price_lamports: toNum(l.account.priceLamports),
-        total_revenue: toNum(l.account.totalRevenue),
-        created_at: new Date(toNum(l.account.createdAt) * 1000).toISOString(),
-        updated_at: new Date(toNum(l.account.updatedAt) * 1000).toISOString(),
+        total_downloads: Number(l.data.totalDownloads),
+        price_lamports: Number(l.data.priceLamports),
+        total_revenue: Number(l.data.totalRevenue),
+        created_at: new Date(Number(l.data.createdAt) * 1000).toISOString(),
+        updated_at: new Date(Number(l.data.updatedAt) * 1000).toISOString(),
         source: 'chain' as const,
       }));
   } catch (err) {

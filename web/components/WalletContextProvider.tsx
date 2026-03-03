@@ -1,33 +1,20 @@
 'use client';
 
 import { FC, ReactNode, useMemo } from 'react';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl } from '@solana/web3.js';
+import { SolanaProvider } from '@solana/react-hooks';
+import { autoDiscover, createClient } from '@solana/client';
 
-// Import wallet adapter CSS
-import '@solana/wallet-adapter-react-ui/styles.css';
+const ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com';
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  // Use devnet for hackathon
-  const endpoint = useMemo(() => clusterApiUrl('devnet'), []);
-
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
-    []
+  const client = useMemo(
+    () =>
+      createClient({
+        endpoint: ENDPOINT,
+        walletConnectors: autoDiscover(),
+      }),
+    [],
   );
 
-  return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          {children}
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
-  );
+  return <SolanaProvider client={client}>{children}</SolanaProvider>;
 };

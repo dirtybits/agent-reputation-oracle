@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletConnection } from '@solana/react-hooks';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -62,7 +62,10 @@ function slugify(text: string): string {
 }
 
 export default function PublishSkillPage() {
-  const { publicKey, signMessage, connected } = useWallet();
+  const { wallet, status } = useWalletConnection();
+  const connected = status === 'connected' && !!wallet;
+  const publicKey = wallet?.account.address ?? null;
+  const signMessage = wallet?.signMessage ?? null;
   const router = useRouter();
   const oracle = useReputationOracle();
 
@@ -185,7 +188,7 @@ export default function PublishSkillPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           auth: {
-            pubkey: publicKey.toBase58(),
+            pubkey: publicKey!,
             signature,
             message,
             timestamp,

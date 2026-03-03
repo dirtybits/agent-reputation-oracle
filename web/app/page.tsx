@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, type ReactNode } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletConnection } from '@solana/react-hooks';
+import { address, type Address } from '@solana/kit';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
-import { PublicKey } from '@solana/web3.js';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import TypewriterText from '@/components/TypewriterText';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
@@ -38,7 +38,9 @@ type UserType = 'landing' | 'human' | 'agent';
 type Tab = 'profile' | 'vouch' | 'explorer' | 'disputes';
 
 export default function Home() {
-  const { publicKey, connected } = useWallet();
+  const { wallet, status: walletStatus } = useWalletConnection();
+  const connected = walletStatus === 'connected' && !!wallet;
+  const publicKey = wallet?.account.address ?? null;
   const oracle = useReputationOracle();
   
   const [userType, setUserType] = useState<UserType>('landing');
@@ -84,7 +86,7 @@ export default function Home() {
 
   // Fetch landing page metrics
   useEffect(() => {
-    if (userType !== 'landing' || !oracle.readOnlyProgram) return;
+    if (userType !== 'landing') return;
     (async () => {
       try {
         const [agents, skills, repoRes] = await Promise.all([
@@ -92,13 +94,13 @@ export default function Home() {
           oracle.getAllSkillListings(),
           fetch('/api/skills?page=1').then(r => r.ok ? r.json() : null).catch(() => null),
         ]);
-        const authorSet = new Set(skills.map((s: any) => s.account.author.toString()));
+        const authorSet = new Set(skills.map((s: any) => s.account.author));
         const totalRevenue = skills.reduce((sum: number, s: any) => {
-          const rev = s.account.totalRevenue?.toNumber?.() ?? s.account.totalRevenue ?? 0;
+          const rev = Number(s.account.totalRevenue ?? 0);
           return sum + rev;
         }, 0);
         const totalStaked = agents.reduce((sum: number, a: any) => {
-          const staked = a.account.totalStakedFor?.toNumber?.() ?? a.account.totalStakedFor ?? 0;
+          const staked = Number(a.account.totalStakedFor ?? 0);
           return sum + staked;
         }, 0);
         const totalDownloads = repoRes?.skills?.reduce((sum: number, s: any) => sum + (s.total_installs ?? 0), 0) ?? 0;
@@ -113,8 +115,8 @@ export default function Home() {
         const topSkills = [...skills]
           .filter((s: any) => s.account.status?.active !== undefined || s.account.status?.Active !== undefined || !s.account.status)
           .sort((a: any, b: any) => {
-            const dlA = a.account.totalDownloads?.toNumber?.() ?? a.account.totalDownloads ?? 0;
-            const dlB = b.account.totalDownloads?.toNumber?.() ?? b.account.totalDownloads ?? 0;
+            const dlA = Number(a.account.totalDownloads ?? 0);
+            const dlB = Number(b.account.totalDownloads ?? 0);
             return dlB - dlA;
           })
           .slice(0, 3);
@@ -124,7 +126,7 @@ export default function Home() {
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userType, oracle.readOnlyProgram]);
+  }, [userType]);
 
   // Load agent profile when wallet connects
   useEffect(() => {
@@ -167,8 +169,8 @@ export default function Home() {
       const agents = await oracle.getAllAgents();
       // Sort by reputation score (highest first)
       const sorted = agents.sort((a: any, b: any) => {
-        const scoreA = a.account.reputationScore?.toNumber?.() || a.account.reputationScore || 0;
-        const scoreB = b.account.reputationScore?.toNumber?.() || b.account.reputationScore || 0;
+        const scoreA = Number(a.account.reputationScore ?? 0);
+        const scoreB = Number(b.account.reputationScore ?? 0);
         return scoreB - scoreA;
       });
       setAllAgents(sorted);
@@ -181,14 +183,13 @@ export default function Home() {
 
   // Load agents when vouch or explorer tab is activated
   useEffect(() => {
-    if (!oracle.readOnlyProgram) return;
     if (activeTab === 'explorer' && allAgents.length === 0) {
       loadAllAgents();
     } else if (activeTab === 'vouch' && connected && allAgents.length === 0) {
       loadAllAgents();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, connected, oracle.readOnlyProgram]);
+  }, [activeTab, connected]);
 
   const searchAgent = async () => {
     if (!searchAddress) {
@@ -200,7 +201,7 @@ export default function Home() {
     setStatus('Searching...');
     
     try {
-      const agentKey = new PublicKey(searchAddress);
+      const agentKey = address(searchAddress);
       const profile = await oracle.getAgentProfile(agentKey);
       
       if (profile) {
@@ -228,7 +229,7 @@ export default function Home() {
     setStatus('Opening dispute...');
     
     try {
-      const vouchKey = new PublicKey(disputeVouchAddress);
+      const vouchKey = address(disputeVouchAddress);
       const { tx } = await oracle.openDispute(vouchKey, disputeEvidence);
       setStatus(`Dispute opened! TX: ${tx}`);
       setDisputeVouchAddress('');
@@ -270,15 +271,15 @@ export default function Home() {
     setStatus('Creating vouch...');
     
     try {
-      const vouchee = new PublicKey(voucheeAddress);
-      console.log('Vouching for:', vouchee.toString());
-      console.log('Voucher (you):', publicKey?.toString());
+      const vouchee = address(voucheeAddress);
+      console.log('Vouching for:', vouchee);
+      console.log('Voucher (you):', publicKey);
       
       // Derive PDAs to show in logs
-      const voucherProfile = oracle.getAgentPDA(publicKey!);
-      const voucheeProfile = oracle.getAgentPDA(vouchee);
-      console.log('Voucher profile PDA:', voucherProfile.toString());
-      console.log('Vouchee profile PDA:', voucheeProfile.toString());
+      const voucherProfile = await oracle.getAgentPDA(publicKey!);
+      const voucheeProfile = await oracle.getAgentPDA(vouchee);
+      console.log('Voucher profile PDA:', voucherProfile);
+      console.log('Vouchee profile PDA:', voucheeProfile);
       
       // Check if vouchee profile exists first
       const voucheeData = await oracle.getAgentProfile(vouchee);
@@ -303,11 +304,11 @@ export default function Home() {
 
   const formatScore = (score: any) => {
     if (!score) return '0';
-    return (score.toNumber ? score.toNumber() : score).toLocaleString();
+    return Number(score).toLocaleString();
   };
 
   const formatTimestamp = (ts: any) => {
-    const timestamp = ts.toNumber ? ts.toNumber() : ts;
+    const timestamp = Number(ts);
     return new Date(timestamp * 1000).toLocaleString();
   };
 
@@ -513,12 +514,12 @@ export default function Home() {
             {featuredSkills.length > 0 && (
               <div className="grid md:grid-cols-3 gap-3 mt-4">
                 {featuredSkills.map((skill: any) => {
-                  const price = skill.account.priceLamports?.toNumber?.() ?? skill.account.priceLamports ?? 0;
-                  const downloads = skill.account.totalDownloads?.toNumber?.() ?? skill.account.totalDownloads ?? 0;
-                  const revenue = skill.account.totalRevenue?.toNumber?.() ?? skill.account.totalRevenue ?? 0;
+                  const price = Number(skill.account.priceLamports ?? 0);
+                  const downloads = Number(skill.account.totalDownloads ?? 0);
+                  const revenue = Number(skill.account.totalRevenue ?? 0);
                   return (
                     <div
-                      key={skill.publicKey.toString()}
+                      key={skill.publicKey}
                       className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 flex flex-col"
                     >
                       <h4 className="font-heading font-bold text-gray-900 dark:text-white text-sm mb-1 truncate">
@@ -691,9 +692,7 @@ const { tx, agentProfile } = await oracle.registerAgent(
 
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Vouch for another agent:</p>
             <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
-              <pre className="text-green-400 font-mono text-sm">{`import { PublicKey } from '@solana/web3.js';
-
-const vouchee = new PublicKey("AGENT_WALLET_ADDRESS");
+              <pre className="text-green-400 font-mono text-sm">{`const vouchee = "AGENT_WALLET_ADDRESS";
 const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
             </div>
           </div>
@@ -789,19 +788,19 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                       </div>
                       <div className="flex justify-between py-3">
                         <span className="text-sm text-gray-500 dark:text-gray-400">Total Staked</span>
-                        <span className="text-sm font-mono text-gray-900 dark:text-white">{(agentProfile.totalStakedFor.toNumber() / 1e9).toFixed(4)} SOL</span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">{(Number(agentProfile.totalStakedFor) / 1e9).toFixed(4)} SOL</span>
                       </div>
                       <div className="flex justify-between py-3">
                         <span className="text-sm text-gray-500 dark:text-gray-400">Vouches Received</span>
-                        <span className="text-sm font-mono text-gray-900 dark:text-white">{agentProfile.totalVouchesReceived.toString()}</span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">{String(agentProfile.totalVouchesReceived)}</span>
                       </div>
                       <div className="flex justify-between py-3">
                         <span className="text-sm text-gray-500 dark:text-gray-400">Vouches Given</span>
-                        <span className="text-sm font-mono text-gray-900 dark:text-white">{agentProfile.totalVouchesGiven.toString()}</span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">{String(agentProfile.totalVouchesGiven)}</span>
                       </div>
                       <div className="flex justify-between py-3">
                         <span className="text-sm text-gray-500 dark:text-gray-400">Disputes Lost</span>
-                        <span className="text-sm font-mono text-red-600 dark:text-red-400">{agentProfile.disputesLost.toString()}</span>
+                        <span className="text-sm font-mono text-red-600 dark:text-red-400">{String(agentProfile.disputesLost)}</span>
                       </div>
                       <div className="flex justify-between py-3">
                         <span className="text-sm text-gray-500 dark:text-gray-400">Registered</span>
@@ -868,12 +867,12 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
                                   <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
-                                    {(stakeAmount.toNumber() / 1e9).toFixed(4)} SOL
+                                    {(Number(stakeAmount) / 1e9).toFixed(4)} SOL
                                   </span>
                                   <span className="text-xs text-gray-400 dark:text-gray-500">staked</span>
                                 </div>
                                 <p className="font-mono text-xs text-gray-500 dark:text-gray-400 truncate mb-2">
-                                  {voucher.toString()}
+                                  {voucher}
                                 </p>
                                 <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
                                   <span className="inline-flex items-center gap-1"><FiCalendar /> {formatTimestamp(createdAt)}</span>
@@ -882,7 +881,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                               
                               <button
                                 onClick={() => {
-                                  setSearchAddress(voucher.toString());
+                                  setSearchAddress(voucher);
                                   setActiveTab('explorer');
                                 }}
                                 className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition whitespace-nowrap"
@@ -917,12 +916,12 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
                                   <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
-                                    {(stakeAmount.toNumber() / 1e9).toFixed(4)} SOL
+                                    {(Number(stakeAmount) / 1e9).toFixed(4)} SOL
                                   </span>
                                   <span className="text-xs text-gray-400 dark:text-gray-500">staked</span>
                                 </div>
                                 <p className="font-mono text-xs text-gray-500 dark:text-gray-400 truncate mb-2">
-                                  {vouchee.toString()}
+                                  {vouchee}
                                 </p>
                                 <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
                                   <span className="inline-flex items-center gap-1"><FiCalendar /> {formatTimestamp(createdAt)}</span>
@@ -931,7 +930,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                               
                               <button
                                 onClick={() => {
-                                  setSearchAddress(vouchee.toString());
+                                  setSearchAddress(vouchee);
                                   setActiveTab('explorer');
                                 }}
                                 className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition whitespace-nowrap"
@@ -1020,8 +1019,8 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {allAgents.map((agent: any, idx: number) => {
-                        const agentKey = agent.publicKey.toString();
-                        const isCurrentUser = agentKey === publicKey?.toString();
+                        const agentKey = agent.publicKey;
+                        const isCurrentUser = agentKey === publicKey;
                         
                         return (
                           <div 
@@ -1045,15 +1044,15 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                                   {agentKey}
                                 </p>
                                 <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
-                                  <span className="inline-flex items-center gap-1"><FiZap /> {agent.account.totalVouchesReceived.toString()} vouches</span>
-                                  <span className="inline-flex items-center gap-1"><FiDollarSign /> {(agent.account.totalStakedFor.toNumber() / 1e9).toFixed(2)} SOL</span>
+                                  <span className="inline-flex items-center gap-1"><FiZap /> {String(agent.account.totalVouchesReceived)} vouches</span>
+                                  <span className="inline-flex items-center gap-1"><FiDollarSign /> {(Number(agent.account.totalStakedFor) / 1e9).toFixed(2)} SOL</span>
                                 </div>
                               </div>
                               
                               {!isCurrentUser && (
                                 <button
                                   onClick={() => {
-                                    setVoucheeAddress(agent.account.authority.toString());
+                                    setVoucheeAddress(agent.account.authority);
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                   }}
                                   className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition whitespace-nowrap"
@@ -1118,19 +1117,19 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                         </div>
                           <div className="flex justify-between">
                             <span className="text-blue-600 dark:text-blue-200">Total Staked:</span>
-                            <span>{(searchedAgent.totalStakedFor.toNumber() / 1e9).toFixed(4)} SOL</span>
+                            <span>{(Number(searchedAgent.totalStakedFor) / 1e9).toFixed(4)} SOL</span>
                           </div>
                           <div className="flex justify-between py-3">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Vouches Received</span>
-                            <span className="text-sm font-mono text-gray-900 dark:text-white">{searchedAgent.totalVouchesReceived.toString()}</span>
+                            <span className="text-sm font-mono text-gray-900 dark:text-white">{String(searchedAgent.totalVouchesReceived)}</span>
                           </div>
                           <div className="flex justify-between py-3">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Vouches Given</span>
-                            <span className="text-sm font-mono text-gray-900 dark:text-white">{searchedAgent.totalVouchesGiven.toString()}</span>
+                            <span className="text-sm font-mono text-gray-900 dark:text-white">{String(searchedAgent.totalVouchesGiven)}</span>
                           </div>
                           <div className="flex justify-between py-3">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Disputes Lost</span>
-                            <span className="text-sm font-mono text-red-600 dark:text-red-400">{searchedAgent.disputesLost.toString()}</span>
+                            <span className="text-sm font-mono text-red-600 dark:text-red-400">{String(searchedAgent.disputesLost)}</span>
                           </div>
                           <div className="flex justify-between py-3">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Registered</span>
@@ -1184,8 +1183,8 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {allAgents.map((agent: any, idx: number) => {
-                        const agentKey = agent.publicKey.toString();
-                        const isCurrentUser = agentKey === publicKey?.toString();
+                        const agentKey = agent.publicKey;
+                        const isCurrentUser = agentKey === publicKey;
                         
                         return (
                           <div 
@@ -1206,18 +1205,18 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                                   )}
                                 </div>
                                 <p className="font-mono text-xs text-gray-500 dark:text-gray-400 truncate mb-2">
-                                  {agent.account.authority.toString()}
+                                  {agent.account.authority}
                                 </p>
                                 <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
-                                  <span className="inline-flex items-center gap-1"><FiZap /> {agent.account.totalVouchesReceived.toString()} vouches</span>
-                                  <span className="inline-flex items-center gap-1"><FiDollarSign /> {(agent.account.totalStakedFor.toNumber() / 1e9).toFixed(2)} SOL</span>
+                                  <span className="inline-flex items-center gap-1"><FiZap /> {String(agent.account.totalVouchesReceived)} vouches</span>
+                                  <span className="inline-flex items-center gap-1"><FiDollarSign /> {(Number(agent.account.totalStakedFor) / 1e9).toFixed(2)} SOL</span>
                                 </div>
                               </div>
                               
                               {!isCurrentUser && agentProfile && (
                                 <button
                                   onClick={() => {
-                                    setVoucheeAddress(agent.account.authority.toString());
+                                    setVoucheeAddress(agent.account.authority);
                                     setActiveTab('vouch');
                                   }}
                                   className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition whitespace-nowrap"
@@ -1298,7 +1297,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
                       {vouches.map((vouch, idx) => (
                         <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3">
                           <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Vouch Account</p>
-                          <p className="font-mono text-xs text-gray-900 dark:text-white break-all">{vouch.publicKey.toString()}</p>
+                          <p className="font-mono text-xs text-gray-900 dark:text-white break-all">{vouch.publicKey}</p>
                         </div>
                       ))}
                     </div>
