@@ -135,7 +135,7 @@ export default function Home() {
 
   // Load agent profile when wallet connects
   useEffect(() => {
-    if (connected && publicKey && userType === 'agent') {
+    if (connected && publicKey && (userType === 'agent' || userType === 'human')) {
       loadAgentProfile();
       loadVouches();
     }
@@ -247,16 +247,11 @@ export default function Home() {
   };
 
   const handleRegister = async () => {
-    if (!metadataUri) {
-      setStatus('Please enter a metadata URI');
-      return;
-    }
-
     setLoading(true);
     setStatus('Registering agent...');
     
     try {
-      const { tx, agentProfile: newProfile } = await oracle.registerAgent(metadataUri);
+      const { tx, agentProfile: newProfile } = await oracle.registerAgent(metadataUri || '');
       setStatus(`Agent registered! TX: ${tx}`);
       setTimeout(loadAgentProfile, 2000);
     } catch (error: any) {
