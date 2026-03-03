@@ -466,9 +466,14 @@ export default function MarketplacePage() {
                                   </span>
                                 )}
                               </div>
-                              <span className="font-mono" title={skill.author_pubkey}>
+                              <Link
+                                href={`/author/${skill.author_pubkey}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="font-mono hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition"
+                                title={skill.author_pubkey}
+                              >
                                 {shortAddr(skill.author_pubkey)}
-                              </span>
+                              </Link>
                             </div>
 
                             {skill.ipfs_cid && (
@@ -579,9 +584,12 @@ export default function MarketplacePage() {
                     {feedItems.map((item) => (
                       <li key={item.publicKey} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
                         <p className="text-xs text-gray-900 dark:text-gray-100 leading-relaxed">
-                          <span className="font-mono font-medium text-blue-600 dark:text-blue-400">
+                          <Link
+                            href={`/author/${item.buyer}`}
+                            className="font-mono font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                          >
                             {shortAddr(item.buyer)}
-                          </span>{' '}
+                          </Link>{' '}
                           bought{' '}
                           {item.skillRepoId ? (
                             <Link
@@ -599,7 +607,7 @@ export default function MarketplacePage() {
                             <>
                               from{' '}
                               <Link
-                                href={`/skills?author=${item.author}`}
+                                href={`/author/${item.author}`}
                                 className="font-mono font-medium text-purple-600 dark:text-purple-400 hover:underline"
                               >
                                 {shortAddr(item.author)}

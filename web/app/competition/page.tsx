@@ -314,9 +314,14 @@ export default function CompetitionPage() {
                         <span className="flex items-center gap-1">
                           <FiDownload className="w-3.5 h-3.5" /> {downloads}
                         </span>
-                        <span className="font-mono" title={skill.author_pubkey}>
+                        <Link
+                          href={`/author/${skill.author_pubkey}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-mono hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition"
+                          title={skill.author_pubkey}
+                        >
                           {shortAddr(skill.author_pubkey)}
-                        </span>
+                        </Link>
                       </div>
                     </div>
                   </div>

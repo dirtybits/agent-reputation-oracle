@@ -1,25 +1,25 @@
 ---
 name: Author Profiles and UX Unification
-overview: "Moltbook-style landing page with inline Human/Agent toggle, extract dashboard to /dashboard, docs to /docs, add public author profiles at /author/{pubkey}, and link authors from skill cards."
+overview: Moltbook-style landing page with inline Human/Agent toggle, extract dashboard to /dashboard, docs to /docs, add public author profiles at /author/{pubkey}, and link authors from skill cards.
 todos:
   - id: create-author-page
     content: Create /author/[pubkey] page with reputation, stats, skills, vouchers
-    status: pending
+    status: completed
   - id: extract-dashboard
     content: Extract human dashboard (profile/vouch/explore/disputes) from page.tsx to /dashboard
-    status: pending
+    status: completed
   - id: extract-docs
     content: Extract agent API docs from page.tsx to /docs
-    status: pending
+    status: completed
   - id: rework-landing
     content: "Rework landing page: keep hero/metrics/features visible, add Moltbook-style Human/Agent toggle that swaps a focused content section below CTAs"
-    status: pending
+    status: completed
   - id: link-authors
     content: Make author pubkeys clickable links to /author/{pubkey} on skill cards, detail pages, competition, feed
-    status: pending
+    status: completed
   - id: verify-build
     content: Verify TypeScript compiles, all links resolve, no broken navigation
-    status: pending
+    status: completed
 isProject: false
 ---
 

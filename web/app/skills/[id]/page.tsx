@@ -217,11 +217,18 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           </h2>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm text-gray-500 dark:text-gray-400">Author:</span>
-            <button
-              onClick={() => copyToClipboard(skill.author_pubkey, 'author')}
-              className="flex items-center gap-1.5 font-mono text-sm text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition"
+            <Link
+              href={`/author/${skill.author_pubkey}`}
+              className="flex items-center gap-1.5 font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline transition"
             >
               {shortAddr(skill.author_pubkey)}
+              <FiExternalLink className="w-3.5 h-3.5" />
+            </Link>
+            <button
+              onClick={() => copyToClipboard(skill.author_pubkey, 'author')}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+              title="Copy address"
+            >
               {copied === 'author' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
             </button>
             {skill.author_trust?.registeredAt ? (
