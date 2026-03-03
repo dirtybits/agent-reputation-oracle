@@ -101,13 +101,23 @@ export default function PublishSkillPage() {
   const handleRegister = async () => {
     if (!connected || !publicKey) return;
     setRegistering(true);
+    setResult(null);
     try {
       await oracle.registerAgent('');
       const profile = await oracle.getAgentProfile(publicKey);
       setAgentProfile(profile);
     } catch (err: any) {
-      const cause = err?.cause?.message || err?.context?.message || '';
+      const cause = err?.cause?.message ?? err?.context?.message ?? '';
       const msg = cause || err.message || String(err);
+      const alreadyExists =
+        /already in use|already exists|0x0|account already initialized/i.test(msg);
+      if (alreadyExists) {
+        const profile = await oracle.getAgentProfile(publicKey).catch(() => null);
+        if (profile) {
+          setAgentProfile(profile);
+          return;
+        }
+      }
       setResult({ success: false, message: `Registration failed: ${msg}` });
     } finally {
       setRegistering(false);
