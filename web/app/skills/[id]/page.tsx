@@ -11,6 +11,7 @@ import { useReputationOracle } from '@/hooks/useReputationOracle';
 import type { Address } from '@solana/kit';
 import {
   FiArrowLeft,
+  FiCheckCircle,
   FiDownload,
   FiTag,
   FiClock,
@@ -50,9 +51,13 @@ interface SkillDetail {
   ipfs_cid: string | null;
   on_chain_address: string | null;
   total_installs: number;
+  total_downloads?: number;
+  price_lamports?: number;
   contact: string | null;
   created_at: string;
   updated_at: string;
+  source?: 'repo' | 'chain';
+  skill_uri?: string;
   versions: SkillVersion[];
   author_trust: TrustData | null;
   content_verification: ContentVerification | null;
@@ -146,7 +151,12 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const installCommand = `curl -sL ${typeof window !== 'undefined' ? window.location.origin : 'https://agentvouch.xyz'}/api/skills/${id}/raw -o SKILL.md`;
+  const isChainOnly = skill?.source === 'chain';
+  const CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agentvouch.xyz';
+  const installUrl = isChainOnly && skill?.skill_uri
+    ? skill.skill_uri
+    : `${CANONICAL_ORIGIN}/api/skills/${id}/raw`;
+  const installCommand = `curl -sL ${installUrl} -o SKILL.md`;
 
   if (loading) {
     return (
@@ -229,7 +239,15 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Meta Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className={`grid grid-cols-2 ${isChainOnly ? 'sm:grid-cols-4' : 'sm:grid-cols-4'} gap-3 mb-6`}>
+          {skill.price_lamports != null && skill.price_lamports > 0 && (
+            <div className="rounded-lg border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-3 text-center">
+              <div className="text-lg font-bold text-green-700 dark:text-green-400 font-mono">
+                {(skill.price_lamports / 1_000_000_000).toFixed(2)} SOL
+              </div>
+              <div className="text-xs text-green-600 dark:text-green-500">Price</div>
+            </div>
+          )}
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
             <div className="text-lg font-bold text-gray-900 dark:text-white">v{skill.current_version}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Version</div>
@@ -237,17 +255,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
             <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center justify-center gap-1">
               <FiDownload className="w-4 h-4" />
-              {skill.total_installs}
+              {(skill.total_installs ?? 0) + (skill.total_downloads ?? 0)}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Installs</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Downloads</div>
           </div>
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
             <div className="text-sm font-bold text-gray-900 dark:text-white">{formatDate(skill.created_at)}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Published</div>
-          </div>
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
-            <div className="text-sm font-bold text-gray-900 dark:text-white">{formatDate(skill.updated_at)}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Updated</div>
           </div>
         </div>
 
@@ -356,16 +370,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
-        {/* Marketplace section */}
+        {/* On-chain listing section */}
         {skill.on_chain_address ? (
-          <div className="rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/10 p-4 mb-6">
-            <Link
-              href="/marketplace"
-              className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              <FiExternalLink className="w-4 h-4" />
-              This skill is also listed on the Marketplace
-            </Link>
+          <div className="rounded-xl border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-4 mb-6">
+            <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+              <FiCheckCircle className="w-4 h-4" />
+              Listed on-chain
+            </div>
           </div>
         ) : connected && walletAddress === skill.author_pubkey && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6">
@@ -415,8 +426,30 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
+        {/* Skill URI */}
+        {skill.skill_uri && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FiExternalLink className="w-4 h-4 text-blue-500" />
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Skill Source
+                </span>
+              </div>
+            </div>
+            <a
+              href={skill.skill_uri}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+            >
+              {skill.skill_uri}
+            </a>
+          </div>
+        )}
+
         {/* SKILL.md Content */}
-        {content && (
+        {content ? (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
               <FiFileText className="w-4 h-4 text-gray-400" />
@@ -425,6 +458,12 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               </span>
             </div>
             <MarkdownRenderer content={content} />
+          </div>
+        ) : isChainOnly && skill.skill_uri && (
+          <div className="rounded-xl border border-yellow-200 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10 p-4 mb-6">
+            <p className="text-sm text-yellow-700 dark:text-yellow-400">
+              Content could not be loaded from the source URL. The file may have been moved or is temporarily unavailable.
+            </p>
           </div>
         )}
 

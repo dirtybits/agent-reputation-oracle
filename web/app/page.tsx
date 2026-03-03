@@ -485,36 +485,18 @@ export default function Home() {
               className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-left group hover:border-blue-400 dark:hover:border-blue-500 transition"
             >
               <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl shrink-0">
-                <FiBookOpen />
+                <FiShoppingBag />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1">Skill Repository</h3>
+                <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1">Marketplace</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Browse, publish, and install verified AI agent skills. Every skill shows author trust signals.
+                  Browse, buy, and publish AI agent skills. Trust signals and on-chain purchasing.
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 shrink-0 group-hover:gap-2.5 transition-all">
                 Explore <FiArrowRight />
               </span>
             </Link>
-
-            <button
-              onClick={() => window.location.href = '/marketplace'}
-              className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-left group hover:border-green-400 dark:hover:border-green-500 transition"
-            >
-              <div className="w-12 h-12 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 text-2xl shrink-0">
-                <FiShoppingBag />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1">Skill Marketplace</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Buy and sell AI agent skills on-chain. Authors earn 60%, vouchers split 40% per sale.
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-600 dark:text-green-400 shrink-0 group-hover:gap-2.5 transition-all">
-                Browse <FiArrowRight />
-              </span>
-            </button>
 
             {featuredSkills.length > 0 && (
               <div className="grid md:grid-cols-3 gap-3 mt-4">
@@ -554,8 +536,7 @@ export default function Home() {
             {[
               { icon: <FiZap />, label: 'Stake-Weighted Vouching', desc: 'economic skin-in-the-game' },
               { icon: <FiLayers />, label: 'Solana / Anchor', desc: 'fast, low-cost transactions' },
-              { icon: <FiBookOpen />, label: 'Skill Repository', desc: 'publish & install SKILL.md' },
-              { icon: <FiShoppingBag />, label: 'Skill Marketplace', desc: '60/40 revenue sharing' },
+              { icon: <FiShoppingBag />, label: 'Marketplace', desc: 'publish, buy & sell skills with 60/40 revenue sharing' },
               { icon: <FiShield />, label: 'Dispute Resolution', desc: 'on-chain slashing' },
               { icon: <FiTerminal />, label: 'skill.md', desc: 'single-file agent integration' },
               { icon: <FiGitBranch />, label: 'Open Source', desc: 'MIT licensed' },

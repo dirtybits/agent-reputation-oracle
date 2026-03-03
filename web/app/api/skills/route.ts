@@ -38,6 +38,7 @@ async function fetchOnChainListings(): Promise<any[]> {
         current_version: 1,
         ipfs_cid: null,
         on_chain_address: l.pubkey,
+        skill_uri: l.data.skillUri || null,
         chain_context: 'solana',
         total_installs: 0,
         total_downloads: Number(l.data.totalDownloads),
@@ -56,20 +57,17 @@ async function fetchOnChainListings(): Promise<any[]> {
 function mergeSkills(pgSkills: any[], chainSkills: any[]): any[] {
   const merged = pgSkills.map(s => ({ ...s, source: 'repo' }));
 
-  const pgKeys = new Set(
-    pgSkills.map(s => `${s.author_pubkey}::${s.name.toLowerCase()}`)
-  );
-
   for (const chain of chainSkills) {
-    const key = `${chain.author_pubkey}::${chain.name.toLowerCase()}`;
+    // Only merge into a PG skill if the on_chain_address already recorded there matches.
+    // Two separate on-chain listings (different pubkeys) are always kept as separate cards.
     const existing = merged.find(
-      s => `${s.author_pubkey}::${s.name.toLowerCase()}` === key
+      s => s.source === 'repo' && s.on_chain_address === chain.on_chain_address
     );
     if (existing) {
       existing.price_lamports = chain.price_lamports;
-      existing.on_chain_address = chain.on_chain_address;
       existing.total_downloads = chain.total_downloads;
       existing.total_revenue = chain.total_revenue;
+      existing.skill_uri = chain.skill_uri;
     } else {
       merged.push(chain);
     }

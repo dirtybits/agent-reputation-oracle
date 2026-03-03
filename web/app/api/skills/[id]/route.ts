@@ -2,6 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { resolveAuthorTrust } from '@/lib/trust';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
+import { createSolanaRpc, type Address } from '@solana/kit';
+import type { Base64EncodedBytes } from '@solana/rpc-types';
+import {
+  getSkillListingDecoder,
+  SKILL_LISTING_DISCRIMINATOR,
+} from '../../../../generated/reputation-oracle/src/generated';
+import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../../../../generated/reputation-oracle/src/generated/programs';
+
+const CHAIN_PREFIX = 'chain-';
+const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com');
+const asBase64 = (bytes: Uint8Array) =>
+  Buffer.from(bytes).toString('base64') as Base64EncodedBytes;
+
+async function fetchChainSkill(pubkey: string) {
+  const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+    encoding: 'base64',
+    filters: [
+      { memcmp: { offset: 0n, bytes: asBase64(SKILL_LISTING_DISCRIMINATOR), encoding: 'base64' } },
+    ],
+  }).send();
+  const decoder = getSkillListingDecoder();
+  for (const a of accounts) {
+    if (a.pubkey !== pubkey) continue;
+    const data = decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64')));
+    return { pubkey: a.pubkey, data };
+  }
+  return null;
+}
 
 export async function GET(
   request: NextRequest,
@@ -11,6 +39,51 @@ export async function GET(
     const { id } = await params;
     const { searchParams } = request.nextUrl;
     const includeTrust = searchParams.get('include') !== 'none';
+
+    if (id.startsWith(CHAIN_PREFIX)) {
+      const onChainAddr = id.slice(CHAIN_PREFIX.length);
+      const listing = await fetchChainSkill(onChainAddr);
+      if (!listing) {
+        return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+      }
+
+      let author_trust = null;
+      if (includeTrust) {
+        author_trust = await resolveAuthorTrust(listing.data.author as string);
+      }
+
+      let content: string | null = null;
+      if (listing.data.skillUri) {
+        try {
+          const res = await fetch(listing.data.skillUri);
+          if (res.ok) content = await res.text();
+        } catch { /* best effort */ }
+      }
+
+      return NextResponse.json({
+        id: `chain-${listing.pubkey}`,
+        skill_id: listing.pubkey,
+        author_pubkey: listing.data.author,
+        name: listing.data.name,
+        description: listing.data.description,
+        tags: [],
+        current_version: 1,
+        ipfs_cid: null,
+        on_chain_address: listing.pubkey,
+        total_installs: 0,
+        total_downloads: Number(listing.data.totalDownloads),
+        price_lamports: Number(listing.data.priceLamports),
+        contact: null,
+        created_at: new Date(Number(listing.data.createdAt) * 1000).toISOString(),
+        updated_at: new Date(Number(listing.data.updatedAt) * 1000).toISOString(),
+        source: 'chain',
+        skill_uri: listing.data.skillUri,
+        content,
+        versions: [],
+        author_trust,
+        content_verification: null,
+      });
+    }
 
     const rows = await sql()`
       SELECT * FROM skills WHERE id = ${id}::uuid
@@ -36,8 +109,6 @@ export async function GET(
       author_trust = await resolveAuthorTrust(skill.author_pubkey);
     }
 
-    // Content verification: check if all versions have IPFS CIDs
-    // and whether the current version CID matches the skill-level CID
     const latestVersion = versions[0];
     const allPinned = versions.every((v: any) => !!v.ipfs_cid);
     const currentCidMatch = latestVersion?.ipfs_cid === skill.ipfs_cid;
