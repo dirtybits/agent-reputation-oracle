@@ -6,6 +6,9 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { useWalletConnection } from '@solana/react-hooks';
+import { useReputationOracle } from '@/hooks/useReputationOracle';
+import type { Address } from '@solana/kit';
 import {
   FiArrowLeft,
   FiDownload,
@@ -18,6 +21,7 @@ import {
   FiExternalLink,
   FiFileText,
   FiGitCommit,
+  FiDollarSign,
 } from 'react-icons/fi';
 
 interface SkillVersion {
@@ -68,10 +72,20 @@ function formatDate(dateStr: string): string {
 
 export default function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { wallet, status } = useWalletConnection();
+  const connected = status === 'connected' && !!wallet;
+  const walletAddress = wallet?.account.address ?? null;
+  const signMessage = wallet?.signMessage ?? null;
+  const oracle = useReputationOracle();
+
   const [skill, setSkill] = useState<SkillDetail | null>(null);
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+
+  const [listPrice, setListPrice] = useState('0.1');
+  const [listing, setListing] = useState(false);
+  const [listResult, setListResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     async function fetchSkill() {
@@ -96,6 +110,40 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     navigator.clipboard.writeText(text);
     setCopied(label);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleListOnMarketplace = async () => {
+    if (!connected || !walletAddress || !signMessage || !skill) return;
+    setListing(true);
+    setListResult(null);
+    try {
+      const priceLamports = Math.round(parseFloat(listPrice || '0') * 1_000_000_000);
+      const skillUri = `${window.location.origin}/api/skills/${id}/raw`;
+      await oracle.createSkillListing(skill.skill_id, skillUri, skill.name, skill.description ?? '', priceLamports);
+      const onChainAddress = await oracle.getSkillListingPDA(walletAddress as Address, skill.skill_id);
+
+      const timestamp = Date.now();
+      const message = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${timestamp}`;
+      const msgBytes = new TextEncoder().encode(message);
+      const sigBytes = await signMessage(msgBytes);
+      const signature = Buffer.from(sigBytes).toString('base64');
+
+      await fetch(`/api/skills/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auth: { pubkey: walletAddress, signature, message, timestamp },
+          on_chain_address: onChainAddress,
+        }),
+      });
+
+      setSkill((s) => s ? { ...s, on_chain_address: onChainAddress } : s);
+      setListResult({ success: true, message: 'Listed on marketplace successfully!' });
+    } catch (err: any) {
+      setListResult({ success: false, message: err.message || 'Failed to create listing' });
+    } finally {
+      setListing(false);
+    }
   };
 
   const installCommand = `curl -sL ${typeof window !== 'undefined' ? window.location.origin : 'https://agentvouch.xyz'}/api/skills/${id}/raw -o SKILL.md`;
@@ -308,16 +356,62 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
-        {/* Marketplace Link */}
-        {skill.on_chain_address && (
+        {/* Marketplace section */}
+        {skill.on_chain_address ? (
           <div className="rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/10 p-4 mb-6">
             <Link
-              href={`/marketplace`}
+              href="/marketplace"
               className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
             >
               <FiExternalLink className="w-4 h-4" />
               This skill is also listed on the Marketplace
             </Link>
+          </div>
+        ) : connected && walletAddress === skill.author_pubkey && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <FiDollarSign className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                List on Marketplace
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Create an on-chain SkillListing so other agents can purchase this skill.
+            </p>
+
+            {listResult && (
+              <p className={`text-xs mb-3 ${listResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {listResult.message}
+              </p>
+            )}
+
+            <div className="flex items-center gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Price (SOL)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={listPrice}
+                  onChange={(e) => setListPrice(e.target.value)}
+                  className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={handleListOnMarketplace}
+                disabled={listing}
+                className="mt-5 flex items-center gap-2 px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+              >
+                {listing ? (
+                  <><FiLoader className="w-4 h-4 animate-spin" />Creating listing…</>
+                ) : (
+                  <><FiDollarSign className="w-4 h-4" />List Now</>
+                )}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+              Set price to 0 for a free on-chain listing. Requires one Solana transaction.
+            </p>
           </div>
         )}
 

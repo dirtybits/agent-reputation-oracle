@@ -9,9 +9,11 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import type { SkillListing, Purchase } from '../../generated/reputation-oracle/src/generated';
 import {
+  FiActivity,
   FiBookOpen,
   FiBox,
   FiCheckCircle,
+  FiClock,
   FiDownload,
   FiEdit3,
   FiFileText,
@@ -30,6 +32,16 @@ type MarketTab = 'browse' | 'publish' | 'my-purchases' | 'my-listings';
 
 type SkillListingData = { publicKey: Address; account: SkillListing };
 type PurchaseData = { publicKey: Address; account: Purchase };
+type FeedItem = {
+  publicKey: Address;
+  buyer: Address;
+  skillListing: Address;
+  skillName: string;
+  skillRepoId: string | null;
+  author: Address;
+  purchasedAt: number;
+  pricePaid: number;
+};
 
 export default function MarketplacePage() {
   const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -47,6 +59,10 @@ export default function MarketplacePage() {
   const [filter, setFilter] = useState<'all' | 'newest' | 'popular'>('all');
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
+  // Maps on_chain_address (listing pubkey) → Postgres skill UUID
+  const [repoSkillMap, setRepoSkillMap] = useState<Map<string, string>>(new Map());
 
   // Publish form state
   const [publishForm, setPublishForm] = useState({
@@ -61,30 +77,75 @@ export default function MarketplacePage() {
   // Set of purchased skill listing keys for the current user
   const [purchasedKeys, setPurchasedKeys] = useState<Set<Address>>(new Set());
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadFeed = useCallback(async (
+    resolvedListings: SkillListingData[],
+    repoMap: Map<string, string>,
+  ) => {
+    setFeedLoading(true);
+    try {
+      const purchases = await oracle.getAllPurchases();
+      const listingMap = new Map(resolvedListings.map((l) => [l.publicKey as string, l]));
+      const items: FeedItem[] = purchases
+        .map((p) => {
+          const listing = listingMap.get(p.account.skillListing as string);
+          return {
+            publicKey: p.publicKey,
+            buyer: p.account.buyer,
+            skillListing: p.account.skillListing,
+            skillName: listing?.account.name ?? 'Unknown Skill',
+            skillRepoId: repoMap.get(p.account.skillListing as string) ?? null,
+            author: listing?.account.author ?? ('' as Address),
+            purchasedAt: Number(p.account.purchasedAt),
+            pricePaid: Number(p.account.pricePaid),
+          };
+        })
+        .sort((a, b) => b.purchasedAt - a.purchasedAt)
+        .slice(0, 20);
+      setFeedItems(items);
+    } catch (e) {
+      console.error('Failed to load feed:', e);
+    } finally {
+      setFeedLoading(false);
+    }
+  // oracle intentionally omitted — matches pattern used by loadListings/loadMyData.
+  // Individual methods on oracle are stable useCallbacks; the object wrapper is not.
+  }, []);
+
   const loadListings = useCallback(async () => {
-    // Don't require wallet connection to view listings
     setLoading(true);
     try {
       const all = await oracle.getAllSkillListings();
-      let active = [...all];
 
+      // Extract repo UUID directly from the skillUri stored on-chain.
+      // The publish flow sets skillUri = "/api/skills/{uuid}/raw", so the UUID
+      // is reliably embedded — no name-matching needed.
+      const UUID_RE = /\/api\/skills\/([0-9a-f-]{36})\/raw/i;
+      const repoMap = new Map<string, string>(
+        all
+          .map((l) => {
+            const match = l.account.skillUri?.match(UUID_RE);
+            return match ? [l.publicKey as string, match[1]] : null;
+          })
+          .filter((entry): entry is [string, string] => entry !== null)
+      );
+      setRepoSkillMap(repoMap);
+
+      let active = [...all];
       if (filter === 'newest') {
-        active.sort((a, b) =>
-          Number(b.account.createdAt) - Number(a.account.createdAt)
-        );
+        active.sort((a, b) => Number(b.account.createdAt) - Number(a.account.createdAt));
       } else if (filter === 'popular') {
-        active.sort((a, b) =>
-          Number(b.account.totalDownloads) - Number(a.account.totalDownloads)
-        );
+        active.sort((a, b) => Number(b.account.totalDownloads) - Number(a.account.totalDownloads));
       }
 
       setListings(active);
+      void loadFeed(active, repoMap);
     } catch (e) {
       console.error('Failed to load listings:', e);
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter]); // loadFeed omitted — stable empty-dep callback; oracle pattern consistent with rest of file
 
   const loadMyData = useCallback(async () => {
     if (!publicKey) return;
@@ -118,7 +179,7 @@ export default function MarketplacePage() {
     try {
       const { tx } = await oracle.purchaseSkill(listing.publicKey as Address, listing.account.author);
       setTxSuccess(tx);
-      // Refresh data
+      // Refresh data (loadListings also refreshes the feed internally)
       await Promise.all([loadListings(), loadMyData()]);
     } catch (e: any) {
       console.error('Purchase failed:', e);
@@ -159,6 +220,13 @@ export default function MarketplacePage() {
   const formatSOL = (lamports: number) => (lamports / LAMPORTS_PER_SOL).toFixed(2);
   const formatDate = (ts: number) => new Date(ts * 1000).toLocaleDateString();
   const shortAddr = (addr: string) => `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+  const timeAgo = (ts: number) => {
+    const diff = Math.floor(Date.now() / 1000) - ts;
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
 
   const tabs: { key: MarketTab; label: string; icon: ReactNode }[] = [
     { key: 'browse', label: 'Browse Skills', icon: <FiBookOpen className="inline-block mr-1" /> },
@@ -245,7 +313,9 @@ export default function MarketplacePage() {
 
         {/* ===== BROWSE TAB ===== */}
         {activeTab === 'browse' && (
-          <>
+          <div className="flex gap-8 items-start">
+            {/* ── Main listings column ── */}
+            <div className="flex-1 min-w-0">
             {/* Filters */}
             <div className="flex gap-2 mb-6">
               {(['all', 'newest', 'popular'] as const).map((f) => (
@@ -301,7 +371,16 @@ export default function MarketplacePage() {
                     >
                       <div className="flex justify-between items-start mb-3">
                         <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
-                          {listing.account.name}
+                          {repoSkillMap.has(listing.publicKey as string) ? (
+                            <Link
+                              href={`/skills/${repoSkillMap.get(listing.publicKey as string)}`}
+                              className="hover:text-blue-600 dark:hover:text-blue-400 transition"
+                            >
+                              {listing.account.name}
+                            </Link>
+                          ) : (
+                            listing.account.name
+                          )}
                         </h3>
                         <div className="text-green-600 dark:text-green-400 font-bold text-xl whitespace-nowrap ml-2 font-mono">
                           {formatSOL(price)} SOL
@@ -403,7 +482,77 @@ export default function MarketplacePage() {
                 })}
               </div>
             )}
-          </>
+            </div>{/* end main listings column */}
+
+            {/* ── Activity Feed sidebar ── */}
+            <aside className="hidden lg:block w-72 flex-shrink-0">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden sticky top-6">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                  <FiActivity className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">Recent Activity</span>
+                  {feedLoading && (
+                    <span className="ml-auto">
+                      <FiLoader className="w-3 h-3 text-gray-400 animate-spin" />
+                    </span>
+                  )}
+                </div>
+
+                {feedItems.length === 0 && !feedLoading ? (
+                  <div className="px-4 py-8 text-center">
+                    <FiClock className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-700" />
+                    <p className="text-xs text-gray-400 dark:text-gray-500">No purchases yet. Be the first!</p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-50 dark:divide-gray-800/50 max-h-[520px] overflow-y-auto">
+                    {feedItems.map((item) => (
+                      <li key={item.publicKey} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
+                        <p className="text-xs text-gray-900 dark:text-gray-100 leading-relaxed">
+                          <span className="font-mono font-medium text-blue-600 dark:text-blue-400">
+                            {shortAddr(item.buyer)}
+                          </span>{' '}
+                          bought{' '}
+                          {item.skillRepoId ? (
+                            <Link
+                              href={`/skills/${item.skillRepoId}`}
+                              className="font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition"
+                            >
+                              &ldquo;{item.skillName}&rdquo;
+                            </Link>
+                          ) : (
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              &ldquo;{item.skillName}&rdquo;
+                            </span>
+                          )}{' '}
+                          {item.author ? (
+                            <>
+                              from{' '}
+                              <Link
+                                href={`/skills?author=${item.author}`}
+                                className="font-mono font-medium text-purple-600 dark:text-purple-400 hover:underline"
+                              >
+                                {shortAddr(item.author)}
+                              </Link>
+                            </>
+                          ) : null}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-400 dark:text-gray-500 inline-flex items-center gap-1">
+                            <FiClock className="w-3 h-3" />
+                            {timeAgo(item.purchasedAt)}
+                          </span>
+                          {item.pricePaid > 0 && (
+                            <span className="text-xs font-mono text-green-600 dark:text-green-400">
+                              {formatSOL(item.pricePaid)} SOL
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </aside>
+          </div>
         )}
 
         {/* ===== PUBLISH TAB ===== */}

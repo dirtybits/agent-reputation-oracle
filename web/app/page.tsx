@@ -103,7 +103,12 @@ export default function Home() {
           const staked = Number(a.account.totalStakedFor ?? 0);
           return sum + staked;
         }, 0);
-        const totalDownloads = repoRes?.skills?.reduce((sum: number, s: any) => sum + (s.total_installs ?? 0), 0) ?? 0;
+        // On-chain purchases (totalDownloads per SkillListing) + Postgres raw-endpoint installs
+        const onChainDownloads = skills.reduce((sum: number, s: any) =>
+          sum + Number(s.account.totalDownloads ?? 0), 0);
+        const repoInstalls = repoRes?.skills?.reduce((sum: number, s: any) =>
+          sum + (s.total_installs ?? 0), 0) ?? 0;
+        const totalDownloads = onChainDownloads + repoInstalls;
         setLandingMetrics({
           agents: agents.length,
           authors: authorSet.size,

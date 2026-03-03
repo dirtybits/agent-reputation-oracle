@@ -6,6 +6,7 @@ import {
   getAddressEncoder,
   getProgramDerivedAddress,
   getUtf8Encoder,
+  isAddress,
   type Address,
   type TransactionSigner,
 } from '@solana/kit';
@@ -47,9 +48,9 @@ const addressEncoder = getAddressEncoder();
 
 async function deriveAddress(seeds: (string | Address)[], programId: Address = REPUTATION_ORACLE_PROGRAM_ADDRESS): Promise<Address> {
   const encodedSeeds = seeds.map((s) =>
-    typeof s === 'string' && s.length < 44
-      ? textEncoder.encode(s)
-      : addressEncoder.encode(s as Address),
+    isAddress(s)
+      ? addressEncoder.encode(s)
+      : textEncoder.encode(s),
   );
   const [derived] = await getProgramDerivedAddress({ programAddress: programId, seeds: encodedSeeds });
   return derived;
@@ -268,6 +269,22 @@ export function useReputationOracle() {
     }
   }, []);
 
+  const getAllPurchases = useCallback(async () => {
+    try {
+      const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        encoding: 'base64',
+        filters: [{ memcmp: { offset: 0n, bytes: asBase64(PURCHASE_DISCRIMINATOR), encoding: 'base64' } }],
+      }).send();
+      const decoder = getPurchaseDecoder();
+      return accounts.map((a) => ({
+        publicKey: a.pubkey,
+        account: decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64'))),
+      }));
+    } catch {
+      return [];
+    }
+  }, []);
+
   const getPurchasesByBuyer = useCallback(async (buyer: Address) => {
     try {
       const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
@@ -331,6 +348,7 @@ export function useReputationOracle() {
     getAllAgents,
     getAllSkillListings,
     getSkillListingsByAuthor,
+    getAllPurchases,
     getPurchasesByBuyer,
     createSkillListing,
     purchaseSkill,

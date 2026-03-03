@@ -20,7 +20,9 @@ import {
   FiX,
   FiShield,
   FiAlertTriangle,
+  FiDollarSign,
 } from 'react-icons/fi';
+import type { Address } from '@solana/kit';
 
 function parseFrontmatter(content: string): {
   name: string;
@@ -76,8 +78,10 @@ export default function PublishSkillPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [contact, setContact] = useState('');
+  const [price, setPrice] = useState('0');
   const [showPreview, setShowPreview] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [publishStep, setPublishStep] = useState<'idle' | 'repo' | 'chain'>('idle');
   const [result, setResult] = useState<{ success: boolean; message: string; id?: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [agentProfile, setAgentProfile] = useState<any>(null);
@@ -186,32 +190,22 @@ export default function PublishSkillPage() {
     }
 
     setPublishing(true);
+    setPublishStep('repo');
     setResult(null);
 
     try {
+      // Step 1: sign + publish to Postgres/IPFS
       const timestamp = Date.now();
       const message = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${timestamp}`;
       const messageBytes = new TextEncoder().encode(message);
       const signatureBytes = await signMessage(messageBytes);
       const signature = Buffer.from(signatureBytes).toString('base64');
+      const auth = { pubkey: publicKey!, signature, message, timestamp };
 
       const res = await fetch('/api/skills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          auth: {
-            pubkey: publicKey!,
-            signature,
-            message,
-            timestamp,
-          },
-          skill_id: skillId,
-          name,
-          description,
-          tags,
-          content,
-          contact: contact || undefined,
-        }),
+        body: JSON.stringify({ auth, skill_id: skillId, name, description, tags, content, contact: contact || undefined }),
       });
 
       const data = await res.json();
@@ -221,19 +215,57 @@ export default function PublishSkillPage() {
         return;
       }
 
+      const skillDbId: string = data.id;
+      const ipfsCid: string | null = data.ipfs_cid;
+      const skillUri = ipfsCid
+        ? `${window.location.origin}/api/skills/${skillDbId}/raw`
+        : '';
+
+      // Step 2: create on-chain SkillListing (always required)
+      setPublishStep('chain');
+      try {
+        const priceLamports = Math.round(parseFloat(price || '0') * 1_000_000_000);
+        await oracle.createSkillListing(skillId, skillUri, name, description, priceLamports);
+
+        const onChainAddress = await oracle.getSkillListingPDA(publicKey as Address, skillId);
+
+        const patchTimestamp = Date.now();
+        const patchMessage = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${patchTimestamp}`;
+        const patchMsgBytes = new TextEncoder().encode(patchMessage);
+        const patchSigBytes = await signMessage(patchMsgBytes);
+        const patchSignature = Buffer.from(patchSigBytes).toString('base64');
+
+        await fetch(`/api/skills/${skillDbId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            auth: { pubkey: publicKey!, signature: patchSignature, message: patchMessage, timestamp: patchTimestamp },
+            on_chain_address: onChainAddress,
+          }),
+        });
+      } catch (chainErr: any) {
+        // Repo publish succeeded; surface the chain error but don't block navigation
+        setResult({
+          success: true,
+          message: `Skill saved to repo — on-chain listing failed: ${chainErr.message}. Visit the skill page to retry.`,
+          id: skillDbId,
+        });
+        setTimeout(() => router.push(`/skills/${skillDbId}`), 3000);
+        return;
+      }
+
       setResult({
         success: true,
-        message: 'Skill published successfully!',
-        id: data.id,
+        message: 'Skill published and listed on-chain!',
+        id: skillDbId,
       });
 
-      setTimeout(() => {
-        router.push(`/skills/${data.id}`);
-      }, 1500);
+      setTimeout(() => router.push(`/skills/${skillDbId}`), 1500);
     } catch (err: any) {
       setResult({ success: false, message: err.message });
     } finally {
       setPublishing(false);
+      setPublishStep('idle');
     }
   };
 
@@ -529,10 +561,32 @@ export default function PublishSkillPage() {
           </div>
         </div>
 
-        {/* Publish button */}
+        {/* Price + publish */}
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-1">
+            <FiDollarSign className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">Marketplace Price</span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Every skill is listed on-chain so it can be vouched for and disputed. Set 0 for free.
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0"
+              className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-500 dark:text-gray-400">SOL</span>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Publishing requires a wallet signature (no transaction fee)
+            Requires a wallet signature + one Solana transaction
           </p>
           <button
             onClick={handlePublish}
@@ -542,7 +596,7 @@ export default function PublishSkillPage() {
             {publishing ? (
               <>
                 <FiLoader className="w-4 h-4 animate-spin" />
-                Publishing...
+                {publishStep === 'chain' ? 'Creating on-chain listing…' : 'Saving to repo…'}
               </>
             ) : (
               <>

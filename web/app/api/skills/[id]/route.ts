@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { resolveAuthorTrust } from '@/lib/trust';
+import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -62,6 +63,57 @@ export async function GET(
     });
   } catch (error: any) {
     console.error('GET /api/skills/[id] error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const { auth, on_chain_address } = body as {
+      auth: AuthPayload;
+      on_chain_address: string;
+    };
+
+    if (!auth || !on_chain_address) {
+      return NextResponse.json(
+        { error: 'Missing required fields: auth, on_chain_address' },
+        { status: 400 }
+      );
+    }
+
+    const verification = verifyWalletSignature(auth);
+    if (!verification.valid) {
+      return NextResponse.json(
+        { error: verification.error || 'Invalid signature' },
+        { status: 401 }
+      );
+    }
+
+    const rows = await sql()`
+      SELECT id, author_pubkey FROM skills WHERE id = ${id}::uuid
+    `;
+    if (rows.length === 0) {
+      return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+    }
+    if (rows[0].author_pubkey !== verification.pubkey) {
+      return NextResponse.json({ error: 'Not the skill author' }, { status: 403 });
+    }
+
+    const [updated] = await sql()`
+      UPDATE skills
+      SET on_chain_address = ${on_chain_address}, updated_at = NOW()
+      WHERE id = ${id}::uuid
+      RETURNING *
+    `;
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    console.error('PATCH /api/skills/[id] error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
