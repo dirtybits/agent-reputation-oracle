@@ -95,15 +95,27 @@ export function useReputationOracle() {
 
   const sendIx = useCallback(async (ix: any) => {
     if (!walletAddress || !wallet) throw new Error('Wallet not connected');
+    const addressOnlyIx = {
+      programAddress: ix.programAddress,
+      data: ix.data,
+      accounts: ix.accounts.map((acc: { address: Address; role: number }) => ({
+        address: acc.address,
+        role: acc.role,
+      })),
+    };
     try {
-      const sig = await frameworkSend({
-        instructions: [ix],
-        feePayer: walletAddress,
-        authority: wallet,
-      });
+      const sig = await frameworkSend(
+        {
+          instructions: [addressOnlyIx],
+          authority: wallet,
+        },
+        { skipPreflight: true },
+      );
       return String(sig);
     } catch (err: any) {
-      const cause = err?.cause;
+      const cause = err?.cause ?? err;
+      const logs = cause?.logs ?? cause?.context?.logs;
+      if (logs?.length) console.error('Simulation logs:', logs);
       if (cause) {
         console.error('Transaction failed (cause):', cause);
         throw cause;
