@@ -106,7 +106,9 @@ export default function PublishSkillPage() {
       const profile = await oracle.getAgentProfile(publicKey);
       setAgentProfile(profile);
     } catch (err: any) {
-      setResult({ success: false, message: `Registration failed: ${err.message}` });
+      const cause = err?.cause?.message || err?.context?.message || '';
+      const msg = cause || err.message || String(err);
+      setResult({ success: false, message: `Registration failed: ${msg}` });
     } finally {
       setRegistering(false);
     }

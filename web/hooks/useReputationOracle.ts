@@ -95,8 +95,17 @@ export function useReputationOracle() {
 
   const sendIx = useCallback(async (ix: any) => {
     if (!walletAddress) throw new Error('Wallet not connected');
-    const sig = await frameworkSend({ instructions: [ix] });
-    return String(sig);
+    try {
+      const sig = await frameworkSend({ instructions: [ix] });
+      return String(sig);
+    } catch (err: any) {
+      const cause = err?.cause;
+      if (cause) {
+        console.error('Transaction failed (cause):', cause);
+        throw cause;
+      }
+      throw err;
+    }
   }, [walletAddress, frameworkSend]);
 
   const registerAgent = useCallback(async (metadataUri: string) => {
