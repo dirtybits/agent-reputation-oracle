@@ -407,6 +407,11 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 {installResult.message}
               </p>
             )}
+            {connected && walletAddress === skill.author_pubkey && skill.on_chain_address && (
+              <p className="text-xs mt-2 text-amber-600 dark:text-amber-400">
+                This skill is listed for free. You can set a price via Edit Listing above.
+              </p>
+            )}
           </div>
         )}
 

@@ -2,9 +2,9 @@ export const PRICING = {
   SOL: {
     symbol: 'SOL',
     decimals: 9,
-    minPrice: 0.0001,
-    defaultPrice: 0.0001,
-    step: 0.0001,
+    minPrice: 0.001,
+    defaultPrice: 0.001,
+    step: 0.001,
   },
 } as const;
 

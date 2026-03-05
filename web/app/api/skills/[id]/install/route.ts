@@ -3,6 +3,8 @@ import { sql } from '@/lib/db';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 import { getOnChainPrice } from '@/lib/onchain';
 
+const CHAIN_PREFIX = 'chain-';
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -25,6 +27,25 @@ export async function POST(
         { error: verification.error || 'Invalid signature' },
         { status: 401 }
       );
+    }
+
+    if (id.startsWith(CHAIN_PREFIX)) {
+      const pubkey = id.slice(CHAIN_PREFIX.length);
+      const listing = await getOnChainPrice(pubkey);
+      if (!listing) {
+        return NextResponse.json({ error: 'Skill not found on-chain' }, { status: 404 });
+      }
+      if (listing.price > 0) {
+        return NextResponse.json(
+          { error: 'Paid skills require an on-chain purchase' },
+          { status: 402 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        skill_id: pubkey,
+        installed_by: verification.pubkey,
+      });
     }
 
     const rows = await sql()`
