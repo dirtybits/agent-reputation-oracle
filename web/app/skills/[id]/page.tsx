@@ -8,6 +8,7 @@ import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useWalletConnection } from '@solana/react-hooks';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
+import { PRICING, formatMinPrice, toLamports, fromLamports } from '@/lib/pricing';
 import type { Address } from '@solana/kit';
 import {
   FiArrowLeft,
@@ -89,7 +90,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const [listPrice, setListPrice] = useState('0.01');
+  const [listPrice, setListPrice] = useState(String(PRICING.SOL.defaultPrice));
   const [listing, setListing] = useState(false);
   const [listResult, setListResult] = useState<{ success: boolean; message: string } | null>(null);
   const [installing, setInstalling] = useState(false);
@@ -133,9 +134,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     setListing(true);
     setListResult(null);
     try {
-      const priceLamports = Math.round(parseFloat(listPrice || '0') * 1_000_000_000);
+      const priceLamports = toLamports(parseFloat(listPrice || '0'));
       if (priceLamports <= 0) {
-        setListResult({ success: false, message: 'Price must be greater than 0. Minimum is 0.01 SOL.' });
+        setListResult({ success: false, message: `Price must be greater than 0. Minimum is ${formatMinPrice()}.` });
         setListing(false);
         return;
       }
@@ -203,7 +204,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     if (!skill) return;
     setEditName(skill.name);
     setEditDescription(skill.description ?? '');
-    setEditPrice(skill.price_lamports ? (skill.price_lamports / 1_000_000_000).toString() : '0.01');
+    setEditPrice(skill.price_lamports ? fromLamports(skill.price_lamports).toString() : String(PRICING.SOL.defaultPrice));
     setEditUri(skill.skill_uri ?? '');
     setUpdateResult(null);
     setEditing(true);
@@ -214,9 +215,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     setUpdating(true);
     setUpdateResult(null);
     try {
-      const priceLamports = Math.round(parseFloat(editPrice || '0') * 1_000_000_000);
+      const priceLamports = toLamports(parseFloat(editPrice || '0'));
       if (priceLamports <= 0) {
-        setUpdateResult({ success: false, message: 'Price must be greater than 0. Minimum is 0.01 SOL.' });
+        setUpdateResult({ success: false, message: `Price must be greater than 0. Minimum is ${formatMinPrice()}.` });
         setUpdating(false);
         return;
       }
@@ -336,7 +337,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           {skill.price_lamports != null && skill.price_lamports > 0 && (
             <div className="rounded-lg border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-3 text-center">
               <div className="text-lg font-bold text-green-700 dark:text-green-400 font-mono">
-                {(skill.price_lamports / 1_000_000_000).toFixed(2)} SOL
+                {fromLamports(skill.price_lamports).toFixed(4)} SOL
               </div>
               <div className="text-xs text-green-600 dark:text-green-500">Price</div>
             </div>
@@ -436,7 +437,10 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Agents can fetch this skill programmatically. Free skills return content directly. Paid skills return <code className="text-amber-600 dark:text-amber-400">402</code> with payment requirements.
+            {skill.price_lamports != null && skill.price_lamports > 0
+              ? <>This is a paid skill. Requests return <code className="text-amber-600 dark:text-amber-400">402</code> with payment requirements until a valid payment proof is provided.</>
+              : <>This is a free skill. Agents receive content directly — no payment required.</>
+            }
           </p>
           <div className="flex items-center gap-2">
             <pre className="flex-1 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
@@ -579,8 +583,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Price (SOL)</label>
                     <input
                       type="number"
-                      min="0.01"
-                      step="0.01"
+                      min={PRICING.SOL.minPrice}
+                      step={PRICING.SOL.step}
                       value={editPrice}
                       onChange={(e) => setEditPrice(e.target.value)}
                       className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -647,8 +651,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Price (SOL)</label>
                 <input
                   type="number"
-                  min="0.01"
-                  step="0.01"
+                  min={PRICING.SOL.minPrice}
+                  step={PRICING.SOL.step}
                   value={listPrice}
                   onChange={(e) => setListPrice(e.target.value)}
                   className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -667,7 +671,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               </button>
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-              Minimum price is 0.01 SOL. Requires one Solana transaction.
+              Minimum price is {formatMinPrice()}. Requires one Solana transaction.
             </p>
           </div>
         )}

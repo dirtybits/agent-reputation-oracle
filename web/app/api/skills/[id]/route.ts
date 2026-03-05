@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { resolveAuthorTrust } from '@/lib/trust';
+import { getOnChainPrice } from '@/lib/onchain';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
-import { createSolanaRpc, type Address } from '@solana/kit';
+import { createSolanaRpc } from '@solana/kit';
 import type { Base64EncodedBytes } from '@solana/rpc-types';
 import {
   getSkillListingDecoder,
@@ -94,6 +95,13 @@ export async function GET(
     }
 
     const skill = rows[0];
+
+    if (skill.on_chain_address) {
+      const listing = await getOnChainPrice(skill.on_chain_address);
+      if (listing) {
+        skill.price_lamports = listing.price;
+      }
+    }
 
     const versions = await sql()`
       SELECT id, version, content, ipfs_cid, changelog, created_at

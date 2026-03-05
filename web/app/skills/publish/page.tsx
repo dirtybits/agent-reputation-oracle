@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
+import { PRICING, DEFAULT_CURRENCY, formatMinPrice, toLamports } from '@/lib/pricing';
 import {
   FiUpload,
   FiEye,
@@ -141,7 +142,7 @@ export default function PublishSkillPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [contact, setContact] = useState('');
-  const [price, setPrice] = useState('0');
+  const [price, setPrice] = useState(String(PRICING.SOL.defaultPrice));
   const [showPreview, setShowPreview] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishStep, setPublishStep] = useState<'idle' | 'repo' | 'chain'>('idle');
@@ -296,7 +297,7 @@ export default function PublishSkillPage() {
       // Step 2: create on-chain SkillListing (always required)
       setPublishStep('chain');
       try {
-        const priceLamports = Math.round(parseFloat(price || '0') * 1_000_000_000);
+        const priceLamports = toLamports(parseFloat(price || '0'));
         await oracle.createSkillListing(skillId, skillUri, name, description, priceLamports);
 
         const onChainAddress = await oracle.getSkillListingPDA(publicKey as Address, skillId);
@@ -632,16 +633,16 @@ export default function PublishSkillPage() {
             <span className="text-sm font-semibold text-gray-900 dark:text-white">Marketplace Price</span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            Every skill is listed on-chain so it can be vouched for and disputed. Set 0 for free.
+            Every skill is listed on-chain so it can be vouched for and disputed. Minimum price is {formatMinPrice()}.
           </p>
           <div className="flex items-center gap-2">
             <input
               type="number"
-              min="0"
-              step="0.01"
+              min={PRICING.SOL.minPrice}
+              step={PRICING.SOL.step}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="0"
+              placeholder={String(PRICING.SOL.minPrice)}
               className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <span className="text-sm text-gray-500 dark:text-gray-400">SOL</span>
