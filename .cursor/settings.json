@@ -17,6 +17,9 @@
     },
     "phantom-connect": {
       "enabled": true
+    },
+    "firecrawl": {
+      "enabled": true
     }
   }
 }

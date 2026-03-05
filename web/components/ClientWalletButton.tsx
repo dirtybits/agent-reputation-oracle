@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
+import { ConnectButton, usePhantom, useAccounts, useDisconnect } from '@phantom/react-sdk';
+import { usePhantomConfigured } from './WalletContextProvider';
 
-const PHANTOM_APP_ID = process.env.NEXT_PUBLIC_PHANTOM_APP_ID ?? '';
+const PHANTOM_ICON = 'https://phantom.com/_web_platform_assets/favicon.svg';
 
 function isMobile(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -37,13 +39,10 @@ function WalletDropdown({
       {showMenu && (
         <div className="absolute right-0 mt-2 w-72 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-50 py-1">
           {socialSection}
-          {!PHANTOM_APP_ID && (
+          {!socialSection && (
             <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-amber-700 dark:text-amber-300">
-                Social login is temporarily unavailable.
-              </p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                Set <code>NEXT_PUBLIC_PHANTOM_APP_ID</code> to enable Google/Apple sign-in.
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Connect a wallet extension or install one below.
               </p>
             </div>
           )}
@@ -85,12 +84,12 @@ function WalletDropdown({
                     onClick={() => setShowMenu(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition text-xs font-semibold text-purple-700 dark:text-purple-300"
                   >
-                    <img src="https://phantom.app/img/phantom-logo.svg" alt="Phantom" className="w-4 h-4 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    <img src={PHANTOM_ICON} alt="Phantom" className="w-4 h-4 rounded" />
                     Open in Phantom
                   </a>
                 )}
                 <a href="https://phantom.app/download" target="_blank" rel="noopener noreferrer" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-xs font-medium text-gray-700 dark:text-gray-300">
-                  <img src="https://phantom.app/img/phantom-logo.svg" alt="Phantom" className="w-4 h-4 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  <img src={PHANTOM_ICON} alt="Phantom" className="w-4 h-4 rounded" />
                   Get Phantom
                 </a>
                 <a href="https://www.backpack.app/" target="_blank" rel="noopener noreferrer" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-xs font-medium text-gray-700 dark:text-gray-300">
@@ -110,12 +109,7 @@ function WalletDropdown({
   );
 }
 
-// Version that uses Phantom SDK hooks — only rendered inside PhantomProvider
 function ClientWalletButtonWithPhantom() {
-  // These imports are safe here because this component is only rendered when PhantomProvider is present
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { ConnectButton, usePhantom, useAccounts, useDisconnect } = require('@phantom/react-sdk');
-
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -219,9 +213,9 @@ function ClientWalletButtonBasic() {
   return <WalletDropdown connectors={connectors} connect={connect} showMenu={showMenu} setShowMenu={setShowMenu} menuRef={menuRef} />;
 }
 
-// Public export: chooses the right variant based on whether Phantom is configured
 export function ClientWalletButton() {
-  if (PHANTOM_APP_ID) {
+  const phantomConfigured = usePhantomConfigured();
+  if (phantomConfigured) {
     return <ClientWalletButtonWithPhantom />;
   }
   return <ClientWalletButtonBasic />;

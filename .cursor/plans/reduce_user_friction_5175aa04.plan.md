@@ -14,11 +14,14 @@ todos:
   - id: p2a-phantom-sdk
     content: "Phase 2A: Install @phantom/wallet-sdk and integrate into WalletContextProvider"
     status: completed
-  - id: p2b-social-login
-    content: "Phase 2B: Add Google/Apple social login UI to ClientWalletButton via Phantom Connect"
+  - id: p2b-wallet-provider
+    content: "Phase 2B: Replace wallet provider with Phantom Connect SDK initialization"
     status: completed
-  - id: p2c-guest-publishing
-    content: "Phase 2C: Invert publish gate — form first, wallet/profile creation on submit"
+  - id: p2c-social-login
+    content: "Phase 2C: Add Google/Apple social login UI to ClientWalletButton via Phantom Connect"
+    status: completed
+  - id: p2d-guest-publishing
+    content: "Phase 2D: Invert publish gate — form first, wallet/profile creation on submit"
     status: completed
   - id: p3-api-keys
     content: "Phase 3: API key auth — schema, generation endpoint, middleware, settings page"
@@ -100,7 +103,7 @@ The `@solana/react-hooks` `SolanaProvider` will still wrap the app, but the wall
 
 **File:** [web/components/ClientWalletButton.tsx](web/components/ClientWalletButton.tsx)
 
-When no wallet is detected (and even when one is), add a "Sign in with Google" / "Sign in with Apple" option that uses Phantom Connect's embedded wallet creation flow. Follow the [add-social-login skill](file:///Users/andy/.cursor/plugins/cache/cursor-public/phantom-connect/e70a586d81b2a8641fbf917c4a402784f1737426/skills/add-social-login/SKILL.md) for implementation details.
+When no wallet is detected (and even when one is), add a "Sign in with Google" / "Sign in with Apple" option that uses Phantom Connect's embedded wallet creation flow.
 
 ### 2D. Guest Publishing Flow
 
@@ -201,9 +204,10 @@ flowchart TD
   P2B --> P2D[2D: Guest Publishing]
   P2C --> Done2[Phase 2 Complete]
   P2D --> Done2
-  Done2 --> P3[Phase 3: API Keys]
-  Done2 --> P4[Phase 4: x402]
-  P3 --> DoneFinal[All Phases Complete]
+  Done1 --> P3[Phase 3: API Keys]
+  Done1 --> P4[Phase 4: x402]
+  Done2 --> DoneFinal[All Phases Complete]
+  P3 --> DoneFinal
   P4 --> DoneFinal
 ```
 
@@ -216,5 +220,5 @@ flowchart TD
 - **Phantom Connect SDK vs. other embedded wallets**: Phantom is already referenced in the project, has MCP skills/tools available, and covers both extension and embedded flows. No reason to add a second provider.
 - **API keys stored as hashes**: Raw key shown once on creation, only hash stored. Standard security practice.
 - **x402 targets the `/api/skills/[id]/raw` endpoint**: This is the content delivery path agents consume. The marketplace purchase flow stays separate.
-- **Phase 1 and 2 can partially overlap**: Mobile deep links and value-before-ask are independent of the Phantom SDK work.
+- **Phases 2, 3, and 4 can run in parallel after Phase 1**: API keys and x402 only depend on the existing auth infrastructure from Phase 1, not on social login.
 

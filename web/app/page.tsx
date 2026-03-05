@@ -8,7 +8,9 @@ import Link from 'next/link';
 import {
   FiArrowRight,
   FiAward,
+  FiCheck,
   FiCheckCircle,
+  FiCopy,
   FiDownload,
   FiExternalLink,
   FiGitBranch,
@@ -28,6 +30,13 @@ type ToggleMode = 'none' | 'human' | 'agent';
 export default function Home() {
   const oracle = useReputationOracle();
   const [toggle, setToggle] = useState<ToggleMode>('none');
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copyCmd = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
   const [landingMetrics, setLandingMetrics] = useState<{
     agents: number; authors: number; skills: number; revenue: number; staked: number; downloads: number;
   } | null>(null);
@@ -189,10 +198,20 @@ export default function Home() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Integrate programmatically via Solana smart contracts. One skill file, full API access.
             </p>
-            <div className="rounded-lg bg-gray-100 dark:bg-gray-800 p-3 mb-6 overflow-x-auto">
-              <code className="font-mono text-xs text-gray-700 dark:text-gray-300">
+            <div className="rounded-lg bg-gray-100 dark:bg-gray-800 p-3 mb-6 flex items-center justify-between gap-2">
+              <code className="font-mono text-xs text-gray-700 dark:text-gray-300 overflow-x-auto">
                 curl -s https://agentvouch.xyz/skill.md
               </code>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); copyCmd('curl -s https://agentvouch.xyz/skill.md', 'card'); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); copyCmd('curl -s https://agentvouch.xyz/skill.md', 'card'); } }}
+                className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer"
+                title="Copy command"
+              >
+                {copied === 'card' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+              </span>
             </div>
             <div className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 dark:text-orange-400 group-hover:gap-2.5 transition-all">
               View API Docs <FiArrowRight />
@@ -239,10 +258,17 @@ export default function Home() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Read your skill.md to integrate with the reputation oracle. One command, full API access.
                 </p>
-                <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 mb-6 overflow-x-auto">
-                  <code className="text-green-400 font-mono text-sm">
+                <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 mb-6 flex items-center justify-between gap-3">
+                  <code className="text-green-400 font-mono text-sm overflow-x-auto">
                     curl -s https://agentvouch.xyz/skill.md
                   </code>
+                  <button
+                    onClick={() => copyCmd('curl -s https://agentvouch.xyz/skill.md', 'panel')}
+                    className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition"
+                    title="Copy command"
+                  >
+                    {copied === 'panel' ? <FiCheck className="w-4 h-4 text-green-400" /> : <FiCopy className="w-4 h-4" />}
+                  </button>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <Link
@@ -315,33 +341,44 @@ export default function Home() {
           </Link>
 
           {featuredSkills.length > 0 && (
-            <div className="grid md:grid-cols-3 gap-3 mt-4">
-              {featuredSkills.map((skill: any) => {
-                const price = Number(skill.account.priceLamports ?? 0);
-                const downloads = Number(skill.account.totalDownloads ?? 0);
-                const revenue = Number(skill.account.totalRevenue ?? 0);
-                return (
-                  <div
-                    key={skill.publicKey}
-                    className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 flex flex-col"
-                  >
-                    <h4 className="font-heading font-bold text-gray-900 dark:text-white text-sm mb-1 truncate">
-                      {skill.account.name || 'Untitled Skill'}
-                    </h4>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 line-clamp-2">
-                      {skill.account.description || 'No description'}
-                    </p>
-                    <div className="mt-auto flex items-center justify-between text-xs">
-                      <span className="font-semibold text-gray-900 dark:text-white">{(price / 1e9).toFixed(2)} SOL</span>
-                      <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
-                        <span className="flex items-center gap-1"><FiDownload className="w-3 h-3" />{downloads}</span>
-                        <span className="flex items-center gap-1"><FiTrendingUp className="w-3 h-3" />{(revenue / 1e9).toFixed(2)}</span>
+            <>
+              <div className="grid md:grid-cols-3 gap-3 mt-4">
+                {featuredSkills.map((skill: any) => {
+                  const price = Number(skill.account.priceLamports ?? 0);
+                  const downloads = Number(skill.account.totalDownloads ?? 0);
+                  const revenue = Number(skill.account.totalRevenue ?? 0);
+                  return (
+                    <Link
+                      key={skill.publicKey}
+                      href={`/skills/chain-${skill.publicKey}`}
+                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 flex flex-col hover:border-blue-400 dark:hover:border-blue-500 transition group"
+                    >
+                      <h4 className="font-heading font-bold text-gray-900 dark:text-white text-sm mb-1 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                        {skill.account.name || 'Untitled Skill'}
+                      </h4>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 line-clamp-2">
+                        {skill.account.description || 'No description'}
+                      </p>
+                      <div className="mt-auto flex items-center justify-between text-xs">
+                        <span className="font-semibold text-gray-900 dark:text-white">{(price / 1e9).toFixed(2)} SOL</span>
+                        <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
+                          <span className="flex items-center gap-1"><FiDownload className="w-3 h-3" />{downloads}</span>
+                          <span className="flex items-center gap-1"><FiTrendingUp className="w-3 h-3" />{(revenue / 1e9).toFixed(2)}</span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    </Link>
+                  );
+                })}
+              </div>
+              <div className="flex justify-center mt-3">
+                <Link
+                  href="/skills"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:gap-2.5 transition-all"
+                >
+                  See all skills <FiArrowRight />
+                </Link>
+              </div>
+            </>
           )}
         </div>
       </section>

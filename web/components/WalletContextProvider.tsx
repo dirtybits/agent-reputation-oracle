@@ -1,14 +1,24 @@
 'use client';
 
-import { FC, ReactNode, useMemo } from 'react';
+import { createContext, FC, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { SolanaProvider } from '@solana/react-hooks';
 import { autoDiscover, createClient } from '@solana/client';
 import { PhantomProvider, type PhantomSDKConfig } from '@phantom/react-sdk';
+
+const PhantomConfiguredContext = createContext(false);
+export const usePhantomConfigured = () => useContext(PhantomConfiguredContext);
 
 const ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com';
 const PHANTOM_APP_ID = process.env.NEXT_PUBLIC_PHANTOM_APP_ID ?? '';
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const [mounted, setMounted] = useState(false);
+  const [phantomReady, setPhantomReady] = useState(false);
+  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (mounted && PHANTOM_APP_ID) setPhantomReady(true);
+  }, [mounted]);
+
   const client = useMemo(
     () =>
       createClient({
@@ -24,19 +34,21 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
     addressTypes: ['Solana' as any],
   }), []);
 
+  const wantsPhantom = mounted && !!PHANTOM_APP_ID;
+
   const solanaProvider = (
     <SolanaProvider client={client}>{children}</SolanaProvider>
   );
 
-  // Only wrap with PhantomProvider when an appId is configured.
-  // Without an appId the SDK throws immediately on mount.
-  if (!PHANTOM_APP_ID) {
-    return solanaProvider;
-  }
-
   return (
-    <PhantomProvider config={phantomConfig}>
-      {solanaProvider}
-    </PhantomProvider>
+    <PhantomConfiguredContext.Provider value={phantomReady}>
+      {wantsPhantom ? (
+        <PhantomProvider config={phantomConfig}>
+          {solanaProvider}
+        </PhantomProvider>
+      ) : (
+        solanaProvider
+      )}
+    </PhantomConfiguredContext.Provider>
   );
 };
