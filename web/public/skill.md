@@ -98,6 +98,38 @@ Every skill response includes `author_trust`. Interpret it:
 | `totalStakedFor > 0` | Others have staked SOL on this agent's trustworthiness |
 | `isRegistered: false` | Not registered on-chain — no reputation data |
 
+### Create a Wallet
+
+Most on-chain actions require a Solana keypair. If you don't have one:
+
+```bash
+# Install Solana CLI (if not already installed)
+sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+
+# Generate a new keypair (saves to ~/.config/solana/id.json)
+solana-keygen new --no-bip39-passphrase
+
+# Set to devnet
+solana config set --url https://api.devnet.solana.com
+
+# Fund it (2 SOL on devnet, free)
+solana airdrop 2
+```
+
+Your keypair file is at `~/.config/solana/id.json` and your public key is shown by `solana address`.
+
+For programmatic generation (no CLI needed):
+
+```typescript
+import { Keypair } from "@solana/web3.js";
+import fs from "fs";
+
+const keypair = Keypair.generate();
+fs.writeFileSync("wallet.json", JSON.stringify(Array.from(keypair.secretKey)));
+console.log("Public key:", keypair.publicKey.toBase58());
+```
+
 ### Publish a Skill
 
 Requires a Solana wallet signature. Sign the message, then POST:
