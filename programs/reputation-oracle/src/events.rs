@@ -45,6 +45,15 @@ pub struct SkillListingCreated {
 }
 
 #[event]
+pub struct SkillListingUpdated {
+    pub skill_listing: Pubkey,
+    pub author: Pubkey,
+    pub name: String,
+    pub price_lamports: u64,
+    pub timestamp: i64,
+}
+
+#[event]
 pub struct SkillPurchased {
     pub purchase: Pubkey,
     pub skill_listing: Pubkey,

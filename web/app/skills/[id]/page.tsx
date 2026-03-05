@@ -23,6 +23,7 @@ import {
   FiFileText,
   FiGitCommit,
   FiDollarSign,
+  FiEdit2,
 } from 'react-icons/fi';
 
 interface SkillVersion {
@@ -88,11 +89,19 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const [listPrice, setListPrice] = useState('0.1');
+  const [listPrice, setListPrice] = useState('0.01');
   const [listing, setListing] = useState(false);
   const [listResult, setListResult] = useState<{ success: boolean; message: string } | null>(null);
   const [installing, setInstalling] = useState(false);
   const [installResult, setInstallResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editUri, setEditUri] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const [updateResult, setUpdateResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     async function fetchSkill() {
@@ -125,6 +134,11 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     setListResult(null);
     try {
       const priceLamports = Math.round(parseFloat(listPrice || '0') * 1_000_000_000);
+      if (priceLamports <= 0) {
+        setListResult({ success: false, message: 'Price must be greater than 0. Minimum is 0.01 SOL.' });
+        setListing(false);
+        return;
+      }
       const skillUri = `${window.location.origin}/api/skills/${id}/raw`;
       await oracle.createSkillListing(skill.skill_id, skillUri, skill.name, skill.description ?? '', priceLamports);
       const onChainAddress = await oracle.getSkillListingPDA(walletAddress as Address, skill.skill_id);
@@ -182,6 +196,44 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
       setInstallResult({ success: false, message: err.message || 'Install failed' });
     } finally {
       setInstalling(false);
+    }
+  };
+
+  const startEditing = () => {
+    if (!skill) return;
+    setEditName(skill.name);
+    setEditDescription(skill.description ?? '');
+    setEditPrice(skill.price_lamports ? (skill.price_lamports / 1_000_000_000).toString() : '0.01');
+    setEditUri(skill.skill_uri ?? '');
+    setUpdateResult(null);
+    setEditing(true);
+  };
+
+  const handleUpdateListing = async () => {
+    if (!connected || !walletAddress || !skill) return;
+    setUpdating(true);
+    setUpdateResult(null);
+    try {
+      const priceLamports = Math.round(parseFloat(editPrice || '0') * 1_000_000_000);
+      if (priceLamports <= 0) {
+        setUpdateResult({ success: false, message: 'Price must be greater than 0. Minimum is 0.01 SOL.' });
+        setUpdating(false);
+        return;
+      }
+      await oracle.updateSkillListing(skill.skill_id, editUri, editName, editDescription, priceLamports);
+      setSkill((s) => s ? {
+        ...s,
+        name: editName,
+        description: editDescription,
+        price_lamports: priceLamports,
+        skill_uri: editUri,
+      } : s);
+      setUpdateResult({ success: true, message: 'Listing updated on-chain!' });
+      setEditing(false);
+    } catch (err: any) {
+      setUpdateResult({ success: false, message: err.message || 'Failed to update listing' });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -322,7 +374,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         )}
 
         {/* Install / Buy action */}
-        {!isChainOnly && (skill.price_lamports == null || skill.price_lamports === 0) && (
+        {(skill.price_lamports == null || skill.price_lamports === 0) && (
           <div className="rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/10 p-4 mb-6">
             <div className="flex items-center justify-between">
               <div>
@@ -480,10 +532,97 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         {/* On-chain listing section */}
         {skill.on_chain_address ? (
           <div className="rounded-xl border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-4 mb-6">
-            <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
-              <FiCheckCircle className="w-4 h-4" />
-              Listed on-chain
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+                <FiCheckCircle className="w-4 h-4" />
+                Listed on-chain
+              </div>
+              {connected && walletAddress === skill.author_pubkey && !editing && (
+                <button
+                  onClick={startEditing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                >
+                  <FiEdit2 className="w-3.5 h-3.5" />
+                  Edit Listing
+                </button>
+              )}
             </div>
+            {updateResult && !editing && (
+              <p className={`text-xs mt-2 ${updateResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {updateResult.message}
+              </p>
+            )}
+            {editing && (
+              <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800/50 space-y-3">
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    maxLength={64}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Description</label>
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    maxLength={256}
+                    rows={2}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Price (SOL)</label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Skill URI</label>
+                    <input
+                      type="text"
+                      value={editUri}
+                      onChange={(e) => setEditUri(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                {updateResult && (
+                  <p className={`text-xs ${updateResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {updateResult.message}
+                  </p>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleUpdateListing}
+                    disabled={updating}
+                    className="flex items-center gap-2 px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+                  >
+                    {updating ? (
+                      <><FiLoader className="w-4 h-4 animate-spin" />Updating…</>
+                    ) : (
+                      <>Save Changes</>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    disabled={updating}
+                    className="px-4 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : connected && walletAddress === skill.author_pubkey && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6">
@@ -508,7 +647,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Price (SOL)</label>
                 <input
                   type="number"
-                  min="0"
+                  min="0.01"
                   step="0.01"
                   value={listPrice}
                   onChange={(e) => setListPrice(e.target.value)}
@@ -528,7 +667,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               </button>
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-              Set price to 0 for a free on-chain listing. Requires one Solana transaction.
+              Minimum price is 0.01 SOL. Requires one Solana transaction.
             </p>
           </div>
         )}

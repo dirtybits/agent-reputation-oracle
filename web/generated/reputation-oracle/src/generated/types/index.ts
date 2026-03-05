@@ -12,6 +12,7 @@ export * from "./disputeRuling";
 export * from "./disputeStatus";
 export * from "./revenueClaimed";
 export * from "./skillListingCreated";
+export * from "./skillListingUpdated";
 export * from "./skillPurchased";
 export * from "./skillStatus";
 export * from "./vouchCreated";

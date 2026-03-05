@@ -14,4 +14,5 @@ export * from "./purchaseSkill";
 export * from "./registerAgent";
 export * from "./resolveDispute";
 export * from "./revokeVouch";
+export * from "./updateSkillListing";
 export * from "./vouch";

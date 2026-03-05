@@ -432,10 +432,14 @@ export default function MarketplacePage() {
                                 {skill.name}
                               </Link>
                               <div className="flex items-center gap-2 shrink-0">
-                                {price > 0 && (
+                                {price > 0 ? (
                                   <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
                                     <FiDollarSign className="w-3 h-3" />
                                     {formatSol(price)} SOL
+                                  </span>
+                                ) : listing && (
+                                  <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold">
+                                    Free
                                   </span>
                                 )}
                                 {skill.source !== 'chain' && (
@@ -502,13 +506,20 @@ export default function MarketplacePage() {
                             </a>
                           )}
 
-                          {/* Purchase button for priced skills */}
-                          {listing && price > 0 && (
+                          {/* Purchase / View action for on-chain skills */}
+                          {listing && (
                             <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
                               {isOwn ? (
                                 <div className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-lg font-medium text-center text-xs border border-gray-200 dark:border-gray-700">
                                   Your Skill
                                 </div>
+                              ) : price === 0 ? (
+                                <Link
+                                  href={`/skills/${skill.id}`}
+                                  className="w-full px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg font-medium text-center text-xs border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition flex items-center justify-center gap-1"
+                                >
+                                  <FiDownload className="w-3 h-3" /> Free — View & Install
+                                </Link>
                               ) : hasPurchased ? (
                                 <div className="w-full px-3 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg font-medium text-center text-xs border border-green-200 dark:border-green-800">
                                   <span className="inline-flex items-center gap-1"><FiCheckCircle className="w-3 h-3" /> Purchased</span>

@@ -199,6 +199,94 @@
       ]
     },
     {
+      "name": "update_skill_listing",
+      "discriminator": [
+        192,
+        205,
+        6,
+        209,
+        45,
+        93,
+        143,
+        10
+      ],
+      "accounts": [
+        {
+          "name": "skill_listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  107,
+                  105,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              },
+              {
+                "kind": "arg",
+                "path": "skill_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "skill_id",
+          "type": "string"
+        },
+        {
+          "name": "skill_uri",
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "price_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "initialize_config",
       "discriminator": [
         208,
@@ -968,6 +1056,19 @@
       ]
     },
     {
+      "name": "SkillListingUpdated",
+      "discriminator": [
+        15,
+        130,
+        53,
+        156,
+        202,
+        204,
+        118,
+        7
+      ]
+    },
+    {
       "name": "SkillPurchased",
       "discriminator": [
         90,
@@ -1366,6 +1467,34 @@
     },
     {
       "name": "SkillListingCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "price_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SkillListingUpdated",
       "type": {
         "kind": "struct",
         "fields": [

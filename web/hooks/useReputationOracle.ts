@@ -24,6 +24,7 @@ import {
   getRevokeVouchInstructionAsync,
   getOpenDisputeInstructionAsync,
   getCreateSkillListingInstructionAsync,
+  getUpdateSkillListingInstructionAsync,
   getPurchaseSkillInstructionAsync,
   getSkillListingDecoder,
   getVouchDecoder,
@@ -323,6 +324,25 @@ export function useReputationOracle() {
     return { tx: await sendIx(ix) };
   }, [signer, walletAddress, sendIx]);
 
+  const updateSkillListing = useCallback(async (
+    skillId: string,
+    skillUri: string,
+    name: string,
+    description: string,
+    priceLamports: number,
+  ) => {
+    if (!signer || !walletAddress) throw new Error('Wallet not connected');
+    const ix = await getUpdateSkillListingInstructionAsync({
+      author: signer,
+      skillId,
+      skillUri,
+      name,
+      description,
+      priceLamports: BigInt(priceLamports),
+    });
+    return { tx: await sendIx(ix) };
+  }, [signer, walletAddress, sendIx]);
+
   const purchaseSkill = useCallback(async (skillListingKey: Address, authorKey: Address) => {
     if (!signer || !walletAddress) throw new Error('Wallet not connected');
     const authorProfile = await getAgentPDA(authorKey);
@@ -351,6 +371,7 @@ export function useReputationOracle() {
     getAllPurchases,
     getPurchasesByBuyer,
     createSkillListing,
+    updateSkillListing,
     purchaseSkill,
     getAgentPDA,
     getVouchPDA,
