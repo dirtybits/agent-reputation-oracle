@@ -91,6 +91,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const [listPrice, setListPrice] = useState('0.1');
   const [listing, setListing] = useState(false);
   const [listResult, setListResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [installing, setInstalling] = useState(false);
+  const [installResult, setInstallResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     async function fetchSkill() {
@@ -148,6 +150,38 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
       setListResult({ success: false, message: err.message || 'Failed to create listing' });
     } finally {
       setListing(false);
+    }
+  };
+
+  const handleFreeInstall = async () => {
+    if (!connected || !walletAddress || !signMessage || !skill) return;
+    setInstalling(true);
+    setInstallResult(null);
+    try {
+      const timestamp = Date.now();
+      const message = `AgentVouch Skill Repo\nAction: install-skill\nTimestamp: ${timestamp}`;
+      const msgBytes = new TextEncoder().encode(message);
+      const sigBytes = await signMessage(msgBytes);
+      const signature = Buffer.from(sigBytes).toString('base64');
+
+      const res = await fetch(`/api/skills/${id}/install`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auth: { pubkey: walletAddress, signature, message, timestamp },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInstallResult({ success: false, message: data.error || 'Install failed' });
+        return;
+      }
+      setInstallResult({ success: true, message: 'Skill installed successfully!' });
+      setSkill((s) => s ? { ...s, total_installs: data.total_installs } : s);
+    } catch (err: any) {
+      setInstallResult({ success: false, message: err.message || 'Install failed' });
+    } finally {
+      setInstalling(false);
     }
   };
 
@@ -287,6 +321,42 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
+        {/* Install / Buy action */}
+        {!isChainOnly && (skill.price_lamports == null || skill.price_lamports === 0) && (
+          <div className="rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/10 p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Free Skill</div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Install with a wallet signature — no transaction fee.
+                </p>
+              </div>
+              {connected ? (
+                <button
+                  onClick={handleFreeInstall}
+                  disabled={installing}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+                >
+                  {installing ? (
+                    <><FiLoader className="w-4 h-4 animate-spin" />Installing…</>
+                  ) : (
+                    <><FiDownload className="w-4 h-4" />Install</>
+                  )}
+                </button>
+              ) : (
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  Connect wallet to install
+                </span>
+              )}
+            </div>
+            {installResult && (
+              <p className={`text-xs mt-2 ${installResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {installResult.message}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Install Command */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
           <div className="flex items-center justify-between mb-2">
@@ -304,6 +374,36 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
             <code>{installCommand}</code>
           </pre>
+        </div>
+
+        {/* Agent API Access */}
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Agent API (x402)
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Agents can fetch this skill programmatically. Free skills return content directly. Paid skills return <code className="text-amber-600 dark:text-amber-400">402</code> with payment requirements.
+          </p>
+          <div className="flex items-center gap-2">
+            <pre className="flex-1 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
+              <code>{`GET /api/skills/${skill.id}/raw`}</code>
+            </pre>
+            <button
+              onClick={() => copyToClipboard(`${typeof window !== 'undefined' ? window.location.origin : ''}/api/skills/${skill.id}/raw`, 'api')}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-900 dark:hover:text-white transition shrink-0"
+            >
+              {copied === 'api' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+              {copied === 'api' ? 'Copied!' : 'Copy URL'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            Auth: <code className="text-gray-500 dark:text-gray-400">Authorization: Bearer sk_...</code> or wallet signature.{' '}
+            <Link href="/settings" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Get API key →
+            </Link>
+          </p>
         </div>
 
         {/* IPFS CID */}

@@ -105,7 +105,9 @@ export default function AuthorProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [pubkey, oracle]);
+    // oracle is intentionally omitted — it changes reference every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pubkey]);
 
   useEffect(() => {
     loadData();
@@ -115,7 +117,9 @@ export default function AuthorProfilePage() {
     if (connected && myPubkey && !isOwnProfile) {
       oracle.getAgentProfile(address(myPubkey)).then(setMyProfile).catch(() => null);
     }
-  }, [connected, myPubkey, isOwnProfile, oracle]);
+    // oracle is intentionally omitted — it changes reference every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, myPubkey, isOwnProfile]);
 
   const copyPubkey = () => {
     navigator.clipboard.writeText(pubkey);

@@ -97,10 +97,10 @@ export default function Home() {
 
           <div className="flex flex-wrap gap-3 mb-10">
             <Link
-              href="/dashboard"
+              href="/skills"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-semibold text-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition"
             >
-              Explore App <FiArrowRight />
+              Browse Skills <FiArrowRight />
             </Link>
             <Link
               href="/docs"

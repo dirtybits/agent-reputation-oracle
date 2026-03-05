@@ -10,7 +10,6 @@ import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import {
   FiUpload,
-  FiFileText,
   FiEye,
   FiEdit3,
   FiTag,
@@ -19,8 +18,8 @@ import {
   FiXCircle,
   FiX,
   FiShield,
-  FiAlertTriangle,
   FiDollarSign,
+  FiArrowRight,
 } from 'react-icons/fi';
 import type { Address } from '@solana/kit';
 
@@ -63,6 +62,70 @@ function slugify(text: string): string {
     .slice(0, 64);
 }
 
+function ProfileSetupStep({
+  registering,
+  onRegister,
+  error,
+}: {
+  registering: boolean;
+  onRegister: () => void;
+  error: string | null;
+}) {
+  return (
+    <div className="max-w-md mx-auto mt-8">
+      {/* Step indicator */}
+      <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 mb-8">
+        <span className="flex items-center gap-1.5 font-semibold text-gray-900 dark:text-white">
+          <span className="w-5 h-5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center text-xs font-bold">1</span>
+          Create profile
+        </span>
+        <FiArrowRight className="w-3.5 h-3.5" />
+        <span className="flex items-center gap-1.5 opacity-50">
+          <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs">2</span>
+          Publish skill
+        </span>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8">
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 mb-5">
+          <FiShield className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          Create your author profile
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          Before publishing, set up your on-chain author profile. This links your skills to the reputation system so others can vouch for your work.
+        </p>
+
+        {error && (
+          <p className="text-xs text-red-600 dark:text-red-400 mb-4">{error}</p>
+        )}
+
+        <button
+          onClick={onRegister}
+          disabled={registering}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+        >
+          {registering ? (
+            <>
+              <FiLoader className="w-4 h-4 animate-spin" />
+              Creating profile…
+            </>
+          ) : (
+            <>
+              <FiShield className="w-4 h-4" />
+              Create Profile
+            </>
+          )}
+        </button>
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-3">
+          One-time on-chain transaction (~0.003 SOL rent)
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function PublishSkillPage() {
   const { wallet, status } = useWalletConnection();
   const connected = status === 'connected' && !!wallet;
@@ -87,6 +150,8 @@ export default function PublishSkillPage() {
   const [agentProfile, setAgentProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [showProfileGate, setShowProfileGate] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,11 +170,12 @@ export default function PublishSkillPage() {
   const handleRegister = async () => {
     if (!connected || !publicKey) return;
     setRegistering(true);
-    setResult(null);
+    setRegisterError(null);
     try {
       await oracle.registerAgent('');
       const profile = await oracle.getAgentProfile(publicKey);
       setAgentProfile(profile);
+      setShowProfileGate(false);
     } catch (err: any) {
       const cause = err?.cause?.message ?? err?.context?.message ?? '';
       const msg = cause || err.message || String(err);
@@ -119,10 +185,11 @@ export default function PublishSkillPage() {
         const profile = await oracle.getAgentProfile(publicKey).catch(() => null);
         if (profile) {
           setAgentProfile(profile);
+          setShowProfileGate(false);
           return;
         }
       }
-      setResult({ success: false, message: `Registration failed: ${msg}` });
+      setRegisterError(`Profile creation failed: ${msg}`);
     } finally {
       setRegistering(false);
     }
@@ -179,13 +246,18 @@ export default function PublishSkillPage() {
   };
 
   const handlePublish = async () => {
-    if (!connected || !publicKey || !signMessage) {
-      setResult({ success: false, message: 'Please connect your wallet' });
+    if (!skillId || !name || !content) {
+      setResult({ success: false, message: 'Skill ID, name, and content are required' });
       return;
     }
 
-    if (!skillId || !name || !content) {
-      setResult({ success: false, message: 'Skill ID, name, and content are required' });
+    if (!connected || !publicKey || !signMessage) {
+      setResult({ success: false, message: 'Connect your wallet to publish. Use the button in the top right.' });
+      return;
+    }
+
+    if (!agentProfile && !profileLoading) {
+      setShowProfileGate(true);
       return;
     }
 
@@ -292,9 +364,16 @@ export default function PublishSkillPage() {
               Upload a SKILL.md file. It will be pinned to IPFS and stored in the repository.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <ClientWalletButton />
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <ClientWalletButton />
+            </div>
+            {!connected && (
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Fill in your skill — you&apos;ll connect a wallet to publish.
+              </p>
+            )}
           </div>
         </div>
 
@@ -329,42 +408,27 @@ export default function PublishSkillPage() {
           </div>
         )}
 
-        {/* Registration gate */}
-        {connected && !profileLoading && !agentProfile && (
-          <div className="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-5">
-            <div className="flex items-start gap-3">
-              <FiAlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">
-                  On-chain registration required
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Publishing requires a registered AgentProfile on Solana. This connects your skills to the trust system so others can vouch for you.
-                </p>
-                <button
-                  onClick={handleRegister}
-                  disabled={registering}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
-                >
-                  {registering ? (
-                    <>
-                      <FiLoader className="w-4 h-4 animate-spin" />
-                      Registering...
-                    </>
-                  ) : (
-                    <>
-                      <FiShield className="w-4 h-4" />
-                      Register Now
-                    </>
-                  )}
-                </button>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                  One-time on-chain transaction (~0.003 SOL rent).
-                </p>
-              </div>
+        {/* Profile setup modal — shown inline when user tries to publish without a profile */}
+        {showProfileGate && connected && !profileLoading && !agentProfile && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileGate(false)}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 z-10"
+              >
+                <FiX className="w-4 h-4" />
+              </button>
+              <ProfileSetupStep
+                registering={registering}
+                onRegister={handleRegister}
+                error={registerError}
+              />
             </div>
           </div>
         )}
+
+        {/* Publish form — always visible so users can fill it before connecting */}
+        <>
 
         {/* Drop zone */}
         <div
@@ -586,11 +650,11 @@ export default function PublishSkillPage() {
 
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Requires a wallet signature + one Solana transaction
+            {connected ? 'Requires a wallet signature + one Solana transaction' : 'You\'ll be asked to connect your wallet when you publish'}
           </p>
           <button
             onClick={handlePublish}
-            disabled={publishing || !connected || !content || !name || !skillId || !agentProfile}
+            disabled={publishing || !content || !name || !skillId}
             className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {publishing ? (
@@ -606,6 +670,8 @@ export default function PublishSkillPage() {
             )}
           </button>
         </div>
+
+          </>
       </div>
     </main>
   );

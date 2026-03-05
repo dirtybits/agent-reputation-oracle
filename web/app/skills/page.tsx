@@ -423,11 +423,14 @@ export default function MarketplacePage() {
                           key={skill.id}
                           className="group rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition flex flex-col"
                         >
-                          <Link href={`/skills/${skill.id}`} className="flex-1">
+                          <div className="flex-1">
                             <div className="flex items-start justify-between mb-3">
-                              <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                              <Link
+                                href={`/skills/${skill.id}`}
+                                className="text-base font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition hover:underline"
+                              >
                                 {skill.name}
-                              </h3>
+                              </Link>
                               <div className="flex items-center gap-2 shrink-0">
                                 {price > 0 && (
                                   <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
@@ -484,7 +487,7 @@ export default function MarketplacePage() {
                                 </span>
                               </div>
                             )}
-                          </Link>
+                          </div>
 
                           {skill.skill_uri && (
                             <a

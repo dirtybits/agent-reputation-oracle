@@ -60,4 +60,26 @@ export async function initializeDatabase() {
   await db`
     CREATE INDEX IF NOT EXISTS idx_skills_tags ON skills USING GIN(tags)
   `;
+
+  await db`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_pubkey VARCHAR(44) NOT NULL,
+      key_hash VARCHAR(128) NOT NULL,
+      key_prefix VARCHAR(12) NOT NULL,
+      name VARCHAR(64) NOT NULL DEFAULT 'default',
+      permissions TEXT[] DEFAULT '{skills:read,skills:install}',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      last_used_at TIMESTAMPTZ,
+      revoked_at TIMESTAMPTZ
+    )
+  `;
+
+  await db`
+    CREATE INDEX IF NOT EXISTS idx_api_keys_owner ON api_keys(owner_pubkey)
+  `;
+
+  await db`
+    CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys(key_prefix)
+  `;
 }

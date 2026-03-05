@@ -47,3 +47,6 @@ next-env.d.ts
 # tooling
 .vercel
 # .cursor plans and skills are useful, so let's keep it in the repo
+
+# claude code — worktrees are ephemeral, never commit them
+.claude/worktrees/
