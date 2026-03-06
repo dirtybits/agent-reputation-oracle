@@ -63,53 +63,60 @@ pub fn handler(
     
     match ruling {
         DisputeRuling::SlashVoucher => {
-            // Slash the voucher
-            let _slash_amount = vouch.stake_amount
+            let slash_amount = vouch.stake_amount
                 .saturating_mul(config.slash_percentage as u64)
                 .saturating_div(100);
-            
+
             vouch.status = VouchStatus::Slashed;
-            
+
             // Update voucher profile
             let voucher_profile = &mut ctx.accounts.voucher_profile;
             voucher_profile.disputes_lost = voucher_profile.disputes_lost.saturating_add(1);
             voucher_profile.total_vouches_given = voucher_profile.total_vouches_given.saturating_sub(1);
-            
+
             // Update vouchee profile
             let vouchee_profile = &mut ctx.accounts.vouchee_profile;
             vouchee_profile.total_vouches_received = vouchee_profile.total_vouches_received.saturating_sub(1);
             vouchee_profile.total_staked_for = vouchee_profile.total_staked_for.saturating_sub(vouch.stake_amount);
-            
+
             // Recompute reputation
             vouchee_profile.reputation_score = vouchee_profile.compute_reputation(config);
-            
-            // Return dispute bond to challenger
+
+            // Transfer bond + slashed stake to challenger
             let bond = config.dispute_bond;
+            let total_payout = bond.checked_add(slash_amount).ok_or(ErrorCode::InsufficientFunds)?;
+
+            // Return bond from dispute PDA
             **dispute.to_account_info().try_borrow_mut_lamports()? = dispute
                 .to_account_info()
                 .lamports()
                 .checked_sub(bond)
                 .ok_or(ErrorCode::InsufficientFunds)?;
+
+            // Transfer slashed stake from vouch PDA
+            **ctx.accounts.vouch.to_account_info().try_borrow_mut_lamports()? = ctx
+                .accounts
+                .vouch
+                .to_account_info()
+                .lamports()
+                .checked_sub(slash_amount)
+                .ok_or(ErrorCode::InsufficientFunds)?;
+
+            // Credit challenger with bond + slashed stake
             **ctx.accounts.challenger.try_borrow_mut_lamports()? = ctx
                 .accounts
                 .challenger
                 .lamports()
-                .checked_add(bond)
+                .checked_add(total_payout)
                 .ok_or(ErrorCode::InsufficientFunds)?;
-            
-            // Note: Slashed stake remains in vouch PDA (can be distributed later)
         }
-        
+
         DisputeRuling::Vindicate => {
-            // Vouch was valid
+            // Vouch was valid — voucher wins, challenger forfeits bond (stays in dispute PDA)
             vouch.status = VouchStatus::Vindicated;
-            
-            // Update voucher profile (they won)
+
             let voucher_profile = &mut ctx.accounts.voucher_profile;
             voucher_profile.disputes_won = voucher_profile.disputes_won.saturating_add(1);
-            
-            // Challenger loses bond (kept in dispute PDA or distributed to treasury)
-            // For MVP, just keep it in dispute PDA
         }
     }
 
