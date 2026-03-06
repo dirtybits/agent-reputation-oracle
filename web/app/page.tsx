@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import TypewriterText from '@/components/TypewriterText';
 import Link from 'next/link';
@@ -28,7 +27,6 @@ import { GiCrab } from 'react-icons/gi';
 type ToggleMode = 'none' | 'human' | 'agent';
 
 export default function Home() {
-  const oracle = useReputationOracle();
   const [toggle, setToggle] = useState<ToggleMode>('none');
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -45,34 +43,22 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       try {
-        const [agents, skills, repoRes] = await Promise.all([
-          oracle.getAllAgents(),
-          oracle.getAllSkillListings(),
+        const [landingRes, repoRes] = await Promise.all([
+          fetch('/api/landing').then(r => r.ok ? r.json() : null).catch(() => null),
           fetch('/api/skills?page=1').then(r => r.ok ? r.json() : null).catch(() => null),
         ]);
-        const authorSet = new Set(skills.map((s: any) => s.account.author));
-        const totalRevenue = skills.reduce((sum: number, s: any) => sum + Number(s.account.totalRevenue ?? 0), 0);
-        const totalStaked = agents.reduce((sum: number, a: any) => sum + Number(a.account.totalStakedFor ?? 0), 0);
-        const onChainDownloads = skills.reduce((sum: number, s: any) => sum + Number(s.account.totalDownloads ?? 0), 0);
-        const repoInstalls = repoRes?.skills?.reduce((sum: number, s: any) => sum + (s.total_installs ?? 0), 0) ?? 0;
-        setLandingMetrics({
-          agents: agents.length,
-          authors: authorSet.size,
-          skills: skills.length,
-          revenue: totalRevenue,
-          staked: totalStaked,
-          downloads: onChainDownloads + repoInstalls,
-        });
-        const topSkills = [...skills]
-          .filter((s: any) => s.account.status?.active !== undefined || s.account.status?.Active !== undefined || !s.account.status)
-          .sort((a: any, b: any) => Number(b.account.totalDownloads ?? 0) - Number(a.account.totalDownloads ?? 0))
-          .slice(0, 3);
-        setFeaturedSkills(topSkills);
+        if (landingRes) {
+          const repoInstalls = repoRes?.skills?.reduce((sum: number, s: any) => sum + (s.total_installs ?? 0), 0) ?? 0;
+          setLandingMetrics({
+            ...landingRes.metrics,
+            downloads: landingRes.metrics.onChainDownloads + repoInstalls,
+          });
+          setFeaturedSkills(landingRes.featuredSkills ?? []);
+        }
       } catch (e) {
         console.error('Failed to load landing metrics:', e);
       }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleToggle = (mode: ToggleMode) => {
@@ -147,29 +133,6 @@ export default function Home() {
             >
               <FiExternalLink className="w-3.5 h-3.5" /> GitHub
             </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Network Metrics */}
-      <section className="px-6 pb-16">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { label: 'Agents', value: landingMetrics?.agents, format: (v: number) => v.toLocaleString() },
-              { label: 'Authors', value: landingMetrics?.authors, format: (v: number) => v.toLocaleString() },
-              { label: 'Skills Published', value: landingMetrics?.skills, format: (v: number) => v.toLocaleString() },
-              { label: 'Skills Downloaded', value: landingMetrics?.downloads, format: (v: number) => v.toLocaleString() },
-              { label: 'Revenue', value: landingMetrics?.revenue, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
-              { label: 'Total Staked', value: landingMetrics?.staked, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
-            ].map((m) => (
-              <div key={m.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center">
-                <div className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-1">
-                  {landingMetrics ? m.format(m.value!) : '—'}
-                </div>
-                <div className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">{m.label}</div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -367,6 +330,29 @@ export default function Home() {
               </div>
             </>
           )}
+        </div>
+      </section>
+
+      {/* Network Metrics */}
+      <section className="px-6 pb-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { label: 'Agents', value: landingMetrics?.agents, format: (v: number) => v.toLocaleString() },
+              { label: 'Authors', value: landingMetrics?.authors, format: (v: number) => v.toLocaleString() },
+              { label: 'Skills Published', value: landingMetrics?.skills, format: (v: number) => v.toLocaleString() },
+              { label: 'Skills Downloaded', value: landingMetrics?.downloads, format: (v: number) => v.toLocaleString() },
+              { label: 'Revenue', value: landingMetrics?.revenue, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
+              { label: 'Total Staked', value: landingMetrics?.staked, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
+            ].map((m) => (
+              <div key={m.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center">
+                <div className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-1">
+                  {landingMetrics ? m.format(m.value!) : '—'}
+                </div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">{m.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
