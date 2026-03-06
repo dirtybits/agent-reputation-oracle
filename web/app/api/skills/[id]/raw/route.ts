@@ -4,7 +4,6 @@ import { getOnChainPrice } from '@/lib/onchain';
 import {
   generatePaymentRequirement,
   verifyPaymentProof,
-  settlePayment,
   type PaymentProof,
 } from '@/lib/x402';
 
@@ -39,7 +38,6 @@ export async function GET(
             const proof: PaymentProof = JSON.parse(paymentProofHeader);
             const verification = await verifyPaymentProof(proof);
             if (verification.status === 'valid') {
-              await settlePayment(proof);
               await sql()`
                 UPDATE skills SET total_installs = total_installs + 1 WHERE id = ${id}::uuid
               `;
@@ -65,14 +63,14 @@ export async function GET(
         const requirement = generatePaymentRequirement({
           skillId: skill.skill_id,
           priceLamports: listing.price,
-          authorPubkey: listing.author,
+          skillListingAddress: skill.on_chain_address,
           resourcePath: `/api/skills/${id}/raw`,
         });
 
         return NextResponse.json(
           {
             error: 'Payment required',
-            message: `This skill costs ${(listing.price / 1e9).toFixed(4)} SOL. Submit payment proof in the X-Payment-Proof header.`,
+            message: `This skill costs ${(listing.price / 1e9).toFixed(4)} SOL. Call purchaseSkill on-chain, then retry with X-Payment-Proof.`,
             requirement,
           },
           {

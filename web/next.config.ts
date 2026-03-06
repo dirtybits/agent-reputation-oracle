@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
+import { resolve } from "path";
 
 const nextConfig: NextConfig = {
-  // Add unique build ID to force cache invalidation
+  turbopack: {
+    root: resolve(__dirname),
+  },
   generateBuildId: async () => {
     return `marketplace-${Date.now()}`;
   },

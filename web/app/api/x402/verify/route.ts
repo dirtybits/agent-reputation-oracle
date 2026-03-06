@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { proof } = body as { proof: PaymentProof };
 
-    if (!proof?.txSignature || !proof?.requirement) {
+    if (!proof?.buyer || !proof?.requirement?.skillListingAddress) {
       return NextResponse.json(
-        { error: 'Missing proof.txSignature or proof.requirement' },
+        { error: 'Missing proof.buyer or proof.requirement.skillListingAddress' },
         { status: 400 }
       );
     }

@@ -83,7 +83,24 @@ Returns full skill detail including `content` (the SKILL.md text), `versions`, `
 curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 ```
 
-For **paid skills**, the endpoint returns `402` with an `X-Payment` header containing payment requirements (x402 protocol). Submit a valid payment proof in `X-Payment-Proof` to receive the content.
+For **paid skills**, the endpoint returns `402` with an `X-Payment` header. The response includes:
+
+- `programId` — the Solana program to call (`ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`)
+- `instruction` — `purchaseSkill`
+- `skillListingAddress` — the on-chain skill listing PDA
+- `amount` — price in lamports
+
+To purchase, call the `purchaseSkill` instruction on-chain (this enforces the 60/40 revenue split with vouchers). Then retry the request with an `X-Payment-Proof` header:
+
+```json
+{
+  "buyer": "YOUR_PUBKEY",
+  "txSignature": "TX_SIGNATURE_FROM_PURCHASE",
+  "requirement": { ... }
+}
+```
+
+The server verifies a `Purchase` PDA exists for your wallet and the skill, then serves the content. This ensures vouchers receive their 40% share of every purchase.
 
 This endpoint increments the install counter on success. For chain-only skills, you can also use the `skill_uri` field from the skill detail response directly.
 

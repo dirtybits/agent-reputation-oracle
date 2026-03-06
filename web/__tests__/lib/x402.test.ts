@@ -1,4 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('@solana/kit', () => ({
+  createSolanaRpc: () => 'mock-rpc',
+  getProgramDerivedAddress: async () => ['MockPurchasePDA', 255],
+  getAddressEncoder: () => ({
+    encode: () => new Uint8Array(32),
+  }),
+  getUtf8Encoder: () => ({
+    encode: (s: string) => new TextEncoder().encode(s),
+  }),
+}));
+
+const mockFetchMaybePurchase = vi.fn();
+vi.mock('../../generated/reputation-oracle/src/generated', () => ({
+  fetchMaybePurchase: (...args: any[]) => mockFetchMaybePurchase(...args),
+}));
+
+vi.mock('../../generated/reputation-oracle/src/generated/programs', () => ({
+  REPUTATION_ORACLE_PROGRAM_ADDRESS: 'ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf',
+}));
+
 import {
   generatePaymentRequirement,
   hashResource,
@@ -9,13 +30,18 @@ import {
   type PaymentProof,
 } from '@/lib/x402';
 
+const FAKE_SKILL_LISTING = '11111111111111111111111111111111111111111111';
+const FAKE_BUYER = '22222222222222222222222222222222222222222222';
+
 function makeRequirement(overrides: Partial<PaymentRequirement> = {}): PaymentRequirement {
   return {
     scheme: 'exact',
     network: 'solana',
+    programId: 'ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf',
+    instruction: 'purchaseSkill',
+    skillListingAddress: FAKE_SKILL_LISTING,
     mint: 'So11111111111111111111111111111111111111112',
     amount: 100_000_000,
-    recipient: 'AuthorPubkey123456789012345678901234567890',
     resource: hashResource('/api/skills/abc/raw'),
     expiry: Math.floor(Date.now() / 1000) + 300,
     nonce: 'abcdef1234567890abcdef1234567890',
@@ -25,6 +51,7 @@ function makeRequirement(overrides: Partial<PaymentRequirement> = {}): PaymentRe
 
 function makeProof(overrides: Partial<PaymentProof> = {}): PaymentProof {
   return {
+    buyer: FAKE_BUYER,
     txSignature: 'a'.repeat(88),
     requirement: makeRequirement(),
     ...overrides,
@@ -36,15 +63,17 @@ describe('generatePaymentRequirement', () => {
     const req = generatePaymentRequirement({
       skillId: 'test-skill',
       priceLamports: 50_000_000,
-      authorPubkey: 'AuthorKey',
+      skillListingAddress: 'SkillAddr123',
       resourcePath: '/api/skills/123/raw',
     });
 
     expect(req.scheme).toBe('exact');
     expect(req.network).toBe('solana');
+    expect(req.programId).toBe('ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf');
+    expect(req.instruction).toBe('purchaseSkill');
+    expect(req.skillListingAddress).toBe('SkillAddr123');
     expect(req.mint).toBe('So11111111111111111111111111111111111111112');
     expect(req.amount).toBe(50_000_000);
-    expect(req.recipient).toBe('AuthorKey');
     expect(req.nonce).toHaveLength(32);
     expect(req.metadata?.skill_id).toBe('test-skill');
     expect(req.metadata?.display_price).toBe('0.0500 SOL');
@@ -55,7 +84,7 @@ describe('generatePaymentRequirement', () => {
     const req = generatePaymentRequirement({
       skillId: 'x',
       priceLamports: 1,
-      authorPubkey: 'x',
+      skillListingAddress: 'x',
       resourcePath: '/x',
     });
     const after = Math.floor(Date.now() / 1000);
@@ -65,10 +94,20 @@ describe('generatePaymentRequirement', () => {
   });
 
   it('generates unique nonces per call', () => {
-    const opts = { skillId: 'x', priceLamports: 1, authorPubkey: 'x', resourcePath: '/x' };
+    const opts = { skillId: 'x', priceLamports: 1, skillListingAddress: 'x', resourcePath: '/x' };
     const a = generatePaymentRequirement(opts);
     const b = generatePaymentRequirement(opts);
     expect(a.nonce).not.toBe(b.nonce);
+  });
+
+  it('does not include recipient field', () => {
+    const req = generatePaymentRequirement({
+      skillId: 'x',
+      priceLamports: 1,
+      skillListingAddress: 'x',
+      resourcePath: '/x',
+    });
+    expect((req as any).recipient).toBeUndefined();
   });
 });
 
@@ -94,9 +133,9 @@ describe('paymentRefFromProof', () => {
     expect(paymentRefFromProof(proof)).toBe(paymentRefFromProof(proof));
   });
 
-  it('differs when txSignature changes', () => {
-    const a = makeProof({ txSignature: 'a'.repeat(88) });
-    const b = makeProof({ txSignature: 'b'.repeat(88) });
+  it('differs when buyer changes', () => {
+    const a = makeProof({ buyer: 'a'.repeat(44) });
+    const b = makeProof({ buyer: 'b'.repeat(44) });
     expect(paymentRefFromProof(a)).not.toBe(paymentRefFromProof(b));
   });
 
@@ -107,11 +146,19 @@ describe('paymentRefFromProof', () => {
     const b = makeProof({ requirement: req2 });
     expect(paymentRefFromProof(a)).not.toBe(paymentRefFromProof(b));
   });
+
+  it('differs when skillListingAddress changes', () => {
+    const req1 = makeRequirement({ skillListingAddress: 'A'.repeat(44) });
+    const req2 = makeRequirement({ skillListingAddress: 'B'.repeat(44) });
+    const a = makeProof({ requirement: req1 });
+    const b = makeProof({ requirement: req2 });
+    expect(paymentRefFromProof(a)).not.toBe(paymentRefFromProof(b));
+  });
 });
 
 describe('verifyPaymentProof', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it('rejects unsupported scheme', async () => {
@@ -141,69 +188,71 @@ describe('verifyPaymentProof', () => {
     expect(result.error).toContain('expired');
   });
 
-  it('rejects short tx signature', async () => {
-    const proof = makeProof({ txSignature: 'tooshort' });
+  it('rejects missing buyer', async () => {
+    const proof = makeProof({ buyer: '' });
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe('invalid');
-    expect(result.error).toContain('signature');
+    expect(result.error).toContain('buyer');
   });
 
-  it('returns valid when RPC confirms tx', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ result: { meta: { err: null } } }),
-    }));
+  it('returns valid when Purchase PDA exists', async () => {
+    mockFetchMaybePurchase.mockResolvedValue({
+      exists: true,
+      data: { buyer: FAKE_BUYER, skillListing: FAKE_SKILL_LISTING, pricePaid: 100_000_000n },
+    });
 
     const proof = makeProof();
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe('valid');
   });
 
-  it('returns invalid when tx not found', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ result: null }),
-    }));
+  it('returns invalid when Purchase PDA does not exist', async () => {
+    mockFetchMaybePurchase.mockResolvedValue({ exists: false });
 
-    const proof = makeProof();
+    const proof = makeProof({ requirement: makeRequirement({ nonce: 'notfound_nonce_12345678901234' }) });
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe('invalid');
-    expect(result.error).toContain('not found');
+    expect(result.error).toContain('Purchase not found');
   });
 
-  it('returns invalid when tx has error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ result: { meta: { err: 'InstructionError' } } }),
-    }));
+  it('returns invalid when buyer mismatch', async () => {
+    mockFetchMaybePurchase.mockResolvedValue({
+      exists: true,
+      data: { buyer: 'WrongBuyer', skillListing: FAKE_SKILL_LISTING, pricePaid: 100_000_000n },
+    });
 
-    const proof = makeProof();
+    const proof = makeProof({ requirement: makeRequirement({ nonce: 'mismatch_nonce_1234567890123' }) });
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe('invalid');
+    expect(result.error).toContain('mismatch');
   });
 
-  it('returns pending when RPC fetch fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));
+  it('returns pending when RPC fails', async () => {
+    mockFetchMaybePurchase.mockRejectedValue(new Error('network timeout'));
 
-    const proof = makeProof();
+    const proof = makeProof({ requirement: makeRequirement({ nonce: 'rpcfail_nonce_12345678901234' }) });
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe('pending');
-    expect(result.error).toContain('network error');
+    expect(result.error).toContain('network timeout');
   });
 });
 
 describe('settlePayment', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it('returns failed for invalid proof', async () => {
-    const proof = makeProof({ txSignature: 'bad' });
+  it('returns failed when buyer is missing', async () => {
+    const proof = makeProof({ buyer: '' });
     const result = await settlePayment(proof);
     expect(result.status).toBe('failed');
   });
 
-  it('returns complete for valid proof', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ result: { meta: { err: null } } }),
-    }));
+  it('returns complete when Purchase PDA exists', async () => {
+    mockFetchMaybePurchase.mockResolvedValue({
+      exists: true,
+      data: { buyer: FAKE_BUYER, skillListing: FAKE_SKILL_LISTING, pricePaid: 100_000_000n },
+    });
 
     const proof = makeProof();
     const result = await settlePayment(proof);

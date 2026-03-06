@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/auth';
-import { settlePayment, type PaymentProof } from '@/lib/x402';
+import { verifyPaymentProof, type PaymentProof } from '@/lib/x402';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,17 +15,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { proof } = body as { proof: PaymentProof };
 
-    if (!proof?.txSignature || !proof?.requirement) {
+    if (!proof?.buyer || !proof?.requirement?.skillListingAddress) {
       return NextResponse.json(
-        { error: 'Missing proof.txSignature or proof.requirement' },
+        { error: 'Missing proof.buyer or proof.requirement.skillListingAddress' },
         { status: 400 }
       );
     }
 
-    const result = await settlePayment(proof);
+    const result = await verifyPaymentProof(proof);
     return NextResponse.json({
-      settlement_id: result.settlementId,
-      status: result.status,
+      settlement_id: result.paymentRef,
+      status: result.status === 'valid' ? 'complete' : result.status,
+      error: result.error,
     });
   } catch (error: any) {
     console.error('POST /api/x402/settle error:', error);
