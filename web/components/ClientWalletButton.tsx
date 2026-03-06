@@ -34,7 +34,8 @@ function WalletDropdown({
         onClick={() => setShowMenu(!showMenu)}
         className="px-5 py-2.5 rounded-lg font-semibold text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition"
       >
-        Connect Wallet
+        <span className="hidden sm:inline">Connect Wallet</span>
+        <span className="sm:hidden">Connect</span>
       </button>
       {showMenu && (
         <div className="absolute right-0 mt-2 w-72 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-50 py-1">

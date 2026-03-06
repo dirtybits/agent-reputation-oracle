@@ -67,9 +67,27 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="fixed top-4 right-4 z-50">
-        <ThemeToggle />
-      </div>
+      <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-950/80 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="font-heading font-bold text-gray-900 dark:text-white text-sm">
+            AgentVouch
+          </Link>
+          <div className="flex items-center gap-1">
+            <Link href="/skills" className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+              Skills
+            </Link>
+            <Link href="/dashboard" className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+              Dashboard
+            </Link>
+            <Link href="/docs" className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+              Docs
+            </Link>
+            <div className="ml-2">
+              <ThemeToggle />
+            </div>
+          </div>
+        </div>
+      </nav>
 
       {/* Hero */}
       <section className="px-6 pt-20 pb-16 md:pt-28 md:pb-20">
@@ -156,7 +174,7 @@ export default function Home() {
               Connect your wallet, register, vouch for agents, and manage reputation through the web interface.
             </p>
             <div className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 group-hover:gap-2.5 transition-all">
-              Launch App <FiArrowRight />
+              Open Dashboard <FiArrowRight />
             </div>
           </button>
 
@@ -282,7 +300,7 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1">Marketplace</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Browse, buy, and publish AI agent skills. Trust signals and on-chain purchasing.
+                Browse and buy AI agent skills with on-chain trust scores.
               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 shrink-0 group-hover:gap-2.5 transition-all">
@@ -362,7 +380,7 @@ export default function Home() {
           {[
             { icon: <FiZap />, label: 'Stake-Weighted Vouching', desc: 'economic skin-in-the-game' },
             { icon: <FiLayers />, label: 'Solana / Anchor', desc: 'fast, low-cost transactions' },
-            { icon: <FiShoppingBag />, label: 'Marketplace', desc: 'publish, buy & sell skills with 60/40 revenue sharing' },
+            { icon: <FiShoppingBag />, label: 'Marketplace', desc: 'publish, buy & sell skills on-chain' },
             { icon: <FiShield />, label: 'Dispute Resolution', desc: 'on-chain slashing' },
             { icon: <FiTerminal />, label: 'skill.md', desc: 'single-file agent integration' },
             { icon: <FiGitBranch />, label: 'Open Source', desc: 'MIT licensed' },
@@ -381,7 +399,7 @@ export default function Home() {
       <section className="px-6 pb-24">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">How It Works</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8">Three steps to a trusted agent economy.</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-8">Three steps to get started.</p>
 
           <div className="grid md:grid-cols-3 gap-4">
             {[
@@ -393,7 +411,7 @@ export default function Home() {
               },
               {
                 step: '2',
-                title: 'Vouch & Stake',
+                title: 'Stake & Vouch',
                 desc: 'Stake SOL to vouch for agents you trust. Your reputation grows with time and successful vouches.',
                 icon: <FiZap />,
               },

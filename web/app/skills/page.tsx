@@ -299,14 +299,15 @@ export default function MarketplacePage() {
               className="flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm font-semibold hover:border-yellow-300 dark:hover:border-yellow-700 transition"
             >
               <FiAward className="w-4 h-4" />
-              Competition
+              <span className="hidden sm:inline">Competition</span>
             </Link>
             <Link
               href="/skills/publish"
               className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
             >
               <FiPlus className="w-4 h-4" />
-              Publish Skill
+              <span className="hidden sm:inline">Publish Skill</span>
+              <span className="sm:hidden">Publish</span>
             </Link>
             <ThemeToggle />
             <ClientWalletButton />
