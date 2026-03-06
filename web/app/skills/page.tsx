@@ -29,6 +29,7 @@ import {
   FiTrendingUp,
   FiXCircle,
 } from 'react-icons/fi';
+import { getCompetitionPhase } from '@/lib/competition';
 
 type PageTab = 'browse' | 'my-purchases' | 'my-listings';
 
@@ -300,6 +301,9 @@ export default function MarketplacePage() {
             >
               <FiAward className="w-4 h-4" />
               <span className="hidden sm:inline">Competition</span>
+              <span className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40">
+                {getCompetitionPhase() === 'upcoming' ? 'Mar 9' : getCompetitionPhase() === 'active' ? 'Live' : 'Ended'}
+              </span>
             </Link>
             <Link
               href="/skills/publish"

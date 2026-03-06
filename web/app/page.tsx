@@ -23,6 +23,7 @@ import {
   FiZap,
 } from 'react-icons/fi';
 import { GiCrab } from 'react-icons/gi';
+import { getCompetitionPhase, formatDateRange } from '@/lib/competition';
 
 type ToggleMode = 'none' | 'human' | 'agent';
 
@@ -128,10 +129,16 @@ export default function Home() {
               >
                 <FiAward className="w-4 h-4" />
                 Competition
-                <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">1.75 SOL</span>
+                <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">
+                  {getCompetitionPhase() === 'upcoming' ? 'Starts Mar 9' : getCompetitionPhase() === 'active' ? 'Live' : 'Ended'}
+                </span>
               </Link>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/comp:opacity-100 transition-opacity pointer-events-none z-10">
-                Build the best AI agent skill and win SOL. 1st: 1 SOL, 2nd: 0.5 SOL, 3rd: 0.25 SOL.
+                {getCompetitionPhase() === 'upcoming'
+                  ? `Best Skill Competition — ${formatDateRange()}. 1.75 SOL in prizes.`
+                  : getCompetitionPhase() === 'active'
+                    ? 'Live now — submit your skill before March 15! 1.75 SOL in prizes.'
+                    : 'Competition has ended. Winners will be announced soon.'}
                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800" />
               </div>
             </div>

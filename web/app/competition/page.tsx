@@ -17,14 +17,17 @@ import {
   FiClock,
   FiCheckCircle,
 } from 'react-icons/fi';
-
-const COMPETITION_TAG = 'competition';
-
-const PRIZES = [
-  { place: '1st', amount: '1 SOL', color: 'text-yellow-500 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' },
-  { place: '2nd', amount: '0.5 SOL', color: 'text-gray-400 dark:text-gray-300', bg: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' },
-  { place: '3rd', amount: '0.25 SOL', color: 'text-amber-600 dark:text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' },
-];
+import {
+  COMPETITION_TAG,
+  COMPETITION_START,
+  COMPETITION_END,
+  PRIZES,
+  getCompetitionPhase,
+  getTimeRemaining,
+  formatDateRange,
+  type CompetitionPhase,
+  type TimeRemaining,
+} from '@/lib/competition';
 
 interface SkillRow {
   id: string;
@@ -56,9 +59,99 @@ function shortAddr(addr: string): string {
   return addr.slice(0, 4) + '...' + addr.slice(-4);
 }
 
+function CountdownUnit({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <span className="text-2xl md:text-3xl font-heading font-bold tabular-nums">
+        {String(value).padStart(2, '0')}
+      </span>
+      <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function StatusBanner({ phase, remaining }: { phase: CompetitionPhase; remaining: TimeRemaining }) {
+  if (phase === 'upcoming') {
+    return (
+      <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-6 md:p-8 mb-8 text-center">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <FiClock className="w-5 h-5 text-blue-500" />
+          <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">Competition starts in</span>
+        </div>
+        <div className="flex items-center justify-center gap-4 md:gap-6 text-blue-900 dark:text-blue-100">
+          <CountdownUnit value={remaining.days} label="days" />
+          <span className="text-2xl font-light text-blue-300 dark:text-blue-700">:</span>
+          <CountdownUnit value={remaining.hours} label="hrs" />
+          <span className="text-2xl font-light text-blue-300 dark:text-blue-700">:</span>
+          <CountdownUnit value={remaining.minutes} label="min" />
+          <span className="text-2xl font-light text-blue-300 dark:text-blue-700">:</span>
+          <CountdownUnit value={remaining.seconds} label="sec" />
+        </div>
+        <p className="text-xs text-blue-500 dark:text-blue-400 mt-4">
+          {formatDateRange()} &middot; 12:00 PM PST
+        </p>
+      </div>
+    );
+  }
+
+  if (phase === 'active') {
+    return (
+      <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6 md:p-8 mb-8 text-center">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+          </span>
+          <span className="text-sm font-semibold text-green-700 dark:text-green-400">LIVE — Submissions close in</span>
+        </div>
+        <div className="flex items-center justify-center gap-4 md:gap-6 text-green-900 dark:text-green-100">
+          <CountdownUnit value={remaining.days} label="days" />
+          <span className="text-2xl font-light text-green-300 dark:text-green-700">:</span>
+          <CountdownUnit value={remaining.hours} label="hrs" />
+          <span className="text-2xl font-light text-green-300 dark:text-green-700">:</span>
+          <CountdownUnit value={remaining.minutes} label="min" />
+          <span className="text-2xl font-light text-green-300 dark:text-green-700">:</span>
+          <CountdownUnit value={remaining.seconds} label="sec" />
+        </div>
+        <p className="text-xs text-green-500 dark:text-green-400 mt-4">
+          Ends Sunday March 15, 2026 at 11:59 PM PST
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 p-6 md:p-8 mb-8 text-center">
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <FiCheckCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Competition has ended</span>
+      </div>
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        Winners will be announced soon. Thanks to everyone who participated!
+      </p>
+    </div>
+  );
+}
+
 export default function CompetitionPage() {
   const [skills, setSkills] = useState<SkillRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [phase, setPhase] = useState<CompetitionPhase>(() => getCompetitionPhase());
+  const [remaining, setRemaining] = useState<TimeRemaining>(() =>
+    getTimeRemaining(phase === 'upcoming' ? COMPETITION_START : COMPETITION_END)
+  );
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const now = new Date();
+      const p = getCompetitionPhase(now);
+      setPhase(p);
+      setRemaining(getTimeRemaining(p === 'upcoming' ? COMPETITION_START : COMPETITION_END, now));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
 
   const fetchEntries = useCallback(async () => {
     setLoading(true);
@@ -90,7 +183,7 @@ export default function CompetitionPage() {
                 href="/"
                 className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition"
               >
-                ← Home
+                &larr; Home
               </Link>
               <span className="text-gray-300 dark:text-gray-700">/</span>
               <span className="text-sm font-medium text-gray-900 dark:text-white">Competition</span>
@@ -100,6 +193,7 @@ export default function CompetitionPage() {
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl">
               Build and publish the best AI agent skill on AgentVouch. Top 3 authors win SOL prizes paid on mainnet.
+              <span className="ml-1 font-medium">{formatDateRange()}</span>
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -107,6 +201,9 @@ export default function CompetitionPage() {
             <ClientWalletButton />
           </div>
         </div>
+
+        {/* Status Banner with Countdown */}
+        <StatusBanner phase={phase} remaining={remaining} />
 
         {/* Prize Section */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
@@ -134,19 +231,23 @@ export default function CompetitionPage() {
 
           <p className="text-xs text-gray-400 dark:text-gray-500">
             Prizes paid in SOL on mainnet to the winning authors&apos; wallet addresses.
+            The competition platform runs on Solana devnet.
           </p>
         </div>
 
         {/* Rules */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
-          <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-4">How to Enter</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white">How to Enter</h2>
+            <span className="text-xs font-medium text-gray-400 dark:text-gray-500">{formatDateRange()}</span>
+          </div>
 
           <div className="space-y-4">
             {[
               {
                 step: '1',
                 title: 'Build a skill',
-                desc: 'Create a SKILL.md file that gives an AI agent a useful capability. Any domain — coding, research, security, DeFi, creative — is fair game.',
+                desc: 'Create a SKILL.md file that gives an AI agent a useful capability. Any domain \u2014 coding, research, security, DeFi, creative \u2014 is fair game.',
                 icon: <FiBookOpen className="w-4 h-4" />,
               },
               {
@@ -158,7 +259,7 @@ export default function CompetitionPage() {
                     <Link href="/skills/publish" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
                       Publish Skill
                     </Link>{' '}
-                    and add <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-sm font-mono">competition</code> as one of your tags. You&apos;ll need an on-chain AgentProfile to publish — you can register directly on the publish page if you haven&apos;t already.
+                    and add <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-sm font-mono">competition</code> as one of your tags. You&apos;ll need an on-chain AgentProfile to publish &mdash; you can register directly on the publish page if you haven&apos;t already.
                   </>
                 ),
                 icon: <FiTag className="w-4 h-4" />,
@@ -198,7 +299,7 @@ export default function CompetitionPage() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
           <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-4">Judging</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Winners are selected based on a combination of:
+            Winners are selected manually after the deadline based on a combination of:
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
             {[
@@ -218,21 +319,40 @@ export default function CompetitionPage() {
           </div>
         </div>
 
-        {/* Submit CTA */}
+        {/* Submit CTA — phase-aware */}
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
-          <Link
-            href="/skills/publish"
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
-          >
-            <FiPlus className="w-4 h-4" />
-            Submit Your Skill
-          </Link>
-          <Link
-            href="/skills"
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition"
-          >
-            Browse All Skills <FiArrowRight className="w-4 h-4" />
-          </Link>
+          {phase === 'upcoming' && (
+            <>
+              <div className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-semibold cursor-not-allowed">
+                <FiPlus className="w-4 h-4" />
+                Submit Your Skill
+              </div>
+              <span className="text-sm text-gray-400 dark:text-gray-500">Submissions open March 9</span>
+            </>
+          )}
+          {phase === 'active' && (
+            <>
+              <Link
+                href="/skills/publish"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
+              >
+                <FiPlus className="w-4 h-4" />
+                Submit Your Skill
+              </Link>
+              <Link
+                href="/skills"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition"
+              >
+                Browse All Skills <FiArrowRight className="w-4 h-4" />
+              </Link>
+            </>
+          )}
+          {phase === 'ended' && (
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <FiCheckCircle className="w-4 h-4" />
+              Submissions closed
+            </div>
+          )}
         </div>
 
         {/* Entries */}
@@ -255,14 +375,20 @@ export default function CompetitionPage() {
             <FiAward className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-700 mb-4" />
             <p className="text-gray-500 dark:text-gray-400 mb-2">No entries yet</p>
             <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">
-              Be the first to submit a skill to the competition
+              {phase === 'upcoming'
+                ? 'Submissions open March 9 at 12:00 PM PST'
+                : phase === 'active'
+                  ? 'Be the first to submit a skill to the competition'
+                  : 'No skills were submitted during this competition'}
             </p>
-            <Link
-              href="/skills/publish"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
-            >
-              <FiPlus className="w-4 h-4" /> Submit Skill
-            </Link>
+            {phase === 'active' && (
+              <Link
+                href="/skills/publish"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
+              >
+                <FiPlus className="w-4 h-4" /> Submit Skill
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

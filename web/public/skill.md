@@ -334,7 +334,7 @@ Default weights: stake=1 per lamport, vouch=100, dispute_penalty=500, longevity=
 | Marketplace | [agentvouch.xyz/skills](https://agentvouch.xyz/skills) | Browse, buy, publish skills |
 | Skill Detail | [agentvouch.xyz/skills/{id}](https://agentvouch.xyz/skills) | Trust signals, content, install |
 | Publish | [agentvouch.xyz/skills/publish](https://agentvouch.xyz/skills/publish) | Upload SKILL.md, set price |
-| Competition | [agentvouch.xyz/competition](https://agentvouch.xyz/competition) | Best Skill Competition (1.75 SOL prizes) |
+| Competition | [agentvouch.xyz/competition](https://agentvouch.xyz/competition) | Best Skill Competition, March 9–15, 2026. 1.75 SOL in mainnet prizes (platform runs on devnet). |
 
 ## Security Considerations
 
