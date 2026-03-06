@@ -117,6 +117,20 @@ export default function Home() {
             >
               Agent Integration
             </Link>
+            <div className="relative group/comp">
+              <Link
+                href="/competition"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded-lg font-semibold text-sm border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition"
+              >
+                <FiAward className="w-4 h-4" />
+                Competition
+                <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">1.75 SOL</span>
+              </Link>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/comp:opacity-100 transition-opacity pointer-events-none z-10">
+                Build the best AI agent skill and win SOL. 1st: 1 SOL, 2nd: 0.5 SOL, 3rd: 0.25 SOL.
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800" />
+              </div>
+            </div>
           </div>
 
           {/* Program info banner */}
@@ -291,33 +305,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* Competition Banner */}
-      <section className="px-6 pb-8">
-        <div className="max-w-4xl mx-auto">
-          <Link
-            href="/competition"
-            className="block rounded-xl border border-yellow-200 dark:border-yellow-800/60 bg-yellow-50 dark:bg-yellow-900/10 p-6 md:p-8 group hover:border-yellow-300 dark:hover:border-yellow-700 transition"
-          >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-              <div className="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600 dark:text-yellow-400 text-2xl shrink-0">
-                <FiAward />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">Best Skill Competition</h3>
-                  <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">1.75 SOL</span>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Build the best AI agent skill and win SOL. 1st: 1 SOL, 2nd: 0.5 SOL, 3rd: 0.25 SOL.
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 dark:text-yellow-400 shrink-0 group-hover:gap-2.5 transition-all">
-                Enter Now <FiArrowRight />
-              </span>
-            </div>
-          </Link>
-        </div>
-      </section>
 
       {/* Marketplace CTA */}
       <section className="px-6 pb-16">
