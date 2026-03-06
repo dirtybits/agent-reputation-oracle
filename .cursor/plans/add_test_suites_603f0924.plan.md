@@ -4,22 +4,22 @@ overview: Add comprehensive tests covering x402 payment flow, web API routes, an
 todos:
   - id: vitest-setup
     content: Install vitest and create config for web tests
-    status: pending
+    status: completed
   - id: x402-unit
     content: Write x402 lib unit tests
-    status: pending
+    status: completed
   - id: api-install
     content: Write skills install route tests
-    status: pending
+    status: completed
   - id: api-raw
     content: Write skills raw route tests (x402 flow)
-    status: pending
+    status: completed
   - id: api-landing
     content: Write landing route tests
-    status: pending
+    status: completed
   - id: dispute-balance
     content: Extend Anchor dispute test with slash balance assertions
-    status: pending
+    status: completed
 isProject: false
 ---
 

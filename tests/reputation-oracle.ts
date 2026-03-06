@@ -297,7 +297,7 @@ describe("reputation-oracle", () => {
     assert.equal(vouch.status.disputed !== undefined, true);
   });
 
-  it("Resolves a dispute (slash voucher)", async () => {
+  it("Resolves a dispute (slash voucher) and pays challenger", async () => {
     const [agent1Pda] = PublicKey.findProgramAddressSync(
       [Buffer.from("agent"), agent1.publicKey.toBuffer()],
       program.programId
@@ -317,6 +317,18 @@ describe("reputation-oracle", () => {
       [Buffer.from("dispute"), vouchPda.toBuffer()],
       program.programId
     );
+
+    const config = await program.account.reputationConfig.fetch(configPda);
+    const vouch = await program.account.vouch.fetch(vouchPda);
+    const stakeAmount = vouch.stakeAmount.toNumber();
+    const slashPercentage = config.slashPercentage;
+    const disputeBond = config.disputeBond.toNumber();
+    const expectedSlash = Math.floor(stakeAmount * slashPercentage / 100);
+    const expectedPayout = disputeBond + expectedSlash;
+
+    const challengerBalBefore = await provider.connection.getBalance(agent2.publicKey);
+    const vouchBalBefore = await provider.connection.getBalance(vouchPda);
+    const disputeBalBefore = await provider.connection.getBalance(disputePda);
     
     const tx = await program.methods
       .resolveDispute({ slashVoucher: {} })
@@ -338,11 +350,28 @@ describe("reputation-oracle", () => {
     assert.equal(dispute.status.resolved !== undefined, true);
     assert.equal(dispute.ruling.slashVoucher !== undefined, true);
     
-    const vouch = await program.account.vouch.fetch(vouchPda);
-    assert.equal(vouch.status.slashed !== undefined, true);
+    const vouchAfter = await program.account.vouch.fetch(vouchPda);
+    assert.equal(vouchAfter.status.slashed !== undefined, true);
     
-    // Check voucher profile updated
     const agent1Profile = await program.account.agentProfile.fetch(agent1Pda);
     assert.equal(agent1Profile.disputesLost, 1);
+
+    // Verify challenger received bond + slashed stake
+    const challengerBalAfter = await provider.connection.getBalance(agent2.publicKey);
+    const challengerGain = challengerBalAfter - challengerBalBefore;
+    assert.equal(challengerGain, expectedPayout,
+      `Challenger should gain ${expectedPayout} (bond ${disputeBond} + slash ${expectedSlash}), got ${challengerGain}`);
+
+    // Verify vouch PDA decreased by slash amount
+    const vouchBalAfter = await provider.connection.getBalance(vouchPda);
+    assert.equal(vouchBalBefore - vouchBalAfter, expectedSlash,
+      `Vouch PDA should decrease by ${expectedSlash}, decreased by ${vouchBalBefore - vouchBalAfter}`);
+
+    // Verify dispute PDA decreased by bond amount
+    const disputeBalAfter = await provider.connection.getBalance(disputePda);
+    assert.equal(disputeBalBefore - disputeBalAfter, disputeBond,
+      `Dispute PDA should decrease by ${disputeBond}, decreased by ${disputeBalBefore - disputeBalAfter}`);
+
+    console.log(`Slash distribution verified: challenger gained ${challengerGain / anchor.web3.LAMPORTS_PER_SOL} SOL`);
   });
 });
