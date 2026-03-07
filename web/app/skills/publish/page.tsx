@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { Suspense, useState, useCallback, useRef, useEffect } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
@@ -128,18 +128,30 @@ function ProfileSetupStep({
 }
 
 export default function PublishSkillPage() {
+  return (
+    <Suspense>
+      <PublishSkillPageInner />
+    </Suspense>
+  );
+}
+
+function PublishSkillPageInner() {
   const { wallet, status } = useWalletConnection();
   const connected = status === 'connected' && !!wallet;
   const publicKey = wallet?.account.address ?? null;
   const signMessage = wallet?.signMessage ?? null;
   const router = useRouter();
+  const searchParams = useSearchParams();
   const oracle = useReputationOracle();
 
   const [content, setContent] = useState('');
   const [name, setName] = useState('');
   const [skillId, setSkillId] = useState('');
   const [description, setDescription] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(() => {
+    const initial = searchParams.get('tag');
+    return initial ? [initial.toLowerCase()] : [];
+  });
   const [tagInput, setTagInput] = useState('');
   const [contact, setContact] = useState('');
   const [price, setPrice] = useState(String(PRICING.SOL.defaultPrice));

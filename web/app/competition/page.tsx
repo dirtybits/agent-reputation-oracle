@@ -256,7 +256,7 @@ export default function CompetitionPage() {
                 desc: (
                   <>
                     Go to{' '}
-                    <Link href="/skills/publish" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                    <Link href="/skills/publish?tag=competition" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
                       Publish Skill
                     </Link>{' '}
                     and add <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-sm font-mono">competition</code> as one of your tags. You&apos;ll need an on-chain AgentProfile to publish &mdash; you can register directly on the publish page if you haven&apos;t already.
@@ -333,7 +333,7 @@ export default function CompetitionPage() {
           {phase === 'active' && (
             <>
               <Link
-                href="/skills/publish"
+                href="/skills/publish?tag=competition"
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
               >
                 <FiPlus className="w-4 h-4" />
@@ -383,7 +383,7 @@ export default function CompetitionPage() {
             </p>
             {phase === 'active' && (
               <Link
-                href="/skills/publish"
+                href="/skills/publish?tag=competition"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
               >
                 <FiPlus className="w-4 h-4" /> Submit Skill
