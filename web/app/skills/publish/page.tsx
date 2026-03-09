@@ -127,6 +127,62 @@ function ProfileSetupStep({
   );
 }
 
+function PublishReadiness({
+  connected,
+  profileLoading,
+  hasProfile,
+  hasContent,
+  hasName,
+  hasSkillId,
+}: {
+  connected: boolean;
+  profileLoading: boolean;
+  hasProfile: boolean;
+  hasContent: boolean;
+  hasName: boolean;
+  hasSkillId: boolean;
+}) {
+  if (!connected) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+        Connect wallet to publish
+      </span>
+    );
+  }
+
+  if (profileLoading) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+        <FiLoader className="w-3 h-3 animate-spin" />
+        Checking profile…
+      </span>
+    );
+  }
+
+  const issues: string[] = [];
+  if (!hasContent) issues.push('skill content');
+  if (!hasName) issues.push('name');
+  if (!hasSkillId) issues.push('skill ID');
+  if (!hasProfile) issues.push('author profile');
+
+  if (issues.length > 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+        Needs {issues.join(', ')}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+      <FiCheckCircle className="w-3 h-3" />
+      Ready to publish
+    </span>
+  );
+}
+
 export default function PublishSkillPage() {
   return (
     <Suspense>
@@ -165,12 +221,14 @@ function PublishSkillPageInner() {
   const [registering, setRegistering] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [showProfileGate, setShowProfileGate] = useState(false);
+  const [pendingPublishAfterRegister, setPendingPublishAfterRegister] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!connected || !publicKey) {
       setAgentProfile(null);
+      setProfileLoading(false);
       return;
     }
     setProfileLoading(true);
@@ -179,6 +237,112 @@ function PublishSkillPageInner() {
       .catch(() => setAgentProfile(null))
       .finally(() => setProfileLoading(false));
   }, [connected, publicKey]);
+
+  async function publishSkill(skipProfileCheck = false) {
+    if (!skillId || !name || !content) {
+      setResult({ success: false, message: 'Skill ID, name, and content are required' });
+      return;
+    }
+
+    if (!connected || !publicKey || !signMessage) {
+      setResult({ success: false, message: 'Connect your wallet to publish. Use the button in the top right.' });
+      return;
+    }
+
+    if (!skipProfileCheck && profileLoading) {
+      setResult({ success: false, message: 'Checking your author profile. Try publishing again in a moment.' });
+      return;
+    }
+
+    if (!skipProfileCheck && !agentProfile) {
+      setPendingPublishAfterRegister(true);
+      setShowProfileGate(true);
+      setResult({ success: false, message: 'Create your author profile before publishing your first skill.' });
+      return;
+    }
+
+    setPublishing(true);
+    setPublishStep('repo');
+    setResult(null);
+
+    try {
+      const timestamp = Date.now();
+      const message = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${timestamp}`;
+      const messageBytes = new TextEncoder().encode(message);
+      const signatureBytes = await signMessage(messageBytes);
+      const signature = Buffer.from(signatureBytes).toString('base64');
+      const auth = { pubkey: publicKey!, signature, message, timestamp };
+
+      const res = await fetch('/api/skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auth, skill_id: skillId, name, description, tags, content, contact: contact || undefined }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setResult({ success: false, message: data.error || 'Failed to publish' });
+        return;
+      }
+
+      const skillDbId: string = data.id;
+      const ipfsCid: string | null = data.ipfs_cid;
+      const skillUri = ipfsCid
+        ? `${window.location.origin}/api/skills/${skillDbId}/raw`
+        : '';
+
+      setPublishStep('chain');
+      try {
+        const priceLamports = toLamports(parseFloat(price || '0'));
+        await oracle.createSkillListing(skillId, skillUri, name, description, priceLamports);
+
+        const onChainAddress = await oracle.getSkillListingPDA(publicKey as Address, skillId);
+
+        const patchTimestamp = Date.now();
+        const patchMessage = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${patchTimestamp}`;
+        const patchMsgBytes = new TextEncoder().encode(patchMessage);
+        const patchSigBytes = await signMessage(patchMsgBytes);
+        const patchSignature = Buffer.from(patchSigBytes).toString('base64');
+
+        const patchRes = await fetch(`/api/skills/${skillDbId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            auth: { pubkey: publicKey!, signature: patchSignature, message: patchMessage, timestamp: patchTimestamp },
+            on_chain_address: onChainAddress,
+          }),
+        });
+
+        if (!patchRes.ok) {
+          const patchData = await patchRes.json().catch(() => null);
+          throw new Error(patchData?.error || 'Skill saved, but failed to link the on-chain listing');
+        }
+      } catch (chainErr: any) {
+        setResult({
+          success: true,
+          message: `Skill saved to repo — on-chain listing failed: ${chainErr.message}. Visit the skill page to retry.`,
+          id: skillDbId,
+        });
+        setTimeout(() => router.push(`/skills/${skillDbId}`), 3000);
+        return;
+      }
+
+      setResult({
+        success: true,
+        message: 'Skill published and listed on-chain!',
+        id: skillDbId,
+      });
+
+      setTimeout(() => router.push(`/skills/${skillDbId}`), 1500);
+    } catch (err: any) {
+      setResult({ success: false, message: err.message });
+    } finally {
+      setPublishing(false);
+      setPublishStep('idle');
+      setPendingPublishAfterRegister(false);
+    }
+  }
 
   const handleRegister = async () => {
     if (!connected || !publicKey) return;
@@ -189,6 +353,9 @@ function PublishSkillPageInner() {
       const profile = await oracle.getAgentProfile(publicKey);
       setAgentProfile(profile);
       setShowProfileGate(false);
+      if (profile && pendingPublishAfterRegister) {
+        await publishSkill(true);
+      }
     } catch (err: any) {
       const cause = err?.cause?.message ?? err?.context?.message ?? '';
       const msg = cause || err.message || String(err);
@@ -199,6 +366,9 @@ function PublishSkillPageInner() {
         if (profile) {
           setAgentProfile(profile);
           setShowProfileGate(false);
+          if (pendingPublishAfterRegister) {
+            await publishSkill(true);
+          }
           return;
         }
       }
@@ -259,99 +429,7 @@ function PublishSkillPageInner() {
   };
 
   const handlePublish = async () => {
-    if (!skillId || !name || !content) {
-      setResult({ success: false, message: 'Skill ID, name, and content are required' });
-      return;
-    }
-
-    if (!connected || !publicKey || !signMessage) {
-      setResult({ success: false, message: 'Connect your wallet to publish. Use the button in the top right.' });
-      return;
-    }
-
-    if (!agentProfile && !profileLoading) {
-      setShowProfileGate(true);
-      return;
-    }
-
-    setPublishing(true);
-    setPublishStep('repo');
-    setResult(null);
-
-    try {
-      // Step 1: sign + publish to Postgres/IPFS
-      const timestamp = Date.now();
-      const message = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${timestamp}`;
-      const messageBytes = new TextEncoder().encode(message);
-      const signatureBytes = await signMessage(messageBytes);
-      const signature = Buffer.from(signatureBytes).toString('base64');
-      const auth = { pubkey: publicKey!, signature, message, timestamp };
-
-      const res = await fetch('/api/skills', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auth, skill_id: skillId, name, description, tags, content, contact: contact || undefined }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setResult({ success: false, message: data.error || 'Failed to publish' });
-        return;
-      }
-
-      const skillDbId: string = data.id;
-      const ipfsCid: string | null = data.ipfs_cid;
-      const skillUri = ipfsCid
-        ? `${window.location.origin}/api/skills/${skillDbId}/raw`
-        : '';
-
-      // Step 2: create on-chain SkillListing (always required)
-      setPublishStep('chain');
-      try {
-        const priceLamports = toLamports(parseFloat(price || '0'));
-        await oracle.createSkillListing(skillId, skillUri, name, description, priceLamports);
-
-        const onChainAddress = await oracle.getSkillListingPDA(publicKey as Address, skillId);
-
-        const patchTimestamp = Date.now();
-        const patchMessage = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${patchTimestamp}`;
-        const patchMsgBytes = new TextEncoder().encode(patchMessage);
-        const patchSigBytes = await signMessage(patchMsgBytes);
-        const patchSignature = Buffer.from(patchSigBytes).toString('base64');
-
-        await fetch(`/api/skills/${skillDbId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            auth: { pubkey: publicKey!, signature: patchSignature, message: patchMessage, timestamp: patchTimestamp },
-            on_chain_address: onChainAddress,
-          }),
-        });
-      } catch (chainErr: any) {
-        // Repo publish succeeded; surface the chain error but don't block navigation
-        setResult({
-          success: true,
-          message: `Skill saved to repo — on-chain listing failed: ${chainErr.message}. Visit the skill page to retry.`,
-          id: skillDbId,
-        });
-        setTimeout(() => router.push(`/skills/${skillDbId}`), 3000);
-        return;
-      }
-
-      setResult({
-        success: true,
-        message: 'Skill published and listed on-chain!',
-        id: skillDbId,
-      });
-
-      setTimeout(() => router.push(`/skills/${skillDbId}`), 1500);
-    } catch (err: any) {
-      setResult({ success: false, message: err.message });
-    } finally {
-      setPublishing(false);
-      setPublishStep('idle');
-    }
+    await publishSkill();
   };
 
   return (
@@ -661,14 +739,19 @@ function PublishSkillPageInner() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            {connected ? 'Requires a wallet signature + one Solana transaction' : 'You\'ll be asked to connect your wallet when you publish'}
-          </p>
+        <div className="flex items-center justify-between gap-4">
+          <PublishReadiness
+            connected={connected}
+            profileLoading={profileLoading}
+            hasProfile={!!agentProfile}
+            hasContent={!!content}
+            hasName={!!name}
+            hasSkillId={!!skillId}
+          />
           <button
             onClick={handlePublish}
-            disabled={publishing || !content || !name || !skillId}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={publishing || !content || !name || !skillId || (connected && profileLoading)}
+            className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >
             {publishing ? (
               <>

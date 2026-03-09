@@ -21,6 +21,13 @@ export interface AuthorTrust {
   isRegistered: boolean;
 }
 
+export class AuthorTrustVerificationError extends Error {
+  constructor(message = 'Unable to verify author trust') {
+    super(message);
+    this.name = 'AuthorTrustVerificationError';
+  }
+}
+
 const cache = new Map<string, { data: AuthorTrust; expires: number }>();
 const CACHE_TTL_MS = 60_000;
 
@@ -80,6 +87,40 @@ export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
   } catch {
     cache.set(pubkey, { data: defaultTrust, expires: now + CACHE_TTL_MS });
     return defaultTrust;
+  }
+}
+
+export async function verifyAuthorTrust(pubkey: string): Promise<AuthorTrust> {
+  const defaultTrust: AuthorTrust = {
+    reputationScore: 0,
+    totalVouchesReceived: 0,
+    totalStakedFor: 0,
+    disputesWon: 0,
+    disputesLost: 0,
+    registeredAt: 0,
+    isRegistered: false,
+  };
+
+  try {
+    const agentPDA = await getAgentPDA(pubkey as Address);
+    const account = await fetchMaybeAgentProfile(rpc, agentPDA);
+
+    if (!account.exists) {
+      return defaultTrust;
+    }
+
+    const d = account.data;
+    return {
+      reputationScore: Number(d.reputationScore),
+      totalVouchesReceived: d.totalVouchesReceived,
+      totalStakedFor: Number(d.totalStakedFor),
+      disputesWon: d.disputesWon,
+      disputesLost: d.disputesLost,
+      registeredAt: Number(d.registeredAt),
+      isRegistered: true,
+    };
+  } catch (error: any) {
+    throw new AuthorTrustVerificationError(error?.message || 'Unable to verify on-chain author profile');
   }
 }
 

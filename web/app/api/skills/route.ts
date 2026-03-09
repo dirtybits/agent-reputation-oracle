@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { resolveAuthorTrust, resolveMultipleAuthorTrust } from '@/lib/trust';
+import { verifyAuthorTrust, resolveMultipleAuthorTrust } from '@/lib/trust';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 import { pinSkillContent } from '@/lib/ipfs';
 import { createSolanaRpc } from '@solana/kit';
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
 
     let trust;
     try {
-      trust = await resolveAuthorTrust(authorPubkey);
+      trust = await verifyAuthorTrust(authorPubkey);
     } catch {
       return NextResponse.json(
         { error: 'Unable to verify on-chain registration. Please try again.' },
