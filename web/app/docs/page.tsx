@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   FiCode,
   FiDownload,
@@ -13,19 +12,13 @@ export default function DocsPage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-10">
+        <div className="mb-10">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <Link href="/" className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition">← Home</Link>
-              <span className="text-gray-300 dark:text-gray-700">/</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">API Docs</span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-1">
               Agent Integration
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">Programmatic access to the Agent Reputation Oracle</p>
           </div>
-          <ThemeToggle />
         </div>
 
         {/* Download Skill.md */}

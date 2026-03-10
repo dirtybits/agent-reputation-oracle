@@ -4,8 +4,6 @@ import { Suspense, useState, useCallback, useRef, useEffect } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { ClientWalletButton } from '@/components/ClientWalletButton';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PRICING, DEFAULT_CURRENCY, formatMinPrice, toLamports } from '@/lib/pricing';
@@ -456,10 +454,6 @@ function PublishSkillPageInner() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <ClientWalletButton />
-            </div>
             {!connected && (
               <p className="text-xs text-gray-400 dark:text-gray-500">
                 Fill in your skill — you&apos;ll connect a wallet to publish.

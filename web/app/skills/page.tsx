@@ -5,8 +5,6 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { type Address } from '@solana/kit';
 import Link from 'next/link';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { ClientWalletButton } from '@/components/ClientWalletButton';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import type { SkillListing, Purchase } from '../../generated/reputation-oracle/src/generated';
 import {
@@ -276,16 +274,6 @@ export default function MarketplacePage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <Link
-                href="/"
-                className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition"
-              >
-                ← Home
-              </Link>
-              <span className="text-gray-300 dark:text-gray-700">/</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Marketplace</span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-1">
               Marketplace
             </h1>
@@ -313,8 +301,6 @@ export default function MarketplacePage() {
               <span className="hidden sm:inline">Publish Skill</span>
               <span className="sm:hidden">Publish</span>
             </Link>
-            <ThemeToggle />
-            <ClientWalletButton />
           </div>
         </div>
 

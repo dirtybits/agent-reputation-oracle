@@ -2,8 +2,6 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { ClientWalletButton } from '@/components/ClientWalletButton';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useWalletConnection } from '@solana/react-hooks';
@@ -270,7 +268,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div className="mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <Link
@@ -289,10 +287,6 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             {skill.description && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{skill.description}</p>
             )}
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <ClientWalletButton />
           </div>
         </div>
 

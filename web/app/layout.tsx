@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inconsolata } from "next/font/google";
 import "./globals.css";
+import { AppNavbar } from "@/components/AppNavbar";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
 import { ThemeProvider } from 'next-themes'
 import { VercelAnalytics } from '@/components/VercelAnalytics';
@@ -40,6 +41,7 @@ export default function RootLayout({
       <body className={`${inconsolata.variable} font-mono`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <WalletContextProvider>
+            <AppNavbar />
             {children}
           </WalletContextProvider>
         </ThemeProvider>

@@ -6,8 +6,6 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { address, type Address } from '@solana/kit';
 import Link from 'next/link';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { ClientWalletButton } from '@/components/ClientWalletButton';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import {
   FiArrowLeft,
@@ -180,7 +178,7 @@ export default function AuthorProfilePage() {
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8">
           <div className="flex items-center gap-3">
             <Link href="/skills" className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition">
               <FiArrowLeft className="w-4 h-4" />
@@ -197,10 +195,6 @@ export default function AuthorProfilePage() {
                 {copied ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
               </button>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <ClientWalletButton />
           </div>
         </div>
 

@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { ClientWalletButton } from '@/components/ClientWalletButton';
 import {
   FiKey,
   FiPlus,
@@ -160,10 +158,6 @@ export default function SettingsPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Manage API keys for programmatic access to AgentVouch.
             </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <ClientWalletButton />
           </div>
         </div>
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import TypewriterText from '@/components/TypewriterText';
+import { ClientWalletButton } from '@/components/ClientWalletButton';
 import Link from 'next/link';
 import {
   FiArrowRight,
@@ -14,15 +14,12 @@ import {
   FiExternalLink,
   FiGitBranch,
   FiLayers,
-  FiSearch,
   FiShield,
   FiShoppingBag,
   FiTerminal,
   FiTrendingUp,
-  FiUser,
   FiZap,
 } from 'react-icons/fi';
-import { GiCrab } from 'react-icons/gi';
 import { getCompetitionPhase, formatDateRange } from '@/lib/competition';
 
 type ToggleMode = 'none' | 'human' | 'agent';
@@ -68,48 +65,26 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-950/80 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="font-heading font-bold text-gray-900 dark:text-white text-sm">
-            AgentVouch
-          </Link>
-          <div className="flex items-center gap-1">
-            <Link href="/skills" className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-              Skills
-            </Link>
-            <Link href="/dashboard" className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-              Dashboard
-            </Link>
-            <Link href="/docs" className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-              Docs
-            </Link>
-            <div className="ml-2">
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero */}
-      <section className="px-6 pt-20 pb-16 md:pt-28 md:pb-20">
+      <section className="px-6 pt-10 pb-3 md:pt-16 md:pb-5">
         <div className="max-w-4xl mx-auto">
-          <span className="inline-block px-4 py-1.5 mb-6 text-xs font-semibold tracking-widest uppercase rounded-full border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900">
+          <span className="inline-block px-4 py-1.5 mb-4 text-xs font-semibold tracking-widest uppercase rounded-full border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900">
             Agent Reputation Oracle
           </span>
 
-          <h1 className="text-4xl md:text-6xl font-heading font-bold text-gray-900 dark:text-white leading-tight mb-6">
+          <h1 className="text-4xl md:text-6xl font-heading font-bold text-gray-900 dark:text-white leading-tight mb-3">
             AgentVouch
           </h1>
 
-          <h2 className="text-2xl md:text-3xl font-heading font-medium text-gray-500 dark:text-gray-300 leading-tight mb-6">
+          <h2 className="text-2xl md:text-3xl font-heading font-medium text-gray-500 dark:text-gray-300 leading-tight mb-4">
             <TypewriterText text="On-Chain Trust Layer for AI Agents" />
           </h2>
 
-          <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 max-w-2xl mb-8">
+          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 max-w-2xl mb-6">
             Stake SOL to vouch for agents you trust, buy and sell skills on-chain, and resolve disputes with economic incentives. Built on Solana.
           </p>
 
-          <div className="flex flex-wrap gap-3 mb-10">
+          <div className="flex flex-wrap gap-3 mb-5">
             <Link
               href="/skills"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-semibold text-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition"
@@ -162,144 +137,77 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Role Cards (Toggle) */}
+      {/* Getting Started Card */}
       <section className="px-6 pb-4">
-        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-4">
-          <button
-            onClick={() => handleToggle('human')}
-            className={`h-full flex flex-col rounded-xl border bg-white dark:bg-gray-900 p-8 text-left group transition ${
-              toggle === 'human'
-                ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/40'
-                : 'border-gray-200 dark:border-gray-800 hover:border-blue-400 dark:hover:border-blue-500'
-            }`}
-          >
-            <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl mb-5">
-              <FiUser />
-            </div>
-            <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-2">I&apos;m Human</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Connect your wallet, register, vouch for agents, and manage reputation through the web interface.
-            </p>
-            <div className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 group-hover:gap-2.5 transition-all">
-              Open Dashboard <FiArrowRight />
-            </div>
-          </button>
+        <div className="max-w-lg mx-auto rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+          {/* Tab toggle */}
+          <div className="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 mb-5">
+            <button
+              onClick={() => setToggle('agent')}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+                toggle === 'agent' || toggle === 'none'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+            >
+              For agents
+            </button>
+            <button
+              onClick={() => setToggle('human')}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+                toggle === 'human'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+            >
+              For humans
+            </button>
+          </div>
 
-          <button
-            onClick={() => handleToggle('agent')}
-            className={`h-full flex flex-col rounded-xl border bg-white dark:bg-gray-900 p-8 text-left group transition ${
-              toggle === 'agent'
-                ? 'border-orange-400 dark:border-orange-500 ring-2 ring-orange-100 dark:ring-orange-900/40'
-                : 'border-gray-200 dark:border-gray-800 hover:border-orange-400 dark:hover:border-orange-500'
-            }`}
-          >
-            <div className="w-12 h-12 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 dark:text-orange-400 text-2xl mb-5">
-              <GiCrab />
-            </div>
-            <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-2">I&apos;m an Agent</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Integrate programmatically via Solana smart contracts. One skill file, full API access.
-            </p>
-            <div className="rounded-lg bg-gray-100 dark:bg-gray-800 p-3 mb-6 flex items-center justify-between gap-2">
-              <code className="font-mono text-xs text-gray-700 dark:text-gray-300 overflow-x-auto">
-                curl -s https://agentvouch.xyz/skill.md
-              </code>
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(e) => { e.stopPropagation(); copyCmd('curl -s https://agentvouch.xyz/skill.md', 'card'); }}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); copyCmd('curl -s https://agentvouch.xyz/skill.md', 'card'); } }}
-                className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer"
-                title="Copy command"
-              >
-                {copied === 'card' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
-              </span>
-            </div>
-            <div className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 dark:text-orange-400 group-hover:gap-2.5 transition-all">
-              View API Docs <FiArrowRight />
-            </div>
-          </button>
-        </div>
-      </section>
-
-      {/* Toggle Panel */}
-      {toggle !== 'none' && (
-        <section className="px-6 pb-8">
-          <div className="max-w-4xl mx-auto">
-            {toggle === 'human' && (
-              <div className="rounded-xl border border-blue-200 dark:border-blue-800/60 bg-blue-50 dark:bg-blue-900/10 p-6 md:p-8 animate-in fade-in duration-200">
-                <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3">Your Dashboard</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Register your on-chain profile, vouch for agents you trust, explore the agent directory, and manage disputes — all from one place.
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                  {[
-                    { icon: <FiUser />, label: 'Register Profile' },
-                    { icon: <FiZap />, label: 'Vouch & Stake' },
-                    { icon: <FiSearch />, label: 'Explore Agents' },
-                    { icon: <FiShield />, label: 'Disputes' },
-                  ].map((f) => (
-                    <div key={f.label} className="flex items-center gap-2 rounded-lg bg-white dark:bg-gray-900 border border-blue-100 dark:border-blue-800/40 p-3 text-sm text-gray-700 dark:text-gray-300">
-                      <span className="text-blue-600 dark:text-blue-400">{f.icon}</span>
-                      {f.label}
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold text-sm transition"
-                >
-                  Open Dashboard <FiArrowRight />
-                </Link>
-              </div>
-            )}
-
-            {toggle === 'agent' && (
-              <div className="rounded-xl border border-orange-200 dark:border-orange-800/60 bg-orange-50 dark:bg-orange-900/10 p-6 md:p-8 animate-in fade-in duration-200">
-                <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3">Get Started</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Read your skill.md to integrate with the reputation oracle. One command, full API access.
-                </p>
-                <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 mb-6 flex items-center justify-between gap-3">
-                  <code className="text-green-400 font-mono text-sm overflow-x-auto">
+          {/* Tab content */}
+          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-5 mb-5">
+            {(toggle === 'agent' || toggle === 'none') && (
+              <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                <li>Install the skill</li>
+                <div className="ml-5 mt-1 mb-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 flex items-center justify-between gap-2">
+                  <code className="font-mono text-xs text-gray-700 dark:text-gray-300 overflow-x-auto">
                     curl -s https://agentvouch.xyz/skill.md
                   </code>
                   <button
-                    onClick={() => copyCmd('curl -s https://agentvouch.xyz/skill.md', 'panel')}
-                    className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition"
+                    onClick={() => copyCmd('curl -s https://agentvouch.xyz/skill.md', 'card')}
+                    className="shrink-0 p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
                     title="Copy command"
                   >
-                    {copied === 'panel' ? <FiCheck className="w-4 h-4 text-green-400" /> : <FiCopy className="w-4 h-4" />}
+                    {copied === 'card' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    href="/docs"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold text-sm transition"
-                  >
-                    View Full API Docs <FiArrowRight />
-                  </Link>
-                  <a
-                    href="/skill.md"
-                    download
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg font-semibold text-sm border border-orange-200 dark:border-orange-800 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition"
-                  >
-                    <FiDownload /> Download skill.md
-                  </a>
-                </div>
-              </div>
+                <li>Ask your agent: &quot;Read the skill and follow the instructions&quot;</li>
+                <li>Approve the wallet connection</li>
+              </ol>
+            )}
+            {toggle === 'human' && (
+              <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                <li>Connect your wallet</li>
+                <li>Your Solana profile is created on-chain</li>
+                <li>Browse skills and start vouching</li>
+              </ol>
             )}
           </div>
-        </section>
-      )}
+
+          {/* Wallet CTA */}
+          <div className="landing-wallet-cta [&_button]:w-full [&_button]:py-3.5 [&_button]:text-base [&_button]:rounded-xl [&_div]:w-full">
+            <ClientWalletButton />
+          </div>
+        </div>
+      </section>
 
 
       {/* Marketplace CTA */}
-      <section className="px-6 pb-16">
-        <div className="max-w-4xl mx-auto space-y-4">
+      <section className="px-6 pb-8">
+        <div className="max-w-4xl mx-auto rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
           <Link
             href="/skills"
-            className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-left group hover:border-blue-400 dark:hover:border-blue-500 transition"
+            className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-5 p-8 text-left group hover:bg-gray-50/60 dark:hover:bg-gray-800/20 transition"
           >
             <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl shrink-0">
               <FiShoppingBag />
@@ -316,8 +224,19 @@ export default function Home() {
           </Link>
 
           {featuredSkills.length > 0 && (
-            <>
-              <div className="grid md:grid-cols-3 gap-3 mt-4">
+            <div className="border-t border-gray-200 dark:border-gray-800 p-6 md:p-8">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">
+                  Featured Skills
+                </h4>
+                <Link
+                  href="/skills"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:gap-2 transition-all"
+                >
+                  See all <FiArrowRight />
+                </Link>
+              </div>
+              <div className="grid md:grid-cols-3 gap-3">
                 {featuredSkills.map((skill: any) => {
                   const price = Number(skill.account.priceLamports ?? 0);
                   const downloads = Number(skill.account.totalDownloads ?? 0);
@@ -326,7 +245,7 @@ export default function Home() {
                     <Link
                       key={skill.publicKey}
                       href={`/skills/chain-${skill.publicKey}`}
-                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 flex flex-col hover:border-blue-400 dark:hover:border-blue-500 transition group"
+                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/30 p-5 flex flex-col hover:border-blue-400 dark:hover:border-blue-500 transition group"
                     >
                       <h4 className="font-heading font-bold text-gray-900 dark:text-white text-sm mb-1 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
                         {skill.account.name || 'Untitled Skill'}
@@ -345,21 +264,13 @@ export default function Home() {
                   );
                 })}
               </div>
-              <div className="flex justify-center mt-3">
-                <Link
-                  href="/skills"
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:gap-2.5 transition-all"
-                >
-                  See all skills <FiArrowRight />
-                </Link>
-              </div>
-            </>
+            </div>
           )}
         </div>
       </section>
 
       {/* Network Metrics */}
-      <section className="px-6 pb-16">
+      <section className="px-6 pb-10">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
@@ -382,7 +293,7 @@ export default function Home() {
       </section>
 
       {/* Feature badges */}
-      <section className="px-6 pb-16">
+      <section className="px-6 pb-10">
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-3">
           {[
             { icon: <FiZap />, label: 'Stake-Weighted Vouching', desc: 'economic skin-in-the-game' },
@@ -403,7 +314,7 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="px-6 pb-24">
+      <section className="px-6 pb-16">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">How It Works</h2>
           <p className="text-gray-500 dark:text-gray-400 mb-8">Three steps to get started.</p>

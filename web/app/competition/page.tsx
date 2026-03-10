@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { ClientWalletButton } from '@/components/ClientWalletButton';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import {
   FiAward,
@@ -178,16 +176,6 @@ export default function CompetitionPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <Link
-                href="/"
-                className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition"
-              >
-                &larr; Home
-              </Link>
-              <span className="text-gray-300 dark:text-gray-700">/</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Competition</span>
-            </div>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-1">
               Best Skill Competition
             </h1>
@@ -195,10 +183,6 @@ export default function CompetitionPage() {
               Build and publish the best AI agent skill on AgentVouch. Top 3 authors win SOL prizes paid on mainnet.
               <span className="ml-1 font-medium">{formatDateRange()}</span>
             </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <ClientWalletButton />
           </div>
         </div>
 
