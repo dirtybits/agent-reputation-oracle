@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import TypewriterText from '@/components/TypewriterText';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
+import { SolAmount } from '@/components/SolAmount';
 import Link from 'next/link';
 import {
   FiArrowRight,
@@ -105,7 +106,7 @@ export default function Home() {
                 <FiAward className="w-4 h-4" />
                 Competition
                 <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">
-                  {getCompetitionPhase() === 'upcoming' ? 'Starts Mar 9' : getCompetitionPhase() === 'active' ? 'Live' : 'Ended'}
+                  {getCompetitionPhase() === 'upcoming' ? 'Starts Mar 10' : getCompetitionPhase() === 'active' ? 'Live' : 'Ended'}
                 </span>
               </Link>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/comp:opacity-100 transition-opacity pointer-events-none z-10">
@@ -254,7 +255,11 @@ export default function Home() {
                         {skill.account.description || 'No description'}
                       </p>
                       <div className="mt-auto flex items-center justify-between text-xs">
-                        <span className="font-semibold text-gray-900 dark:text-white">{(price / 1e9).toFixed(2)} SOL</span>
+                        <SolAmount
+                          amount={(price / 1e9).toFixed(2)}
+                          className="font-semibold text-gray-900 dark:text-white"
+                          iconClassName="w-3 h-3"
+                        />
                         <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
                           <span className="flex items-center gap-1"><FiDownload className="w-3 h-3" />{downloads}</span>
                           <span className="flex items-center gap-1"><FiTrendingUp className="w-3 h-3" />{(revenue / 1e9).toFixed(2)}</span>

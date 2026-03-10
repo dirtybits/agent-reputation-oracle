@@ -6,6 +6,7 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { address, type Address } from '@solana/kit';
 import Link from 'next/link';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
+import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import {
   FiArrowLeft,
@@ -289,7 +290,9 @@ export default function AuthorProfilePage() {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h3 className="font-heading font-bold text-gray-900 dark:text-white text-sm truncate">{skill.name}</h3>
                       {skill.price_lamports && skill.price_lamports > 0 && (
-                        <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">{formatSol(skill.price_lamports)} SOL</span>
+                        <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">
+                          <SolAmount amount={formatSol(skill.price_lamports)} iconClassName="w-3 h-3" />
+                        </span>
                       )}
                     </div>
                     {skill.description && (
@@ -319,7 +322,9 @@ export default function AuthorProfilePage() {
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white text-sm truncate">{skill.account.name || 'Untitled'}</h3>
                         {price > 0 && (
-                          <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">{formatSol(price)} SOL</span>
+                          <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">
+                            <SolAmount amount={formatSol(price)} iconClassName="w-3 h-3" />
+                          </span>
                         )}
                       </div>
                       {skill.account.description && (

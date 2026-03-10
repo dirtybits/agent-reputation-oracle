@@ -88,7 +88,7 @@ function StatusBanner({ phase, remaining }: { phase: CompetitionPhase; remaining
           <CountdownUnit value={remaining.seconds} label="sec" />
         </div>
         <p className="text-xs text-blue-500 dark:text-blue-400 mt-4">
-          {formatDateRange()} &middot; 12:00 PM PDT
+          {formatDateRange()} &middot; 6:00 PM PDT
         </p>
       </div>
     );
@@ -114,7 +114,7 @@ function StatusBanner({ phase, remaining }: { phase: CompetitionPhase; remaining
           <CountdownUnit value={remaining.seconds} label="sec" />
         </div>
         <p className="text-xs text-green-500 dark:text-green-400 mt-4">
-          Ends Monday March 16, 2026 at 11:59 PM PDT
+          Ends Tuesday March 17, 2026 at 6:00 PM PDT
         </p>
       </div>
     );
@@ -311,7 +311,7 @@ export default function CompetitionPage() {
                 <FiPlus className="w-4 h-4" />
                 Submit Your Skill
               </div>
-              <span className="text-sm text-gray-400 dark:text-gray-500">Submissions open March 10</span>
+              <span className="text-sm text-gray-400 dark:text-gray-500">Submissions open March 10 at 6:00 PM PDT</span>
             </>
           )}
           {phase === 'active' && (
@@ -360,7 +360,7 @@ export default function CompetitionPage() {
             <p className="text-gray-500 dark:text-gray-400 mb-2">No entries yet</p>
             <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">
               {phase === 'upcoming'
-                ? 'Submissions open March 10 at 12:00 PM PDT'
+                ? 'Submissions open March 10 at 6:00 PM PDT'
                 : phase === 'active'
                   ? 'Be the first to submit a skill to the competition'
                   : 'No skills were submitted during this competition'}

@@ -5,6 +5,7 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { type Address } from '@solana/kit';
 import Link from 'next/link';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
+import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import type { SkillListing, Purchase } from '../../generated/reputation-oracle/src/generated';
 import {
@@ -14,7 +15,6 @@ import {
   FiBox,
   FiCheckCircle,
   FiClock,
-  FiDollarSign,
   FiDownload,
   FiLoader,
   FiPackage,
@@ -425,8 +425,7 @@ export default function MarketplacePage() {
                               <div className="flex items-center gap-2 shrink-0">
                                 {price > 0 ? (
                                   <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
-                                    <FiDollarSign className="w-3 h-3" />
-                                    {formatSol(price)} SOL
+                                    <SolAmount amount={formatSol(price)} iconClassName="w-3 h-3" />
                                   </span>
                                 ) : listing && (
                                   <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold">
@@ -527,7 +526,9 @@ export default function MarketplacePage() {
                                   {isPurchasing ? (
                                     <span className="animate-pulse">Processing...</span>
                                   ) : connected ? (
-                                    `Buy for ${formatSol(price)} SOL`
+                                    <span className="inline-flex items-center gap-1 justify-center">
+                                      Buy for <SolAmount amount={formatSol(price)} iconClassName="w-3 h-3" />
+                                    </span>
                                   ) : (
                                     'Connect Wallet to Buy'
                                   )}
@@ -627,7 +628,7 @@ export default function MarketplacePage() {
                           </span>
                           {item.pricePaid > 0 && (
                             <span className="text-xs font-mono text-green-600 dark:text-green-400">
-                              {formatSol(item.pricePaid)} SOL
+                              <SolAmount amount={formatSol(item.pricePaid)} iconClassName="w-3 h-3" />
                             </span>
                           )}
                         </div>
@@ -678,7 +679,11 @@ export default function MarketplacePage() {
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Purchased {formatDate(Number(purchase.account.purchasedAt))} ·{' '}
-                          <span className="font-mono">{formatSol(Number(purchase.account.pricePaid))} SOL</span>
+                          <SolAmount
+                            amount={formatSol(Number(purchase.account.pricePaid))}
+                            className="font-mono text-gray-900 dark:text-white"
+                            iconClassName="w-3 h-3"
+                          />
                         </p>
                       </div>
                       {listing?.account.skillUri && (
@@ -738,7 +743,7 @@ export default function MarketplacePage() {
                           {listing.account.name}
                         </h3>
                         <span className="text-green-600 dark:text-green-400 font-mono font-bold">
-                          {formatSol(price)} SOL
+                          <SolAmount amount={formatSol(price)} iconClassName="w-3.5 h-3.5" />
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">

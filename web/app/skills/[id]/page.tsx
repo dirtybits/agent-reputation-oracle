@@ -4,10 +4,12 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { SolAmount } from '@/components/SolAmount';
 import { useWalletConnection } from '@solana/react-hooks';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PRICING, formatMinPrice, toLamports, fromLamports } from '@/lib/pricing';
 import type { Address } from '@solana/kit';
+import { SiSolana } from 'react-icons/si';
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -21,7 +23,6 @@ import {
   FiExternalLink,
   FiFileText,
   FiGitCommit,
-  FiDollarSign,
   FiEdit2,
 } from 'react-icons/fi';
 
@@ -330,8 +331,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         <div className={`grid grid-cols-2 ${isChainOnly ? 'sm:grid-cols-4' : 'sm:grid-cols-4'} gap-3 mb-6`}>
           {skill.price_lamports != null && skill.price_lamports > 0 && (
             <div className="rounded-lg border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-3 text-center">
-              <div className="text-lg font-bold text-green-700 dark:text-green-400 font-mono">
-                {fromLamports(skill.price_lamports).toFixed(4)} SOL
+              <div className="text-lg font-bold text-green-700 dark:text-green-400 font-mono flex items-center justify-center">
+                <SolAmount amount={fromLamports(skill.price_lamports).toFixed(4)} iconClassName="w-4 h-4" />
               </div>
               <div className="text-xs text-green-600 dark:text-green-500">Price</div>
             </div>
@@ -630,7 +631,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         ) : connected && walletAddress === skill.author_pubkey && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <FiDollarSign className="w-4 h-4 text-gray-400" />
+              <SiSolana className="w-4 h-4 text-gray-400" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
                 List on Marketplace
               </span>
@@ -665,7 +666,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 {listing ? (
                   <><FiLoader className="w-4 h-4 animate-spin" />Creating listing…</>
                 ) : (
-                  <><FiDollarSign className="w-4 h-4" />List Now</>
+                  <><SiSolana className="w-4 h-4" />List Now</>
                 )}
               </button>
             </div>

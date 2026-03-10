@@ -1,7 +1,7 @@
 export const COMPETITION_TAG = 'competition';
 
-export const COMPETITION_START = new Date('2026-03-10T19:00:00Z'); // Tue 3/10 12:00 PM PDT
-export const COMPETITION_END = new Date('2026-03-17T06:59:00Z');   // Mon 3/16 11:59 PM PDT
+export const COMPETITION_START = new Date('2026-03-11T01:00:00Z'); // Tue 3/10 6:00 PM PDT
+export const COMPETITION_END = new Date('2026-03-18T01:00:00Z');   // Tue 3/17 6:00 PM PDT
 
 export const PRIZES = [
   { place: '1st', amount: '1 SOL', color: 'text-yellow-500 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' },
@@ -35,5 +35,5 @@ export function getTimeRemaining(target: Date, now = new Date()): TimeRemaining 
 }
 
 export function formatDateRange(): string {
-  return 'March 10 \u2013 16, 2026';
+  return 'March 10 \u2013 17, 2026';
 }
