@@ -37,8 +37,7 @@ function WalletDropdown({
         onClick={() => setShowMenu(!showMenu)}
         className={walletTriggerClass}
       >
-        <span className="hidden sm:inline">Connect Wallet</span>
-        <span className="sm:hidden">Connect</span>
+        <span>Connect</span>
       </button>
       {showMenu && (
         <div className="absolute right-0 mt-2 w-72 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-50 py-1">

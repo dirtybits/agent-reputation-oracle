@@ -54,20 +54,32 @@ function parseFrontmatter(content: string): {
   return { name, description, body: content };
 }
 
-function slugify(text: string): string {
-  return text
+function slugify(text: string, trimEdges = true): string {
+  let slug = text
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-{2,}/g, '-')
     .slice(0, 64);
+  if (trimEdges) slug = slug.replace(/^-|-$/g, '');
+  return slug;
+}
+
+function finalizeSlug(text: string): string {
+  return slugify(text, true);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function ProfileSetupStep({
   registering,
+  status,
   onRegister,
   error,
 }: {
   registering: boolean;
+  status: string | null;
   onRegister: () => void;
   error: string | null;
 }) {
@@ -100,6 +112,9 @@ function ProfileSetupStep({
         {error && (
           <p className="text-xs text-red-600 dark:text-red-400 mb-4">{error}</p>
         )}
+        {!error && status && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{status}</p>
+        )}
 
         <button
           onClick={onRegister}
@@ -109,7 +124,7 @@ function ProfileSetupStep({
           {registering ? (
             <>
               <FiLoader className="w-4 h-4 animate-spin" />
-              Creating profile…
+              {status ?? 'Creating profile…'}
             </>
           ) : (
             <>
@@ -216,29 +231,48 @@ function PublishSkillPageInner() {
   const [result, setResult] = useState<{ success: boolean; message: string; id?: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [agentProfile, setAgentProfile] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileChecked, setProfileChecked] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [registerStatus, setRegisterStatus] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [showProfileGate, setShowProfileGate] = useState(false);
   const [pendingPublishAfterRegister, setPendingPublishAfterRegister] = useState(false);
+  const profileFetchId = useRef(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const showInlineResult =
+    !!result && !(showProfileGate && !result.success && /author profile/i.test(result.message));
 
   useEffect(() => {
     if (!connected || !publicKey) {
       setAgentProfile(null);
       setProfileLoading(false);
+      setProfileChecked(false);
       return;
     }
+    const fetchId = ++profileFetchId.current;
     setProfileLoading(true);
     oracle.getAgentProfile(publicKey)
-      .then(setAgentProfile)
-      .catch(() => setAgentProfile(null))
-      .finally(() => setProfileLoading(false));
+      .then((p) => { if (fetchId === profileFetchId.current) setAgentProfile(p); })
+      .catch(() => { if (fetchId === profileFetchId.current) setAgentProfile(null); })
+      .finally(() => {
+        if (fetchId === profileFetchId.current) {
+          setProfileLoading(false);
+          setProfileChecked(true);
+          setResult((prev) =>
+            prev && !prev.success && /author profile|Checking your author/i.test(prev.message)
+              ? null
+              : prev
+          );
+        }
+      });
   }, [connected, publicKey]);
 
   async function publishSkill(skipProfileCheck = false) {
-    if (!skillId || !name || !content) {
+    const cleanId = finalizeSlug(skillId);
+    setSkillId(cleanId);
+    if (!cleanId || !name || !content) {
       setResult({ success: false, message: 'Skill ID, name, and content are required' });
       return;
     }
@@ -248,15 +282,15 @@ function PublishSkillPageInner() {
       return;
     }
 
-    if (!skipProfileCheck && profileLoading) {
-      setResult({ success: false, message: 'Checking your author profile. Try publishing again in a moment.' });
+    if (!skipProfileCheck && (!profileChecked || profileLoading)) {
+      setResult(null);
       return;
     }
 
     if (!skipProfileCheck && !agentProfile) {
       setPendingPublishAfterRegister(true);
       setShowProfileGate(true);
-      setResult({ success: false, message: 'Create your author profile before publishing your first skill.' });
+      setResult(null);
       return;
     }
 
@@ -275,7 +309,7 @@ function PublishSkillPageInner() {
       const res = await fetch('/api/skills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auth, skill_id: skillId, name, description, tags, content, contact: contact || undefined }),
+        body: JSON.stringify({ auth, skill_id: cleanId, name, description, tags, content, contact: contact || undefined }),
       });
 
       const data = await res.json();
@@ -343,17 +377,36 @@ function PublishSkillPageInner() {
     }
   }
 
+  const waitForReadableProfile = useCallback(async (agentKey: Address, attempts = 8) => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const profile = await oracle.getAgentProfile(agentKey);
+      if (profile) return profile;
+      await sleep(500 * (attempt + 1));
+    }
+    return null;
+  }, [oracle]);
+
   const handleRegister = async () => {
     if (!connected || !publicKey) return;
     setRegistering(true);
+    setRegisterStatus('Waiting for wallet confirmation…');
     setRegisterError(null);
     try {
       await oracle.registerAgent('');
-      const profile = await oracle.getAgentProfile(publicKey);
+      setRegisterStatus('Profile created on-chain. Finalizing registration…');
+      const profile = await waitForReadableProfile(publicKey);
+      if (!profile) {
+        throw new Error('Profile transaction confirmed, but the account is not readable yet. Please wait a moment and try again.');
+      }
       setAgentProfile(profile);
+      setProfileChecked(true);
       setShowProfileGate(false);
       if (profile && pendingPublishAfterRegister) {
+        setResult({ success: true, message: 'Profile created. Publishing skill…' });
+        await new Promise((r) => setTimeout(r, 800));
         await publishSkill(true);
+      } else if (profile) {
+        setResult({ success: true, message: 'Author profile created.' });
       }
     } catch (err: any) {
       const cause = err?.cause?.message ?? err?.context?.message ?? '';
@@ -361,11 +414,15 @@ function PublishSkillPageInner() {
       const alreadyExists =
         /already in use|already exists|0x0|account already initialized/i.test(msg);
       if (alreadyExists) {
-        const profile = await oracle.getAgentProfile(publicKey).catch(() => null);
+        setRegisterStatus('Profile already exists. Finalizing registration…');
+        const profile = await waitForReadableProfile(publicKey).catch(() => null);
         if (profile) {
           setAgentProfile(profile);
+          setProfileChecked(true);
           setShowProfileGate(false);
           if (pendingPublishAfterRegister) {
+            setResult({ success: true, message: 'Profile already exists. Publishing skill…' });
+            await new Promise((r) => setTimeout(r, 800));
             await publishSkill(true);
           }
           return;
@@ -373,6 +430,7 @@ function PublishSkillPageInner() {
       }
       setRegisterError(`Profile creation failed: ${msg}`);
     } finally {
+      setRegisterStatus(null);
       setRegistering(false);
     }
   };
@@ -464,7 +522,7 @@ function PublishSkillPageInner() {
         </div>
 
         {/* Result toast */}
-        {result && (
+        {showInlineResult && (
           <div
             className={`mb-6 p-4 rounded-xl border flex items-center justify-between ${
               result.success
@@ -506,6 +564,7 @@ function PublishSkillPageInner() {
               </button>
               <ProfileSetupStep
                 registering={registering}
+                status={registerStatus}
                 onRegister={handleRegister}
                 error={registerError}
               />
@@ -635,7 +694,8 @@ function PublishSkillPageInner() {
               <input
                 type="text"
                 value={skillId}
-                onChange={(e) => setSkillId(slugify(e.target.value))}
+                onChange={(e) => setSkillId(slugify(e.target.value, false))}
+                onBlur={() => setSkillId(finalizeSlug(skillId))}
                 placeholder="solana-dev-skill"
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -737,7 +797,7 @@ function PublishSkillPageInner() {
         <div className="flex items-center justify-between gap-4">
           <PublishReadiness
             connected={connected}
-            profileLoading={profileLoading}
+            profileLoading={profileLoading || !profileChecked}
             hasProfile={!!agentProfile}
             hasContent={!!content}
             hasName={!!name}
@@ -745,7 +805,7 @@ function PublishSkillPageInner() {
           />
           <button
             onClick={handlePublish}
-            disabled={publishing || !content || !name || !skillId || (connected && profileLoading)}
+            disabled={publishing || !content || !name || !skillId || (connected && (!profileChecked || profileLoading))}
             className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0`}
           >
             {publishing ? (
