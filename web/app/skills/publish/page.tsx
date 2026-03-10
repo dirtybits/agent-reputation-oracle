@@ -7,7 +7,7 @@ import Link from 'next/link';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { navButtonFlexClass, navButtonInlineClass } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
-import { PRICING, DEFAULT_CURRENCY, formatMinPrice, toLamports } from '@/lib/pricing';
+import { PRICING, DEFAULT_CURRENCY, formatMinPrice, isValidListingPriceLamports, toLamports } from '@/lib/pricing';
 import {
   FiUpload,
   FiEye,
@@ -282,6 +282,12 @@ function PublishSkillPageInner() {
       return;
     }
 
+    const priceLamports = toLamports(parseFloat(price || '0'));
+    if (!isValidListingPriceLamports(priceLamports)) {
+      setResult({ success: false, message: `Minimum listing price is ${formatMinPrice()}.` });
+      return;
+    }
+
     if (!skipProfileCheck && (!profileChecked || profileLoading)) {
       setResult(null);
       return;
@@ -327,7 +333,6 @@ function PublishSkillPageInner() {
 
       setPublishStep('chain');
       try {
-        const priceLamports = toLamports(parseFloat(price || '0'));
         await oracle.createSkillListing(skillId, skillUri, name, description, priceLamports);
 
         const onChainAddress = await oracle.getSkillListingPDA(publicKey as Address, skillId);

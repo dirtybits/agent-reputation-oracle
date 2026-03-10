@@ -8,7 +8,7 @@ import { SolAmount } from '@/components/SolAmount';
 import { navButtonInlineClass, navButtonSizeClass } from '@/lib/buttonStyles';
 import { useWalletConnection } from '@solana/react-hooks';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
-import { PRICING, formatMinPrice, toLamports, fromLamports } from '@/lib/pricing';
+import { PRICING, formatMinPrice, toLamports, fromLamports, isValidListingPriceLamports } from '@/lib/pricing';
 import type { Address } from '@solana/kit';
 import { SiSolana } from 'react-icons/si';
 import {
@@ -135,8 +135,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     setListResult(null);
     try {
       const priceLamports = toLamports(parseFloat(listPrice || '0'));
-      if (priceLamports <= 0) {
-        setListResult({ success: false, message: `Price must be greater than 0. Minimum is ${formatMinPrice()}.` });
+      if (!isValidListingPriceLamports(priceLamports)) {
+        setListResult({ success: false, message: `Minimum listing price is ${formatMinPrice()}.` });
         setListing(false);
         return;
       }
@@ -216,8 +216,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     setUpdateResult(null);
     try {
       const priceLamports = toLamports(parseFloat(editPrice || '0'));
-      if (priceLamports <= 0) {
-        setUpdateResult({ success: false, message: `Price must be greater than 0. Minimum is ${formatMinPrice()}.` });
+      if (!isValidListingPriceLamports(priceLamports)) {
+        setUpdateResult({ success: false, message: `Minimum listing price is ${formatMinPrice()}.` });
         setUpdating(false);
         return;
       }

@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{SkillListing, SkillStatus, AgentProfile};
+use crate::state::{SkillListing, SkillStatus, AgentProfile, MIN_SKILL_PRICE_LAMPORTS};
 use crate::events::SkillListingUpdated;
 
 #[derive(Accounts)]
@@ -43,7 +43,10 @@ pub fn handler(
         description.len() <= SkillListing::MAX_DESCRIPTION_LEN,
         UpdateSkillError::DescriptionTooLong
     );
-    require!(price_lamports > 0, UpdateSkillError::PriceMustBePositive);
+    require!(
+        price_lamports >= MIN_SKILL_PRICE_LAMPORTS,
+        UpdateSkillError::PriceBelowMinimum
+    );
 
     let skill_listing = &mut ctx.accounts.skill_listing;
     let clock = Clock::get()?;
@@ -73,8 +76,8 @@ pub enum UpdateSkillError {
     NameTooLong,
     #[msg("Description too long")]
     DescriptionTooLong,
-    #[msg("Price must be greater than zero")]
-    PriceMustBePositive,
+    #[msg("Price is below the minimum listing price")]
+    PriceBelowMinimum,
     #[msg("Only the author can update this listing")]
     NotAuthor,
     #[msg("Cannot update a removed listing")]

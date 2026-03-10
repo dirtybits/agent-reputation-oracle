@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{SkillListing, SkillStatus, AgentProfile};
+use crate::state::{SkillListing, SkillStatus, AgentProfile, MIN_SKILL_PRICE_LAMPORTS};
 use crate::events::SkillListingCreated;
 
 #[derive(Accounts)]
@@ -46,7 +46,10 @@ pub fn handler(
         description.len() <= SkillListing::MAX_DESCRIPTION_LEN,
         CreateSkillError::DescriptionTooLong
     );
-    require!(price_lamports > 0, CreateSkillError::PriceMustBePositive);
+    require!(
+        price_lamports >= MIN_SKILL_PRICE_LAMPORTS,
+        CreateSkillError::PriceBelowMinimum
+    );
     
     let skill_listing = &mut ctx.accounts.skill_listing;
     let clock = Clock::get()?;
@@ -83,6 +86,6 @@ pub enum CreateSkillError {
     NameTooLong,
     #[msg("Description too long")]
     DescriptionTooLong,
-    #[msg("Price must be greater than zero")]
-    PriceMustBePositive,
+    #[msg("Price is below the minimum listing price")]
+    PriceBelowMinimum,
 }

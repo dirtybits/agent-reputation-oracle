@@ -16,6 +16,17 @@ export function formatMinPrice(currency: CurrencyKey = DEFAULT_CURRENCY): string
   return `${PRICING[currency].minPrice} ${PRICING[currency].symbol}`;
 }
 
+export function getMinPriceLamports(currency: CurrencyKey = DEFAULT_CURRENCY): number {
+  return toLamports(PRICING[currency].minPrice);
+}
+
+export function isValidListingPriceLamports(
+  lamports: number,
+  currency: CurrencyKey = DEFAULT_CURRENCY,
+): boolean {
+  return Number.isFinite(lamports) && lamports >= getMinPriceLamports(currency);
+}
+
 export function toLamports(sol: number): number {
   return Math.round(sol * 10 ** PRICING.SOL.decimals);
 }

@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+pub const MIN_SKILL_PRICE_LAMPORTS: u64 = 1_000_000;
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum SkillStatus {
     Active,
