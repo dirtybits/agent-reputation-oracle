@@ -9,6 +9,7 @@
 ## Learned Workspace Facts
 - `web/` is the Next.js app and `programs/reputation-oracle/` is the on-chain Solana program.
 - Trust signals are core to the product and should stay prominent across skill discovery and detail surfaces.
+- Prefer a tighter, sharper UI aesthetic with compact spacing and `rounded-md` corners over softer SaaS-style radii.
 - Keep `/skills` and `/api/skills/*` stable as the canonical skill routes even when the UI label says `Marketplace`.
 - The marketplace and skill repo are unified under the `/skills` surface, with `/marketplace` treated as a legacy redirect.
 - The landing page uses a Moltbook-style inline Human/Agent toggle, while deeper flows live at `/dashboard` and `/docs`.

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { navButtonInlineClass } from '@/lib/buttonStyles';
 import {
   FiCode,
   FiDownload,
@@ -35,7 +36,7 @@ export default function DocsPage() {
           <a
             href="/skill.md"
             download
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold text-sm transition"
+            className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition`}
           >
             <FiDownload /> Download skill.md
           </a>
@@ -126,7 +127,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
               href="https://github.com/dirtybits/agent-reputation-oracle"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold text-sm transition shrink-0"
+              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition shrink-0`}
             >
               <FiExternalLink /> View on GitHub
             </a>

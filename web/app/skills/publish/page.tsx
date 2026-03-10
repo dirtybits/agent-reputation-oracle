@@ -5,6 +5,7 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { navButtonFlexClass, navButtonInlineClass } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PRICING, DEFAULT_CURRENCY, formatMinPrice, toLamports } from '@/lib/pricing';
 import {
@@ -103,7 +104,7 @@ function ProfileSetupStep({
         <button
           onClick={onRegister}
           disabled={registering}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+          className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
         >
           {registering ? (
             <>
@@ -745,7 +746,7 @@ function PublishSkillPageInner() {
           <button
             onClick={handlePublish}
             disabled={publishing || !content || !name || !skillId || (connected && profileLoading)}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0`}
           >
             {publishing ? (
               <>

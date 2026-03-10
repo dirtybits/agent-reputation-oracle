@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useWalletConnection } from '@solana/react-hooks';
 import { address, type Address } from '@solana/kit';
 import Link from 'next/link';
+import { navButtonInlineClass } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
@@ -256,7 +257,7 @@ export default function AuthorProfilePage() {
               <button
                 onClick={handleVouch}
                 disabled={vouching}
-                className="self-end px-6 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 rounded-lg font-semibold text-sm transition"
+                className={`self-end ${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition`}
               >
                 {vouching ? 'Vouching...' : `Vouch with ${vouchAmount} SOL`}
               </button>

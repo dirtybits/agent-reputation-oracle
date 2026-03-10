@@ -4,8 +4,11 @@ import { useEffect, useState, useRef } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
 import { ConnectButton, usePhantom, useAccounts, useDisconnect } from '@phantom/react-sdk';
 import { usePhantomConfigured } from './WalletContextProvider';
+import { navButtonInlineClass, navButtonSizeClass } from '@/lib/buttonStyles';
 
 const PHANTOM_ICON = 'https://phantom.com/_web_platform_assets/favicon.svg';
+const walletTriggerClass = `${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`;
+const walletMenuButtonClass = 'w-full px-3 py-1.5 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition rounded-lg';
 
 function isMobile(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -32,7 +35,7 @@ function WalletDropdown({
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="px-5 py-2.5 rounded-lg font-semibold text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition"
+        className={walletTriggerClass}
       >
         <span className="hidden sm:inline">Connect Wallet</span>
         <span className="sm:hidden">Connect</span>
@@ -60,7 +63,7 @@ function WalletDropdown({
                     connect(connector.id);
                     setShowMenu(false);
                   }}
-                  className="w-full px-3 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition flex items-center gap-3 rounded-lg"
+                  className={`${walletMenuButtonClass} flex items-center gap-3`}
                 >
                   {connector.icon && (
                     <img src={connector.icon} alt="" className="w-5 h-5 rounded" />
@@ -83,21 +86,21 @@ function WalletDropdown({
                   <a
                     href={`https://phantom.app/ul/browse/${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
                     onClick={() => setShowMenu(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition text-xs font-semibold text-purple-700 dark:text-purple-300"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition text-sm font-semibold text-purple-700 dark:text-purple-300"
                   >
                     <img src={PHANTOM_ICON} alt="Phantom" className="w-4 h-4 rounded" />
                     Open in Phantom
                   </a>
                 )}
-                <a href="https://phantom.app/download" target="_blank" rel="noopener noreferrer" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-xs font-medium text-gray-700 dark:text-gray-300">
+                <a href="https://phantom.app/download" target="_blank" rel="noopener noreferrer" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm font-medium text-gray-700 dark:text-gray-300">
                   <img src={PHANTOM_ICON} alt="Phantom" className="w-4 h-4 rounded" />
                   Get Phantom
                 </a>
-                <a href="https://www.backpack.app/" target="_blank" rel="noopener noreferrer" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-xs font-medium text-gray-700 dark:text-gray-300">
+                <a href="https://www.backpack.app/" target="_blank" rel="noopener noreferrer" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm font-medium text-gray-700 dark:text-gray-300">
                   <img src="https://www.backpack.app/favicon.ico" alt="Backpack" className="w-4 h-4 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   Get Backpack
                 </a>
-                <a href="https://solflare.com/" target="_blank" rel="noopener noreferrer" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-xs font-medium text-gray-700 dark:text-gray-300">
+                <a href="https://solflare.com/" target="_blank" rel="noopener noreferrer" onClick={() => setShowMenu(false)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm font-medium text-gray-700 dark:text-gray-300">
                   <img src="https://solflare.com/favicon.ico" alt="Solflare" className="w-4 h-4 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   Get Solflare
                 </a>
@@ -129,7 +132,7 @@ function ClientWalletButtonWithPhantom() {
   }, []);
 
   if (!mounted) {
-    return <div className="px-5 py-2.5 rounded-lg font-semibold text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 opacity-60 pointer-events-none">Loading...</div>;
+    return <div className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 opacity-60 pointer-events-none`}>Loading...</div>;
   }
 
   // Extension wallet connected
@@ -138,10 +141,10 @@ function ClientWalletButtonWithPhantom() {
     const short = `${addr.slice(0, 4)}...${addr.slice(-4)}`;
     return (
       <div className="relative" ref={menuRef}>
-        <button onClick={() => setShowMenu(!showMenu)} className="px-5 py-2.5 rounded-lg font-semibold text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition font-mono">{short}</button>
+        <button onClick={() => setShowMenu(!showMenu)} className={`${walletTriggerClass} font-mono`}>{short}</button>
         {showMenu && (
           <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-50">
-            <button onClick={() => { disconnect(); setShowMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">Disconnect</button>
+            <button onClick={() => { disconnect(); setShowMenu(false); }} className={walletMenuButtonClass}>Disconnect</button>
           </div>
         )}
       </div>
@@ -155,11 +158,11 @@ function ClientWalletButtonWithPhantom() {
     const short = `${addr.slice(0, 4)}...${addr.slice(-4)}`;
     return (
       <div className="relative" ref={menuRef}>
-        <button onClick={() => setShowMenu(!showMenu)} className="px-5 py-2.5 rounded-lg font-semibold text-sm bg-purple-600 text-white hover:bg-purple-500 transition font-mono">{short}</button>
+        <button onClick={() => setShowMenu(!showMenu)} className={`${navButtonInlineClass} font-semibold bg-purple-600 text-white hover:bg-purple-500 transition font-mono`}>{short}</button>
         {showMenu && (
           <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-50">
             <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-800">Phantom Embedded</div>
-            <button onClick={() => { phantomDisconnect.disconnect(); setShowMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">Disconnect</button>
+            <button onClick={() => { phantomDisconnect.disconnect(); setShowMenu(false); }} className={walletMenuButtonClass}>Disconnect</button>
           </div>
         )}
       </div>
@@ -193,7 +196,7 @@ function ClientWalletButtonBasic() {
   }, []);
 
   if (!mounted) {
-    return <div className="px-5 py-2.5 rounded-lg font-semibold text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 opacity-60 pointer-events-none">Loading...</div>;
+    return <div className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 opacity-60 pointer-events-none`}>Loading...</div>;
   }
 
   if (status === 'connected' && wallet) {
@@ -201,10 +204,10 @@ function ClientWalletButtonBasic() {
     const short = `${addr.slice(0, 4)}...${addr.slice(-4)}`;
     return (
       <div className="relative" ref={menuRef}>
-        <button onClick={() => setShowMenu(!showMenu)} className="px-5 py-2.5 rounded-lg font-semibold text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition font-mono">{short}</button>
+        <button onClick={() => setShowMenu(!showMenu)} className={`${walletTriggerClass} font-mono`}>{short}</button>
         {showMenu && (
           <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-50">
-            <button onClick={() => { disconnect(); setShowMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">Disconnect</button>
+            <button onClick={() => { disconnect(); setShowMenu(false); }} className={walletMenuButtonClass}>Disconnect</button>
           </div>
         )}
       </div>

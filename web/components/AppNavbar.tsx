@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { navButtonSizeClass } from '@/lib/buttonStyles';
 import { getCompetitionPhase } from '@/lib/competition';
 
 type NavItem = {
@@ -40,7 +41,7 @@ const navItems: NavItem[] = [
 
 function navLinkClass(isActive: boolean) {
   return [
-    'px-3 py-1.5 text-sm rounded-lg transition whitespace-nowrap',
+    `${navButtonSizeClass} transition whitespace-nowrap`,
     isActive
       ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800',
@@ -79,8 +80,8 @@ export function AppNavbar() {
           })}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ThemeToggle />
           <ClientWalletButton />
+          <ThemeToggle />
         </div>
       </div>
     </nav>

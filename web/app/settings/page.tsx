@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
 import Link from 'next/link';
+import { navButtonInlineClass } from '@/lib/buttonStyles';
 import {
   FiKey,
   FiPlus,
@@ -220,7 +221,7 @@ export default function SettingsPage() {
                 <button
                   onClick={createKey}
                   disabled={creating}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+                  className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
                 >
                   {creating ? (
                     <><FiLoader className="w-4 h-4 animate-spin" />Creating…</>
@@ -272,7 +273,7 @@ export default function SettingsPage() {
                       <button
                         onClick={() => revokeKey(key.id)}
                         disabled={revoking === key.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition disabled:opacity-40"
+                        className={`${navButtonInlineClass} gap-1.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-40`}
                       >
                         {revoking === key.id ? (
                           <FiLoader className="w-3.5 h-3.5 animate-spin" />

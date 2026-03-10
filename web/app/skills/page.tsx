@@ -5,6 +5,7 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { type Address } from '@solana/kit';
 import Link from 'next/link';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
+import { navButtonFlexClass, navButtonInlineClass, navButtonSizeClass } from '@/lib/buttonStyles';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import type { SkillListing, Purchase } from '../../generated/reputation-oracle/src/generated';
@@ -285,7 +286,7 @@ export default function MarketplacePage() {
           <div className="flex items-center gap-3">
             <Link
               href="/competition"
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm font-semibold hover:border-yellow-300 dark:hover:border-yellow-700 transition"
+              className={`${navButtonFlexClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
             >
               <FiAward className="w-4 h-4" />
               <span className="hidden sm:inline">Competition</span>
@@ -295,7 +296,7 @@ export default function MarketplacePage() {
             </Link>
             <Link
               href="/skills/publish"
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
+              className={`${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`}
             >
               <FiPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Publish Skill</span>
@@ -372,7 +373,7 @@ export default function MarketplacePage() {
                     <button
                       key={opt.value}
                       onClick={() => { setSort(opt.value); setPage(1); }}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                      className={`${navButtonFlexClass} font-medium ${
                         sort === opt.value
                           ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
                           : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
@@ -500,18 +501,18 @@ export default function MarketplacePage() {
                           {listing && (
                             <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
                               {isOwn ? (
-                                <div className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-lg font-medium text-center text-xs border border-gray-200 dark:border-gray-700">
+                                <div className={`w-full ${navButtonSizeClass} bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-medium text-center border border-gray-200 dark:border-gray-700`}>
                                   Your Skill
                                 </div>
                               ) : price === 0 ? (
                                 <Link
                                   href={`/skills/${skill.id}`}
-                                  className="w-full px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg font-medium text-center text-xs border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition flex items-center justify-center gap-1"
+                                  className={`w-full ${navButtonFlexClass} font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 text-center border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition`}
                                 >
                                   <FiDownload className="w-3 h-3" /> Free — View & Install
                                 </Link>
                               ) : hasPurchased ? (
-                                <div className="w-full px-3 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg font-medium text-center text-xs border border-green-200 dark:border-green-800">
+                                <div className={`w-full ${navButtonSizeClass} bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-medium text-center border border-green-200 dark:border-green-800`}>
                                   <span className="inline-flex items-center gap-1"><FiCheckCircle className="w-3 h-3" /> Purchased</span>
                                 </div>
                               ) : (
@@ -521,7 +522,7 @@ export default function MarketplacePage() {
                                     handlePurchase(listing.publicKey, listing.account.author);
                                   }}
                                   disabled={!connected || isPurchasing}
-                                  className="w-full px-3 py-2 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 disabled:text-gray-500 rounded-lg font-semibold transition text-xs"
+                                  className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 disabled:text-gray-500 transition`}
                                 >
                                   {isPurchasing ? (
                                     <span className="animate-pulse">Processing...</span>
@@ -657,7 +658,7 @@ export default function MarketplacePage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Browse the marketplace to find useful skills.</p>
                 <button
                   onClick={() => setActiveTab('browse')}
-                  className="px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold transition text-sm"
+                  className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition`}
                 >
                   <span className="inline-flex items-center gap-2"><FiBookOpen /> Browse Skills</span>
                 </button>
@@ -691,7 +692,7 @@ export default function MarketplacePage() {
                           href={listing.account.skillUri}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition"
+                          className={`${navButtonInlineClass} font-semibold bg-green-600 hover:bg-green-700 text-white transition`}
                         >
                           <span className="inline-flex items-center gap-1"><FiDownload /> Download</span>
                         </a>
@@ -720,7 +721,7 @@ export default function MarketplacePage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Publish your first skill to start earning.</p>
                 <Link
                   href="/skills/publish"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold transition text-sm"
+                  className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition`}
                 >
                   <FiPlus /> Publish a Skill
                 </Link>

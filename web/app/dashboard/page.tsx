@@ -5,6 +5,7 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { address } from '@solana/kit';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
+import { navButtonFlexClass, navButtonInlineClass } from '@/lib/buttonStyles';
 import Link from 'next/link';
 import {
   FiAlertTriangle,
@@ -317,7 +318,7 @@ export default function DashboardPage() {
                     <button
                       onClick={handleRegister}
                       disabled={loading}
-                      className="w-full px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 rounded-lg font-semibold transition text-sm"
+                      className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition`}
                     >
                       {loading ? 'Registering...' : 'Register as Agent'}
                     </button>
@@ -355,7 +356,7 @@ export default function DashboardPage() {
                             </div>
                             <Link
                               href={`/author/${voucher}`}
-                              className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition whitespace-nowrap"
+                              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition whitespace-nowrap`}
                             >
                               View
                             </Link>
@@ -397,7 +398,7 @@ export default function DashboardPage() {
                             </div>
                             <Link
                               href={`/author/${vouchee}`}
-                              className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition whitespace-nowrap"
+                              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition whitespace-nowrap`}
                             >
                               View
                             </Link>
@@ -452,7 +453,7 @@ export default function DashboardPage() {
                   <button
                     onClick={handleVouch}
                     disabled={loading || !voucheeAddress}
-                    className="w-full px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 disabled:text-gray-500 rounded-lg font-semibold transition text-sm"
+                    className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 disabled:text-gray-500 transition`}
                   >
                     {loading ? 'Creating Vouch...' : `Vouch with ${vouchAmount} SOL`}
                   </button>
@@ -465,7 +466,7 @@ export default function DashboardPage() {
                   <button
                     onClick={loadAllAgents}
                     disabled={loadingAgents}
-                    className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition"
+                    className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition`}
                   >
                     {loadingAgents ? 'Loading...' : 'Refresh'}
                   </button>
@@ -506,7 +507,7 @@ export default function DashboardPage() {
                                   setVoucheeAddress(agent.account.authority);
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
-                                className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition whitespace-nowrap"
+                                className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition whitespace-nowrap`}
                               >
                                 Vouch
                               </button>
@@ -549,7 +550,7 @@ export default function DashboardPage() {
                     <button
                       onClick={searchAgent}
                       disabled={loading}
-                      className="px-5 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 rounded-lg font-semibold transition whitespace-nowrap text-sm"
+                      className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition whitespace-nowrap`}
                     >
                       {loading ? '...' : 'Search'}
                     </button>
@@ -599,7 +600,7 @@ export default function DashboardPage() {
                       <div className="pt-4">
                         <Link
                           href={`/author/${searchAddress}`}
-                          className="w-full block text-center px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-semibold transition text-sm"
+                          className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition`}
                         >
                           View Full Profile
                         </Link>
@@ -615,7 +616,7 @@ export default function DashboardPage() {
                   <button
                     onClick={loadAllAgents}
                     disabled={loadingAgents}
-                    className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition"
+                    className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition`}
                   >
                     {loadingAgents ? 'Loading...' : allAgents.length > 0 ? 'Refresh' : 'Load Agents'}
                   </button>
@@ -652,7 +653,7 @@ export default function DashboardPage() {
                             </div>
                             <Link
                               href={`/author/${agent.account.authority}`}
-                              className="px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-semibold transition whitespace-nowrap"
+                              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition whitespace-nowrap`}
                             >
                               View
                             </Link>
@@ -712,7 +713,7 @@ export default function DashboardPage() {
                 <button
                   onClick={handleDispute}
                   disabled={loading}
-                  className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white disabled:text-gray-500 rounded-lg font-semibold transition text-sm"
+                  className={`w-full ${navButtonFlexClass} font-semibold bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white disabled:text-gray-500 transition`}
                 >
                   {loading ? 'Opening Dispute...' : 'Open Dispute'}
                 </button>

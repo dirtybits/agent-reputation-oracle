@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
+import { navButtonFlexClass, navButtonInlineClass } from '@/lib/buttonStyles';
 import {
   FiAward,
   FiDownload,
@@ -307,7 +308,7 @@ export default function CompetitionPage() {
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
           {phase === 'upcoming' && (
             <>
-              <div className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-semibold cursor-not-allowed">
+              <div className={`w-full sm:w-auto ${navButtonFlexClass} font-semibold bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed`}>
                 <FiPlus className="w-4 h-4" />
                 Submit Your Skill
               </div>
@@ -318,14 +319,14 @@ export default function CompetitionPage() {
             <>
               <Link
                 href="/skills/publish?tag=competition"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
+                className={`w-full sm:w-auto ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`}
               >
                 <FiPlus className="w-4 h-4" />
                 Submit Your Skill
               </Link>
               <Link
                 href="/skills"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition"
+                className={`w-full sm:w-auto ${navButtonFlexClass} font-semibold bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition`}
               >
                 Browse All Skills <FiArrowRight className="w-4 h-4" />
               </Link>
@@ -368,7 +369,7 @@ export default function CompetitionPage() {
             {phase === 'active' && (
               <Link
                 href="/skills/publish?tag=competition"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition"
+                className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`}
               >
                 <FiPlus className="w-4 h-4" /> Submit Skill
               </Link>

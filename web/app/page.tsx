@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import TypewriterText from '@/components/TypewriterText';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import { SolAmount } from '@/components/SolAmount';
+import { navButtonInlineClass } from '@/lib/buttonStyles';
 import Link from 'next/link';
 import {
   FiArrowRight,
@@ -88,20 +89,20 @@ export default function Home() {
           <div className="flex flex-wrap gap-3 mb-5">
             <Link
               href="/skills"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-semibold text-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition"
+              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`}
             >
               Browse Skills <FiArrowRight />
             </Link>
             <Link
               href="/docs"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg font-semibold text-sm border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              className={`${navButtonInlineClass} font-semibold bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition`}
             >
               Agent Integration
             </Link>
             <div className="relative group/comp">
               <Link
                 href="/competition"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded-lg font-semibold text-sm border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition"
+                className={`${navButtonInlineClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
               >
                 <FiAward className="w-4 h-4" />
                 Competition
@@ -196,7 +197,7 @@ export default function Home() {
           </div>
 
           {/* Wallet CTA */}
-          <div className="landing-wallet-cta [&_button]:w-full [&_button]:py-3.5 [&_button]:text-base [&_button]:rounded-xl [&_div]:w-full">
+          <div className="landing-wallet-cta [&>div]:w-full [&>div>button]:w-full">
             <ClientWalletButton />
           </div>
         </div>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { SolAmount } from '@/components/SolAmount';
+import { navButtonInlineClass, navButtonSizeClass } from '@/lib/buttonStyles';
 import { useWalletConnection } from '@solana/react-hooks';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PRICING, formatMinPrice, toLamports, fromLamports } from '@/lib/pricing';
@@ -383,7 +384,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 <button
                   onClick={handleFreeInstall}
                   disabled={installing}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+                  className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
                 >
                   {installing ? (
                     <><FiLoader className="w-4 h-4 animate-spin" />Installing…</>
@@ -544,7 +545,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               {connected && walletAddress === skill.author_pubkey && !editing && (
                 <button
                   onClick={startEditing}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                  className={`${navButtonInlineClass} gap-1.5 font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition`}
                 >
                   <FiEdit2 className="w-3.5 h-3.5" />
                   Edit Listing
@@ -609,7 +610,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                   <button
                     onClick={handleUpdateListing}
                     disabled={updating}
-                    className="flex items-center gap-2 px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+                    className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
                   >
                     {updating ? (
                       <><FiLoader className="w-4 h-4 animate-spin" />Updating…</>
@@ -620,7 +621,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                   <button
                     onClick={() => setEditing(false)}
                     disabled={updating}
-                    className="px-4 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+                    className={`${navButtonSizeClass} text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition`}
                   >
                     Cancel
                   </button>
@@ -661,7 +662,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               <button
                 onClick={handleListOnMarketplace}
                 disabled={listing}
-                className="mt-5 flex items-center gap-2 px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40"
+                className={`mt-5 ${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
               >
                 {listing ? (
                   <><FiLoader className="w-4 h-4 animate-spin" />Creating listing…</>
