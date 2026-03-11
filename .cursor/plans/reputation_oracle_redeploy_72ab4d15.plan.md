@@ -4,19 +4,19 @@ overview: Upgrade the existing `reputation_oracle` program on devnet with the sa
 todos:
   - id: verify-upgrade-authority
     content: Confirm the current devnet program address and upgrade authority for `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`.
-    status: pending
+    status: completed
   - id: build-program
     content: Build and sanity-check the program on the authority machine before upgrading.
-    status: pending
+    status: completed
   - id: upgrade-same-id
     content: Upgrade the existing devnet program using the same program ID and upgrade authority wallet.
-    status: pending
+    status: completed
   - id: sync-client-artifacts
     content: Refresh any IDL or generated client artifacts the web app depends on after the upgrade.
-    status: pending
+    status: completed
   - id: verify-min-price
     content: Validate on devnet that below-minimum listing create/update calls fail while minimum-price calls succeed and existing state still loads.
-    status: pending
+    status: completed
 isProject: false
 ---
 

@@ -185,13 +185,13 @@ export function identifyReputationOracleAccount(
 export enum ReputationOracleInstruction {
   ClaimVoucherRevenue,
   CreateSkillListing,
-  UpdateSkillListing,
   InitializeConfig,
   OpenDispute,
   PurchaseSkill,
   RegisterAgent,
   ResolveDispute,
   RevokeVouch,
+  UpdateSkillListing,
   Vouch,
 }
 
@@ -220,17 +220,6 @@ export function identifyReputationOracleInstruction(
     )
   ) {
     return ReputationOracleInstruction.CreateSkillListing;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([192, 205, 6, 209, 45, 93, 143, 10]),
-      ),
-      0,
-    )
-  ) {
-    return ReputationOracleInstruction.UpdateSkillListing;
   }
   if (
     containsBytes(
@@ -302,6 +291,17 @@ export function identifyReputationOracleInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([192, 205, 6, 209, 45, 93, 143, 10]),
+      ),
+      0,
+    )
+  ) {
+    return ReputationOracleInstruction.UpdateSkillListing;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([87, 240, 8, 21, 219, 179, 242, 177]),
       ),
       0,
@@ -325,9 +325,6 @@ export type ParsedReputationOracleInstruction<
       instructionType: ReputationOracleInstruction.CreateSkillListing;
     } & ParsedCreateSkillListingInstruction<TProgram>)
   | ({
-      instructionType: ReputationOracleInstruction.UpdateSkillListing;
-    } & ParsedUpdateSkillListingInstruction<TProgram>)
-  | ({
       instructionType: ReputationOracleInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
   | ({
@@ -345,6 +342,9 @@ export type ParsedReputationOracleInstruction<
   | ({
       instructionType: ReputationOracleInstruction.RevokeVouch;
     } & ParsedRevokeVouchInstruction<TProgram>)
+  | ({
+      instructionType: ReputationOracleInstruction.UpdateSkillListing;
+    } & ParsedUpdateSkillListingInstruction<TProgram>)
   | ({
       instructionType: ReputationOracleInstruction.Vouch;
     } & ParsedVouchInstruction<TProgram>);
@@ -366,13 +366,6 @@ export function parseReputationOracleInstruction<TProgram extends string>(
       return {
         instructionType: ReputationOracleInstruction.CreateSkillListing,
         ...parseCreateSkillListingInstruction(instruction),
-      };
-    }
-    case ReputationOracleInstruction.UpdateSkillListing: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ReputationOracleInstruction.UpdateSkillListing,
-        ...parseUpdateSkillListingInstruction(instruction),
       };
     }
     case ReputationOracleInstruction.InitializeConfig: {
@@ -415,6 +408,13 @@ export function parseReputationOracleInstruction<TProgram extends string>(
       return {
         instructionType: ReputationOracleInstruction.RevokeVouch,
         ...parseRevokeVouchInstruction(instruction),
+      };
+    }
+    case ReputationOracleInstruction.UpdateSkillListing: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ReputationOracleInstruction.UpdateSkillListing,
+        ...parseUpdateSkillListingInstruction(instruction),
       };
     }
     case ReputationOracleInstruction.Vouch: {
@@ -464,10 +464,6 @@ export type ReputationOraclePluginInstructions = {
     input: CreateSkillListingAsyncInput,
   ) => ReturnType<typeof getCreateSkillListingInstructionAsync> &
     SelfPlanAndSendFunctions;
-  updateSkillListing: (
-    input: UpdateSkillListingAsyncInput,
-  ) => ReturnType<typeof getUpdateSkillListingInstructionAsync> &
-    SelfPlanAndSendFunctions;
   initializeConfig: (
     input: InitializeConfigAsyncInput,
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
@@ -491,6 +487,10 @@ export type ReputationOraclePluginInstructions = {
   revokeVouch: (
     input: RevokeVouchAsyncInput,
   ) => ReturnType<typeof getRevokeVouchInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateSkillListing: (
+    input: UpdateSkillListingAsyncInput,
+  ) => ReturnType<typeof getUpdateSkillListingInstructionAsync> &
     SelfPlanAndSendFunctions;
   vouch: (
     input: VouchAsyncInput,
@@ -530,11 +530,6 @@ export function reputationOracleProgram() {
               client,
               getCreateSkillListingInstructionAsync(input),
             ),
-          updateSkillListing: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getUpdateSkillListingInstructionAsync(input),
-            ),
           initializeConfig: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -564,6 +559,11 @@ export function reputationOracleProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getRevokeVouchInstructionAsync(input),
+            ),
+          updateSkillListing: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateSkillListingInstructionAsync(input),
             ),
           vouch: (input) =>
             addSelfPlanAndSendFunctions(
