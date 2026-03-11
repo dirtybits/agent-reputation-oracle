@@ -107,7 +107,7 @@ export default function Home() {
                 <FiAward className="w-4 h-4" />
                 Competition
                 <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">
-                  {getCompetitionPhase() === 'upcoming' ? 'Starts Mar 10' : getCompetitionPhase() === 'active' ? 'Live' : 'Ended'}
+                  {getCompetitionPhase() === 'upcoming' ? 'Starts Mar 11' : getCompetitionPhase() === 'active' ? 'Live' : 'Ended'}
                 </span>
               </Link>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/comp:opacity-100 transition-opacity pointer-events-none z-10">
