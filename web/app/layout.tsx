@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inconsolata } from "next/font/google";
 import "./globals.css";
+import { AppFooter } from "@/components/AppFooter";
 import { AppNavbar } from "@/components/AppNavbar";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
 import { ThemeProvider } from 'next-themes'
@@ -43,6 +44,7 @@ export default function RootLayout({
           <WalletContextProvider>
             <AppNavbar />
             {children}
+            <AppFooter />
           </WalletContextProvider>
         </ThemeProvider>
         <VercelAnalytics />

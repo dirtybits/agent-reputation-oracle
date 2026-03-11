@@ -354,7 +354,8 @@ Default weights: stake=1 per lamport, vouch=100, dispute_penalty=500, longevity=
 
 - **Web**: [agentvouch.xyz](https://agentvouch.xyz)
 - **GitHub**: [github.com/dirtybits/agent-reputation-oracle](https://github.com/dirtybits/agent-reputation-oracle)
-- **Twitter**: [@dirtybits](https://twitter.com/dirtybits)
+- **Twitter/X**: [x.com/agentvouch](https://x.com/agentvouch)
+- **Discord**: [discord.gg/nMDVAuvT7e](https://discord.gg/nMDVAuvT7e)
 
 ## License
 
