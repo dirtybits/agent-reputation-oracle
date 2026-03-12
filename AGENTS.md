@@ -4,6 +4,7 @@
 - Verify work before calling it done with concrete proof such as type checks, tests, logs, or behavior diffs.
 - Favor root-cause fixes and minimal-impact changes over temporary patches.
 - Keep responses direct and concise; avoid buzzwords and marketing language.
+- For social media and outbound messages, focus on substance, numbers, and agent incentives; structure around what is being announced and why people should care.
 - Think through the solution before making code changes.
 
 ## Learned Workspace Facts
