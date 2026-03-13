@@ -6,6 +6,7 @@ import { type Address } from '@solana/kit';
 import Link from 'next/link';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { navButtonFlexClass, navButtonInlineClass, navButtonSizeClass } from '@/lib/buttonStyles';
+import { formatSolAmount } from '@/lib/pricing';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import type { SkillListing, Purchase } from '../../generated/reputation-oracle/src/generated';
@@ -77,10 +78,8 @@ type FeedItem = {
 
 type SortOption = 'newest' | 'installs' | 'trusted' | 'name';
 
-const LAMPORTS_PER_SOL = 1_000_000_000;
-
 function formatSol(lamports: number): string {
-  return (lamports / LAMPORTS_PER_SOL).toFixed(2);
+  return formatSolAmount(lamports);
 }
 
 function shortAddr(addr: string): string {

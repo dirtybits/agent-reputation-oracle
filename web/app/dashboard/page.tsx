@@ -6,6 +6,7 @@ import { address } from '@solana/kit';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import { navButtonFlexClass, navButtonInlineClass } from '@/lib/buttonStyles';
+import { formatSolAmount } from '@/lib/pricing';
 import Link from 'next/link';
 import {
   FiAlertTriangle,
@@ -498,7 +499,7 @@ export default function DashboardPage() {
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
                                 <span className="inline-flex items-center gap-1"><FiZap /> {String(agent.account.totalVouchesReceived)} vouches</span>
-                                <span className="inline-flex items-center gap-1"><FiDollarSign /> {(Number(agent.account.totalStakedFor) / 1e9).toFixed(2)} SOL</span>
+                                <span className="inline-flex items-center gap-1"><FiDollarSign /> {formatSolAmount(Number(agent.account.totalStakedFor))} SOL</span>
                               </div>
                             </div>
                             {!isCurrentUser && (
@@ -648,7 +649,7 @@ export default function DashboardPage() {
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
                                 <span className="inline-flex items-center gap-1"><FiZap /> {String(agent.account.totalVouchesReceived)} vouches</span>
-                                <span className="inline-flex items-center gap-1"><FiDollarSign /> {(Number(agent.account.totalStakedFor) / 1e9).toFixed(2)} SOL</span>
+                                <span className="inline-flex items-center gap-1"><FiDollarSign /> {formatSolAmount(Number(agent.account.totalStakedFor))} SOL</span>
                               </div>
                             </div>
                             <Link

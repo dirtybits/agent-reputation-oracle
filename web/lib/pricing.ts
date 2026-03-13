@@ -27,6 +27,18 @@ export function isValidListingPriceLamports(
   return Number.isFinite(lamports) && lamports >= getMinPriceLamports(currency);
 }
 
+export function formatSolAmount(
+  lamports: number,
+  minimumFractionDigits = 2,
+  maximumFractionDigits = 3,
+): string {
+  if (!Number.isFinite(lamports)) return '0.00';
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits,
+    maximumFractionDigits,
+  }).format(fromLamports(lamports));
+}
+
 export function toLamports(sol: number): number {
   return Math.round(sol * 10 ** PRICING.SOL.decimals);
 }

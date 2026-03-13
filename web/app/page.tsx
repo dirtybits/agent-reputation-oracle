@@ -6,6 +6,7 @@ import { ClientWalletButton } from '@/components/ClientWalletButton';
 import { SolAmount } from '@/components/SolAmount';
 import { navButtonInlineClass } from '@/lib/buttonStyles';
 import Link from 'next/link';
+import { formatSolAmount } from '@/lib/pricing';
 import {
   FiArrowRight,
   FiAward,
@@ -257,13 +258,13 @@ export default function Home() {
                       </p>
                       <div className="mt-auto flex items-center justify-between text-xs">
                         <SolAmount
-                          amount={(price / 1e9).toFixed(2)}
+                          amount={formatSolAmount(price)}
                           className="font-semibold text-gray-900 dark:text-white"
                           iconClassName="w-3 h-3"
                         />
                         <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
                           <span className="flex items-center gap-1"><FiDownload className="w-3 h-3" />{downloads}</span>
-                          <span className="flex items-center gap-1"><FiTrendingUp className="w-3 h-3" />{(revenue / 1e9).toFixed(2)}</span>
+                          <span className="flex items-center gap-1"><FiTrendingUp className="w-3 h-3" />{formatSolAmount(revenue)}</span>
                         </div>
                       </div>
                     </Link>
@@ -284,8 +285,8 @@ export default function Home() {
               { label: 'Authors', value: landingMetrics?.authors, format: (v: number) => v.toLocaleString() },
               { label: 'Skills Published', value: landingMetrics?.skills, format: (v: number) => v.toLocaleString() },
               { label: 'Skills Downloaded', value: landingMetrics?.downloads, format: (v: number) => v.toLocaleString() },
-              { label: 'Revenue', value: landingMetrics?.revenue, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
-              { label: 'Total Staked', value: landingMetrics?.staked, format: (v: number) => `${(v / 1e9).toFixed(2)} SOL` },
+              { label: 'Revenue', value: landingMetrics?.revenue, format: (v: number) => `${formatSolAmount(v)} SOL` },
+              { label: 'Total Staked', value: landingMetrics?.staked, format: (v: number) => `${formatSolAmount(v)} SOL` },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center">
                 <div className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-1">

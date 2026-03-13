@@ -1,6 +1,7 @@
 'use client';
 
 import { FiShield, FiUsers, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
+import { formatSolAmount } from '@/lib/pricing';
 
 export interface TrustData {
   reputationScore: number;
@@ -18,7 +19,7 @@ interface TrustBadgeProps {
 }
 
 function formatSol(lamports: number): string {
-  return (lamports / 1e9).toFixed(2);
+  return formatSolAmount(lamports);
 }
 
 function getDisputeStatus(won: number, lost: number): { label: string; color: string } {

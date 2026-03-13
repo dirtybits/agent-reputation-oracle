@@ -9,6 +9,7 @@ import { navButtonInlineClass } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
+import { formatSolAmount } from '@/lib/pricing';
 import {
   FiArrowLeft,
   FiCalendar,
@@ -26,14 +27,12 @@ import {
   FiZap,
 } from 'react-icons/fi';
 
-const LAMPORTS_PER_SOL = 1_000_000_000;
-
 function shortAddr(addr: string): string {
   return addr.slice(0, 6) + '...' + addr.slice(-4);
 }
 
 function formatSol(lamports: number): string {
-  return (lamports / LAMPORTS_PER_SOL).toFixed(2);
+  return formatSolAmount(lamports);
 }
 
 function formatDate(isoOrTimestamp: string | number): string {
