@@ -64,14 +64,15 @@ interface ApiResponse {
 type SkillListingData = { publicKey: Address; account: SkillListing };
 type PurchaseData = { publicKey: Address; account: Purchase };
 type FeedItem = {
+  type: 'purchase' | 'listing';
   publicKey: Address;
-  buyer: Address;
+  actor: Address;
   skillListing: Address;
   skillName: string;
   skillRepoId: string | null;
   author: Address;
-  purchasedAt: number;
-  pricePaid: number;
+  timestamp: number;
+  priceLamports: number;
 };
 
 type SortOption = 'newest' | 'installs' | 'trusted' | 'name';
@@ -163,21 +164,34 @@ export default function MarketplacePage() {
     try {
       const purchases = await oracle.getAllPurchases();
       const listingMap = new Map(resolvedListings.map((l) => [l.publicKey as string, l]));
-      const items: FeedItem[] = purchases
+      const purchaseItems: FeedItem[] = purchases
         .map((p) => {
           const listing = listingMap.get(p.account.skillListing as string);
           return {
+            type: 'purchase',
             publicKey: p.publicKey,
-            buyer: p.account.buyer,
+            actor: p.account.buyer,
             skillListing: p.account.skillListing,
             skillName: listing?.account.name ?? 'Unknown Skill',
             skillRepoId: repoMap.get(p.account.skillListing as string) ?? null,
             author: listing?.account.author ?? ('' as Address),
-            purchasedAt: Number(p.account.purchasedAt),
-            pricePaid: Number(p.account.pricePaid),
+            timestamp: Number(p.account.purchasedAt),
+            priceLamports: Number(p.account.pricePaid),
           };
-        })
-        .sort((a, b) => b.purchasedAt - a.purchasedAt)
+        });
+      const listingItems: FeedItem[] = resolvedListings.map((listing) => ({
+        type: 'listing',
+        publicKey: listing.publicKey,
+        actor: listing.account.author,
+        skillListing: listing.publicKey,
+        skillName: listing.account.name,
+        skillRepoId: repoMap.get(listing.publicKey as string) ?? null,
+        author: listing.account.author,
+        timestamp: Number(listing.account.createdAt),
+        priceLamports: Number(listing.account.priceLamports),
+      }));
+      const items: FeedItem[] = [...purchaseItems, ...listingItems]
+        .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, 20);
       setFeedItems(items);
     } catch (e) {
@@ -584,7 +598,7 @@ export default function MarketplacePage() {
                 {feedItems.length === 0 && !feedLoading ? (
                   <div className="px-4 py-8 text-center">
                     <FiClock className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-700" />
-                    <p className="text-xs text-gray-400 dark:text-gray-500">No purchases yet. Be the first!</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">No recent activity yet.</p>
                   </div>
                 ) : (
                   <ul className="divide-y divide-gray-50 dark:divide-gray-800/50 max-h-[520px] overflow-y-auto">
@@ -592,12 +606,12 @@ export default function MarketplacePage() {
                       <li key={item.publicKey} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
                         <p className="text-xs text-gray-900 dark:text-gray-100 leading-relaxed">
                           <Link
-                            href={`/author/${item.buyer}`}
+                            href={`/author/${item.actor}`}
                             className="font-mono font-medium text-blue-600 dark:text-blue-400 hover:underline"
                           >
-                            {shortAddr(item.buyer)}
+                            {shortAddr(item.actor)}
                           </Link>{' '}
-                          bought{' '}
+                          {item.type === 'listing' ? 'listed ' : 'bought '}
                           {item.skillRepoId ? (
                             <Link
                               href={`/skills/${item.skillRepoId}`}
@@ -610,7 +624,7 @@ export default function MarketplacePage() {
                               &ldquo;{item.skillName}&rdquo;
                             </span>
                           )}{' '}
-                          {item.author ? (
+                          {item.type === 'purchase' && item.author ? (
                             <>
                               from{' '}
                               <Link
@@ -625,11 +639,11 @@ export default function MarketplacePage() {
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-gray-400 dark:text-gray-500 inline-flex items-center gap-1">
                             <FiClock className="w-3 h-3" />
-                            {timeAgo(item.purchasedAt)}
+                            {timeAgo(item.timestamp)}
                           </span>
-                          {item.pricePaid > 0 && (
+                          {item.priceLamports > 0 && (
                             <span className="text-xs font-mono text-green-600 dark:text-green-400">
-                              <SolAmount amount={formatSol(item.pricePaid)} iconClassName="w-3 h-3" />
+                              <SolAmount amount={formatSol(item.priceLamports)} iconClassName="w-3 h-3" />
                             </span>
                           )}
                         </div>

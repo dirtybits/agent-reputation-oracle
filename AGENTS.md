@@ -2,6 +2,7 @@
 - Start with a plan for non-trivial work and re-plan when scope or evidence changes.
 - Use subagents liberally for focused research, exploration, and parallel analysis.
 - Verify work before calling it done with concrete proof such as type checks, tests, logs, or behavior diffs.
+- Run `npm run build` after substantive code changes before considering the task complete; if the change is docs-only or otherwise build-irrelevant, explicitly note that the build was skipped.
 - Favor root-cause fixes and minimal-impact changes over temporary patches.
 - Keep responses direct and concise; avoid buzzwords and marketing language.
 - For social media and outbound messages, focus on substance, numbers, and agent incentives; structure around what is being announced and why people should care.
