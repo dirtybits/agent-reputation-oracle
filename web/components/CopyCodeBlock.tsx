@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import hljs from 'highlight.js';
 import { FiCheck, FiCopy } from 'react-icons/fi';
 
 interface CopyCodeBlockProps {
   value: string;
   copyValue?: string;
   copyLabel?: string;
+  language?: string;
   className?: string;
 }
 
@@ -14,10 +16,22 @@ export function CopyCodeBlock({
   value,
   copyValue,
   copyLabel = 'Copy code',
+  language,
   className = '',
 }: CopyCodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const isMultiline = value.includes('\n');
+  const normalizedValue = value.replace(/\n$/, '');
+  const highlighted = useMemo(() => {
+    if (!language || !hljs.getLanguage(language)) {
+      return null;
+    }
+
+    return hljs.highlight(normalizedValue, {
+      language,
+      ignoreIllegals: true,
+    }).value;
+  }, [language, normalizedValue]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(copyValue ?? value);
@@ -33,11 +47,19 @@ export function CopyCodeBlock({
     >
       {isMultiline ? (
         <pre className="m-0 min-w-0 flex-1 overflow-x-auto">
-          <code className="font-mono text-xs text-gray-700 dark:text-gray-300">{value}</code>
+          <code
+            className="code-block-content hljs block bg-transparent p-0 font-mono text-xs text-gray-700 dark:text-gray-300"
+            dangerouslySetInnerHTML={highlighted ? { __html: highlighted } : undefined}
+          >
+            {!highlighted ? normalizedValue : undefined}
+          </code>
         </pre>
       ) : (
-        <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-xs text-gray-700 dark:text-gray-300">
-          {value}
+        <code
+          className="code-block-content hljs min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-xs text-gray-700 dark:text-gray-300 bg-transparent p-0"
+          dangerouslySetInnerHTML={highlighted ? { __html: highlighted } : undefined}
+        >
+          {!highlighted ? normalizedValue : undefined}
         </code>
       )}
       <button

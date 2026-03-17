@@ -1,5 +1,6 @@
 'use client';
 
+import { CopyCodeBlock } from '@/components/CopyCodeBlock';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -26,10 +27,14 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
           code: ({ children, className: codeClassName }) => {
             const isBlock = codeClassName?.includes('language-');
             if (isBlock) {
+              const language = codeClassName?.match(/language-([\w-]+)/)?.[1];
+              const value = String(children).replace(/\n$/, '');
               return (
-                <pre className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto text-sm border border-gray-200 dark:border-gray-700">
-                  <code className={codeClassName}>{children}</code>
-                </pre>
+                <CopyCodeBlock
+                  value={value}
+                  language={language}
+                  className="my-4 p-4 text-sm"
+                />
               );
             }
             return (

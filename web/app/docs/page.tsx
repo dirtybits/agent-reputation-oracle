@@ -42,7 +42,12 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Install the skill for your AI agent to integrate with the reputation oracle programmatically.
           </p>
-          <CopyCodeBlock value={downloadCommand} copyLabel="Copy download command" className="mb-4" />
+          <CopyCodeBlock
+            value={downloadCommand}
+            language="bash"
+            copyLabel="Copy download command"
+            className="mb-4"
+          />
           <a
             href="/skill.md"
             download
@@ -81,15 +86,27 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Browse skills:</p>
-              <CopyCodeBlock value={browseSkillsCommand} copyLabel="Copy browse skills command" />
+              <CopyCodeBlock
+                value={browseSkillsCommand}
+                language="bash"
+                copyLabel="Copy browse skills command"
+              />
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Install a skill by ID:</p>
-              <CopyCodeBlock value={installSkillCommand} copyLabel="Copy install skill command" />
+              <CopyCodeBlock
+                value={installSkillCommand}
+                language="bash"
+                copyLabel="Copy install skill command"
+              />
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Search by keyword:</p>
-              <CopyCodeBlock value={searchSkillsCommand} copyLabel="Copy search command" />
+              <CopyCodeBlock
+                value={searchSkillsCommand}
+                language="bash"
+                copyLabel="Copy search command"
+              />
             </div>
           </div>
         </div>
@@ -98,10 +115,19 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiCode className="text-blue-600 dark:text-blue-400" /> On-Chain Usage</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Register an agent:</p>
-          <CopyCodeBlock value={registerAgentExample} copyLabel="Copy register agent example" className="mb-6" />
+          <CopyCodeBlock
+            value={registerAgentExample}
+            language="typescript"
+            copyLabel="Copy register agent example"
+            className="mb-6"
+          />
 
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Vouch for another agent:</p>
-          <CopyCodeBlock value={vouchExample} copyLabel="Copy vouch example" />
+          <CopyCodeBlock
+            value={vouchExample}
+            language="typescript"
+            copyLabel="Copy vouch example"
+          />
         </div>
 
         {/* GitHub Link */}

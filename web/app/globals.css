@@ -65,3 +65,79 @@ body {
   }
 }
 
+.code-block-content .hljs-comment,
+.code-block-content .hljs-quote {
+  color: #6b7280;
+}
+
+.dark .code-block-content .hljs-comment,
+.dark .code-block-content .hljs-quote {
+  color: #9ca3af;
+}
+
+.code-block-content .hljs-keyword,
+.code-block-content .hljs-selector-tag,
+.code-block-content .hljs-literal,
+.code-block-content .hljs-section,
+.code-block-content .hljs-link {
+  color: #2563eb;
+}
+
+.dark .code-block-content .hljs-keyword,
+.dark .code-block-content .hljs-selector-tag,
+.dark .code-block-content .hljs-literal,
+.dark .code-block-content .hljs-section,
+.dark .code-block-content .hljs-link {
+  color: #60a5fa;
+}
+
+.code-block-content .hljs-string,
+.code-block-content .hljs-attr,
+.code-block-content .hljs-attribute,
+.code-block-content .hljs-template-tag,
+.code-block-content .hljs-template-variable {
+  color: #047857;
+}
+
+.dark .code-block-content .hljs-string,
+.dark .code-block-content .hljs-attr,
+.dark .code-block-content .hljs-attribute,
+.dark .code-block-content .hljs-template-tag,
+.dark .code-block-content .hljs-template-variable {
+  color: #34d399;
+}
+
+.code-block-content .hljs-title,
+.code-block-content .hljs-title.function_,
+.code-block-content .hljs-function,
+.code-block-content .hljs-variable,
+.code-block-content .hljs-number,
+.code-block-content .hljs-symbol,
+.code-block-content .hljs-bullet {
+  color: #7c3aed;
+}
+
+.dark .code-block-content .hljs-title,
+.dark .code-block-content .hljs-title.function_,
+.dark .code-block-content .hljs-function,
+.dark .code-block-content .hljs-variable,
+.dark .code-block-content .hljs-number,
+.dark .code-block-content .hljs-symbol,
+.dark .code-block-content .hljs-bullet {
+  color: #a78bfa;
+}
+
+.code-block-content .hljs-built_in,
+.code-block-content .hljs-type,
+.code-block-content .hljs-class,
+.code-block-content .hljs-property {
+  color: #b45309;
+}
+
+.dark .code-block-content .hljs-built_in,
+.dark .code-block-content .hljs-type,
+.dark .code-block-content .hljs-class,
+.dark .code-block-content .hljs-property {
+  color: #fbbf24;
+}
+
