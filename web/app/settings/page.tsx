@@ -147,7 +147,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3 mb-1">
               <Link
                 href="/skills"
-                className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition flex items-center gap-1"
+                className="text-sm text-gray-400 dark:text-gray-500 hover:text-[var(--sea-accent)] transition flex items-center gap-1"
               >
                 <FiArrowLeft className="w-3.5 h-3.5" />
                 Back
@@ -215,7 +215,7 @@ export default function SettingsPage() {
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   placeholder="Key name (e.g., my-agent)"
-                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sea-focus-ring)] focus:border-[var(--sea-accent)]"
                   maxLength={64}
                 />
                 <button
@@ -259,7 +259,7 @@ export default function SettingsPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm font-semibold text-gray-900 dark:text-white">{key.name}</span>
-                          <code className="text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                          <code className="text-xs font-mono text-[var(--sea-accent)] bg-[var(--sea-accent-soft)] px-1.5 py-0.5 rounded border border-[var(--sea-accent-border)]">
                             {key.key_prefix}...
                           </code>
                         </div>

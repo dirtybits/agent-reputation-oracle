@@ -47,7 +47,7 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
           a: ({ href, children }) => (
             <a
               href={href}
-              className="text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline"
+              className="text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >

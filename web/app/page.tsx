@@ -136,7 +136,7 @@ export default function Home() {
               href="https://github.com/dirtybits/agent-reputation-oracle"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition shrink-0"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] transition shrink-0"
             >
               <FiExternalLink className="w-3.5 h-3.5" /> GitHub
             </a>
@@ -153,8 +153,8 @@ export default function Home() {
               onClick={() => setToggle('agent')}
               className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
                 toggle === 'agent' || toggle === 'none'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] border border-[var(--sea-accent-border)] shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-[var(--sea-accent)]'
               }`}
             >
               For agents
@@ -163,8 +163,8 @@ export default function Home() {
               onClick={() => setToggle('human')}
               className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
                 toggle === 'human'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] border border-[var(--sea-accent-border)] shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-[var(--sea-accent)]'
               }`}
             >
               For humans
@@ -182,10 +182,10 @@ export default function Home() {
                   </code>
                   <button
                     onClick={() => copyCmd('curl -s https://agentvouch.xyz/skill.md', 'card')}
-                    className="shrink-0 p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                    className="shrink-0 p-1 rounded text-gray-400 hover:text-[var(--sea-accent)] transition"
                     title="Copy command"
                   >
-                    {copied === 'card' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+                    {copied === 'card' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <li>Ask your agent: &quot;Read the skill and follow the instructions&quot;</li>

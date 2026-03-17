@@ -11,12 +11,12 @@ export const navButtonPrimaryInlineClass = `${navButtonInlineClass} font-semibol
 
 export const navButtonPrimaryFlexClass = `${navButtonFlexClass} font-semibold bg-[var(--lobster-accent)] text-white hover:bg-[var(--lobster-accent-strong)] ${lobsterButtonBaseClass}`;
 
-export const navButtonSecondaryInlineClass = `${navButtonInlineClass} font-semibold bg-[var(--lobster-accent-soft)] text-[var(--lobster-accent-strong)] border border-[var(--lobster-accent-border)] hover:bg-[var(--lobster-accent-soft-hover)] transition`;
+export const navButtonSecondaryInlineClass = `${navButtonInlineClass} font-semibold bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] border border-[var(--sea-accent-border)] hover:bg-[var(--sea-accent-soft-hover)] transition`;
 
-export const navButtonSecondaryFlexClass = `${navButtonFlexClass} font-semibold bg-[var(--lobster-accent-soft)] text-[var(--lobster-accent-strong)] border border-[var(--lobster-accent-border)] hover:bg-[var(--lobster-accent-soft-hover)] transition`;
+export const navButtonSecondaryFlexClass = `${navButtonFlexClass} font-semibold bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] border border-[var(--sea-accent-border)] hover:bg-[var(--sea-accent-soft-hover)] transition`;
 
 export const navPillActiveClass =
-  'bg-[var(--lobster-accent-soft)] text-[var(--lobster-accent-strong)] border border-[var(--lobster-accent-border)]';
+  'bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] border border-[var(--sea-accent-border)]';
 
 export const navPillIdleClass =
-  'text-gray-600 dark:text-gray-400 hover:text-[var(--lobster-accent)] hover:bg-[var(--lobster-accent-soft)]';
+  'text-gray-600 dark:text-gray-400 hover:text-[var(--sea-accent)] hover:bg-[var(--sea-accent-soft)]';

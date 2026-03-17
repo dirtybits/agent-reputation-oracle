@@ -16,7 +16,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className={`${navButtonInlineClass} font-semibold transition bg-white/10 hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 text-gray-900 dark:text-white border border-gray-300 dark:border-white/30`}
+      className={`${navButtonInlineClass} font-semibold transition bg-[var(--sea-accent-soft)] hover:bg-[var(--sea-accent-soft-hover)] text-[var(--sea-accent-strong)] border border-[var(--sea-accent-border)]`}
       aria-label="Toggle theme"
     >
       {theme === 'dark' ? <IoSunnyOutline /> : <IoMoonOutline />}

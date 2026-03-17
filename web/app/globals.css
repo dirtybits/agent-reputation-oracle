@@ -12,6 +12,12 @@
   --lobster-accent-soft-hover: #f9d8c8;
   --lobster-accent-border: #f2b49a;
   --lobster-focus-ring: rgba(217, 90, 43, 0.24);
+  --sea-accent: #5f8f9b;
+  --sea-accent-strong: #4e7782;
+  --sea-accent-soft: #e3eef1;
+  --sea-accent-soft-hover: #d4e4e8;
+  --sea-accent-border: #b8ced5;
+  --sea-focus-ring: rgba(95, 143, 155, 0.26);
 }
 
 .dark {
@@ -25,6 +31,12 @@
   --lobster-accent-soft-hover: rgba(217, 90, 43, 0.24);
   --lobster-accent-border: rgba(242, 138, 97, 0.35);
   --lobster-focus-ring: rgba(242, 138, 97, 0.34);
+  --sea-accent: #8fb5bf;
+  --sea-accent-strong: #a8c7cf;
+  --sea-accent-soft: rgba(95, 143, 155, 0.18);
+  --sea-accent-soft-hover: rgba(95, 143, 155, 0.28);
+  --sea-accent-border: rgba(143, 181, 191, 0.38);
+  --sea-focus-ring: rgba(143, 181, 191, 0.3);
 }
 
 body {

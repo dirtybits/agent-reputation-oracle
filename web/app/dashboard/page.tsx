@@ -258,7 +258,7 @@ export default function DashboardPage() {
                   {publicKey && (
                     <Link
                       href={`/author/${publicKey}`}
-                      className="text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline"
+                      className="text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
                     >
                       View Public Profile →
                     </Link>
@@ -301,7 +301,7 @@ export default function DashboardPage() {
                         href={agentProfile.metadataUri} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="block text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline break-all mt-1"
+                        className="block text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline break-all mt-1"
                       >
                         {agentProfile.metadataUri}
                       </a>
@@ -355,7 +355,7 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500">staked</span>
                               </div>
-                              <Link href={`/author/${voucher}`} className="font-mono text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline truncate block mb-2">
+                              <Link href={`/author/${voucher}`} className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2">
                                 {voucher}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
@@ -397,7 +397,7 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500">staked</span>
                               </div>
-                              <Link href={`/author/${vouchee}`} className="font-mono text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline truncate block mb-2">
+                              <Link href={`/author/${vouchee}`} className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2">
                                 {vouchee}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
@@ -474,7 +474,7 @@ export default function DashboardPage() {
                   <button
                     onClick={loadAllAgents}
                     disabled={loadingAgents}
-                    className={navButtonPrimaryInlineClass}
+                    className={navButtonSecondaryInlineClass}
                   >
                     {loadingAgents ? 'Loading...' : 'Refresh'}
                   </button>
@@ -498,10 +498,10 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500">reputation</span>
                                 {isCurrentUser && (
-                                  <span className="px-2 py-0.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs rounded font-medium">You</span>
+                                  <span className="px-2 py-0.5 bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs rounded font-medium border border-[var(--sea-accent-border)]">You</span>
                                 )}
                               </div>
-                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline truncate block mb-2">
+                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2">
                                 {agent.account.authority}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
@@ -542,7 +542,7 @@ export default function DashboardPage() {
           {activeTab === 'explorer' && (
             <div className="space-y-6">
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiSearch className="text-[var(--lobster-accent)]" /> Search Agents</h2>
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiSearch className="text-[var(--sea-accent)]" /> Search Agents</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Search for any agent by their Solana wallet address to view their reputation and vouches.
                 </p>
@@ -553,12 +553,12 @@ export default function DashboardPage() {
                       value={searchAddress}
                       onChange={(e) => setSearchAddress(e.target.value)}
                       placeholder="Enter agent's Solana public key"
-                      className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
+                      className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[var(--sea-focus-ring)] focus:border-[var(--sea-accent)] outline-none text-sm"
                     />
                     <button
                       onClick={searchAgent}
                       disabled={loading}
-                      className={`${navButtonPrimaryInlineClass} whitespace-nowrap`}
+                      className={`${navButtonSecondaryInlineClass} whitespace-nowrap`}
                     >
                       {loading ? '...' : 'Search'}
                     </button>
@@ -599,7 +599,7 @@ export default function DashboardPage() {
                           href={searchedAgent.metadataUri} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="block text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline break-all mt-1"
+                          className="block text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline break-all mt-1"
                         >
                           {searchedAgent.metadataUri}
                         </a>
@@ -624,7 +624,7 @@ export default function DashboardPage() {
                   <button
                     onClick={loadAllAgents}
                     disabled={loadingAgents}
-                    className={navButtonPrimaryInlineClass}
+                    className={navButtonSecondaryInlineClass}
                   >
                     {loadingAgents ? 'Loading...' : allAgents.length > 0 ? 'Refresh' : 'Load Agents'}
                   </button>
@@ -648,10 +648,10 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500">reputation</span>
                                 {isCurrentUser && (
-                                  <span className="px-2 py-0.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs rounded font-medium">You</span>
+                                  <span className="px-2 py-0.5 bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs rounded font-medium border border-[var(--sea-accent-border)]">You</span>
                                 )}
                               </div>
-                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline truncate block mb-2">
+                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2">
                                 {agent.account.authority}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">

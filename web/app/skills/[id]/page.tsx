@@ -263,7 +263,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-500 dark:text-gray-400 mb-4">Skill not found</p>
-          <Link href="/skills" className="text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline">
+          <Link href="/skills" className="text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline">
             ← Back to skills
           </Link>
         </div>
@@ -307,7 +307,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             <span className="text-sm text-gray-500 dark:text-gray-400">Author:</span>
             <Link
               href={`/author/${skill.author_pubkey}`}
-              className="flex items-center gap-1.5 font-mono text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline transition"
+              className="flex items-center gap-1.5 font-mono text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline transition"
             >
               {shortAddr(skill.author_pubkey)}
               <FiExternalLink className="w-3.5 h-3.5" />
@@ -317,7 +317,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
               title="Copy address"
             >
-              {copied === 'author' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+              {copied === 'author' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
             </button>
             {skill.author_trust?.registeredAt ? (
               <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -377,7 +377,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Install / Buy action */}
         {(skill.price_lamports == null || skill.price_lamports === 0) && (
-          <div className="rounded-xl border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] p-4 mb-6">
+          <div className="rounded-xl border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] p-4 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Free Skill</div>
@@ -424,9 +424,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             </span>
             <button
               onClick={() => copyToClipboard(installCommand, 'install')}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-[var(--sea-accent)] transition"
             >
-              {copied === 'install' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+              {copied === 'install' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
               {copied === 'install' ? 'Copied!' : 'Copy'}
             </button>
           </div>
@@ -454,15 +454,15 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             </pre>
             <button
               onClick={() => copyToClipboard(`${typeof window !== 'undefined' ? window.location.origin : ''}/api/skills/${skill.id}/raw`, 'api')}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-900 dark:hover:text-white transition shrink-0"
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-[var(--sea-accent)] transition shrink-0"
             >
-              {copied === 'api' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+              {copied === 'api' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
               {copied === 'api' ? 'Copied!' : 'Copy URL'}
             </button>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
             Auth: <code className="text-gray-500 dark:text-gray-400">Authorization: Bearer sk_...</code> or wallet signature.{' '}
-            <Link href="/settings" className="text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline">
+            <Link href="/settings" className="text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline">
               Get API key →
             </Link>
           </p>
@@ -482,17 +482,17 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 href={`https://ipfs.io/ipfs/${skill.ipfs_cid}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline"
+                className="flex items-center gap-1 text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
               >
                 Verify on IPFS <FiExternalLink className="w-3 h-3" />
               </a>
             </div>
             <button
               onClick={() => copyToClipboard(skill.ipfs_cid!, 'cid')}
-              className="mt-2 font-mono text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1.5 transition"
+              className="mt-2 font-mono text-sm text-gray-600 dark:text-gray-400 hover:text-[var(--sea-accent)] flex items-center gap-1.5 transition"
             >
               {skill.ipfs_cid}
-              {copied === 'cid' ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+              {copied === 'cid' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
             </button>
           </div>
         )}
@@ -687,7 +687,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FiExternalLink className="w-4 h-4 text-[var(--lobster-accent)]" />
+                <FiExternalLink className="w-4 h-4 text-[var(--sea-accent)]" />
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Skill Source
                 </span>
@@ -697,7 +697,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               href={skill.skill_uri}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 block text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline break-all"
+              className="mt-2 block text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline break-all"
             >
               {skill.skill_uri}
             </a>
