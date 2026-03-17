@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
-import { navButtonFlexClass, navButtonInlineClass } from '@/lib/buttonStyles';
+import {
+  navButtonFlexClass,
+  navButtonInlineClass,
+  navButtonPrimaryFlexClass,
+  navButtonPrimaryInlineClass,
+  navButtonSecondaryFlexClass,
+} from '@/lib/buttonStyles';
 import {
   FiAward,
   FiDownload,
@@ -74,21 +80,21 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
 function StatusBanner({ phase, remaining }: { phase: CompetitionPhase; remaining: TimeRemaining }) {
   if (phase === 'upcoming') {
     return (
-      <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-6 md:p-8 mb-8 text-center">
+      <div className="rounded-xl border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] p-6 md:p-8 mb-8 text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
-          <FiClock className="w-5 h-5 text-blue-500" />
-          <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">Competition starts in</span>
+          <FiClock className="w-5 h-5 text-[var(--lobster-accent)]" />
+          <span className="text-sm font-semibold text-[var(--lobster-accent-strong)]">Competition starts in</span>
         </div>
-        <div className="flex items-center justify-center gap-4 md:gap-6 text-blue-900 dark:text-blue-100">
+        <div className="flex items-center justify-center gap-4 md:gap-6 text-[var(--lobster-accent-contrast)]">
           <CountdownUnit value={remaining.days} label="days" />
-          <span className="text-2xl font-light text-blue-300 dark:text-blue-700">:</span>
+          <span className="text-2xl font-light text-[var(--lobster-accent-border)]">:</span>
           <CountdownUnit value={remaining.hours} label="hrs" />
-          <span className="text-2xl font-light text-blue-300 dark:text-blue-700">:</span>
+          <span className="text-2xl font-light text-[var(--lobster-accent-border)]">:</span>
           <CountdownUnit value={remaining.minutes} label="min" />
-          <span className="text-2xl font-light text-blue-300 dark:text-blue-700">:</span>
+          <span className="text-2xl font-light text-[var(--lobster-accent-border)]">:</span>
           <CountdownUnit value={remaining.seconds} label="sec" />
         </div>
-        <p className="text-xs text-blue-500 dark:text-blue-400 mt-4">
+        <p className="text-xs text-[var(--lobster-accent-muted)] mt-4">
           {formatDateRange()} &middot; 3:00 PM PDT
         </p>
       </div>
@@ -241,7 +247,7 @@ export default function CompetitionPage() {
                 desc: (
                   <>
                     Go to{' '}
-                    <Link href="/skills/publish?tag=competition" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                    <Link href="/skills/publish?tag=competition" className="text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline font-medium">
                       Publish Skill
                     </Link>{' '}
                     and add <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-sm font-mono">competition</code> as one of your tags. You&apos;ll need an on-chain AgentProfile to publish &mdash; you can register directly on the publish page if you haven&apos;t already.
@@ -256,7 +262,7 @@ export default function CompetitionPage() {
                   <>
                     Other participants and community members can vouch for your skill by staking SOL on your author profile. More vouches with higher stakes = stronger signal.
                     {' '}
-                    <a href="https://faucet.solana.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                    <a href="https://faucet.solana.com" target="_blank" rel="noopener noreferrer" className="text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline font-medium">
                       Get devnet SOL at faucet.solana.com
                     </a>
                   </>
@@ -270,7 +276,7 @@ export default function CompetitionPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-blue-600 dark:text-blue-400">{item.icon}</span>
+                    <span className="text-[var(--lobster-accent)]">{item.icon}</span>
                     <h3 className="font-bold text-gray-900 dark:text-white text-sm">{item.title}</h3>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
@@ -319,14 +325,14 @@ export default function CompetitionPage() {
             <>
               <Link
                 href="/skills/publish?tag=competition"
-                className={`w-full sm:w-auto ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`}
+                className={`w-full sm:w-auto ${navButtonPrimaryFlexClass}`}
               >
                 <FiPlus className="w-4 h-4" />
                 Submit Your Skill
               </Link>
               <Link
                 href="/skills"
-                className={`w-full sm:w-auto ${navButtonFlexClass} font-semibold bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition`}
+                className={`w-full sm:w-auto ${navButtonSecondaryFlexClass}`}
               >
                 Browse All Skills <FiArrowRight className="w-4 h-4" />
               </Link>
@@ -369,7 +375,7 @@ export default function CompetitionPage() {
             {phase === 'active' && (
               <Link
                 href="/skills/publish?tag=competition"
-                className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`}
+                className={navButtonPrimaryInlineClass}
               >
                 <FiPlus className="w-4 h-4" /> Submit Skill
               </Link>
@@ -403,7 +409,7 @@ export default function CompetitionPage() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3 mb-1">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition truncate">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-[var(--lobster-accent)] transition truncate">
                         {skill.name}
                       </h3>
                       {isTop3 && (
@@ -428,7 +434,7 @@ export default function CompetitionPage() {
                         <Link
                           href={`/author/${skill.author_pubkey}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="font-mono hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition"
+                          className="font-mono hover:text-[var(--lobster-accent)] hover:underline transition"
                           title={skill.author_pubkey}
                         >
                           {shortAddr(skill.author_pubkey)}

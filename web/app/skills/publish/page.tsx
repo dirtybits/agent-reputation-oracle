@@ -5,7 +5,13 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
-import { navButtonFlexClass, navButtonInlineClass } from '@/lib/buttonStyles';
+import {
+  navButtonFlexClass,
+  navButtonInlineClass,
+  navButtonPrimaryFlexClass,
+  navButtonPrimaryInlineClass,
+  navButtonSecondaryInlineClass,
+} from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PRICING, DEFAULT_CURRENCY, formatMinPrice, isValidListingPriceLamports, toLamports } from '@/lib/pricing';
 import {
@@ -119,7 +125,7 @@ function ProfileSetupStep({
         <button
           onClick={onRegister}
           disabled={registering}
-          className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
+          className={`w-full ${navButtonPrimaryFlexClass}`}
         >
           {registering ? (
             <>
@@ -588,7 +594,7 @@ function PublishSkillPageInner() {
           onClick={() => !content && fileInputRef.current?.click()}
           className={`mb-6 rounded-xl border-2 border-dashed p-8 text-center transition cursor-pointer ${
             dragOver
-              ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/10'
+              ? 'border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)]'
               : content
               ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/10'
               : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600'
@@ -689,7 +695,7 @@ function PublishSkillPageInner() {
                 value={name}
                 onChange={(e) => { setName(e.target.value); if (!skillId) setSkillId(slugify(e.target.value)); }}
                 placeholder="Solana Developer Skill"
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
               />
             </div>
             <div>
@@ -702,7 +708,7 @@ function PublishSkillPageInner() {
                 onChange={(e) => setSkillId(slugify(e.target.value, false))}
                 onBlur={() => setSkillId(finalizeSlug(skillId))}
                 placeholder="solana-dev-skill"
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
               />
             </div>
           </div>
@@ -716,7 +722,7 @@ function PublishSkillPageInner() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of what this skill teaches agents..."
-              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
               maxLength={256}
             />
           </div>
@@ -746,11 +752,11 @@ function PublishSkillPageInner() {
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                   placeholder="Add a tag..."
-                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 />
                 <button
                   onClick={addTag}
-                  className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                  className={navButtonSecondaryInlineClass}
                 >
                   <FiTag className="w-4 h-4" />
                 </button>
@@ -767,7 +773,7 @@ function PublishSkillPageInner() {
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               placeholder="@twitter, discord#1234, t.me/handle, etc."
-              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
               maxLength={128}
             />
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
@@ -793,7 +799,7 @@ function PublishSkillPageInner() {
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder={String(PRICING.SOL.minPrice)}
-              className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
             />
             <span className="text-sm text-gray-500 dark:text-gray-400">SOL</span>
           </div>
@@ -811,7 +817,7 @@ function PublishSkillPageInner() {
           <button
             onClick={handlePublish}
             disabled={publishing || !content || !name || !skillId || (connected && (!profileChecked || profileLoading))}
-            className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0`}
+            className={`${navButtonPrimaryInlineClass} shrink-0`}
           >
             {publishing ? (
               <>

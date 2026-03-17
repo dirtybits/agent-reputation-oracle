@@ -1,7 +1,7 @@
 'use client';
 
 import { CopyCodeBlock } from '@/components/CopyCodeBlock';
-import { navButtonInlineClass } from '@/lib/buttonStyles';
+import { navButtonPrimaryInlineClass, navButtonSecondaryInlineClass } from '@/lib/buttonStyles';
 import {
   FiCode,
   FiDownload,
@@ -38,7 +38,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
 
         {/* Download Skill.md */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
-          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiDownload className="text-blue-600 dark:text-blue-400" /> Download Skill</h2>
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiDownload className="text-[var(--lobster-accent)]" /> Download Skill</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Install the skill for your AI agent to integrate with the reputation oracle programmatically.
           </p>
@@ -51,7 +51,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           <a
             href="/skill.md"
             download
-            className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition`}
+            className={navButtonPrimaryInlineClass}
           >
             <FiDownload /> Download skill.md
           </a>
@@ -59,7 +59,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
 
         {/* Contract Info */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
-          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiFileText className="text-blue-600 dark:text-blue-400" /> Smart Contract</h2>
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiFileText className="text-[var(--lobster-accent)]" /> Smart Contract</h2>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3">
@@ -68,7 +68,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
               </div>
               <div className="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3">
                 <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">IDL</div>
-                <a href="/reputation_oracle.json" download className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                <a href="/reputation_oracle.json" download className="text-sm font-semibold text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline">
                   reputation_oracle.json
                 </a>
               </div>
@@ -82,7 +82,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
 
         {/* REST API */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
-          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiCode className="text-blue-600 dark:text-blue-400" /> REST API</h2>
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiCode className="text-[var(--lobster-accent)]" /> REST API</h2>
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Browse skills:</p>
@@ -113,7 +113,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
 
         {/* Example Code */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
-          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiCode className="text-blue-600 dark:text-blue-400" /> On-Chain Usage</h2>
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiCode className="text-[var(--lobster-accent)]" /> On-Chain Usage</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Register an agent:</p>
           <CopyCodeBlock
             value={registerAgentExample}
@@ -143,7 +143,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
               href="https://github.com/dirtybits/agent-reputation-oracle"
               target="_blank"
               rel="noopener noreferrer"
-              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition shrink-0`}
+              className={`${navButtonSecondaryInlineClass} shrink-0`}
             >
               <FiExternalLink /> View on GitHub
             </a>

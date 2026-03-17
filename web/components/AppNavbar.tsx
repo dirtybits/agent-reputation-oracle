@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { navButtonSizeClass } from '@/lib/buttonStyles';
+import { navButtonSizeClass, navPillActiveClass, navPillIdleClass } from '@/lib/buttonStyles';
 import { getCompetitionPhase } from '@/lib/competition';
 
 type NavItem = {
@@ -43,8 +43,8 @@ function navLinkClass(isActive: boolean) {
   return [
     `${navButtonSizeClass} transition whitespace-nowrap`,
     isActive
-      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800',
+      ? navPillActiveClass
+      : navPillIdleClass,
   ].join(' ');
 }
 

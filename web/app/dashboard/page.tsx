@@ -5,7 +5,14 @@ import { useWalletConnection } from '@solana/react-hooks';
 import { address } from '@solana/kit';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
-import { navButtonFlexClass, navButtonInlineClass } from '@/lib/buttonStyles';
+import {
+  navButtonFlexClass,
+  navButtonInlineClass,
+  navButtonPrimaryFlexClass,
+  navButtonPrimaryInlineClass,
+  navButtonSecondaryFlexClass,
+  navButtonSecondaryInlineClass,
+} from '@/lib/buttonStyles';
 import { formatSolAmount } from '@/lib/pricing';
 import Link from 'next/link';
 import {
@@ -251,7 +258,7 @@ export default function DashboardPage() {
                   {publicKey && (
                     <Link
                       href={`/author/${publicKey}`}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline"
                     >
                       View Public Profile →
                     </Link>
@@ -294,7 +301,7 @@ export default function DashboardPage() {
                         href={agentProfile.metadataUri} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="block text-sm text-blue-600 dark:text-blue-400 hover:underline break-all mt-1"
+                        className="block text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline break-all mt-1"
                       >
                         {agentProfile.metadataUri}
                       </a>
@@ -319,7 +326,7 @@ export default function DashboardPage() {
                     <button
                       onClick={handleRegister}
                       disabled={loading}
-                      className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition`}
+                      className={`w-full ${navButtonPrimaryFlexClass}`}
                     >
                       {loading ? 'Registering...' : 'Register as Agent'}
                     </button>
@@ -329,7 +336,7 @@ export default function DashboardPage() {
 
               {agentProfile && vouchesReceived.length > 0 && (
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiUsers className="text-blue-600 dark:text-blue-400" /> Agents Vouching For You</h2>
+                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiUsers className="text-[var(--lobster-accent)]" /> Agents Vouching For You</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     {vouchesReceived.length} {vouchesReceived.length === 1 ? 'agent is' : 'agents are'} staking SOL to vouch for you.
                   </p>
@@ -348,7 +355,7 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500">staked</span>
                               </div>
-                              <Link href={`/author/${voucher}`} className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block mb-2">
+                              <Link href={`/author/${voucher}`} className="font-mono text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline truncate block mb-2">
                                 {voucher}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
@@ -357,7 +364,7 @@ export default function DashboardPage() {
                             </div>
                             <Link
                               href={`/author/${voucher}`}
-                              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition whitespace-nowrap`}
+                              className={`${navButtonSecondaryInlineClass} whitespace-nowrap`}
                             >
                               View
                             </Link>
@@ -371,7 +378,7 @@ export default function DashboardPage() {
 
               {agentProfile && vouches.length > 0 && (
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiZap className="text-blue-600 dark:text-blue-400" /> Agents You&apos;re Vouching For</h2>
+                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiZap className="text-[var(--lobster-accent)]" /> Agents You&apos;re Vouching For</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     You&apos;re currently staking SOL to vouch for {vouches.length} {vouches.length === 1 ? 'agent' : 'agents'}.
                   </p>
@@ -390,7 +397,7 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500">staked</span>
                               </div>
-                              <Link href={`/author/${vouchee}`} className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block mb-2">
+                              <Link href={`/author/${vouchee}`} className="font-mono text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline truncate block mb-2">
                                 {vouchee}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
@@ -399,7 +406,7 @@ export default function DashboardPage() {
                             </div>
                             <Link
                               href={`/author/${vouchee}`}
-                              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition whitespace-nowrap`}
+                              className={`${navButtonSecondaryInlineClass} whitespace-nowrap`}
                             >
                               View
                             </Link>
@@ -454,7 +461,7 @@ export default function DashboardPage() {
                   <button
                     onClick={handleVouch}
                     disabled={loading || !voucheeAddress}
-                    className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 disabled:text-gray-500 transition`}
+                    className={`w-full ${navButtonPrimaryFlexClass}`}
                   >
                     {loading ? 'Creating Vouch...' : `Vouch with ${vouchAmount} SOL`}
                   </button>
@@ -467,7 +474,7 @@ export default function DashboardPage() {
                   <button
                     onClick={loadAllAgents}
                     disabled={loadingAgents}
-                    className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition`}
+                    className={navButtonPrimaryInlineClass}
                   >
                     {loadingAgents ? 'Loading...' : 'Refresh'}
                   </button>
@@ -494,7 +501,7 @@ export default function DashboardPage() {
                                   <span className="px-2 py-0.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs rounded font-medium">You</span>
                                 )}
                               </div>
-                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block mb-2">
+                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline truncate block mb-2">
                                 {agent.account.authority}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
@@ -508,7 +515,7 @@ export default function DashboardPage() {
                                   setVoucheeAddress(agent.account.authority);
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
-                                className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition whitespace-nowrap`}
+                                className={`${navButtonPrimaryInlineClass} whitespace-nowrap`}
                               >
                                 Vouch
                               </button>
@@ -535,7 +542,7 @@ export default function DashboardPage() {
           {activeTab === 'explorer' && (
             <div className="space-y-6">
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiSearch className="text-blue-600 dark:text-blue-400" /> Search Agents</h2>
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiSearch className="text-[var(--lobster-accent)]" /> Search Agents</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Search for any agent by their Solana wallet address to view their reputation and vouches.
                 </p>
@@ -551,7 +558,7 @@ export default function DashboardPage() {
                     <button
                       onClick={searchAgent}
                       disabled={loading}
-                      className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition whitespace-nowrap`}
+                      className={`${navButtonPrimaryInlineClass} whitespace-nowrap`}
                     >
                       {loading ? '...' : 'Search'}
                     </button>
@@ -592,7 +599,7 @@ export default function DashboardPage() {
                           href={searchedAgent.metadataUri} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="block text-sm text-blue-600 dark:text-blue-400 hover:underline break-all mt-1"
+                          className="block text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline break-all mt-1"
                         >
                           {searchedAgent.metadataUri}
                         </a>
@@ -601,7 +608,7 @@ export default function DashboardPage() {
                       <div className="pt-4">
                         <Link
                           href={`/author/${searchAddress}`}
-                          className={`w-full ${navButtonFlexClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition`}
+                          className={`w-full ${navButtonSecondaryFlexClass}`}
                         >
                           View Full Profile
                         </Link>
@@ -617,7 +624,7 @@ export default function DashboardPage() {
                   <button
                     onClick={loadAllAgents}
                     disabled={loadingAgents}
-                    className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition`}
+                    className={navButtonPrimaryInlineClass}
                   >
                     {loadingAgents ? 'Loading...' : allAgents.length > 0 ? 'Refresh' : 'Load Agents'}
                   </button>
@@ -644,7 +651,7 @@ export default function DashboardPage() {
                                   <span className="px-2 py-0.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs rounded font-medium">You</span>
                                 )}
                               </div>
-                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block mb-2">
+                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline truncate block mb-2">
                                 {agent.account.authority}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
@@ -654,7 +661,7 @@ export default function DashboardPage() {
                             </div>
                             <Link
                               href={`/author/${agent.account.authority}`}
-                              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition whitespace-nowrap`}
+                              className={`${navButtonSecondaryInlineClass} whitespace-nowrap`}
                             >
                               View
                             </Link>
@@ -679,7 +686,7 @@ export default function DashboardPage() {
 
           {activeTab === 'disputes' && connected && (
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-              <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-blue-600 dark:text-blue-400" /> Open Dispute</h2>
+              <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Open Dispute</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                 Challenge a vouch if you believe the voucher endorsed a bad actor. Requires a dispute bond.
               </p>

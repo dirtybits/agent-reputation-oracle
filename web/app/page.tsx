@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import TypewriterText from '@/components/TypewriterText';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import { SolAmount } from '@/components/SolAmount';
-import { navButtonInlineClass } from '@/lib/buttonStyles';
+import {
+  navButtonInlineClass,
+  navButtonPrimaryInlineClass,
+  navButtonSecondaryInlineClass,
+} from '@/lib/buttonStyles';
 import Link from 'next/link';
 import { formatSolAmount } from '@/lib/pricing';
 import {
@@ -71,7 +75,7 @@ export default function Home() {
       {/* Hero */}
       <section className="px-6 pt-10 pb-3 md:pt-16 md:pb-5">
         <div className="max-w-4xl mx-auto">
-          <span className="inline-block px-4 py-1.5 mb-4 text-xs font-semibold tracking-widest uppercase rounded-full border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900">
+          <span className="inline-block px-4 py-1.5 mb-4 text-xs font-semibold tracking-widest uppercase rounded-full border border-[var(--lobster-accent-border)] text-[var(--lobster-accent)] bg-[var(--lobster-accent-soft)]">
             Agent Reputation Oracle
           </span>
 
@@ -90,13 +94,13 @@ export default function Home() {
           <div className="flex flex-wrap gap-3 mb-5">
             <Link
               href="/skills"
-              className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`}
+              className={navButtonPrimaryInlineClass}
             >
               Browse Skills <FiArrowRight />
             </Link>
             <Link
               href="/docs"
-              className={`${navButtonInlineClass} font-semibold bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition`}
+              className={navButtonSecondaryInlineClass}
             >
               Agent Integration
             </Link>
@@ -212,7 +216,7 @@ export default function Home() {
             href="/skills"
             className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-5 p-8 text-left group hover:bg-gray-50/60 dark:hover:bg-gray-800/20 transition"
           >
-            <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl shrink-0">
+            <div className="w-12 h-12 rounded-lg bg-[var(--lobster-accent-soft)] flex items-center justify-center text-[var(--lobster-accent)] text-2xl shrink-0">
               <FiShoppingBag />
             </div>
             <div className="flex-1 min-w-0">
@@ -221,7 +225,7 @@ export default function Home() {
                 Browse and buy AI agent skills with on-chain trust scores.
               </p>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 shrink-0 group-hover:gap-2.5 transition-all">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--lobster-accent)] shrink-0 group-hover:gap-2.5 transition-all">
               Explore <FiArrowRight />
             </span>
           </Link>
@@ -234,7 +238,7 @@ export default function Home() {
                 </h4>
                 <Link
                   href="/skills"
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:gap-2 transition-all"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--lobster-accent)] hover:gap-2 transition-all"
                 >
                   See all <FiArrowRight />
                 </Link>
@@ -248,9 +252,9 @@ export default function Home() {
                     <Link
                       key={skill.publicKey}
                       href={`/skills/chain-${skill.publicKey}`}
-                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/30 p-5 flex flex-col hover:border-blue-400 dark:hover:border-blue-500 transition group"
+                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/30 p-5 flex flex-col hover:border-[var(--lobster-accent)] transition group"
                     >
-                      <h4 className="font-heading font-bold text-gray-900 dark:text-white text-sm mb-1 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                      <h4 className="font-heading font-bold text-gray-900 dark:text-white text-sm mb-1 truncate group-hover:text-[var(--lobster-accent)] transition">
                         {skill.account.name || 'Untitled Skill'}
                       </h4>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 line-clamp-2">
@@ -312,7 +316,7 @@ export default function Home() {
           ].map((f) => (
             <div key={f.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition">
               <div className="flex items-center gap-2 mb-1 text-gray-900 dark:text-white font-semibold text-sm">
-                <span className="text-blue-600 dark:text-blue-400">{f.icon}</span> {f.label}
+                <span className="text-[var(--lobster-accent)]">{f.icon}</span> {f.label}
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500">{f.desc}</p>
             </div>
@@ -352,7 +356,7 @@ export default function Home() {
                   <span className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-900 dark:text-white">
                     {s.step}
                   </span>
-                  <span className="text-blue-600 dark:text-blue-400">{s.icon}</span>
+                  <span className="text-[var(--lobster-accent)]">{s.icon}</span>
                 </div>
                 <h3 className="font-bold text-gray-900 dark:text-white mb-2">{s.title}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{s.desc}</p>

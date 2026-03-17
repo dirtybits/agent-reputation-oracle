@@ -47,7 +47,7 @@ export default function TrustBadge({ trust, compact = false }: TrustBadgeProps) 
           <FiShield className="w-3.5 h-3.5" />
           {trust.reputationScore}
         </span>
-        <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+        <span className="flex items-center gap-1 text-[var(--lobster-accent)]">
           <FiUsers className="w-3.5 h-3.5" />
           {trust.totalVouchesReceived}
         </span>
@@ -73,7 +73,7 @@ export default function TrustBadge({ trust, compact = false }: TrustBadgeProps) 
       </div>
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
-        <div className="flex items-center justify-center gap-1 text-blue-600 dark:text-blue-400 mb-1">
+        <div className="flex items-center justify-center gap-1 text-[var(--lobster-accent)] mb-1">
           <FiUsers className="w-4 h-4" />
         </div>
         <div className="text-lg font-bold">{trust.totalVouchesReceived}</div>

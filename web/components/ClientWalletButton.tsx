@@ -4,11 +4,15 @@ import { useEffect, useState, useRef } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
 import { ConnectButton, usePhantom, useAccounts, useDisconnect } from '@phantom/react-sdk';
 import { usePhantomConfigured } from './WalletContextProvider';
-import { navButtonInlineClass, navButtonSizeClass } from '@/lib/buttonStyles';
+import {
+  navButtonInlineClass,
+  navButtonPrimaryInlineClass,
+  navButtonSecondaryInlineClass,
+} from '@/lib/buttonStyles';
 
 const PHANTOM_ICON = 'https://phantom.com/_web_platform_assets/favicon.svg';
-const walletTriggerClass = `${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition`;
-const walletMenuButtonClass = 'w-full px-3 py-1.5 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition rounded-lg';
+const walletTriggerClass = navButtonPrimaryInlineClass;
+const walletMenuButtonClass = `w-full ${navButtonSecondaryInlineClass} justify-start`;
 
 function isMobile(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -131,7 +135,7 @@ function ClientWalletButtonWithPhantom() {
   }, []);
 
   if (!mounted) {
-    return <div className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 opacity-60 pointer-events-none`}>Loading...</div>;
+    return <div className={`${navButtonPrimaryInlineClass} opacity-60 pointer-events-none`}>Loading...</div>;
   }
 
   // Extension wallet connected
@@ -157,7 +161,7 @@ function ClientWalletButtonWithPhantom() {
     const short = `${addr.slice(0, 4)}...${addr.slice(-4)}`;
     return (
       <div className="relative" ref={menuRef}>
-        <button onClick={() => setShowMenu(!showMenu)} className={`${navButtonInlineClass} font-semibold bg-purple-600 text-white hover:bg-purple-500 transition font-mono`}>{short}</button>
+        <button onClick={() => setShowMenu(!showMenu)} className={`${walletTriggerClass} font-mono`}>{short}</button>
         {showMenu && (
           <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-50">
             <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-800">Phantom Embedded</div>
@@ -195,7 +199,7 @@ function ClientWalletButtonBasic() {
   }, []);
 
   if (!mounted) {
-    return <div className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 opacity-60 pointer-events-none`}>Loading...</div>;
+    return <div className={`${navButtonPrimaryInlineClass} opacity-60 pointer-events-none`}>Loading...</div>;
   }
 
   if (status === 'connected' && wallet) {

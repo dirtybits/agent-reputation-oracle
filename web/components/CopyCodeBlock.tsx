@@ -65,11 +65,11 @@ export function CopyCodeBlock({
       <button
         type="button"
         onClick={handleCopy}
-        className="shrink-0 p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+        className="shrink-0 p-1 rounded text-gray-400 hover:text-[var(--lobster-accent)] transition"
         title={copyLabel}
         aria-label={copyLabel}
       >
-        {copied ? <FiCheck className="w-3.5 h-3.5 text-green-500" /> : <FiCopy className="w-3.5 h-3.5" />}
+        {copied ? <FiCheck className="w-3.5 h-3.5 text-[var(--lobster-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
       </button>
     </div>
   );

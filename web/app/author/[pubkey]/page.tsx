@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useWalletConnection } from '@solana/react-hooks';
 import { address, type Address } from '@solana/kit';
 import Link from 'next/link';
-import { navButtonInlineClass } from '@/lib/buttonStyles';
+import { navButtonPrimaryInlineClass } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
@@ -226,7 +226,7 @@ export default function AuthorProfilePage() {
             { label: 'Vouches Received', value: vouchesReceived.length.toString(), icon: <FiUsers /> },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center">
-              <div className="flex items-center justify-center text-blue-600 dark:text-blue-400 mb-1">
+              <div className="flex items-center justify-center text-[var(--lobster-accent)] mb-1">
                 {stat.icon}
               </div>
               <div className="text-xl font-heading font-bold text-gray-900 dark:text-white">{stat.value}</div>
@@ -239,7 +239,7 @@ export default function AuthorProfilePage() {
         {connected && myProfile && !isOwnProfile && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <FiZap className="text-blue-600 dark:text-blue-400" /> Vouch for this Author
+              <FiZap className="text-[var(--lobster-accent)]" /> Vouch for this Author
             </h2>
             <div className="flex gap-3">
               <div className="flex-1">
@@ -256,7 +256,7 @@ export default function AuthorProfilePage() {
               <button
                 onClick={handleVouch}
                 disabled={vouching}
-                className={`self-end ${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white dark:text-gray-900 transition`}
+                className={`self-end ${navButtonPrimaryInlineClass}`}
               >
                 {vouching ? 'Vouching...' : `Vouch with ${vouchAmount} SOL`}
               </button>
@@ -272,7 +272,7 @@ export default function AuthorProfilePage() {
         {/* Skills */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <FiPackage className="text-blue-600 dark:text-blue-400" /> Published Skills
+            <FiPackage className="text-[var(--lobster-accent)]" /> Published Skills
           </h2>
 
           {repoSkills.length === 0 && chainSkills.length === 0 ? (
@@ -332,7 +332,7 @@ export default function AuthorProfilePage() {
                       )}
                       <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
                         <span className="flex items-center gap-1"><FiDownload className="w-3 h-3" />{downloads}</span>
-                        <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-medium">on-chain</span>
+                        <span className="px-1.5 py-0.5 bg-[var(--lobster-accent-soft)] text-[var(--lobster-accent)] rounded text-[10px] font-medium">on-chain</span>
                       </div>
                     </Link>
                   );
@@ -345,7 +345,7 @@ export default function AuthorProfilePage() {
         {vouchesReceived.length > 0 && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <FiUsers className="text-blue-600 dark:text-blue-400" /> Vouchers
+              <FiUsers className="text-[var(--lobster-accent)]" /> Vouchers
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               {vouchesReceived.length} {vouchesReceived.length === 1 ? 'agent is' : 'agents are'} staking SOL for this author.
@@ -375,7 +375,7 @@ export default function AuthorProfilePage() {
         {vouchesGiven.length > 0 && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <FiZap className="text-blue-600 dark:text-blue-400" /> Vouching For
+              <FiZap className="text-[var(--lobster-accent)]" /> Vouching For
             </h2>
             <div className="space-y-2">
               {vouchesGiven.map((vouch: any, idx: number) => {

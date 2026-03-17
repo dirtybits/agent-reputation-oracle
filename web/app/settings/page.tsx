@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
 import Link from 'next/link';
-import { navButtonInlineClass } from '@/lib/buttonStyles';
+import { navButtonInlineClass, navButtonPrimaryInlineClass } from '@/lib/buttonStyles';
 import {
   FiKey,
   FiPlus,
@@ -215,13 +215,13 @@ export default function SettingsPage() {
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   placeholder="Key name (e.g., my-agent)"
-                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                   maxLength={64}
                 />
                 <button
                   onClick={createKey}
                   disabled={creating}
-                  className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
+                  className={navButtonPrimaryInlineClass}
                 >
                   {creating ? (
                     <><FiLoader className="w-4 h-4 animate-spin" />Creating…</>

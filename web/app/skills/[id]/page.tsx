@@ -5,7 +5,12 @@ import Link from 'next/link';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { SolAmount } from '@/components/SolAmount';
-import { navButtonInlineClass, navButtonSizeClass } from '@/lib/buttonStyles';
+import {
+  navButtonInlineClass,
+  navButtonPrimaryInlineClass,
+  navButtonSecondaryInlineClass,
+  navButtonSizeClass,
+} from '@/lib/buttonStyles';
 import { useWalletConnection } from '@solana/react-hooks';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { PRICING, formatMinPrice, toLamports, fromLamports, isValidListingPriceLamports } from '@/lib/pricing';
@@ -258,7 +263,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-500 dark:text-gray-400 mb-4">Skill not found</p>
-          <Link href="/skills" className="text-blue-600 dark:text-blue-400 hover:underline">
+          <Link href="/skills" className="text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline">
             ← Back to skills
           </Link>
         </div>
@@ -302,7 +307,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             <span className="text-sm text-gray-500 dark:text-gray-400">Author:</span>
             <Link
               href={`/author/${skill.author_pubkey}`}
-              className="flex items-center gap-1.5 font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline transition"
+              className="flex items-center gap-1.5 font-mono text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline transition"
             >
               {shortAddr(skill.author_pubkey)}
               <FiExternalLink className="w-3.5 h-3.5" />
@@ -372,7 +377,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Install / Buy action */}
         {(skill.price_lamports == null || skill.price_lamports === 0) && (
-          <div className="rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/10 p-4 mb-6">
+          <div className="rounded-xl border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] p-4 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Free Skill</div>
@@ -384,7 +389,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 <button
                   onClick={handleFreeInstall}
                   disabled={installing}
-                  className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
+                  className={navButtonPrimaryInlineClass}
                 >
                   {installing ? (
                     <><FiLoader className="w-4 h-4 animate-spin" />Installing…</>
@@ -457,7 +462,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
             Auth: <code className="text-gray-500 dark:text-gray-400">Authorization: Bearer sk_...</code> or wallet signature.{' '}
-            <Link href="/settings" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <Link href="/settings" className="text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline">
               Get API key →
             </Link>
           </p>
@@ -477,7 +482,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 href={`https://ipfs.io/ipfs/${skill.ipfs_cid}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                className="flex items-center gap-1 text-xs text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline"
               >
                 Verify on IPFS <FiExternalLink className="w-3 h-3" />
               </a>
@@ -545,7 +550,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               {connected && walletAddress === skill.author_pubkey && !editing && (
                 <button
                   onClick={startEditing}
-                  className={`${navButtonInlineClass} gap-1.5 font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition`}
+                  className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
                 >
                   <FiEdit2 className="w-3.5 h-3.5" />
                   Edit Listing
@@ -566,7 +571,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     maxLength={64}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                   />
                 </div>
                 <div>
@@ -576,7 +581,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                     onChange={(e) => setEditDescription(e.target.value)}
                     maxLength={256}
                     rows={2}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)] resize-none"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -588,7 +593,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                       step={PRICING.SOL.step}
                       value={editPrice}
                       onChange={(e) => setEditPrice(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                     />
                   </div>
                   <div>
@@ -597,7 +602,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                       type="text"
                       value={editUri}
                       onChange={(e) => setEditUri(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                     />
                   </div>
                 </div>
@@ -610,7 +615,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                   <button
                     onClick={handleUpdateListing}
                     disabled={updating}
-                    className={`${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
+                    className={navButtonPrimaryInlineClass}
                   >
                     {updating ? (
                       <><FiLoader className="w-4 h-4 animate-spin" />Updating…</>
@@ -656,13 +661,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                   step={PRICING.SOL.step}
                   value={listPrice}
                   onChange={(e) => setListPrice(e.target.value)}
-                  className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 />
               </div>
               <button
                 onClick={handleListOnMarketplace}
                 disabled={listing}
-                className={`mt-5 ${navButtonInlineClass} font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition disabled:opacity-40`}
+                className={`mt-5 ${navButtonPrimaryInlineClass}`}
               >
                 {listing ? (
                   <><FiLoader className="w-4 h-4 animate-spin" />Creating listing…</>
@@ -682,7 +687,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FiExternalLink className="w-4 h-4 text-blue-500" />
+                <FiExternalLink className="w-4 h-4 text-[var(--lobster-accent)]" />
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Skill Source
                 </span>
@@ -692,7 +697,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               href={skill.skill_uri}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 block text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+              className="mt-2 block text-sm text-[var(--lobster-accent)] hover:text-[var(--lobster-accent-strong)] hover:underline break-all"
             >
               {skill.skill_uri}
             </a>

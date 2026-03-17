@@ -4,11 +4,27 @@
 :root {
   --background: #f9fafb;
   --foreground: #111827;
+  --lobster-accent: #d95a2b;
+  --lobster-accent-strong: #b94822;
+  --lobster-accent-contrast: #7c2d12;
+  --lobster-accent-muted: #c65d33;
+  --lobster-accent-soft: #fde6dc;
+  --lobster-accent-soft-hover: #f9d8c8;
+  --lobster-accent-border: #f2b49a;
+  --lobster-focus-ring: rgba(217, 90, 43, 0.24);
 }
 
 .dark {
   --background: #030712;
   --foreground: #f3f4f6;
+  --lobster-accent: #f28a61;
+  --lobster-accent-strong: #f7a382;
+  --lobster-accent-contrast: #fdd4c4;
+  --lobster-accent-muted: #f4a07f;
+  --lobster-accent-soft: rgba(217, 90, 43, 0.16);
+  --lobster-accent-soft-hover: rgba(217, 90, 43, 0.24);
+  --lobster-accent-border: rgba(242, 138, 97, 0.35);
+  --lobster-focus-ring: rgba(242, 138, 97, 0.34);
 }
 
 body {
@@ -80,7 +96,7 @@ body {
 .code-block-content .hljs-literal,
 .code-block-content .hljs-section,
 .code-block-content .hljs-link {
-  color: #2563eb;
+  color: var(--lobster-accent);
 }
 
 .dark .code-block-content .hljs-keyword,
@@ -88,7 +104,7 @@ body {
 .dark .code-block-content .hljs-literal,
 .dark .code-block-content .hljs-section,
 .dark .code-block-content .hljs-link {
-  color: #60a5fa;
+  color: var(--lobster-accent);
 }
 
 .code-block-content .hljs-string,
