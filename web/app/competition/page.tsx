@@ -388,11 +388,15 @@ export default function CompetitionPage() {
               const isTop3 = idx < 3;
 
               return (
-                <Link
+                <div
                   key={skill.id}
-                  href={`/skills/${skill.id}`}
-                  className="group flex items-start gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                  className="group relative flex items-start gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition"
                 >
+                  <Link
+                    href={`/skills/${skill.id}`}
+                    aria-label={`View ${skill.name}`}
+                    className="absolute inset-0 z-10 rounded-xl"
+                  />
                   {/* Rank */}
                   <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
                     idx === 0
@@ -433,8 +437,7 @@ export default function CompetitionPage() {
                         </span>
                         <Link
                           href={`/author/${skill.author_pubkey}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="font-mono hover:text-[var(--lobster-accent)] hover:underline transition"
+                          className="relative z-20 font-mono hover:text-[var(--lobster-accent)] hover:underline transition"
                           title={skill.author_pubkey}
                         >
                           {shortAddr(skill.author_pubkey)}
@@ -442,7 +445,7 @@ export default function CompetitionPage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
