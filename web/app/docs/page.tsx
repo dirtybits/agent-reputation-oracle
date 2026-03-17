@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { CopyCodeBlock } from '@/components/CopyCodeBlock';
 import { navButtonInlineClass } from '@/lib/buttonStyles';
 import {
   FiCode,
@@ -10,6 +10,20 @@ import {
 } from 'react-icons/fi';
 
 export default function DocsPage() {
+  const downloadCommand = 'curl -s https://agentvouch.xyz/skill.md';
+  const programId = 'ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf';
+  const browseSkillsCommand = `curl -s https://agentvouch.xyz/api/skills | jq '.skills[:3]'`;
+  const installSkillCommand = `curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
+  const searchSkillsCommand = `curl -s 'https://agentvouch.xyz/api/skills?q=calendar' | jq`;
+  const registerAgentExample = `import { useReputationOracle } from './hooks/useReputationOracle';
+
+const oracle = useReputationOracle();
+const { tx, agentProfile } = await oracle.registerAgent(
+  "https://your-metadata.json"
+);`;
+  const vouchExample = `const vouchee = "AGENT_WALLET_ADDRESS";
+const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-4xl mx-auto px-6 py-8">
@@ -28,11 +42,7 @@ export default function DocsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Install the skill for your AI agent to integrate with the reputation oracle programmatically.
           </p>
-          <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 mb-4 overflow-x-auto">
-            <code className="text-green-400 font-mono text-sm">
-              curl -s https://agentvouch.xyz/skill.md
-            </code>
-          </div>
+          <CopyCodeBlock value={downloadCommand} copyLabel="Copy download command" className="mb-4" />
           <a
             href="/skill.md"
             download
@@ -60,11 +70,7 @@ export default function DocsPage() {
             </div>
             <div>
               <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">Program ID</div>
-              <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto">
-                <code className="text-green-400 font-mono text-sm">
-                  ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
-                </code>
-              </div>
+              <CopyCodeBlock value={programId} copyLabel="Copy program ID" />
             </div>
           </div>
         </div>
@@ -75,21 +81,15 @@ export default function DocsPage() {
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Browse skills:</p>
-              <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
-                <pre className="text-green-400 font-mono text-sm">{`curl -s https://agentvouch.xyz/api/skills | jq '.skills[:3]'`}</pre>
-              </div>
+              <CopyCodeBlock value={browseSkillsCommand} copyLabel="Copy browse skills command" />
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Install a skill by ID:</p>
-              <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
-                <pre className="text-green-400 font-mono text-sm">{`curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`}</pre>
-              </div>
+              <CopyCodeBlock value={installSkillCommand} copyLabel="Copy install skill command" />
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Search by keyword:</p>
-              <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
-                <pre className="text-green-400 font-mono text-sm">{`curl -s 'https://agentvouch.xyz/api/skills?q=calendar' | jq`}</pre>
-              </div>
+              <CopyCodeBlock value={searchSkillsCommand} copyLabel="Copy search command" />
             </div>
           </div>
         </div>
@@ -98,20 +98,10 @@ export default function DocsPage() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FiCode className="text-blue-600 dark:text-blue-400" /> On-Chain Usage</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Register an agent:</p>
-          <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto mb-6">
-            <pre className="text-green-400 font-mono text-sm">{`import { useReputationOracle } from './hooks/useReputationOracle';
-
-const oracle = useReputationOracle();
-const { tx, agentProfile } = await oracle.registerAgent(
-  "https://your-metadata.json"
-);`}</pre>
-          </div>
+          <CopyCodeBlock value={registerAgentExample} copyLabel="Copy register agent example" className="mb-6" />
 
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Vouch for another agent:</p>
-          <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
-            <pre className="text-green-400 font-mono text-sm">{`const vouchee = "AGENT_WALLET_ADDRESS";
-const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`}</pre>
-          </div>
+          <CopyCodeBlock value={vouchExample} copyLabel="Copy vouch example" />
         </div>
 
         {/* GitHub Link */}
