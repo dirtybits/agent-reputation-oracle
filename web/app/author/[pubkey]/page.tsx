@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useWalletConnection } from '@solana/react-hooks';
 import { address, type Address } from '@solana/kit';
 import Link from 'next/link';
+import { AgentProfileSetupCard } from '@/components/AgentProfileSetupCard';
+import { ClientWalletButton } from '@/components/ClientWalletButton';
 import { navButtonPrimaryInlineClass } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import { SolAmount } from '@/components/SolAmount';
@@ -19,11 +21,13 @@ import {
   FiDollarSign,
   FiDownload,
   FiExternalLink,
+  FiLoader,
   FiPackage,
   FiShield,
   FiTag,
   FiTrendingUp,
   FiUsers,
+  FiX,
   FiZap,
 } from 'react-icons/fi';
 
@@ -40,6 +44,10 @@ function formatDate(isoOrTimestamp: string | number): string {
     ? new Date(isoOrTimestamp * 1000)
     : new Date(isoOrTimestamp);
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 interface RepoSkill {
@@ -80,6 +88,14 @@ export default function AuthorProfilePage() {
   const [vouching, setVouching] = useState(false);
   const [vouchStatus, setVouchStatus] = useState('');
   const [myProfile, setMyProfile] = useState<any>(null);
+  const [myProfileLoading, setMyProfileLoading] = useState(false);
+  const [myProfileChecked, setMyProfileChecked] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [registerStatus, setRegisterStatus] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [showProfileGate, setShowProfileGate] = useState(false);
+  const [pendingVouchAfterRegister, setPendingVouchAfterRegister] = useState(false);
+  const myProfileFetchId = useRef(0);
 
   const isOwnProfile = myPubkey === pubkey;
 
@@ -113,9 +129,29 @@ export default function AuthorProfilePage() {
   }, [loadData]);
 
   useEffect(() => {
-    if (connected && myPubkey && !isOwnProfile) {
-      oracle.getAgentProfile(address(myPubkey)).then(setMyProfile).catch(() => null);
+    if (!connected || !myPubkey || isOwnProfile) {
+      setMyProfile(null);
+      setMyProfileLoading(false);
+      setMyProfileChecked(false);
+      return;
     }
+
+    const fetchId = ++myProfileFetchId.current;
+    setMyProfileLoading(true);
+    setMyProfileChecked(false);
+    oracle.getAgentProfile(address(myPubkey))
+      .then((agentProfile) => {
+        if (fetchId === myProfileFetchId.current) setMyProfile(agentProfile);
+      })
+      .catch(() => {
+        if (fetchId === myProfileFetchId.current) setMyProfile(null);
+      })
+      .finally(() => {
+        if (fetchId === myProfileFetchId.current) {
+          setMyProfileLoading(false);
+          setMyProfileChecked(true);
+        }
+      });
     // oracle is intentionally omitted — it changes reference every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, myPubkey, isOwnProfile]);
@@ -126,18 +162,108 @@ export default function AuthorProfilePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleVouch = async () => {
-    if (!connected || !myProfile) return;
+  const submitVouch = useCallback(async () => {
+    if (!connected) return;
+    const amount = parseFloat(vouchAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setVouchStatus('Error: Enter a valid stake amount in SOL.');
+      setPendingVouchAfterRegister(false);
+      return;
+    }
+
     setVouching(true);
     setVouchStatus('Creating vouch...');
     try {
-      const { tx } = await oracle.vouch(address(pubkey), parseFloat(vouchAmount));
+      const { tx } = await oracle.vouch(address(pubkey), amount);
       setVouchStatus(`Vouch created! TX: ${tx.slice(0, 16)}...`);
       setTimeout(loadData, 2000);
     } catch (error: any) {
       setVouchStatus(`Error: ${error.message}`);
     } finally {
       setVouching(false);
+      setPendingVouchAfterRegister(false);
+    }
+  }, [connected, loadData, oracle, pubkey, vouchAmount]);
+
+  const waitForReadableProfile = useCallback(async (agentKey: Address, attempts = 8) => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const viewerProfile = await oracle.getAgentProfile(agentKey);
+      if (viewerProfile) return viewerProfile;
+      await sleep(500 * (attempt + 1));
+    }
+    return null;
+  }, [oracle]);
+
+  const handleVouch = async () => {
+    if (!connected) {
+      setVouchStatus('Connect your wallet to vouch for this author.');
+      return;
+    }
+
+    if (!myProfile) {
+      setPendingVouchAfterRegister(true);
+      setRegisterError(null);
+      setShowProfileGate(true);
+      return;
+    }
+
+    await submitVouch();
+  };
+
+  const handleRegister = async () => {
+    if (!connected || !myPubkey) return;
+
+    setRegistering(true);
+    setRegisterStatus('Waiting for wallet confirmation…');
+    setRegisterError(null);
+
+    try {
+      await oracle.registerAgent('');
+      setRegisterStatus('Profile created on-chain. Finalizing registration…');
+
+      const viewerProfile = await waitForReadableProfile(address(myPubkey));
+      if (!viewerProfile) {
+        throw new Error('Profile transaction confirmed, but the account is not readable yet. Please wait a moment and try again.');
+      }
+
+      setMyProfile(viewerProfile);
+      setMyProfileChecked(true);
+      setShowProfileGate(false);
+
+      if (pendingVouchAfterRegister) {
+        setVouchStatus('Profile created. Waiting for vouch confirmation…');
+        await sleep(800);
+        await submitVouch();
+      } else {
+        setVouchStatus('Profile created. You can now vouch for this author.');
+      }
+    } catch (err: any) {
+      const cause = err?.cause?.message ?? err?.context?.message ?? '';
+      const msg = cause || err.message || String(err);
+      const alreadyExists = /already in use|already exists|0x0|account already initialized/i.test(msg);
+
+      if (alreadyExists) {
+        setRegisterStatus('Profile already exists. Finalizing registration…');
+        const viewerProfile = await waitForReadableProfile(address(myPubkey)).catch(() => null);
+        if (viewerProfile) {
+          setMyProfile(viewerProfile);
+          setMyProfileChecked(true);
+          setShowProfileGate(false);
+          if (pendingVouchAfterRegister) {
+            setVouchStatus('Profile already exists. Waiting for vouch confirmation…');
+            await sleep(800);
+            await submitVouch();
+          } else {
+            setVouchStatus('Profile already exists. You can now vouch for this author.');
+          }
+          return;
+        }
+      }
+
+      setRegisterError(`Profile creation failed: ${msg}`);
+    } finally {
+      setRegisterStatus(null);
+      setRegistering(false);
     }
   };
 
@@ -178,6 +304,33 @@ export default function AuthorProfilePage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-4xl mx-auto px-6 py-8">
+        {showProfileGate && connected && !myProfileLoading && !myProfile && !isOwnProfile && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowProfileGate(false);
+                  setPendingVouchAfterRegister(false);
+                }}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 z-10"
+              >
+                <FiX className="w-4 h-4" />
+              </button>
+              <AgentProfileSetupCard
+                registering={registering}
+                status={registerStatus}
+                onRegister={handleRegister}
+                error={registerError}
+                title="Create your profile to vouch"
+                description="Before you stake behind an author you trust, set up your on-chain profile. This one-time step links your wallet to the reputation system, then returns you straight to vouching."
+                primaryStepLabel="Create profile"
+                secondaryStepLabel="Vouch"
+                className="max-w-md mx-auto"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3">
@@ -236,31 +389,75 @@ export default function AuthorProfilePage() {
         </div>
 
         {/* Vouch for this author */}
-        {connected && myProfile && !isOwnProfile && (
+        {!isOwnProfile && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <FiZap className="text-[var(--lobster-accent)]" /> Vouch for this Author
             </h2>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stake Amount (SOL)</label>
-                <input
-                  type="number"
-                  value={vouchAmount}
-                  onChange={(e) => setVouchAmount(e.target.value)}
-                  min="0.01"
-                  step="0.01"
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
-                />
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Stake SOL behind this author&apos;s reputation. Vouchers earn 40% of author revenue.
+            </p>
+
+            {!profile ? (
+              <div className="rounded-lg border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-900/20 p-4">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  This author needs an on-chain profile before anyone can vouch for them.
+                </p>
               </div>
-              <button
-                onClick={handleVouch}
-                disabled={vouching}
-                className={`self-end ${navButtonPrimaryInlineClass}`}
-              >
-                {vouching ? 'Vouching...' : `Vouch with ${vouchAmount} SOL`}
-              </button>
-            </div>
+            ) : (
+              <>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stake Amount (SOL)</label>
+                    <input
+                      type="number"
+                      value={vouchAmount}
+                      onChange={(e) => setVouchAmount(e.target.value)}
+                      min="0.01"
+                      step="0.01"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                    />
+                  </div>
+
+                  {!connected ? (
+                    <div className="sm:self-end">
+                      <ClientWalletButton />
+                    </div>
+                  ) : !myProfileChecked || myProfileLoading ? (
+                    <button
+                      disabled
+                      className={`sm:self-end opacity-70 cursor-wait ${navButtonPrimaryInlineClass}`}
+                    >
+                      <FiLoader className="w-4 h-4 animate-spin" />
+                      Checking profile...
+                    </button>
+                  ) : !myProfile ? (
+                    <button
+                      onClick={handleVouch}
+                      disabled={registering}
+                      className={`sm:self-end ${navButtonPrimaryInlineClass}`}
+                    >
+                      {registering ? 'Preparing...' : `Vouch with ${vouchAmount} SOL`}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleVouch}
+                      disabled={vouching}
+                      className={`sm:self-end ${navButtonPrimaryInlineClass}`}
+                    >
+                      {vouching ? 'Vouching...' : `Vouch with ${vouchAmount} SOL`}
+                    </button>
+                  )}
+                </div>
+
+                {connected && myProfileChecked && !myProfile && (
+                  <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
+                    First vouch from this wallet? We&apos;ll ask you to create a one-time on-chain profile, then continue to the vouch.
+                  </p>
+                )}
+              </>
+            )}
+
             {vouchStatus && (
               <p className={`mt-3 text-sm ${vouchStatus.includes('Error') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                 {vouchStatus}

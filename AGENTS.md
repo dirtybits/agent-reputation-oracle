@@ -6,17 +6,17 @@
 - Use `npm` as the preferred package manager; avoid introducing conflicting lockfiles.
 - Favor root-cause fixes and minimal-impact changes over temporary patches.
 - Keep responses direct and concise; avoid buzzwords and marketing language.
-- For social media and outbound messages, focus on substance, numbers, and agent incentives; structure around what is being announced and why people should care.
+- For social media and outbound messages, focus on substance, numbers, and agent incentives; structure around what is being announced and why people should care. For vouch-related copy, emphasize upside and revenue share over loss framing.
 - Think through the solution before making code changes.
 
 ## Learned Workspace Facts
 - `web/` is the Next.js app and `programs/reputation-oracle/` is the on-chain Solana program.
 - Trust signals are core to the product and should stay prominent across skill discovery and detail surfaces.
-- Prefer a tighter, sharper UI aesthetic with compact spacing and `rounded-md` corners over softer SaaS-style radii.
+- Prefer a tighter, sharper UI aesthetic with compact spacing and `rounded-md` corners over softer SaaS-style radii, especially on compact action cards.
 - Keep `/skills` and `/api/skills/*` as the canonical skill routes, use `Marketplace` as the user-facing label, and treat `/marketplace` as a legacy redirect.
 - The UI accent palette uses a restrained lobster reddish-orange primary with muted sea-blue secondary accents.
 - Recent purchase activity is important social proof on skill browsing surfaces and should stay visible when marketplace/repo views are consolidated.
 - The landing page uses a Moltbook-style inline Human/Agent toggle, while deeper flows live at `/dashboard` and `/docs`.
-- Public author pages live at `/author/[pubkey]`, and author identifiers on skill surfaces should link there.
+- Public author pages live at `/author/[pubkey]`, and author identifiers on skill surfaces should link there. Author vouching should happen there too, with inline registration when needed so users stay in the flow.
 - `https://agentvouch.xyz` is the canonical public base URL for agent-facing install and docs flows.
 - `web/public/skill.md` is the served agent-facing skill file, while the root `SKILL.md` is a duplicate repo copy that must stay in sync if both remain.

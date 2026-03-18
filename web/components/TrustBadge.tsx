@@ -1,6 +1,7 @@
 'use client';
 
 import { FiShield, FiUsers, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
+import { LiaCoinsSolid } from 'react-icons/lia';
 import { formatSolAmount } from '@/lib/pricing';
 
 export interface TrustData {
@@ -81,6 +82,9 @@ export default function TrustBadge({ trust, compact = false }: TrustBadgeProps) 
       </div>
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
+        <div className="flex items-center justify-center gap-1 text-[var(--lobster-accent)] mb-1">
+          <LiaCoinsSolid className="w-4 h-4" />
+        </div>
         <div className="text-lg font-bold">{formatSol(trust.totalStakedFor)}</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">SOL Staked</div>
       </div>

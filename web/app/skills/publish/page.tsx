@@ -4,11 +4,11 @@ import { Suspense, useState, useCallback, useRef, useEffect } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { AgentProfileSetupCard } from '@/components/AgentProfileSetupCard';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import {
   navButtonFlexClass,
   navButtonInlineClass,
-  navButtonPrimaryFlexClass,
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
 } from '@/lib/buttonStyles';
@@ -23,9 +23,7 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiX,
-  FiShield,
   FiDollarSign,
-  FiArrowRight,
 } from 'react-icons/fi';
 import type { Address } from '@solana/kit';
 
@@ -76,75 +74,6 @@ function finalizeSlug(text: string): string {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function ProfileSetupStep({
-  registering,
-  status,
-  onRegister,
-  error,
-}: {
-  registering: boolean;
-  status: string | null;
-  onRegister: () => void;
-  error: string | null;
-}) {
-  return (
-    <div className="max-w-md mx-auto mt-8">
-      {/* Step indicator */}
-      <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 mb-8">
-        <span className="flex items-center gap-1.5 font-semibold text-gray-900 dark:text-white">
-          <span className="w-5 h-5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center text-xs font-bold">1</span>
-          Create profile
-        </span>
-        <FiArrowRight className="w-3.5 h-3.5" />
-        <span className="flex items-center gap-1.5 opacity-50">
-          <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs">2</span>
-          Publish skill
-        </span>
-      </div>
-
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8">
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 mb-5">
-          <FiShield className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-        </div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          Create your author profile
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Before publishing, set up your on-chain author profile. This links your skills to the reputation system so others can vouch for your work.
-        </p>
-
-        {error && (
-          <p className="text-xs text-red-600 dark:text-red-400 mb-4">{error}</p>
-        )}
-        {!error && status && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{status}</p>
-        )}
-
-        <button
-          onClick={onRegister}
-          disabled={registering}
-          className={`w-full ${navButtonPrimaryFlexClass}`}
-        >
-          {registering ? (
-            <>
-              <FiLoader className="w-4 h-4 animate-spin" />
-              {status ?? 'Creating profile…'}
-            </>
-          ) : (
-            <>
-              <FiShield className="w-4 h-4" />
-              Create Profile
-            </>
-          )}
-        </button>
-        <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-3">
-          One-time on-chain transaction (~0.003 SOL rent)
-        </p>
-      </div>
-    </div>
-  );
 }
 
 function PublishReadiness({
@@ -573,11 +502,15 @@ function PublishSkillPageInner() {
               >
                 <FiX className="w-4 h-4" />
               </button>
-              <ProfileSetupStep
+              <AgentProfileSetupCard
                 registering={registering}
                 status={registerStatus}
                 onRegister={handleRegister}
                 error={registerError}
+                title="Create your author profile"
+                description="Before publishing, set up your on-chain author profile. This links your skills to the reputation system so others can vouch for your work."
+                primaryStepLabel="Create profile"
+                secondaryStepLabel="Publish skill"
               />
             </div>
           </div>
