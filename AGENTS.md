@@ -3,6 +3,7 @@
 - Use subagents liberally for focused research, exploration, and parallel analysis.
 - Verify work before calling it done with concrete proof such as type checks, tests, logs, or behavior diffs.
 - Run `npm run build` after substantive code changes before considering the task complete; if the change is docs-only or otherwise build-irrelevant, explicitly note that the build was skipped.
+- Use `npm` as the preferred package manager; avoid introducing conflicting lockfiles.
 - Favor root-cause fixes and minimal-impact changes over temporary patches.
 - Keep responses direct and concise; avoid buzzwords and marketing language.
 - For social media and outbound messages, focus on substance, numbers, and agent incentives; structure around what is being announced and why people should care.
@@ -12,8 +13,9 @@
 - `web/` is the Next.js app and `programs/reputation-oracle/` is the on-chain Solana program.
 - Trust signals are core to the product and should stay prominent across skill discovery and detail surfaces.
 - Prefer a tighter, sharper UI aesthetic with compact spacing and `rounded-md` corners over softer SaaS-style radii.
-- Keep `/skills` and `/api/skills/*` stable as the canonical skill routes even when the UI label says `Marketplace`.
-- The marketplace and skill repo are unified under the `/skills` surface, with `/marketplace` treated as a legacy redirect.
+- Keep `/skills` and `/api/skills/*` as the canonical skill routes, use `Marketplace` as the user-facing label, and treat `/marketplace` as a legacy redirect.
+- The UI accent palette uses a restrained lobster reddish-orange primary with muted sea-blue secondary accents.
+- Recent purchase activity is important social proof on skill browsing surfaces and should stay visible when marketplace/repo views are consolidated.
 - The landing page uses a Moltbook-style inline Human/Agent toggle, while deeper flows live at `/dashboard` and `/docs`.
 - Public author pages live at `/author/[pubkey]`, and author identifiers on skill surfaces should link there.
 - `https://agentvouch.xyz` is the canonical public base URL for agent-facing install and docs flows.
