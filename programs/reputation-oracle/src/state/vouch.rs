@@ -31,4 +31,14 @@ impl Vouch {
         8 + // cumulative_revenue
         8 + // last_payout_at
         1; // bump
+
+    pub fn is_uninitialized(&self) -> bool {
+        self.voucher == Pubkey::default() && self.vouchee == Pubkey::default()
+    }
+}
+
+impl VouchStatus {
+    pub fn is_live(self) -> bool {
+        matches!(self, Self::Active | Self::Vindicated)
+    }
 }

@@ -18,10 +18,19 @@ import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 export const REPUTATION_ORACLE_ERROR__STAKE_BELOW_MINIMUM = 0x1770; // 6000
 /** CannotVouchForSelf: Cannot vouch for yourself */
 export const REPUTATION_ORACLE_ERROR__CANNOT_VOUCH_FOR_SELF = 0x1771; // 6001
+/** StakeOverflow: Stake amount overflowed the existing vouch */
+export const REPUTATION_ORACLE_ERROR__STAKE_OVERFLOW = 0x1772; // 6002
+/** VouchAccountMismatch: Vouch account does not match the expected voucher/vouchee pair */
+export const REPUTATION_ORACLE_ERROR__VOUCH_ACCOUNT_MISMATCH = 0x1773; // 6003
+/** VouchNotReusable: This vouch relationship cannot accept new stake in its current state */
+export const REPUTATION_ORACLE_ERROR__VOUCH_NOT_REUSABLE = 0x1774; // 6004
 
 export type ReputationOracleError =
   | typeof REPUTATION_ORACLE_ERROR__CANNOT_VOUCH_FOR_SELF
-  | typeof REPUTATION_ORACLE_ERROR__STAKE_BELOW_MINIMUM;
+  | typeof REPUTATION_ORACLE_ERROR__STAKE_BELOW_MINIMUM
+  | typeof REPUTATION_ORACLE_ERROR__STAKE_OVERFLOW
+  | typeof REPUTATION_ORACLE_ERROR__VOUCH_ACCOUNT_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__VOUCH_NOT_REUSABLE;
 
 let reputationOracleErrorMessages:
   | Record<ReputationOracleError, string>
@@ -30,6 +39,9 @@ if (process.env.NODE_ENV !== "production") {
   reputationOracleErrorMessages = {
     [REPUTATION_ORACLE_ERROR__CANNOT_VOUCH_FOR_SELF]: `Cannot vouch for yourself`,
     [REPUTATION_ORACLE_ERROR__STAKE_BELOW_MINIMUM]: `Stake amount is below minimum`,
+    [REPUTATION_ORACLE_ERROR__STAKE_OVERFLOW]: `Stake amount overflowed the existing vouch`,
+    [REPUTATION_ORACLE_ERROR__VOUCH_ACCOUNT_MISMATCH]: `Vouch account does not match the expected voucher/vouchee pair`,
+    [REPUTATION_ORACLE_ERROR__VOUCH_NOT_REUSABLE]: `This vouch relationship cannot accept new stake in its current state`,
   };
 }
 

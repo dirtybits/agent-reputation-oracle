@@ -201,7 +201,99 @@ describe("reputation-oracle", () => {
     assert.isTrue(afterBalance > beforeBalance);
   });
 
-  it("Agent 1 vouches for Agent 2 again (for dispute test)", async () => {
+  it("Agent 1 re-vouches for Agent 2 using the same PDA", async () => {
+    const [agent1Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent1.publicKey.toBuffer()],
+      program.programId
+    );
+    
+    const [agent2Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent2.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const [vouchPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent2Pda.toBuffer()],
+      program.programId
+    );
+
+    const stakeAmount = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL);
+
+    const tx = await program.methods
+      .vouch(stakeAmount)
+      .accounts({
+        vouch: vouchPda,
+        voucherProfile: agent1Pda,
+        voucheeProfile: agent2Pda,
+        config: configPda,
+        voucher: agent1.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([agent1])
+      .rpc();
+
+    console.log("Re-vouch tx:", tx);
+
+    const vouch = await program.account.vouch.fetch(vouchPda);
+    assert.equal(vouch.status.active !== undefined, true);
+    assert.equal(vouch.stakeAmount.toString(), stakeAmount.toString());
+
+    const agent1Profile = await program.account.agentProfile.fetch(agent1Pda);
+    const agent2Profile = await program.account.agentProfile.fetch(agent2Pda);
+    assert.equal(agent1Profile.totalVouchesGiven, 1);
+    assert.equal(agent2Profile.totalVouchesReceived, 1);
+    assert.equal(agent2Profile.totalStakedFor.toString(), stakeAmount.toString());
+  });
+
+  it("Agent 1 tops up the existing vouch for Agent 2", async () => {
+    const [agent1Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent1.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const [agent2Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent2.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const [vouchPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent2Pda.toBuffer()],
+      program.programId
+    );
+
+    const vouchBefore = await program.account.vouch.fetch(vouchPda);
+    const agent2Before = await program.account.agentProfile.fetch(agent2Pda);
+    const additionalStake = new anchor.BN(0.02 * anchor.web3.LAMPORTS_PER_SOL);
+
+    const tx = await program.methods
+      .vouch(additionalStake)
+      .accounts({
+        vouch: vouchPda,
+        voucherProfile: agent1Pda,
+        voucheeProfile: agent2Pda,
+        config: configPda,
+        voucher: agent1.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([agent1])
+      .rpc();
+
+    console.log("Top-up vouch tx:", tx);
+
+    const vouchAfter = await program.account.vouch.fetch(vouchPda);
+    const agent1Profile = await program.account.agentProfile.fetch(agent1Pda);
+    const agent2After = await program.account.agentProfile.fetch(agent2Pda);
+    const expectedStake = vouchBefore.stakeAmount.add(additionalStake);
+    const expectedTotalStaked = agent2Before.totalStakedFor.add(additionalStake);
+
+    assert.equal(vouchAfter.status.active !== undefined, true);
+    assert.equal(vouchAfter.stakeAmount.toString(), expectedStake.toString());
+    assert.equal(agent1Profile.totalVouchesGiven, 1);
+    assert.equal(agent2After.totalVouchesReceived, 1);
+    assert.equal(agent2After.totalStakedFor.toString(), expectedTotalStaked.toString());
+  });
+
+  it("Opens a dispute on a vouch", async () => {
     const [agent1Pda] = PublicKey.findProgramAddressSync(
       [Buffer.from("agent"), agent1.publicKey.toBuffer()],
       program.programId
@@ -212,60 +304,8 @@ describe("reputation-oracle", () => {
       program.programId
     );
     
-    // Need to close old vouch account first or use different seed
-    // For now, let's create a new test with agent3
-    const [agent3Pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), agent3.publicKey.toBuffer()],
-      program.programId
-    );
-    
-    // Register agent3
-    await program.methods
-      .registerAgent("https://example.com/agent3.json")
-      .accounts({
-        agentProfile: agent3Pda,
-        authority: agent3.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([agent3])
-      .rpc();
-    
     const [vouchPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent3Pda.toBuffer()],
-      program.programId
-    );
-    
-    const stakeAmount = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL);
-    
-    await program.methods
-      .vouch(stakeAmount)
-      .accounts({
-        vouch: vouchPda,
-        voucherProfile: agent1Pda,
-        voucheeProfile: agent3Pda,
-        config: configPda,
-        voucher: agent1.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([agent1])
-      .rpc();
-    
-    console.log("Agent 1 vouched for Agent 3");
-  });
-
-  it("Opens a dispute on a vouch", async () => {
-    const [agent1Pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), agent1.publicKey.toBuffer()],
-      program.programId
-    );
-    
-    const [agent3Pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), agent3.publicKey.toBuffer()],
-      program.programId
-    );
-    
-    const [vouchPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent3Pda.toBuffer()],
+      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent2Pda.toBuffer()],
       program.programId
     );
     
@@ -280,21 +320,56 @@ describe("reputation-oracle", () => {
         dispute: disputePda,
         vouch: vouchPda,
         config: configPda,
-        challenger: agent2.publicKey,
+        challenger: agent3.publicKey,
         systemProgram: SystemProgram.programId,
       })
-      .signers([agent2])
+      .signers([agent3])
       .rpc();
     
     console.log("Open dispute tx:", tx);
     
     const dispute = await program.account.dispute.fetch(disputePda);
     assert.equal(dispute.vouch.toString(), vouchPda.toString());
-    assert.equal(dispute.challenger.toString(), agent2.publicKey.toString());
+    assert.equal(dispute.challenger.toString(), agent3.publicKey.toString());
     assert.equal(dispute.status.open !== undefined, true);
     
     const vouch = await program.account.vouch.fetch(vouchPda);
     assert.equal(vouch.status.disputed !== undefined, true);
+  });
+
+  it("Rejects top-ups while a vouch is disputed", async () => {
+    const [agent1Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent1.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const [agent2Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent2.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const [vouchPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent2Pda.toBuffer()],
+      program.programId
+    );
+
+    try {
+      await program.methods
+        .vouch(new anchor.BN(0.01 * anchor.web3.LAMPORTS_PER_SOL))
+        .accounts({
+          vouch: vouchPda,
+          voucherProfile: agent1Pda,
+          voucheeProfile: agent2Pda,
+          config: configPda,
+          voucher: agent1.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([agent1])
+        .rpc();
+      assert.fail("Should have rejected top-up while disputed");
+    } catch (err: any) {
+      assert.include(err.toString(), "VouchNotReusable");
+    }
   });
 
   it("Resolves a dispute (slash voucher) and pays challenger", async () => {
@@ -303,13 +378,13 @@ describe("reputation-oracle", () => {
       program.programId
     );
     
-    const [agent3Pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), agent3.publicKey.toBuffer()],
+    const [agent2Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent2.publicKey.toBuffer()],
       program.programId
     );
     
     const [vouchPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent3Pda.toBuffer()],
+      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent2Pda.toBuffer()],
       program.programId
     );
     
@@ -326,7 +401,7 @@ describe("reputation-oracle", () => {
     const expectedSlash = Math.floor(stakeAmount * slashPercentage / 100);
     const expectedPayout = disputeBond + expectedSlash;
 
-    const challengerBalBefore = await provider.connection.getBalance(agent2.publicKey);
+    const challengerBalBefore = await provider.connection.getBalance(agent3.publicKey);
     const vouchBalBefore = await provider.connection.getBalance(vouchPda);
     const disputeBalBefore = await provider.connection.getBalance(disputePda);
     
@@ -336,10 +411,10 @@ describe("reputation-oracle", () => {
         dispute: disputePda,
         vouch: vouchPda,
         voucherProfile: agent1Pda,
-        voucheeProfile: agent3Pda,
+        voucheeProfile: agent2Pda,
         config: configPda,
         authority: provider.wallet.publicKey,
-        challenger: agent2.publicKey,
+        challenger: agent3.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .rpc();
@@ -355,9 +430,12 @@ describe("reputation-oracle", () => {
     
     const agent1Profile = await program.account.agentProfile.fetch(agent1Pda);
     assert.equal(agent1Profile.disputesLost, 1);
+    const agent2Profile = await program.account.agentProfile.fetch(agent2Pda);
+    assert.equal(agent2Profile.totalVouchesReceived, 0);
+    assert.equal(agent2Profile.totalStakedFor.toNumber(), 0);
 
     // Verify challenger received bond + slashed stake
-    const challengerBalAfter = await provider.connection.getBalance(agent2.publicKey);
+    const challengerBalAfter = await provider.connection.getBalance(agent3.publicKey);
     const challengerGain = challengerBalAfter - challengerBalBefore;
     assert.equal(challengerGain, expectedPayout,
       `Challenger should gain ${expectedPayout} (bond ${disputeBond} + slash ${expectedSlash}), got ${challengerGain}`);
@@ -373,5 +451,40 @@ describe("reputation-oracle", () => {
       `Dispute PDA should decrease by ${disputeBond}, decreased by ${disputeBalBefore - disputeBalAfter}`);
 
     console.log(`Slash distribution verified: challenger gained ${challengerGain / anchor.web3.LAMPORTS_PER_SOL} SOL`);
+  });
+
+  it("Rejects re-vouching a slashed relationship", async () => {
+    const [agent1Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent1.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const [agent2Pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agent2.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const [vouchPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vouch"), agent1Pda.toBuffer(), agent2Pda.toBuffer()],
+      program.programId
+    );
+
+    try {
+      await program.methods
+        .vouch(new anchor.BN(0.01 * anchor.web3.LAMPORTS_PER_SOL))
+        .accounts({
+          vouch: vouchPda,
+          voucherProfile: agent1Pda,
+          voucheeProfile: agent2Pda,
+          config: configPda,
+          voucher: agent1.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([agent1])
+        .rpc();
+      assert.fail("Should have rejected re-vouching a slashed relationship");
+    } catch (err: any) {
+      assert.include(err.toString(), "VouchNotReusable");
+    }
   });
 });

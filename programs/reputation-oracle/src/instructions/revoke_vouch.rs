@@ -9,7 +9,7 @@ pub struct RevokeVouch<'info> {
         seeds = [b"vouch", voucher_profile.key().as_ref(), vouchee_profile.key().as_ref()],
         bump = vouch.bump,
         constraint = vouch.voucher == voucher_profile.key() @ ErrorCode::UnauthorizedVouchRevocation,
-        constraint = vouch.status == VouchStatus::Active @ ErrorCode::VouchNotActive
+        constraint = vouch.status.is_live() @ ErrorCode::VouchNotRevocable
     )]
     pub vouch: Account<'info, Vouch>,
     
@@ -85,6 +85,6 @@ pub fn handler(ctx: Context<RevokeVouch>) -> Result<()> {
 pub enum ErrorCode {
     #[msg("Unauthorized vouch revocation")]
     UnauthorizedVouchRevocation,
-    #[msg("Vouch is not active")]
-    VouchNotActive,
+    #[msg("Vouch is not currently revocable")]
+    VouchNotRevocable,
 }

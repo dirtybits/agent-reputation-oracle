@@ -19,6 +19,48 @@ if (fs.existsSync(outputPath)) {
   fs.rmSync(outputPath, { recursive: true });
 }
 
-codama.accept(renderVisitor(outputPath));
+async function main() {
+  await Promise.resolve(codama.accept(renderVisitor(outputPath)));
 
-console.log('Client generated at:', outputPath);
+  const rootIndexPath = path.join(outputPath, 'src/generated/index.ts');
+  const rootIndex = fs.readFileSync(rootIndexPath, 'utf-8');
+  const instructionsBarrel = [
+    'export * from "./instructions/claimVoucherRevenue";',
+    'export * from "./instructions/createSkillListing";',
+    'export * from "./instructions/initializeConfig";',
+    'export * from "./instructions/openDispute";',
+    'export * from "./instructions/purchaseSkill";',
+    'export * from "./instructions/registerAgent";',
+    'export * from "./instructions/resolveDispute";',
+    'export * from "./instructions/revokeVouch";',
+    'export * from "./instructions/updateSkillListing";',
+    'export {',
+    '  getVouchInstruction,',
+    '  getVouchInstructionAsync,',
+    '  getVouchInstructionDataCodec,',
+    '  getVouchInstructionDataDecoder,',
+    '  getVouchInstructionDataEncoder,',
+    '  parseVouchInstruction,',
+    '  VOUCH_DISCRIMINATOR as VOUCH_INSTRUCTION_DISCRIMINATOR,',
+    '  getVouchDiscriminatorBytes as getVouchInstructionDiscriminatorBytes,',
+    '  type ParsedVouchInstruction,',
+    '  type VouchAsyncInput,',
+    '  type VouchInput,',
+    '  type VouchInstruction,',
+    '  type VouchInstructionData,',
+    '  type VouchInstructionDataArgs,',
+    '} from "./instructions/vouch";',
+  ].join('\n');
+
+  fs.writeFileSync(
+    rootIndexPath,
+    rootIndex.replace('export * from "./instructions";', instructionsBarrel),
+  );
+
+  console.log('Client generated at:', outputPath);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

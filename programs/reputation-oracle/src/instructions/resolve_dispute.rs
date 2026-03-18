@@ -112,8 +112,8 @@ pub fn handler(
         }
 
         DisputeRuling::Vindicate => {
-            // Vouch was valid — voucher wins, challenger forfeits bond (stays in dispute PDA)
-            vouch.status = VouchStatus::Vindicated;
+            // A vindicated vouch returns to the active relationship state.
+            vouch.status = VouchStatus::Active;
 
             let voucher_profile = &mut ctx.accounts.voucher_profile;
             voucher_profile.disputes_won = voucher_profile.disputes_won.saturating_add(1);
