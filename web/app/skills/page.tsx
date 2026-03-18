@@ -104,6 +104,11 @@ function formatDate(ts: number): string {
   return new Date(ts * 1000).toLocaleDateString();
 }
 
+function getCapabilityFallback(tags: string[]): string | null {
+  if (!tags.length) return null;
+  return `Capabilities: ${tags.slice(0, 3).join(', ')}`;
+}
+
 export default function MarketplacePage() {
   const { wallet, status } = useWalletConnection();
   const connected = status === 'connected' && !!wallet;
@@ -460,14 +465,28 @@ export default function MarketplacePage() {
                               </div>
                             </div>
 
-                            {skill.description && (
+                            {skill.description ? (
                               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
                                 {skill.description}
                               </p>
-                            )}
+                            ) : getCapabilityFallback(skill.tags ?? []) ? (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+                                {getCapabilityFallback(skill.tags ?? [])}
+                              </p>
+                            ) : null}
 
                             <div className="mb-3">
                               <TrustBadge trust={skill.author_trust} compact />
+                              <p className="mt-2 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                                Reputation, vouches, staked SOL, and dispute history help signal author trust.
+                              </p>
+                              <Link
+                                href={`/author/${skill.author_pubkey}`}
+                                className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+                                title={skill.author_pubkey}
+                              >
+                                View author trust <FiExternalLink className="w-3 h-3" />
+                              </Link>
                             </div>
 
                             <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">

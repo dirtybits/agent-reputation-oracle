@@ -82,6 +82,61 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function stripMarkdown(value: string): string {
+  return value
+    .replace(/^[-*+]\s+/, '')
+    .replace(/`/g, '')
+    .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .trim();
+}
+
+function extractCapabilityBullets(content: string | null): string[] {
+  if (!content) return [];
+
+  const lines = content.split('\n');
+  const whenToUseIndex = lines.findIndex((line) => /^##+\s+when to use/i.test(line.trim()));
+  const bullets: string[] = [];
+
+  for (let i = whenToUseIndex >= 0 ? whenToUseIndex + 1 : 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+
+    if (whenToUseIndex >= 0 && /^##+\s+/.test(line)) break;
+    if (!/^[-*+]\s+/.test(line)) continue;
+
+    const cleaned = stripMarkdown(line);
+    if (!cleaned) continue;
+
+    bullets.push(cleaned);
+    if (bullets.length === 3) break;
+  }
+
+  return bullets;
+}
+
+function extractCapabilitySummary(content: string | null, description: string | null): string | null {
+  if (description) return description;
+  if (!content) return null;
+
+  const blocks = content
+    .split(/\n\s*\n/)
+    .map((block) => stripMarkdown(block.replace(/\n/g, ' ')))
+    .filter(Boolean);
+
+  return (
+    blocks.find(
+      (block) =>
+        !block.startsWith('---') &&
+        !block.startsWith('#') &&
+        !block.startsWith('```') &&
+        !/^title:/i.test(block) &&
+        !/^description:/i.test(block) &&
+        !/^when to use/i.test(block)
+    ) ?? null
+  );
+}
+
 export default function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { wallet, status } = useWalletConnection();
@@ -108,6 +163,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const [editUri, setEditUri] = useState('');
   const [updating, setUpdating] = useState(false);
   const [updateResult, setUpdateResult] = useState<{ success: boolean; message: string } | null>(null);
+  const capabilitySummary = extractCapabilitySummary(content, skill?.description ?? null);
+  const capabilityBullets = extractCapabilityBullets(content);
 
   useEffect(() => {
     async function fetchSkill() {
@@ -303,6 +360,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             <FiShield className="w-4 h-4" />
             Author Trust Signals
           </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Reputation, vouches, staked SOL, and dispute history help show how much accountability sits behind this author.
+          </p>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm text-gray-500 dark:text-gray-400">Author:</span>
             <Link
@@ -331,6 +391,12 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             </p>
           )}
           <TrustBadge trust={skill.author_trust} />
+          <Link
+            href={`/author/${skill.author_pubkey}`}
+            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+          >
+            View full author trust history <FiExternalLink className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         {/* Meta Row */}
@@ -372,6 +438,42 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 {tag}
               </span>
             ))}
+          </div>
+        )}
+
+        {(capabilitySummary || capabilityBullets.length > 0 || skill.tags?.length > 0) && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <FiFileText className="w-4 h-4 text-[var(--sea-accent)]" />
+              Capability Preview
+            </h2>
+            {capabilitySummary && (
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                {capabilitySummary}
+              </p>
+            )}
+            {skill.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {skill.tags.slice(0, 4).map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-0.5 rounded-full bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs font-medium border border-[var(--sea-accent-border)]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            {capabilityBullets.length > 0 && (
+              <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                {capabilityBullets.map((bullet) => (
+                  <li key={bullet} className="flex items-start gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[var(--sea-accent)] shrink-0" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
