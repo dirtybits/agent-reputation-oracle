@@ -31,6 +31,12 @@ import {
   FiZap,
 } from 'react-icons/fi';
 
+const SOLANA_FM_CLUSTER = 'devnet-solana';
+
+function getSolanaFmTxUrl(tx: string): string {
+  return `https://solana.fm/tx/${tx}?cluster=${SOLANA_FM_CLUSTER}`;
+}
+
 function shortAddr(addr: string): string {
   return addr.slice(0, 6) + '...' + addr.slice(-4);
 }
@@ -87,6 +93,7 @@ export default function AuthorProfilePage() {
   const [vouchAmount, setVouchAmount] = useState('0.1');
   const [vouching, setVouching] = useState(false);
   const [vouchStatus, setVouchStatus] = useState('');
+  const [vouchTx, setVouchTx] = useState<string | null>(null);
   const [myProfile, setMyProfile] = useState<any>(null);
   const [myProfileLoading, setMyProfileLoading] = useState(false);
   const [myProfileChecked, setMyProfileChecked] = useState(false);
@@ -167,18 +174,22 @@ export default function AuthorProfilePage() {
     const amount = parseFloat(vouchAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
       setVouchStatus('Error: Enter a valid stake amount in SOL.');
+      setVouchTx(null);
       setPendingVouchAfterRegister(false);
       return;
     }
 
     setVouching(true);
     setVouchStatus('Creating vouch...');
+    setVouchTx(null);
     try {
       const { tx } = await oracle.vouch(address(pubkey), amount);
-      setVouchStatus(`Vouch created! TX: ${tx.slice(0, 16)}...`);
+      setVouchStatus('Vouch created!');
+      setVouchTx(tx);
       setTimeout(loadData, 2000);
     } catch (error: any) {
       setVouchStatus(`Error: ${error.message}`);
+      setVouchTx(null);
     } finally {
       setVouching(false);
       setPendingVouchAfterRegister(false);
@@ -197,6 +208,7 @@ export default function AuthorProfilePage() {
   const handleVouch = async () => {
     if (!connected) {
       setVouchStatus('Connect your wallet to vouch for this author.');
+      setVouchTx(null);
       return;
     }
 
@@ -459,9 +471,22 @@ export default function AuthorProfilePage() {
             )}
 
             {vouchStatus && (
-              <p className={`mt-3 text-sm ${vouchStatus.includes('Error') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {vouchStatus}
-              </p>
+              <div className="mt-3 space-y-1">
+                <p className={`text-sm ${vouchStatus.includes('Error') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {vouchStatus}
+                </p>
+                {vouchTx && (
+                  <a
+                    href={getSolanaFmTxUrl(vouchTx)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+                  >
+                    View transaction on Solana FM
+                    <FiExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
             )}
           </div>
         )}

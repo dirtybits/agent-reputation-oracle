@@ -19,6 +19,7 @@ import {
   FiAlertTriangle,
   FiCalendar,
   FiDollarSign,
+  FiExternalLink,
   FiSearch,
   FiShield,
   FiUser,
@@ -27,6 +28,12 @@ import {
 } from 'react-icons/fi';
 
 type Tab = 'profile' | 'vouch' | 'explorer' | 'disputes';
+
+const SOLANA_FM_CLUSTER = 'devnet-solana';
+
+function getSolanaFmTxUrl(tx: string): string {
+  return `https://solana.fm/tx/${tx}?cluster=${SOLANA_FM_CLUSTER}`;
+}
 
 export default function DashboardPage() {
   const { wallet, status: walletStatus } = useWalletConnection();
@@ -49,6 +56,7 @@ export default function DashboardPage() {
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [statusTx, setStatusTx] = useState<string | null>(null);
 
   useEffect(() => {
     if (connected && publicKey) {
@@ -112,10 +120,12 @@ export default function DashboardPage() {
   const searchAgent = async () => {
     if (!searchAddress) {
       setStatus('Please enter an agent address');
+      setStatusTx(null);
       return;
     }
     setLoading(true);
     setStatus('Searching...');
+    setStatusTx(null);
     try {
       const agentKey = address(searchAddress);
       const profile = await oracle.getAgentProfile(agentKey);
@@ -126,8 +136,10 @@ export default function DashboardPage() {
         setSearchedAgent(null);
         setStatus('Agent not found - they may not be registered yet');
       }
+      setStatusTx(null);
     } catch (error: any) {
       setStatus(`Error: ${error.message}`);
+      setStatusTx(null);
       setSearchedAgent(null);
     } finally {
       setLoading(false);
@@ -137,18 +149,22 @@ export default function DashboardPage() {
   const handleDispute = async () => {
     if (!disputeVouchAddress || !disputeEvidence) {
       setStatus('Please enter vouch address and evidence');
+      setStatusTx(null);
       return;
     }
     setLoading(true);
     setStatus('Opening dispute...');
+    setStatusTx(null);
     try {
       const vouchKey = address(disputeVouchAddress);
       const { tx } = await oracle.openDispute(vouchKey, disputeEvidence);
-      setStatus(`Dispute opened! TX: ${tx}`);
+      setStatus('Dispute opened!');
+      setStatusTx(tx);
       setDisputeVouchAddress('');
       setDisputeEvidence('');
     } catch (error: any) {
       setStatus(`Error: ${error.message}`);
+      setStatusTx(null);
     } finally {
       setLoading(false);
     }
@@ -157,12 +173,15 @@ export default function DashboardPage() {
   const handleRegister = async () => {
     setLoading(true);
     setStatus('Registering agent...');
+    setStatusTx(null);
     try {
       const { tx } = await oracle.registerAgent(metadataUri || '');
-      setStatus(`Agent registered! TX: ${tx}`);
+      setStatus('Agent registered!');
+      setStatusTx(tx);
       setTimeout(loadAgentProfile, 2000);
     } catch (error: any) {
       setStatus(`Error: ${error.message}`);
+      setStatusTx(null);
     } finally {
       setLoading(false);
     }
@@ -171,23 +190,28 @@ export default function DashboardPage() {
   const handleVouch = async () => {
     if (!voucheeAddress) {
       setStatus('Please enter a vouchee address');
+      setStatusTx(null);
       return;
     }
     setLoading(true);
     setStatus('Creating vouch...');
+    setStatusTx(null);
     try {
       const vouchee = address(voucheeAddress);
       const voucheeData = await oracle.getAgentProfile(vouchee);
       if (!voucheeData) {
         setStatus('Error: That agent is not registered yet. They need to register before you can vouch for them.');
+        setStatusTx(null);
         setLoading(false);
         return;
       }
       const { tx } = await oracle.vouch(vouchee, parseFloat(vouchAmount));
-      setStatus(`Vouch created! TX: ${tx}`);
+      setStatus('Vouch created!');
+      setStatusTx(tx);
       setTimeout(loadAgentProfile, 2000);
     } catch (error: any) {
       setStatus(`Error: ${error.message}`);
+      setStatusTx(null);
     } finally {
       setLoading(false);
     }
@@ -749,11 +773,24 @@ export default function DashboardPage() {
                 ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
                 : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
             }`}>
-              <p className={`font-mono text-sm break-all ${
-                status.includes('Error') || status.includes('not found')
-                  ? 'text-red-700 dark:text-red-300'
-                  : 'text-green-700 dark:text-green-300'
-              }`}>{status}</p>
+              <div className="space-y-1">
+                <p className={`font-mono text-sm break-all ${
+                  status.includes('Error') || status.includes('not found')
+                    ? 'text-red-700 dark:text-red-300'
+                    : 'text-green-700 dark:text-green-300'
+                }`}>{status}</p>
+                {statusTx && (
+                  <a
+                    href={getSolanaFmTxUrl(statusTx)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+                  >
+                    View transaction on Solana FM
+                    <FiExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </div>
