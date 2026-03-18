@@ -1,9 +1,9 @@
 # AgentVouch v2 Plan: Multi-Asset Staking + x402 Payments
 
-**Status:** Ready for implementation  
+**Status:** In progress (`Phase 0` complete; `x402` adapter partially shipped; multi-mint refactor still pending)  
 **Author:** Sparky  
 **Date:** 2026-02-20  
-**Last revised:** 2026-02-25
+**Last revised:** 2026-03-17
 
 ---
 
@@ -245,7 +245,7 @@ All events include `chain_context` from day one. Indexer team can build against 
 ### Objective
 Ship the missing `claim_voucher_revenue()` instruction and replace `msg!` logging with Anchor events. These are prerequisites — refactoring revenue splits to multi-mint is meaningless without a working claim mechanism, and the indexer needs structured events.
 
-### Current state (as of 2026-02-25)
+### Historical state before Phase 0 work (2026-02-25)
 - `cumulative_revenue` and `last_payout_at` fields exist on Vouch but are **never written to**.
 - `purchase_skill` calculates 40% voucher pool but **does not distribute or record it**.
 - No Anchor `#[event]` structs — only `msg!` logging.
@@ -361,10 +361,10 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 
 ## 5.0 Phase 0 Prerequisites
 
-- [ ] Implement `claim_voucher_revenue()` instruction (proportional by stake weight).
-- [ ] Fix `purchase_skill` to update `cumulative_revenue` on vouches for the skill author.
-- [ ] Add Anchor `#[event]` structs and replace `msg!` logging with `emit!`.
-- [ ] Add integration test: purchase skill → claim revenue → verify balances.
+- [x] Implement `claim_voucher_revenue()` instruction (proportional by stake weight).
+- [x] Fix `purchase_skill` to update `cumulative_revenue` on vouches for the skill author.
+- [x] Add Anchor `#[event]` structs and replace `msg!` logging with `emit!`.
+- [x] Add integration test: purchase skill → claim revenue → verify balances.
 
 ## 5.1 Protocol / Program
 
@@ -389,6 +389,8 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 
 ## 5.3 Marketplace / x402 Adapter
 
+Current repo status: partial groundwork is shipped in `web/lib/x402.ts`, `/api/x402/{verify,settle,supported}`, and `/api/skills/[id]/raw`, but the adapter is still Solana-only and does not yet satisfy the full checklist below.
+
 - [ ] Define accepted x402 Payment Requirements schema (`scheme`, `network`, `mint`, `amount`, `recipient`, `resource`, `expiry`, `nonce`).
 - [ ] Enforce strict validation rules (allowlisted mint, non-expired, exact amount, canonical resource hash binding).
 - [ ] Implement native adapter verify flow (Solana tx/proof validation).
@@ -402,6 +404,8 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 
 ## 5.4 Indexer / API / UI
 
+Current repo status: partial groundwork exists because `skills.chain_context` is already stored in Postgres, but there is no multi-mint indexer schema or cross-chain identity support yet.
+
 - [ ] Extend indexer schema for multi-mint positions with `chain_context`.
 - [ ] Add canonical cross-chain ID support (`namespace:chain:contract#id`) for agents/skills.
 - [ ] Add endpoints for stake composition by agent.
@@ -410,6 +414,8 @@ Shipping protocol changes without legible UX destroys trust. If users can’t ve
 - [ ] Add explorer links for mint metadata and vault addresses.
 
 ## 5.5 Migration / Ops
+
+Current repo status: planning exists, but migration tooling and execution are still pending.
 
 - [ ] Write migration plan doc (v1 -> v2 account map).
 - [ ] Build dry-run migrator with diff output.
