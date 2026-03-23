@@ -1,4 +1,10 @@
 import { neon } from '@neondatabase/serverless';
+import {
+  SOLANA_DEVNET_CHAIN_CONTEXT,
+  SOLANA_MAINNET_CHAIN_CONTEXT,
+  SOLANA_TESTNET_CHAIN_CONTEXT,
+  getConfiguredSolanaChainContext,
+} from '@/lib/chains';
 
 let _sql: ReturnType<typeof neon> | null = null;
 
@@ -14,6 +20,7 @@ export function sql(): (strings: TemplateStringsArray, ...values: any[]) => Prom
 
 export async function initializeDatabase() {
   const db = sql();
+  const configuredSolanaChainContext = getConfiguredSolanaChainContext();
 
   await db`
     CREATE TABLE IF NOT EXISTS skills (
@@ -26,13 +33,47 @@ export async function initializeDatabase() {
       current_version INTEGER DEFAULT 1,
       ipfs_cid VARCHAR(128),
       on_chain_address VARCHAR(44),
-      chain_context VARCHAR(16) DEFAULT 'solana',
+      chain_context VARCHAR(64) DEFAULT ${configuredSolanaChainContext},
       total_installs INTEGER DEFAULT 0,
       contact VARCHAR(128),
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(author_pubkey, skill_id)
     )
+  `;
+
+  await db`
+    ALTER TABLE skills
+    ALTER COLUMN chain_context TYPE VARCHAR(64)
+  `;
+
+  await db`
+    ALTER TABLE skills
+    ALTER COLUMN chain_context SET DEFAULT ${configuredSolanaChainContext}
+  `;
+
+  await db`
+    UPDATE skills
+    SET chain_context = ${configuredSolanaChainContext}
+    WHERE chain_context IS NULL OR chain_context = '' OR LOWER(chain_context) = 'solana'
+  `;
+
+  await db`
+    UPDATE skills
+    SET chain_context = ${SOLANA_MAINNET_CHAIN_CONTEXT}
+    WHERE LOWER(chain_context) IN ('solana-mainnet', 'solana:mainnet', 'solana:mainnet-beta')
+  `;
+
+  await db`
+    UPDATE skills
+    SET chain_context = ${SOLANA_DEVNET_CHAIN_CONTEXT}
+    WHERE LOWER(chain_context) IN ('solana-devnet', 'solana:devnet')
+  `;
+
+  await db`
+    UPDATE skills
+    SET chain_context = ${SOLANA_TESTNET_CHAIN_CONTEXT}
+    WHERE LOWER(chain_context) IN ('solana-testnet', 'solana:testnet')
   `;
 
   await db`

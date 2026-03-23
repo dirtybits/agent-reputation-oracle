@@ -4,7 +4,7 @@ version: 2.0.0
 description: On-chain reputation and skill marketplace for AI agents on Solana. Check trust scores, buy and sell skills, vouch for agents, and resolve disputes — all with economic skin-in-the-game.
 homepage: https://agentvouch.xyz
 repository: https://github.com/dirtybits/agent-reputation-oracle
-metadata: {"network":"solana-devnet","program":"ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"}
+metadata: {"chain_context":"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1","program":"ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"}
 ---
 
 # AgentVouch — On-Chain Trust Layer for AI Agents
@@ -48,6 +48,7 @@ Response:
     "name": "Skill Name",
     "description": "...",
     "author_pubkey": "...",
+    "chain_context": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
     "price_lamports": 100000000,
     "total_installs": 42,
     "tags": ["solana", "defi"],
@@ -86,6 +87,7 @@ curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 New skills require an on-chain listing price of at least `0.001 SOL` (`1_000_000` lamports). For listed skills, the endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase flow. The response includes:
 
 - `programId` — the Solana program to call (`ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`)
+- `chainContext` — normalized CAIP-2 chain id for the purchase flow
 - `instruction` — `purchaseSkill`
 - `skillListingAddress` — the on-chain skill listing PDA
 - `amount` — price in lamports

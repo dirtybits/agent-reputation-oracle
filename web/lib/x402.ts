@@ -7,6 +7,10 @@ import {
   type Address,
 } from '@solana/kit';
 import {
+  getConfiguredSolanaChainContext,
+  normalizeInputChainContext,
+} from './chains';
+import {
   fetchMaybePurchase,
 } from '../generated/reputation-oracle/src/generated';
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../generated/reputation-oracle/src/generated/programs';
@@ -17,6 +21,7 @@ const VERIFICATION_CACHE = new Map<string, { status: string; verifiedAt: number 
 export interface PaymentRequirement {
   scheme: 'exact';
   network: 'solana';
+  chainContext?: string;
   programId: string;
   instruction: 'purchaseSkill';
   skillListingAddress: string;
@@ -44,6 +49,7 @@ export function generatePaymentRequirement(opts: {
   return {
     scheme: 'exact',
     network: 'solana',
+    chainContext: getConfiguredSolanaChainContext(),
     programId: REPUTATION_ORACLE_PROGRAM_ADDRESS,
     instruction: 'purchaseSkill',
     skillListingAddress: opts.skillListingAddress,
@@ -108,6 +114,17 @@ export async function verifyPaymentProof(proof: PaymentProof): Promise<{
 
   if (requirement.network !== 'solana') {
     return { status: 'invalid', paymentRef, error: 'Unsupported network' };
+  }
+
+  if (requirement.chainContext) {
+    const normalizedChainContext = normalizeInputChainContext(requirement.chainContext);
+    if (!normalizedChainContext) {
+      return { status: 'invalid', paymentRef, error: 'Unsupported chain context' };
+    }
+
+    if (normalizedChainContext !== getConfiguredSolanaChainContext()) {
+      return { status: 'invalid', paymentRef, error: 'Payment proof chain context mismatch' };
+    }
   }
 
   if (requirement.expiry < Math.floor(Date.now() / 1000)) {

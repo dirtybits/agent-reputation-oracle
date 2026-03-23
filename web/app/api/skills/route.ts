@@ -3,6 +3,11 @@ import { sql } from '@/lib/db';
 import { verifyAuthorTrust, resolveMultipleAuthorTrust } from '@/lib/trust';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 import { pinSkillContent } from '@/lib/ipfs';
+import {
+  getConfiguredSolanaChainContext,
+  normalizeInputChainContext,
+  normalizePersistedChainContext,
+} from '@/lib/chains';
 import { createSolanaRpc } from '@solana/kit';
 import type { Base64EncodedBytes } from '@solana/rpc-types';
 import {
@@ -13,6 +18,7 @@ import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../../../generated/reputation
 
 const PAGE_SIZE = 20;
 const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com');
+const configuredSolanaChainContext = getConfiguredSolanaChainContext();
 const asBase64 = (bytes: Uint8Array) =>
   Buffer.from(bytes).toString('base64') as Base64EncodedBytes;
 
@@ -39,7 +45,7 @@ async function fetchOnChainListings(): Promise<any[]> {
         ipfs_cid: null,
         on_chain_address: l.pubkey,
         skill_uri: l.data.skillUri || null,
-        chain_context: 'solana',
+        chain_context: configuredSolanaChainContext,
         total_installs: 0,
         total_downloads: Number(l.data.totalDownloads),
         price_lamports: Number(l.data.priceLamports),
@@ -107,6 +113,11 @@ export async function GET(request: NextRequest) {
     } catch {
       pgSkills = [];
     }
+
+    pgSkills = pgSkills.map((skill) => ({
+      ...skill,
+      chain_context: normalizePersistedChainContext(skill.chain_context),
+    }));
 
     const chainSkills = tags ? [] : await fetchOnChainListings();
 
@@ -180,6 +191,7 @@ export async function POST(request: NextRequest) {
       tags?: string[];
       content: string;
       contact?: string;
+      chain_context?: string;
     };
 
     if (!auth || !skill_id || !name || !content) {
@@ -198,6 +210,16 @@ export async function POST(request: NextRequest) {
     }
 
     const authorPubkey = verification.pubkey!;
+    const normalizedChainContext = body.chain_context
+      ? normalizeInputChainContext(body.chain_context)
+      : configuredSolanaChainContext;
+
+    if (body.chain_context && !normalizedChainContext) {
+      return NextResponse.json(
+        { error: 'Invalid chain_context. Use a supported CAIP-2 value or known alias.' },
+        { status: 400 }
+      );
+    }
 
     let trust;
     try {
@@ -219,7 +241,7 @@ export async function POST(request: NextRequest) {
     const pinResult = await pinSkillContent(content, skill_id, 1);
 
     const [skill] = await sql()`
-      INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, ipfs_cid, contact)
+      INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, ipfs_cid, contact, chain_context)
       VALUES (
         ${skill_id},
         ${authorPubkey},
@@ -228,7 +250,8 @@ export async function POST(request: NextRequest) {
         ${tags || []}::text[],
         1,
         ${pinResult.success ? pinResult.cid : null},
-        ${contact || null}
+        ${contact || null},
+        ${normalizedChainContext}
       )
       RETURNING *
     `;

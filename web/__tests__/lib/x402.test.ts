@@ -29,6 +29,7 @@ import {
   type PaymentRequirement,
   type PaymentProof,
 } from '@/lib/x402';
+import { SOLANA_DEVNET_CHAIN_CONTEXT } from '@/lib/chains';
 
 const FAKE_SKILL_LISTING = '11111111111111111111111111111111111111111111';
 const FAKE_BUYER = '22222222222222222222222222222222222222222222';
@@ -69,6 +70,7 @@ describe('generatePaymentRequirement', () => {
 
     expect(req.scheme).toBe('exact');
     expect(req.network).toBe('solana');
+    expect(req.chainContext).toBe(SOLANA_DEVNET_CHAIN_CONTEXT);
     expect(req.programId).toBe('ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf');
     expect(req.instruction).toBe('purchaseSkill');
     expect(req.skillListingAddress).toBe('SkillAddr123');
@@ -177,6 +179,15 @@ describe('verifyPaymentProof', () => {
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe('invalid');
     expect(result.error).toContain('network');
+  });
+
+  it('rejects mismatched chain context', async () => {
+    const proof = makeProof({
+      requirement: makeRequirement({ chainContext: 'eip155:8453' }),
+    });
+    const result = await verifyPaymentProof(proof);
+    expect(result.status).toBe('invalid');
+    expect(result.error).toContain('chain context');
   });
 
   it('rejects expired requirement', async () => {

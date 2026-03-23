@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { getConfiguredSolanaChainContext } from '@/lib/chains';
 
 export async function POST() {
   try {
+    const chainContext = getConfiguredSolanaChainContext();
     const existingRows = await sql()`
       SELECT COUNT(*) as count FROM skills
     ` as any[];
@@ -12,14 +14,15 @@ export async function POST() {
     }
 
     const skillRows = await sql()`
-      INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version)
+      INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, chain_context)
       VALUES (
         'solana-dev-skill',
         '11111111111111111111111111111111',
         'Solana Developer Skill',
         'Core Solana development concepts, APIs, and SDK usage for AI agents.',
         ARRAY['solana', 'blockchain', 'development'],
-        1
+        1,
+        ${chainContext}
       )
       RETURNING id
     ` as any[];

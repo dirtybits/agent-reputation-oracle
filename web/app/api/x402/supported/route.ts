@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../../../../generated/reputation-oracle/src/generated/programs';
+import { getConfiguredSolanaChainContext } from '@/lib/chains';
 
 const SOL_NATIVE_MINT = 'So11111111111111111111111111111111111111112';
 
 export async function GET() {
+  const chainContext = getConfiguredSolanaChainContext();
   return NextResponse.json({
     schemes: ['exact'],
     networks: ['solana'],
+    chain_contexts: [chainContext],
     mints: [
       {
         address: SOL_NATIVE_MINT,

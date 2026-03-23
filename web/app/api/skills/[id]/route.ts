@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import { resolveAuthorTrust } from '@/lib/trust';
 import { getOnChainPrice } from '@/lib/onchain';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
+import { getConfiguredSolanaChainContext, normalizePersistedChainContext } from '@/lib/chains';
 import { createSolanaRpc } from '@solana/kit';
 import type { Base64EncodedBytes } from '@solana/rpc-types';
 import {
@@ -13,6 +14,7 @@ import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../../../../generated/reputat
 
 const CHAIN_PREFIX = 'chain-';
 const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com');
+const configuredSolanaChainContext = getConfiguredSolanaChainContext();
 const asBase64 = (bytes: Uint8Array) =>
   Buffer.from(bytes).toString('base64') as Base64EncodedBytes;
 
@@ -71,6 +73,7 @@ export async function GET(
         current_version: 1,
         ipfs_cid: null,
         on_chain_address: listing.pubkey,
+        chain_context: configuredSolanaChainContext,
         total_installs: 0,
         total_downloads: Number(listing.data.totalDownloads),
         price_lamports: Number(listing.data.priceLamports),
@@ -95,6 +98,7 @@ export async function GET(
     }
 
     const skill = rows[0];
+    skill.chain_context = normalizePersistedChainContext(skill.chain_context);
 
     if (skill.on_chain_address) {
       const listing = await getOnChainPrice(skill.on_chain_address);
@@ -190,7 +194,10 @@ export async function PATCH(
       RETURNING *
     `;
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      ...updated,
+      chain_context: normalizePersistedChainContext(updated.chain_context),
+    });
   } catch (error: any) {
     console.error('PATCH /api/skills/[id] error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
