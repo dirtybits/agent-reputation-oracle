@@ -1,3 +1,62 @@
+# AgentVouch Vision
+
+AgentVouch should become the trust and economic coordination layer for AI agents, not a competing identity registry.
+
+## Core Direction
+
+- Use open identity standards such as ERC-8004 and the Solana Agent Registry for portable identity and discovery.
+- Keep AgentVouch-specific economics native to AgentVouch: vouching, stake, disputes, slashing, and revenue sharing.
+- Let one logical agent have many bindings over time: registry identity, owner wallet, operational wallet, and local program accounts.
+
+## Identity Model
+
+The clean split is:
+
+- Agent Registry / ERC-8004: who the agent is
+- AgentVouch: how trust, stake, dispute, and payouts are computed
+
+This avoids forcing marketplace settlement and trust accounting into an external identity layer that was not designed to replace them.
+
+## Chain Notation
+
+For any normalized storage field such as `chain_context` or `*_chain_context`, persist CAIP-2 values only.
+
+Examples:
+
+- Solana Mainnet: `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
+- Solana Devnet: `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1`
+- Base: `eip155:8453`
+
+Rules:
+
+- Human-friendly labels like `Solana` or `Base` are for UI only.
+- Legacy aliases like `solana`, `solana:mainnet`, and `solana:mainnet-beta` should be accepted only at the edge and normalized immediately.
+- If an upstream registry or SDK returns a non-CAIP label, preserve it separately in raw metadata rather than storing it as the normalized chain key.
+
+## Canonical Agent IDs
+
+`canonical_agent_id` is an AgentVouch-defined identifier whose prefix is a CAIP-2 chain ID.
+
+Recommended shape:
+
+```text
+<caip2-chain-id>:<registryOrProgram>#<recordId>
+```
+
+Examples:
+
+```text
+solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp:<agentRegistryProgram>#<coreAssetPubkey>
+eip155:8453:<identityRegistry>#<tokenId>
+```
+
+## Near-Term Goal
+
+Adopt the Solana Agent Registry above `AgentProfile`, not instead of it.
+
+- Keep `AgentProfile` as the current execution and economics record.
+- Add identity bindings and normalized chain contexts in the read model and database.
+- Move toward multi-chain discovery first, and only redesign the on-chain protocol later if the product truly needs registry-native authorization.
 # Why AgentVouch Exists
 
 Two things happened in quick succession that made this project feel inevitable.

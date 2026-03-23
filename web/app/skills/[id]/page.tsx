@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import { AgentIdentityPanel } from '@/components/AgentIdentityPanel';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { SolAmount } from '@/components/SolAmount';
@@ -13,6 +14,7 @@ import {
 } from '@/lib/buttonStyles';
 import { useWalletConnection } from '@solana/react-hooks';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
+import type { AgentIdentitySummary } from '@/lib/agentIdentity';
 import { PRICING, formatMinPrice, toLamports, fromLamports, isValidListingPriceLamports } from '@/lib/pricing';
 import type { Address } from '@solana/kit';
 import { SiSolana } from 'react-icons/si';
@@ -67,6 +69,7 @@ interface SkillDetail {
   skill_uri?: string;
   versions: SkillVersion[];
   author_trust: TrustData | null;
+  author_identity: AgentIdentitySummary | null;
   content_verification: ContentVerification | null;
 }
 
@@ -398,6 +401,15 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             View full author trust history <FiExternalLink className="w-3.5 h-3.5" />
           </Link>
         </div>
+
+        {skill.author_identity && (
+          <div className="mb-6">
+            <AgentIdentityPanel
+              identity={skill.author_identity}
+              title={skill.author_identity.registryAsset ? 'Registry Identity' : 'Author Identity'}
+            />
+          </div>
+        )}
 
         {/* Meta Row */}
         <div className={`grid grid-cols-2 ${isChainOnly ? 'sm:grid-cols-4' : 'sm:grid-cols-4'} gap-3 mb-6`}>

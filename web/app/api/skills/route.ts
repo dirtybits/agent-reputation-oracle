@@ -4,6 +4,10 @@ import { verifyAuthorTrust, resolveMultipleAuthorTrust } from '@/lib/trust';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 import { pinSkillContent } from '@/lib/ipfs';
 import {
+  resolveManyAgentIdentitiesByWallet,
+  upsertLocalAgentIdentity,
+} from '@/lib/agentIdentity';
+import {
   getConfiguredSolanaChainContext,
   normalizeInputChainContext,
   normalizePersistedChainContext,
@@ -139,10 +143,23 @@ export async function GET(request: NextRequest) {
     const trustMap = authorPubkeys.length > 0
       ? await resolveMultipleAuthorTrust(authorPubkeys)
       : new Map();
+    let identityMap = new Map();
+    if (authorPubkeys.length > 0) {
+      try {
+        identityMap = await resolveManyAgentIdentitiesByWallet(authorPubkeys, {
+          hasAgentProfileByWallet: new Map(
+            authorPubkeys.map((authorPubkey) => [authorPubkey, trustMap.get(authorPubkey)?.isRegistered ?? false])
+          ),
+        });
+      } catch (error) {
+        console.error('Failed to resolve author identities for /api/skills:', error);
+      }
+    }
 
     const enriched = allSkills.map(skill => ({
       ...skill,
       author_trust: trustMap.get(skill.author_pubkey) || null,
+      author_identity: identityMap.get(skill.author_pubkey) || null,
     }));
 
     if (sort === 'trusted') {
@@ -239,6 +256,15 @@ export async function POST(request: NextRequest) {
     }
 
     const pinResult = await pinSkillContent(content, skill_id, 1);
+    try {
+      await upsertLocalAgentIdentity({
+        walletPubkey: authorPubkey,
+        chainContext: normalizedChainContext,
+        hasAgentProfile: trust.isRegistered,
+      });
+    } catch (error) {
+      console.error('Failed to upsert local agent identity during skill publish:', error);
+    }
 
     const [skill] = await sql()`
       INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, ipfs_cid, contact, chain_context)

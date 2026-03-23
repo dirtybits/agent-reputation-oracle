@@ -8,6 +8,25 @@ This document maps [VISION.md](VISION.md) to what's actually built, explains how
 
 ---
 
+## Network Label Normalization
+
+AgentVouch is currently deployed on Solana Devnet, but the multichain docs and schema should use normalized CAIP-2 chain identifiers for anything persisted as `chain_context` or `*_chain_context`.
+
+- Solana Devnet: `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1`
+- Solana Mainnet: `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
+- Base: `eip155:8453`
+
+Rules:
+
+- Persist only CAIP-2 values in normalized chain fields.
+- Treat `solana`, `solana:mainnet`, and `solana:mainnet-beta` as legacy aliases at the API edge or in historical docs.
+- Preserve non-CAIP upstream network labels in raw metadata if a registry or SDK returns them.
+- Compose app-level canonical identity values as `<caip2-chain-id>:<registryOrProgram>#<recordId>`.
+
+This keeps storage, indexing, and future multi-chain joins deterministic without forcing every upstream integration to already speak CAIP-2.
+
+---
+
 ## How the Vision Maps to the System
 
 VISION.md identifies two core insights:

@@ -5,10 +5,12 @@ import { useParams } from 'next/navigation';
 import { useWalletConnection } from '@solana/react-hooks';
 import { address, type Address } from '@solana/kit';
 import Link from 'next/link';
+import { AgentIdentityPanel } from '@/components/AgentIdentityPanel';
 import { AgentProfileSetupCard } from '@/components/AgentProfileSetupCard';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import { navButtonPrimaryInlineClass } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
+import type { AgentIdentitySummary } from '@/lib/agentIdentity';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import { formatSolAmount } from '@/lib/pricing';
@@ -18,7 +20,6 @@ import {
   FiCheckCircle,
   FiCopy,
   FiCheck,
-  FiDollarSign,
   FiDownload,
   FiExternalLink,
   FiLoader,
@@ -81,6 +82,7 @@ export default function AuthorProfilePage() {
   const { wallet, status: walletStatus } = useWalletConnection();
   const connected = walletStatus === 'connected' && !!wallet;
   const myPubkey = wallet?.account.address ?? null;
+  const signMessage = wallet?.signMessage ?? null;
   const oracle = useReputationOracle();
 
   const [profile, setProfile] = useState<any>(null);
@@ -88,6 +90,7 @@ export default function AuthorProfilePage() {
   const [vouchesGiven, setVouchesGiven] = useState<any[]>([]);
   const [repoSkills, setRepoSkills] = useState<RepoSkill[]>([]);
   const [chainSkills, setChainSkills] = useState<any[]>([]);
+  const [authorIdentity, setAuthorIdentity] = useState<AgentIdentitySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [vouchAmount, setVouchAmount] = useState('0.1');
@@ -102,6 +105,11 @@ export default function AuthorProfilePage() {
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [showProfileGate, setShowProfileGate] = useState(false);
   const [pendingVouchAfterRegister, setPendingVouchAfterRegister] = useState(false);
+  const [registryProgramAddress, setRegistryProgramAddress] = useState('');
+  const [registryAssetPubkey, setRegistryAssetPubkey] = useState('');
+  const [operationalWalletPubkey, setOperationalWalletPubkey] = useState('');
+  const [linkingIdentity, setLinkingIdentity] = useState(false);
+  const [linkIdentityStatus, setLinkIdentityStatus] = useState<{ success: boolean; message: string } | null>(null);
   const myProfileFetchId = useRef(0);
 
   const isOwnProfile = myPubkey === pubkey;
@@ -110,18 +118,20 @@ export default function AuthorProfilePage() {
     setLoading(true);
     try {
       const agentAddr = address(pubkey);
-      const [prof, received, given, chainListings, repoRes] = await Promise.all([
+      const [prof, received, given, chainListings, repoRes, authorRes] = await Promise.all([
         oracle.getAgentProfile(agentAddr).catch(() => null),
         oracle.getAllVouchesReceivedByAgent(agentAddr).catch(() => []),
         oracle.getAllVouchesForAgent(agentAddr).catch(() => []),
         oracle.getSkillListingsByAuthor(agentAddr).catch(() => []),
         fetch(`/api/skills?author=${pubkey}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/author/${pubkey}`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
       setProfile(prof);
       setVouchesReceived(received);
       setVouchesGiven(given);
       setChainSkills(chainListings);
       setRepoSkills(repoRes?.skills ?? []);
+      setAuthorIdentity(authorRes?.author_identity ?? null);
     } catch (e) {
       console.error('Failed to load author profile:', e);
     } finally {
@@ -279,6 +289,68 @@ export default function AuthorProfilePage() {
     }
   };
 
+  const handleLinkRegistryIdentity = async () => {
+    if (!connected || !myPubkey || myPubkey !== pubkey || !signMessage) {
+      setLinkIdentityStatus({
+        success: false,
+        message: 'Connect the author wallet with message signing enabled to link registry identity.',
+      });
+      return;
+    }
+
+    if (!registryProgramAddress.trim() || !registryAssetPubkey.trim()) {
+      setLinkIdentityStatus({
+        success: false,
+        message: 'Enter both the registry program address and registry asset pubkey.',
+      });
+      return;
+    }
+
+    setLinkingIdentity(true);
+    setLinkIdentityStatus(null);
+
+    try {
+      const timestamp = Date.now();
+      const message = `AgentVouch Author Profile\nAction: link-registry-identity\nAuthor: ${pubkey}\nTimestamp: ${timestamp}`;
+      const sigBytes = await signMessage(new TextEncoder().encode(message));
+      const signature = Buffer.from(sigBytes).toString('base64');
+
+      const response = await fetch(`/api/author/${pubkey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auth: {
+            pubkey: myPubkey,
+            signature,
+            message,
+            timestamp,
+          },
+          registry_address: registryProgramAddress.trim(),
+          core_asset_pubkey: registryAssetPubkey.trim(),
+          operational_wallet_pubkey: operationalWalletPubkey.trim() || undefined,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to link registry identity');
+      }
+
+      setAuthorIdentity(data.author_identity ?? null);
+      setLinkIdentityStatus({
+        success: true,
+        message: 'Registry identity linked.',
+      });
+    } catch (error: any) {
+      setLinkIdentityStatus({
+        success: false,
+        message: error.message || 'Failed to link registry identity',
+      });
+    } finally {
+      setLinkingIdentity(false);
+    }
+  };
+
   const totalOnChainDownloads = chainSkills.reduce(
     (sum, s) => sum + Number(s.account.totalDownloads ?? 0), 0
   );
@@ -377,6 +449,88 @@ export default function AuthorProfilePage() {
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 flex items-center gap-1">
                 <FiCalendar className="w-3 h-3" />
                 Member since {formatDate(Number(profile.registeredAt))}
+              </p>
+            )}
+          </div>
+        )}
+
+        {authorIdentity && (
+          <div className="mb-6">
+            <AgentIdentityPanel
+              identity={authorIdentity}
+              title={authorIdentity.registryAsset ? 'Registry Identity' : 'Author Identity'}
+            />
+          </div>
+        )}
+
+        {isOwnProfile && profile && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+            <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">
+              Link Solana Agent Registry
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Add a registry asset above your existing AgentProfile. Vouching, payouts, and authorization stay unchanged.
+            </p>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Registry Program Address
+                </label>
+                <input
+                  type="text"
+                  value={registryProgramAddress}
+                  onChange={(e) => setRegistryProgramAddress(e.target.value)}
+                  placeholder="Agent registry program address"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Registry Asset Pubkey
+                </label>
+                <input
+                  type="text"
+                  value={registryAssetPubkey}
+                  onChange={(e) => setRegistryAssetPubkey(e.target.value)}
+                  placeholder="Metaplex Core asset pubkey"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Operational Wallet
+                </label>
+                <input
+                  type="text"
+                  value={operationalWalletPubkey}
+                  onChange={(e) => setOperationalWalletPubkey(e.target.value)}
+                  placeholder="Optional agent wallet"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                onClick={handleLinkRegistryIdentity}
+                disabled={linkingIdentity || !connected || !signMessage}
+                className={navButtonPrimaryInlineClass}
+              >
+                {linkingIdentity ? 'Linking...' : (authorIdentity?.registryAsset ? 'Update Registry Link' : 'Link Registry Identity')}
+              </button>
+              {!signMessage && (
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  Wallet must support message signing.
+                </span>
+              )}
+            </div>
+
+            {linkIdentityStatus && (
+              <p className={`mt-3 text-sm ${linkIdentityStatus.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {linkIdentityStatus.message}
               </p>
             )}
           </div>

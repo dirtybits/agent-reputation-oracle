@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import { resolveAuthorTrust } from '@/lib/trust';
 import { getOnChainPrice } from '@/lib/onchain';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
+import { resolveAgentIdentityByWallet } from '@/lib/agentIdentity';
 import { getConfiguredSolanaChainContext, normalizePersistedChainContext } from '@/lib/chains';
 import { createSolanaRpc } from '@solana/kit';
 import type { Base64EncodedBytes } from '@solana/rpc-types';
@@ -54,6 +55,14 @@ export async function GET(
       if (includeTrust) {
         author_trust = await resolveAuthorTrust(listing.data.author as string);
       }
+      let author_identity = null;
+      try {
+        author_identity = await resolveAgentIdentityByWallet(listing.data.author as string, {
+          hasAgentProfile: author_trust?.isRegistered ?? false,
+        });
+      } catch (error) {
+        console.error('Failed to resolve author identity for chain skill:', error);
+      }
 
       let content: string | null = null;
       if (listing.data.skillUri) {
@@ -85,6 +94,7 @@ export async function GET(
         content,
         versions: [],
         author_trust,
+        author_identity,
         content_verification: null,
       });
     }
@@ -120,6 +130,14 @@ export async function GET(
     if (includeTrust) {
       author_trust = await resolveAuthorTrust(skill.author_pubkey);
     }
+    let author_identity = null;
+    try {
+      author_identity = await resolveAgentIdentityByWallet(skill.author_pubkey, {
+        hasAgentProfile: author_trust?.isRegistered ?? false,
+      });
+    } catch (error) {
+      console.error('Failed to resolve author identity for repo skill:', error);
+    }
 
     const latestVersion = versions[0];
     const allPinned = versions.every((v: any) => !!v.ipfs_cid);
@@ -142,6 +160,7 @@ export async function GET(
       content: latestContent,
       versions: versionsWithoutContent,
       author_trust,
+      author_identity,
       content_verification,
     });
   } catch (error: any) {

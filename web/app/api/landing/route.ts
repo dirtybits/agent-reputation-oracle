@@ -8,6 +8,7 @@ import {
   AGENT_PROFILE_DISCRIMINATOR,
 } from '../../../generated/reputation-oracle/src/generated';
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../../../generated/reputation-oracle/src/generated/programs';
+import { resolveManyAgentIdentitiesByWallet } from '@/lib/agentIdentity';
 
 const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com');
 const asBase64 = (bytes: Uint8Array) =>
@@ -56,7 +57,21 @@ export async function GET() {
       };
     });
 
-    const authorSet = new Set(skills.map((s) => s.account.author));
+    const authorPubkeys = [...new Set(skills.map((s) => s.account.author))];
+    const registeredWallets = new Set(agents.map((a) => a.account.authority));
+    let identityMap = new Map();
+    try {
+      identityMap = await resolveManyAgentIdentitiesByWallet(authorPubkeys, {
+        hasAgentProfileByWallet: new Map(
+          authorPubkeys.map((authorPubkey) => [authorPubkey, registeredWallets.has(authorPubkey)])
+        ),
+      });
+    } catch (error) {
+      console.error('Failed to resolve author identities for /api/landing:', error);
+    }
+    const authorSet = new Set(
+      authorPubkeys.map((authorPubkey) => identityMap.get(authorPubkey)?.canonicalAgentId ?? authorPubkey)
+    );
     const totalRevenue = skills.reduce((sum, s) => sum + s.account.totalRevenue, 0);
     const totalStaked = agents.reduce((sum, a) => sum + a.account.totalStakedFor, 0);
     const onChainDownloads = skills.reduce((sum, s) => sum + s.account.totalDownloads, 0);
@@ -67,7 +82,11 @@ export async function GET() {
         return st?.active !== undefined || st?.Active !== undefined || !st;
       })
       .sort((a, b) => b.account.totalDownloads - a.account.totalDownloads)
-      .slice(0, 3);
+      .slice(0, 3)
+      .map((skill) => ({
+        ...skill,
+        authorIdentity: identityMap.get(skill.account.author) ?? null,
+      }));
 
     return NextResponse.json(
       {
