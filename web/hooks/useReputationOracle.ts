@@ -198,11 +198,12 @@ export function useReputationOracle() {
 
   const getAllVouchesForAgent = useCallback(async (agentKey: Address) => {
     try {
+      const agentProfile = await getAgentPDA(agentKey);
       const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
         encoding: 'base64',
         filters: [
           { memcmp: { offset: 0n, bytes: asBase64(VOUCH_DISCRIMINATOR), encoding: 'base64' } },
-          { memcmp: { offset: 8n, bytes: asBase58(agentKey), encoding: 'base58' } },
+          { memcmp: { offset: 8n, bytes: asBase58(agentProfile), encoding: 'base58' } },
         ],
       }).send();
       const decoder = getVouchDecoder();
@@ -217,11 +218,12 @@ export function useReputationOracle() {
 
   const getAllVouchesReceivedByAgent = useCallback(async (agentKey: Address) => {
     try {
+      const agentProfile = await getAgentPDA(agentKey);
       const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
         encoding: 'base64',
         filters: [
           { memcmp: { offset: 0n, bytes: asBase64(VOUCH_DISCRIMINATOR), encoding: 'base64' } },
-          { memcmp: { offset: 40n, bytes: asBase58(agentKey), encoding: 'base58' } },
+          { memcmp: { offset: 40n, bytes: asBase58(agentProfile), encoding: 'base58' } },
         ],
       }).send();
       const decoder = getVouchDecoder();
