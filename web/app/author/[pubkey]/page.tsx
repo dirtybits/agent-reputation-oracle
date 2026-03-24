@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useWalletConnection } from '@solana/react-hooks';
 import { address, type Address } from '@solana/kit';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ import {
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import type { AgentIdentitySummary } from '@/lib/agentIdentity';
 import { getVouchStatusLabel, isClaimableVouchStatus } from '@/lib/disputes';
+import { AuthorDisputeReason, AuthorDisputeRuling } from '@/generated/reputation-oracle/src/generated';
 import type { SolanaRegistryCandidate } from '@/lib/solanaAgentRegistry';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
@@ -85,6 +86,7 @@ interface RepoSkill {
 
 export default function AuthorProfilePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const pubkey = params.pubkey as string;
 
   const { wallet, status: walletStatus } = useWalletConnection();
@@ -98,7 +100,9 @@ export default function AuthorProfilePage() {
   const [vouchesGiven, setVouchesGiven] = useState<any[]>([]);
   const [repoSkills, setRepoSkills] = useState<RepoSkill[]>([]);
   const [chainSkills, setChainSkills] = useState<any[]>([]);
+  const [authorTrust, setAuthorTrust] = useState<TrustData | null>(null);
   const [authorIdentity, setAuthorIdentity] = useState<AgentIdentitySummary | null>(null);
+  const [authorDisputes, setAuthorDisputes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [vouchAmount, setVouchAmount] = useState('0.1');
@@ -125,7 +129,7 @@ export default function AuthorProfilePage() {
   const [linkIdentityStatus, setLinkIdentityStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [profileAuthorityByPda, setProfileAuthorityByPda] = useState<Record<string, string>>({});
   const [showClaimModal, setShowClaimModal] = useState(false);
-  const [selectedClaimVouch, setSelectedClaimVouch] = useState('');
+  const [selectedClaimVouches, setSelectedClaimVouches] = useState<string[]>([]);
   const [claimReason, setClaimReason] = useState('malicious-skill');
   const [claimSkillContext, setClaimSkillContext] = useState('');
   const [claimEvidenceUri, setClaimEvidenceUri] = useState('');
@@ -173,10 +177,14 @@ export default function AuthorProfilePage() {
       setVouchesGiven(given);
       setChainSkills(chainListings);
       setRepoSkills(repoRes?.skills ?? []);
+      setAuthorTrust(authorRes?.author_trust ?? null);
       setAuthorIdentity(authorRes?.author_identity ?? null);
+      setAuthorDisputes(authorRes?.author_disputes ?? []);
       setProfileAuthorityByPda(nextProfileAuthorityByPda);
     } catch (e) {
       console.error('Failed to load author profile:', e);
+      setAuthorTrust(null);
+      setAuthorDisputes([]);
       setProfileAuthorityByPda({});
     } finally {
       setLoading(false);
@@ -468,45 +476,47 @@ export default function AuthorProfilePage() {
     s => !s.on_chain_address || !chainSkills.some(c => c.publicKey === s.on_chain_address)
   ).length;
 
-  const trustData: TrustData | null = profile ? {
+  const trustData: TrustData | null = authorTrust ?? (profile ? {
     reputationScore: Number(profile.reputationScore ?? 0),
     totalVouchesReceived: Number(profile.totalVouchesReceived ?? 0),
     totalStakedFor: Number(profile.totalStakedFor ?? 0),
     disputesWon: Number(profile.disputesWon ?? 0),
     disputesLost: Number(profile.disputesLost ?? 0),
+    disputesAgainstAuthor: 0,
+    disputesUpheldAgainstAuthor: 0,
+    activeDisputesAgainstAuthor: 0,
     registeredAt: Number(profile.registeredAt ?? 0),
     isRegistered: true,
-  } : null;
+  } : null);
 
   const claimableVouches = vouchesReceived.filter((vouch: any) =>
     isClaimableVouchStatus(vouch.account.status),
   );
   const claimSkillOptions = [
     ...repoSkills.map((skill) => ({
-      value: `repo:${skill.id}`,
+      value: skill.on_chain_address ? `skill:${skill.on_chain_address}` : `repo:${skill.id}`,
       label: skill.name,
     })),
     ...chainSkills
       .filter((skill) => !repoSkills.some((repoSkill) => repoSkill.on_chain_address === skill.publicKey))
       .map((skill) => ({
-        value: `chain:${skill.publicKey}`,
+        value: `skill:${skill.publicKey}`,
         label: skill.account.name || `On-chain skill ${shortAddr(skill.publicKey)}`,
       })),
   ];
-  const selectedClaimVouchEntry = claimableVouches.find(
-    (vouch: any) => vouch.publicKey === selectedClaimVouch,
-  ) ?? null;
+  const selectedClaimVouchEntries = claimableVouches.filter(
+    (vouch: any) => selectedClaimVouches.includes(vouch.publicKey),
+  );
   const selectedClaimSkillLabel = claimSkillOptions.find(
     (skill) => skill.value === claimSkillContext,
   )?.label;
 
   const openClaimModal = (vouchPublicKey?: string) => {
-    if (claimableVouches.length === 0) return;
     setClaimStatus(null);
     setClaimTx(null);
-    setSelectedClaimVouch(vouchPublicKey ?? claimableVouches[0]?.publicKey ?? '');
+    setSelectedClaimVouches(vouchPublicKey ? [vouchPublicKey] : []);
     setClaimReason('malicious-skill');
-    setClaimSkillContext('');
+    setClaimSkillContext(searchParams.get('skill') ?? '');
     setClaimEvidenceUri('');
     setShowClaimModal(true);
   };
@@ -518,20 +528,14 @@ export default function AuthorProfilePage() {
 
   const handleSubmitClaim = async () => {
     if (!connected) {
-      setClaimStatus({ success: false, message: 'Connect your wallet to file a claim.' });
-      setClaimTx(null);
-      return;
-    }
-
-    if (!selectedClaimVouch) {
-      setClaimStatus({ success: false, message: 'Select a backing voucher to challenge.' });
+      setClaimStatus({ success: false, message: 'Connect your wallet to report this author.' });
       setClaimTx(null);
       return;
     }
 
     const evidenceUri = claimEvidenceUri.trim();
     if (!evidenceUri) {
-      setClaimStatus({ success: false, message: 'Add an evidence URI for this claim.' });
+      setClaimStatus({ success: false, message: 'Add an evidence URI for this report.' });
       setClaimTx(null);
       return;
     }
@@ -547,29 +551,52 @@ export default function AuthorProfilePage() {
     setClaimTx(null);
 
     try {
-      const { tx } = await oracle.openDispute(address(selectedClaimVouch), evidenceUri);
+      const selectedSkillListing = claimSkillContext.startsWith('skill:')
+        ? address(claimSkillContext.slice('skill:'.length))
+        : undefined;
+      const reason =
+        claimReason === 'fraudulent-claims'
+          ? AuthorDisputeReason.FraudulentClaims
+          : claimReason === 'failed-delivery'
+            ? AuthorDisputeReason.FailedDelivery
+            : claimReason === 'other'
+              ? AuthorDisputeReason.Other
+              : AuthorDisputeReason.MaliciousSkill;
+      const { tx } = await oracle.openAuthorDispute(address(pubkey), {
+        reason,
+        evidenceUri,
+        skillListing: selectedSkillListing,
+        linkedVouches: selectedClaimVouches.map((vouch) => address(vouch)),
+      });
       const contextLabel = selectedClaimSkillLabel ? ` for ${selectedClaimSkillLabel}` : '';
       setClaimStatus({
         success: true,
-        message: `Claim filed against this author's backing voucher${contextLabel}.`,
+        message: `Report opened against this author${contextLabel}.`,
       });
       setClaimTx(tx);
       setShowClaimModal(false);
       setClaimReason('malicious-skill');
       setClaimSkillContext('');
       setClaimEvidenceUri('');
-      setSelectedClaimVouch('');
+      setSelectedClaimVouches([]);
       setTimeout(loadData, 2000);
     } catch (error: any) {
       setClaimStatus({
         success: false,
-        message: error.message || 'Failed to file claim.',
+        message: error.message || 'Failed to open report.',
       });
       setClaimTx(null);
     } finally {
       setClaiming(false);
     }
   };
+
+  useEffect(() => {
+    if (!profile || isOwnProfile) return;
+    if (searchParams.get('report') !== '1') return;
+    if (showClaimModal) return;
+    openClaimModal();
+  }, [isOwnProfile, openClaimModal, profile, searchParams, showClaimModal]);
 
   if (loading) {
     return (
@@ -623,10 +650,10 @@ export default function AuthorProfilePage() {
 
               <div className="mb-5 pr-8">
                 <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white">
-                  File a claim against this author
+                  Report this author
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Claims currently challenge a backing voucher tied to this author.
+                  Open a first-class author dispute and optionally link active backing vouchers for enforcement review.
                 </p>
               </div>
 
@@ -634,22 +661,16 @@ export default function AuthorProfilePage() {
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6 text-center">
                   <FiShield className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Connect your wallet to file a claim and post the dispute bond.
+                    Connect your wallet to report this author and post the dispute bond.
                   </p>
                   <ClientWalletButton />
-                </div>
-              ) : claimableVouches.length === 0 ? (
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    This author does not currently have an active backing voucher that can be challenged on-chain.
-                  </p>
                 </div>
               ) : (
                 <>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Claim reason
+                        Report reason
                       </label>
                       <select
                         value={claimReason}
@@ -683,27 +704,52 @@ export default function AuthorProfilePage() {
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Backing voucher to challenge
+                        Link backing vouchers
                       </label>
-                      <select
-                        value={selectedClaimVouch}
-                        onChange={(e) => setSelectedClaimVouch(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
-                      >
-                        {claimableVouches.map((vouch: any) => {
-                          const voucherProfile = String(vouch.account.voucher);
-                          const voucherAuthority = profileAuthorityByPda[voucherProfile];
-                          const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
-                          const voucherLabel = voucherAuthority
-                            ? shortAddr(voucherAuthority)
-                            : shortAddr(voucherProfile);
-                          return (
-                            <option key={vouch.publicKey} value={vouch.publicKey}>
-                              {voucherLabel} · {formatSol(Number(stakeAmount))} SOL · {shortAddr(vouch.publicKey)}
-                            </option>
-                          );
-                        })}
-                      </select>
+                      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 space-y-2">
+                        {claimableVouches.length === 0 ? (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            No active backing vouchers are available to link right now. You can still open the author dispute.
+                          </p>
+                        ) : (
+                          claimableVouches.map((vouch: any) => {
+                            const voucherProfile = String(vouch.account.voucher);
+                            const voucherAuthority = profileAuthorityByPda[voucherProfile];
+                            const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
+                            const voucherLabel = voucherAuthority
+                              ? shortAddr(voucherAuthority)
+                              : shortAddr(voucherProfile);
+                            const checked = selectedClaimVouches.includes(vouch.publicKey);
+                            return (
+                              <label
+                                key={vouch.publicKey}
+                                className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    setSelectedClaimVouches((current) => (
+                                      e.target.checked
+                                        ? [...current, vouch.publicKey]
+                                        : current.filter((key) => key !== vouch.publicKey)
+                                    ));
+                                  }}
+                                  className="mt-1"
+                                />
+                                <span className="min-w-0 text-sm text-gray-600 dark:text-gray-300">
+                                  <span className="block font-medium text-gray-900 dark:text-white">
+                                    {voucherLabel} · {formatSol(Number(stakeAmount))} SOL
+                                  </span>
+                                  <span className="block font-mono text-xs text-gray-500 dark:text-gray-400 break-all">
+                                    {vouch.publicKey}
+                                  </span>
+                                </span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
 
                     <div className="md:col-span-2">
@@ -718,23 +764,22 @@ export default function AuthorProfilePage() {
                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                       />
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        The current on-chain dispute stores the challenged voucher and this evidence URI.
+                        The author dispute stores this evidence URI and any linked backing vouchers.
                       </p>
                     </div>
                   </div>
 
-                  {selectedClaimVouchEntry && (
+                  {selectedClaimVouchEntries.length > 0 && (
                     <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
                       <div className="flex flex-col gap-1 text-sm">
                         <span className="font-semibold text-gray-900 dark:text-white">
-                          Selected backing voucher
+                          Linked backing vouchers
                         </span>
-                        <span className="text-gray-500 dark:text-gray-400 font-mono text-xs break-all">
-                          Vouch account: {selectedClaimVouchEntry.publicKey}
-                        </span>
-                        <span className="text-gray-500 dark:text-gray-400 text-xs">
-                          Voucher: {profileAuthorityByPda[String(selectedClaimVouchEntry.account.voucher)] ?? shortAddr(String(selectedClaimVouchEntry.account.voucher))}
-                        </span>
+                        {selectedClaimVouchEntries.map((entry: any) => (
+                          <span key={entry.publicKey} className="text-gray-500 dark:text-gray-400 font-mono text-xs break-all">
+                            {entry.publicKey}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -744,7 +789,7 @@ export default function AuthorProfilePage() {
                       <span className="inline-flex items-center gap-1">
                         <FiAlertTriangle className="w-4 h-4" />
                       </span>{' '}
-                      Opening a claim posts the dispute bond. If the claim is rejected, the bond may be forfeited.
+                      Opening a report posts the dispute bond. If the dispute is dismissed, the bond may be forfeited.
                     </p>
                   </div>
 
@@ -768,7 +813,7 @@ export default function AuthorProfilePage() {
                       disabled={claiming}
                       className={`sm:min-w-[13rem] ${navButtonPrimaryFlexClass}`}
                     >
-                      {claiming ? 'Filing claim...' : 'File a claim'}
+                      {claiming ? 'Opening report...' : 'Open report'}
                     </button>
                   </div>
                 </>
@@ -821,24 +866,23 @@ export default function AuthorProfilePage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="space-y-2">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <FiShield className="text-[var(--lobster-accent)]" /> File a claim
+                  <FiShield className="text-[var(--lobster-accent)]" /> Report this author
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Report malicious or deceptive behavior by this author. Today, claims challenge an active backing voucher tied to the author.
+                  Open a first-class author dispute. You can optionally link active backing vouchers so enforcement stays traceable.
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   {claimableVouches.length > 0
-                    ? `${claimableVouches.length} active backing ${claimableVouches.length === 1 ? 'voucher is' : 'vouchers are'} available for challenge.`
-                    : 'No active backing vouchers can be challenged on-chain for this author yet.'}
+                    ? `${claimableVouches.length} active backing ${claimableVouches.length === 1 ? 'voucher is' : 'vouchers are'} available to link.`
+                    : 'No active backing vouchers are available to link yet, but reports can still be opened.'}
                 </p>
               </div>
 
               <button
                 onClick={() => openClaimModal()}
-                disabled={claimableVouches.length === 0}
                 className={navButtonPrimaryInlineClass}
               >
-                File a claim
+                Open report
               </button>
             </div>
 
@@ -874,6 +918,44 @@ export default function AuthorProfilePage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {authorDisputes.length > 0 && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+            <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <FiAlertTriangle className="text-[var(--lobster-accent)]" /> Author Disputes
+            </h2>
+            <div className="space-y-3">
+              {authorDisputes.map((dispute: any) => (
+                <div
+                  key={dispute.publicKey}
+                  className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="rounded-full bg-gray-200/70 dark:bg-gray-700/70 px-2 py-0.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                      {dispute.statusLabel}
+                    </span>
+                    <span className="rounded-full bg-[var(--lobster-accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--lobster-accent)]">
+                      {dispute.reasonLabel}
+                    </span>
+                    {dispute.rulingLabel && (
+                      <span className="rounded-full bg-gray-200/70 dark:bg-gray-700/70 px-2 py-0.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                        {dispute.rulingLabel}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-1 text-sm text-gray-500 dark:text-gray-400">
+                    <p>Opened {formatDate(dispute.createdAt)}</p>
+                    <p className="font-mono text-xs break-all">Dispute: {dispute.publicKey}</p>
+                    <p className="font-mono text-xs break-all">Evidence: {dispute.evidenceUri}</p>
+                    {dispute.linkedVouchCount > 0 && (
+                      <p>{dispute.linkedVouchCount} linked backing {dispute.linkedVouchCount === 1 ? 'voucher' : 'vouchers'}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1273,7 +1355,7 @@ export default function AuthorProfilePage() {
                             onClick={() => openClaimModal(vouch.publicKey)}
                             className={navButtonSecondaryInlineClass}
                           >
-                            File claim
+                            Link to report
                           </button>
                         )}
                       </div>

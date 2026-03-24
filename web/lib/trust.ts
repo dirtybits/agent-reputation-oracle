@@ -7,6 +7,11 @@ import {
 } from '@solana/kit';
 import { fetchMaybeAgentProfile } from '../generated/reputation-oracle/src/generated';
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../generated/reputation-oracle/src/generated/programs';
+import {
+  resolveAuthorDisputeMetrics,
+  resolveMultipleAuthorDisputeMetrics,
+  type AuthorDisputeMetrics,
+} from './authorDisputes';
 
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
 const rpc = createSolanaRpc(RPC_URL);
@@ -17,6 +22,9 @@ export interface AuthorTrust {
   totalStakedFor: number;
   disputesWon: number;
   disputesLost: number;
+  disputesAgainstAuthor: number;
+  disputesUpheldAgainstAuthor: number;
+  activeDisputesAgainstAuthor: number;
   registeredAt: number;
   isRegistered: boolean;
 }
@@ -58,17 +66,22 @@ export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
     totalStakedFor: 0,
     disputesWon: 0,
     disputesLost: 0,
+    disputesAgainstAuthor: 0,
+    disputesUpheldAgainstAuthor: 0,
+    activeDisputesAgainstAuthor: 0,
     registeredAt: 0,
     isRegistered: false,
   };
 
   try {
+    const disputeMetrics = await resolveAuthorDisputeMetrics(pubkey);
     const agentPDA = await getAgentPDA(pubkey as Address);
     const account = await fetchMaybeAgentProfile(rpc, agentPDA);
 
     if (!account.exists) {
-      cache.set(pubkey, { data: defaultTrust, expires: now + CACHE_TTL_MS });
-      return defaultTrust;
+      const next = { ...defaultTrust, ...disputeMetrics };
+      cache.set(pubkey, { data: next, expires: now + CACHE_TTL_MS });
+      return next;
     }
 
     const d = account.data;
@@ -78,6 +91,9 @@ export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
       totalStakedFor: Number(d.totalStakedFor),
       disputesWon: d.disputesWon,
       disputesLost: d.disputesLost,
+      disputesAgainstAuthor: disputeMetrics.disputesAgainstAuthor,
+      disputesUpheldAgainstAuthor: disputeMetrics.disputesUpheldAgainstAuthor,
+      activeDisputesAgainstAuthor: disputeMetrics.activeDisputesAgainstAuthor,
       registeredAt: Number(d.registeredAt),
       isRegistered: true,
     };
@@ -97,16 +113,20 @@ export async function verifyAuthorTrust(pubkey: string): Promise<AuthorTrust> {
     totalStakedFor: 0,
     disputesWon: 0,
     disputesLost: 0,
+    disputesAgainstAuthor: 0,
+    disputesUpheldAgainstAuthor: 0,
+    activeDisputesAgainstAuthor: 0,
     registeredAt: 0,
     isRegistered: false,
   };
 
   try {
+    const disputeMetrics = await resolveAuthorDisputeMetrics(pubkey, false);
     const agentPDA = await getAgentPDA(pubkey as Address);
     const account = await fetchMaybeAgentProfile(rpc, agentPDA);
 
     if (!account.exists) {
-      return defaultTrust;
+      return { ...defaultTrust, ...disputeMetrics };
     }
 
     const d = account.data;
@@ -116,6 +136,9 @@ export async function verifyAuthorTrust(pubkey: string): Promise<AuthorTrust> {
       totalStakedFor: Number(d.totalStakedFor),
       disputesWon: d.disputesWon,
       disputesLost: d.disputesLost,
+      disputesAgainstAuthor: disputeMetrics.disputesAgainstAuthor,
+      disputesUpheldAgainstAuthor: disputeMetrics.disputesUpheldAgainstAuthor,
+      activeDisputesAgainstAuthor: disputeMetrics.activeDisputesAgainstAuthor,
       registeredAt: Number(d.registeredAt),
       isRegistered: true,
     };
@@ -128,7 +151,21 @@ export async function resolveMultipleAuthorTrust(
   pubkeys: string[]
 ): Promise<Map<string, AuthorTrust>> {
   const unique = [...new Set(pubkeys)];
-  const results = await Promise.all(unique.map(resolveAuthorTrust));
+  const disputeMetricsByAuthor = await resolveMultipleAuthorDisputeMetrics(unique);
+  const results = await Promise.all(unique.map(async (pubkey) => {
+    const trust = await resolveAuthorTrust(pubkey);
+    const disputeMetrics: AuthorDisputeMetrics = disputeMetricsByAuthor.get(pubkey) ?? {
+      disputesAgainstAuthor: 0,
+      disputesUpheldAgainstAuthor: 0,
+      activeDisputesAgainstAuthor: 0,
+    };
+    return {
+      ...trust,
+      disputesAgainstAuthor: disputeMetrics.disputesAgainstAuthor,
+      disputesUpheldAgainstAuthor: disputeMetrics.disputesUpheldAgainstAuthor,
+      activeDisputesAgainstAuthor: disputeMetrics.activeDisputesAgainstAuthor,
+    };
+  }));
   const map = new Map<string, AuthorTrust>();
   unique.forEach((pk, i) => map.set(pk, results[i]));
   return map;

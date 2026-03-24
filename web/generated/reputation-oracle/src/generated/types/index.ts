@@ -6,6 +6,12 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./authorDisputeOpened";
+export * from "./authorDisputeReason";
+export * from "./authorDisputeResolved";
+export * from "./authorDisputeRuling";
+export * from "./authorDisputeStatus";
+export * from "./authorDisputeVouchLinked";
 export * from "./disputeOpened";
 export * from "./disputeResolved";
 export * from "./disputeRuling";

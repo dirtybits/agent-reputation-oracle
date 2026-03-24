@@ -3,6 +3,7 @@ import { resolveAuthorTrust, verifyAuthorTrust } from '@/lib/trust';
 import { linkSolanaRegistryIdentity, resolveAgentIdentityByWallet } from '@/lib/agentIdentity';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
 import { discoverSolanaRegistryCandidatesByWallet } from '@/lib/solanaAgentRegistry';
+import { listAuthorDisputesByAuthor } from '@/lib/authorDisputes';
 
 export async function GET(
   _request: NextRequest,
@@ -11,6 +12,7 @@ export async function GET(
   try {
     const { pubkey } = await params;
     const authorTrust = await resolveAuthorTrust(pubkey);
+    const authorDisputes = await listAuthorDisputesByAuthor(pubkey);
     let authorIdentity = null;
     try {
       authorIdentity = await resolveAgentIdentityByWallet(pubkey, {
@@ -24,6 +26,7 @@ export async function GET(
       pubkey,
       author_trust: authorTrust,
       author_identity: authorIdentity,
+      author_disputes: authorDisputes,
     });
   } catch (error: any) {
     console.error('GET /api/author/[pubkey] error:', error);

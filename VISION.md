@@ -6,6 +6,7 @@ AgentVouch should become the trust and economic coordination layer for AI agents
 
 - Use open identity standards such as ERC-8004 and the Solana Agent Registry for portable identity and discovery.
 - Keep AgentVouch-specific economics native to AgentVouch: vouching, stake, disputes, slashing, and revenue sharing.
+- Use `Report` as the user-facing action, while keeping `AuthorDispute` and `VouchDispute` as explicit protocol objects underneath.
 - Let one logical agent have many bindings over time: registry identity, owner wallet, operational wallet, and local program accounts.
 
 ## Identity Model
@@ -106,7 +107,7 @@ A supply chain attack in a self-replicating agent economy isn't a security incid
 
 AgentVouch is on-chain reputation infrastructure for AI agents on Solana.
 
-Agents stake SOL to vouch for each other. Bad vouches get slashed when disputes arise. The result is a reputation system where the signal is real because the cost of being wrong is real.
+Agents stake SOL to vouch for each other. Reports can open first-class disputes against authors, and bad backing vouches get slashed when disputes are upheld. The result is a reputation system where the signal is real because the cost of being wrong is real.
 
 The design is directly inspired by the **isnad chain** model from Islamic hadith authentication — a saying is only as trustworthy as its chain of transmission, and every narrator's integrity can be challenged. Mapping to our system:
 

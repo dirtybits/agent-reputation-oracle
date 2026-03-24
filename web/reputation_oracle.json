@@ -260,6 +260,269 @@
       ]
     },
     {
+      "name": "link_author_dispute_vouch",
+      "discriminator": [
+        226,
+        163,
+        168,
+        56,
+        244,
+        246,
+        217,
+        33
+      ],
+      "accounts": [
+        {
+          "name": "author_dispute",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  100,
+                  105,
+                  115,
+                  112,
+                  117,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_profile.authority",
+                "account": "AgentProfile"
+              },
+              {
+                "kind": "arg",
+                "path": "dispute_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_dispute_vouch_link",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  100,
+                  105,
+                  115,
+                  112,
+                  117,
+                  116,
+                  101,
+                  95,
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  95,
+                  108,
+                  105,
+                  110,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_dispute"
+              },
+              {
+                "kind": "account",
+                "path": "vouch"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vouch"
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_profile.authority",
+                "account": "AgentProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "challenger",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "dispute_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "open_author_dispute",
+      "discriminator": [
+        37,
+        162,
+        204,
+        185,
+        218,
+        143,
+        241,
+        119
+      ],
+      "accounts": [
+        {
+          "name": "author_dispute",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  100,
+                  105,
+                  115,
+                  112,
+                  117,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_profile.authority",
+                "account": "AgentProfile"
+              },
+              {
+                "kind": "arg",
+                "path": "dispute_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_profile.authority",
+                "account": "AgentProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "skill_listing",
+          "optional": true
+        },
+        {
+          "name": "purchase",
+          "optional": true
+        },
+        {
+          "name": "challenger",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "dispute_id",
+          "type": "u64"
+        },
+        {
+          "name": "reason",
+          "type": {
+            "defined": {
+              "name": "AuthorDisputeReason"
+            }
+          }
+        },
+        {
+          "name": "evidence_uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "open_dispute",
       "discriminator": [
         137,
@@ -468,6 +731,120 @@
         {
           "name": "metadata_uri",
           "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "resolve_author_dispute",
+      "discriminator": [
+        104,
+        27,
+        60,
+        182,
+        26,
+        232,
+        213,
+        247
+      ],
+      "accounts": [
+        {
+          "name": "author_dispute",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  100,
+                  105,
+                  115,
+                  112,
+                  117,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_profile.authority",
+                "account": "AgentProfile"
+              },
+              {
+                "kind": "arg",
+                "path": "dispute_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_profile.authority",
+                "account": "AgentProfile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "challenger",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "dispute_id",
+          "type": "u64"
+        },
+        {
+          "name": "ruling",
+          "type": {
+            "defined": {
+              "name": "AuthorDisputeRuling"
+            }
+          }
         }
       ]
     },
@@ -937,6 +1314,32 @@
       ]
     },
     {
+      "name": "AuthorDispute",
+      "discriminator": [
+        241,
+        8,
+        1,
+        66,
+        88,
+        235,
+        140,
+        242
+      ]
+    },
+    {
+      "name": "AuthorDisputeVouchLink",
+      "discriminator": [
+        30,
+        4,
+        152,
+        103,
+        232,
+        184,
+        75,
+        177
+      ]
+    },
+    {
       "name": "Dispute",
       "discriminator": [
         36,
@@ -1003,6 +1406,45 @@
     }
   ],
   "events": [
+    {
+      "name": "AuthorDisputeOpened",
+      "discriminator": [
+        28,
+        81,
+        192,
+        228,
+        95,
+        182,
+        238,
+        30
+      ]
+    },
+    {
+      "name": "AuthorDisputeResolved",
+      "discriminator": [
+        126,
+        245,
+        151,
+        187,
+        8,
+        65,
+        225,
+        35
+      ]
+    },
+    {
+      "name": "AuthorDisputeVouchLinked",
+      "discriminator": [
+        134,
+        76,
+        190,
+        203,
+        227,
+        59,
+        164,
+        232
+      ]
+    },
     {
       "name": "DisputeOpened",
       "discriminator": [
@@ -1180,6 +1622,254 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorDispute",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "dispute_id",
+            "type": "u64"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "challenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "reason",
+            "type": {
+              "defined": {
+                "name": "AuthorDisputeReason"
+              }
+            }
+          },
+          {
+            "name": "evidence_uri",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "AuthorDisputeStatus"
+              }
+            }
+          },
+          {
+            "name": "ruling",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "AuthorDisputeRuling"
+                }
+              }
+            }
+          },
+          {
+            "name": "skill_listing",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "purchase",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "linked_vouch_count",
+            "type": "u32"
+          },
+          {
+            "name": "bond_amount",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "resolved_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorDisputeOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author_dispute",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "challenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "reason",
+            "type": "string"
+          },
+          {
+            "name": "skill_listing",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "purchase",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "bond_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorDisputeReason",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "MaliciousSkill"
+          },
+          {
+            "name": "FraudulentClaims"
+          },
+          {
+            "name": "FailedDelivery"
+          },
+          {
+            "name": "Other"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorDisputeResolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author_dispute",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "ruling",
+            "type": "string"
+          },
+          {
+            "name": "linked_vouch_count",
+            "type": "u32"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorDisputeRuling",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Upheld"
+          },
+          {
+            "name": "Dismissed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorDisputeStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Resolved"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorDisputeVouchLink",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author_dispute",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "added_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorDisputeVouchLinked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author_dispute",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }

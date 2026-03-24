@@ -394,12 +394,20 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             </p>
           )}
           <TrustBadge trust={skill.author_trust} />
-          <Link
-            href={`/author/${skill.author_pubkey}`}
-            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
-          >
-            View full author trust history <FiExternalLink className="w-3.5 h-3.5" />
-          </Link>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link
+              href={`/author/${skill.author_pubkey}`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+            >
+              View full author trust history <FiExternalLink className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href={`/author/${skill.author_pubkey}?report=1${skill.on_chain_address ? `&skill=${encodeURIComponent(`skill:${skill.on_chain_address}`)}` : ''}`}
+              className={navButtonSecondaryInlineClass}
+            >
+              Report author
+            </Link>
+          </div>
         </div>
 
         {skill.author_identity && (

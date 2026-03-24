@@ -14,21 +14,29 @@ vi.mock('@/lib/solanaAgentRegistry', () => ({
   discoverSolanaRegistryCandidatesByWallet: vi.fn(),
 }));
 
+vi.mock('@/lib/authorDisputes', () => ({
+  listAuthorDisputesByAuthor: vi.fn(),
+}));
+
 vi.mock('@/lib/agentIdentity', () => ({
   linkSolanaRegistryIdentity: vi.fn(),
   resolveAgentIdentityByWallet: vi.fn(),
 }));
 
-import { POST } from '@/app/api/author/[pubkey]/route';
+import { GET, POST } from '@/app/api/author/[pubkey]/route';
 import { verifyWalletSignature } from '@/lib/auth';
-import { verifyAuthorTrust } from '@/lib/trust';
+import { resolveAuthorTrust, verifyAuthorTrust } from '@/lib/trust';
 import { discoverSolanaRegistryCandidatesByWallet } from '@/lib/solanaAgentRegistry';
-import { linkSolanaRegistryIdentity } from '@/lib/agentIdentity';
+import { listAuthorDisputesByAuthor } from '@/lib/authorDisputes';
+import { linkSolanaRegistryIdentity, resolveAgentIdentityByWallet } from '@/lib/agentIdentity';
 
 const mockVerify = verifyWalletSignature as unknown as ReturnType<typeof vi.fn>;
 const mockVerifyAuthorTrust = verifyAuthorTrust as unknown as ReturnType<typeof vi.fn>;
+const mockResolveAuthorTrust = resolveAuthorTrust as unknown as ReturnType<typeof vi.fn>;
 const mockDiscover = discoverSolanaRegistryCandidatesByWallet as unknown as ReturnType<typeof vi.fn>;
+const mockListAuthorDisputes = listAuthorDisputesByAuthor as unknown as ReturnType<typeof vi.fn>;
 const mockLink = linkSolanaRegistryIdentity as unknown as ReturnType<typeof vi.fn>;
+const mockResolveIdentity = resolveAgentIdentityByWallet as unknown as ReturnType<typeof vi.fn>;
 
 function makeRequest(pubkey: string, body: Record<string, any> = {}) {
   const req = new NextRequest(`http://localhost/api/author/${pubkey}`, {
@@ -43,6 +51,32 @@ function makeRequest(pubkey: string, body: Record<string, any> = {}) {
 describe('POST /api/author/[pubkey]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('returns trust, identity, and author disputes on GET', async () => {
+    mockResolveAuthorTrust.mockResolvedValue({
+      reputationScore: 10,
+      totalVouchesReceived: 2,
+      totalStakedFor: 1000,
+      disputesWon: 1,
+      disputesLost: 0,
+      disputesAgainstAuthor: 3,
+      disputesUpheldAgainstAuthor: 1,
+      activeDisputesAgainstAuthor: 1,
+      registeredAt: 123,
+      isRegistered: true,
+    });
+    mockResolveIdentity.mockResolvedValue({ canonicalAgentId: 'agent-1' });
+    mockListAuthorDisputes.mockResolvedValue([{ publicKey: 'Dispute111' }]);
+
+    const req = new NextRequest('http://localhost/api/author/Author111');
+    const res = await GET(req, { params: Promise.resolve({ pubkey: 'Author111' }) });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.author_trust.disputesAgainstAuthor).toBe(3);
+    expect(body.author_identity.canonicalAgentId).toBe('agent-1');
+    expect(body.author_disputes).toEqual([{ publicKey: 'Dispute111' }]);
   });
 
   it('returns 400 when the selected discovered candidate does not belong to the wallet', async () => {

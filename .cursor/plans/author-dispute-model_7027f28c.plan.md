@@ -4,16 +4,16 @@ overview: Add a first-class author-native dispute model while keeping the curren
 todos:
   - id: p2-dispute-state
     content: Design and add the new AuthorDispute and AuthorDisputeVouchLink account model with enums, seeds, and state exports.
-    status: pending
+    status: completed
   - id: p2-dispute-instructions
     content: Add open_author_dispute and resolve_author_dispute instructions while keeping current vouch dispute enforcement intact.
-    status: pending
+    status: completed
   - id: p2-disputes-ui
     content: Add first-class author dispute surfaces to author, skill, dashboard, and client hook flows.
-    status: pending
+    status: completed
   - id: p2-metrics-docs-verify
     content: Add author dispute metrics, update architecture docs, regenerate clients, and verify tests plus build.
-    status: pending
+    status: completed
 isProject: false
 ---
 

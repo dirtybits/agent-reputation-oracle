@@ -15,6 +15,7 @@ import {
 } from '@/lib/buttonStyles';
 import { formatSolAmount } from '@/lib/pricing';
 import Link from 'next/link';
+import { AuthorDisputeRuling } from '@/generated/reputation-oracle/src/generated';
 import {
   FiAlertTriangle,
   FiCalendar,
@@ -53,6 +54,9 @@ export default function DashboardPage() {
   const [vouches, setVouches] = useState<any[]>([]);
   const [vouchesReceived, setVouchesReceived] = useState<any[]>([]);
   const [allAgents, setAllAgents] = useState<any[]>([]);
+  const [authorDisputes, setAuthorDisputes] = useState<any[]>([]);
+  const [configAuthority, setConfigAuthority] = useState<string | null>(null);
+  const [resolvingAuthorDispute, setResolvingAuthorDispute] = useState<string | null>(null);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
@@ -108,11 +112,32 @@ export default function DashboardPage() {
     }
   };
 
+  const loadAuthorDisputes = async () => {
+    if (!publicKey) return;
+    try {
+      const [config, disputes] = await Promise.all([
+        oracle.getConfig(),
+        oracle.getAllAuthorDisputes(),
+      ]);
+      const resolverWallet = config?.authority ? String(config.authority) : null;
+      setConfigAuthority(resolverWallet);
+      setAuthorDisputes(
+        resolverWallet === publicKey
+          ? disputes
+          : disputes.filter((dispute: any) => String(dispute.account.author) === publicKey)
+      );
+    } catch (error) {
+      console.error('Error loading author disputes:', error);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'explorer' && allAgents.length === 0) {
       loadAllAgents();
     } else if (activeTab === 'vouch' && connected && allAgents.length === 0) {
       loadAllAgents();
+    } else if (activeTab === 'disputes' && connected) {
+      loadAuthorDisputes();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, connected]);
@@ -167,6 +192,27 @@ export default function DashboardPage() {
       setStatusTx(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResolveAuthorDispute = async (dispute: any, ruling: AuthorDisputeRuling) => {
+    setResolvingAuthorDispute(dispute.publicKey);
+    setStatus('');
+    setStatusTx(null);
+    try {
+      const { tx } = await oracle.resolveAuthorDispute(
+        address(String(dispute.account.author)),
+        BigInt(dispute.account.disputeId),
+        ruling,
+        address(String(dispute.account.challenger)),
+      );
+      setStatus(`Author dispute ${ruling === AuthorDisputeRuling.Upheld ? 'upheld' : 'dismissed'} successfully.`);
+      setStatusTx(tx);
+      await loadAuthorDisputes();
+    } catch (error: any) {
+      setStatus(`Error: ${error.message}`);
+    } finally {
+      setResolvingAuthorDispute(null);
     }
   };
 
@@ -709,61 +755,138 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'disputes' && connected && (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-              <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Dispute Backing Vouch</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Use this lower-level flow to challenge a backing vouch directly. Author pages now frame the same action as filing a claim against the author.
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vouch Account Address</label>
-                  <input
-                    type="text"
-                    value={disputeVouchAddress}
-                    onChange={(e) => setDisputeVouchAddress(e.target.value)}
-                    placeholder="Public key of the vouch account to dispute"
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
-                  />
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    Find vouch account addresses by exploring an agent&apos;s vouches
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Evidence (URI)</label>
-                  <textarea
-                    value={disputeEvidence}
-                    onChange={(e) => setDisputeEvidence(e.target.value)}
-                    placeholder="URL to evidence (IPFS, GitHub, etc.) showing why this vouch is fraudulent"
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm h-24 resize-none"
-                  />
-                </div>
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                  <p className="text-amber-800 dark:text-amber-300 text-sm">
-                    <span className="inline-flex items-center gap-1"><FiAlertTriangle /></span> <strong>Warning:</strong> Opening a dispute requires a bond. If rejected, you may lose your bond. Only dispute with strong evidence.
-                  </p>
-                </div>
-                <button
-                  onClick={handleDispute}
-                  disabled={loading}
-                  className={`w-full ${navButtonFlexClass} font-semibold bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white disabled:text-gray-500 transition`}
-                >
-                  {loading ? 'Opening Dispute...' : 'Open Vouch Dispute'}
-                </button>
-              </div>
+            <div className="space-y-6">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Author Disputes</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  {configAuthority === publicKey
+                    ? 'You are the configured resolver, so this view shows every author dispute plus resolution controls.'
+                    : 'This view shows first-class disputes opened against your author wallet. Use author pages to open new reports.'}
+                </p>
+                {authorDisputes.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No author disputes found.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {authorDisputes.map((dispute) => (
+                      <div
+                        key={dispute.publicKey}
+                        className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
+                      >
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-gray-200/70 dark:bg-gray-700/70 px-2 py-0.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                                {dispute.statusLabel}
+                              </span>
+                              <span className="rounded-full bg-[var(--lobster-accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--lobster-accent)]">
+                                {dispute.reasonLabel}
+                              </span>
+                              {dispute.rulingLabel && (
+                                <span className="rounded-full bg-gray-200/70 dark:bg-gray-700/70 px-2 py-0.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                                  {dispute.rulingLabel}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Author: <span className="font-mono">{String(dispute.account.author)}</span>
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Challenger: <span className="font-mono">{String(dispute.account.challenger)}</span>
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
+                              Dispute: {dispute.publicKey}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
+                              Evidence: {dispute.account.evidenceUri}
+                            </p>
+                            {dispute.linkedVouches.length > 0 && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {dispute.linkedVouches.length} linked backing {dispute.linkedVouches.length === 1 ? 'voucher' : 'vouchers'}
+                              </p>
+                            )}
+                          </div>
 
-              {vouches.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
-                  <h3 className="text-base font-heading font-bold text-gray-900 dark:text-white mb-4">Your Vouches</h3>
-                  <div className="space-y-2">
-                    {vouches.map((vouch, idx) => (
-                      <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3">
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Vouch Account</p>
-                        <p className="font-mono text-xs text-gray-900 dark:text-white break-all">{vouch.publicKey}</p>
+                          {configAuthority === publicKey && dispute.statusLabel === 'Open' && (
+                            <div className="flex gap-2 shrink-0">
+                              <button
+                                onClick={() => handleResolveAuthorDispute(dispute, AuthorDisputeRuling.Upheld)}
+                                disabled={resolvingAuthorDispute === dispute.publicKey}
+                                className={navButtonPrimaryInlineClass}
+                              >
+                                Uphold
+                              </button>
+                              <button
+                                onClick={() => handleResolveAuthorDispute(dispute, AuthorDisputeRuling.Dismissed)}
+                                disabled={resolvingAuthorDispute === dispute.publicKey}
+                                className={navButtonSecondaryInlineClass}
+                              >
+                                Dismiss
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Vouch Disputes</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Use this lower-level flow to challenge a backing vouch directly. Author disputes stay separate and can link multiple backing vouchers.
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vouch Account Address</label>
+                    <input
+                      type="text"
+                      value={disputeVouchAddress}
+                      onChange={(e) => setDisputeVouchAddress(e.target.value)}
+                      placeholder="Public key of the vouch account to dispute"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
+                    />
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Find vouch account addresses by exploring an agent&apos;s vouches
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Evidence (URI)</label>
+                    <textarea
+                      value={disputeEvidence}
+                      onChange={(e) => setDisputeEvidence(e.target.value)}
+                      placeholder="URL to evidence (IPFS, GitHub, etc.) showing why this vouch is fraudulent"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm h-24 resize-none"
+                    />
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                    <p className="text-amber-800 dark:text-amber-300 text-sm">
+                      <span className="inline-flex items-center gap-1"><FiAlertTriangle /></span> <strong>Warning:</strong> Opening a dispute requires a bond. If rejected, you may lose your bond. Only dispute with strong evidence.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDispute}
+                    disabled={loading}
+                    className={`w-full ${navButtonFlexClass} font-semibold bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white disabled:text-gray-500 transition`}
+                  >
+                    {loading ? 'Opening Dispute...' : 'Open Vouch Dispute'}
+                  </button>
                 </div>
-              )}
+
+                {vouches.length > 0 && (
+                  <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                    <h3 className="text-base font-heading font-bold text-gray-900 dark:text-white mb-4">Your Vouches</h3>
+                    <div className="space-y-2">
+                      {vouches.map((vouch, idx) => (
+                        <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3">
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Vouch Account</p>
+                          <p className="font-mono text-xs text-gray-900 dark:text-white break-all">{vouch.publicKey}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

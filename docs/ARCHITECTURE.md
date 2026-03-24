@@ -48,7 +48,7 @@ The isnad chain analogy from the vision maps as follows:
 |---|---|---|
 | Chain of narrators (sanad) | Vouch relationships between agents | Flat (A vouches for B). No transitive chains yet. |
 | Narrator integrity ('adalah) | AgentProfile reputation score | Implemented. Score derived from vouches, stakes, disputes. |
-| Challenge mechanism (jarh wa ta'dil) | Dispute with evidence, bond, and ruling | Implemented. Challenger gets 100% of slashed stake + bond. |
+| Challenge mechanism (jarh wa ta'dil) | Author disputes plus vouch disputes for enforcement | Implemented. Author disputes are first-class, while slashing still targets linked vouches. |
 | Mass-transmitted (mutawatir) | High-vouch-count skills | No formal threshold. Trust signals shown but "verified" status not defined. |
 
 ---
@@ -95,7 +95,9 @@ The isnad chain analogy from the vision maps as follows:
 | `ReputationConfig` | `["config"]` | Global parameters: min_stake, dispute_bond, slash_percentage |
 | `AgentProfile` | `["agent", authority]` | Identity and reputation for an author (agent or human) |
 | `Vouch` | `["vouch", voucher, vouchee]` | Stake-backed endorsement of one agent by another |
-| `Dispute` | `["dispute", vouch]` | Challenge against a vouch, with evidence and ruling |
+| `Dispute` | `["dispute", vouch]` | Low-level dispute against a single vouch, with evidence and ruling |
+| `AuthorDispute` | `["author_dispute", author, dispute_id]` | First-class dispute against an author, with optional skill and purchase context |
+| `AuthorDisputeVouchLink` | `["author_dispute_vouch_link", author_dispute, vouch]` | Links one author dispute to one backing vouch for explicit enforcement scope |
 | `SkillListing` | `["skill", author, skill_id]` | Published skill with price, metadata, revenue tracking |
 | `Purchase` | `["purchase", buyer, skill_listing]` | Receipt of a skill purchase by a specific buyer |
 
@@ -108,6 +110,9 @@ The isnad chain analogy from the vision maps as follows:
 | `register_agent` | Any wallet | Creates AgentProfile PDA |
 | `vouch` | Registered agent | Stakes SOL on another agent's profile |
 | `revoke_vouch` | Voucher | Returns staked SOL (active vouches only) |
+| `open_author_dispute` | Any wallet | Opens an author-native dispute, optionally tied to a skill or purchase, and posts the dispute bond |
+| `link_author_dispute_vouch` | Challenger | Links an active backing vouch to an open author dispute |
+| `resolve_author_dispute` | Program authority | Resolves the author dispute and records whether the report was upheld or dismissed |
 | `open_dispute` | Any wallet | Posts evidence against a vouch, pays dispute bond |
 | `resolve_dispute` | Program authority | Rules SlashVoucher (challenger gets stake + bond) or Vindicate (vouch returns to Active, voucher disputes_won increments) |
 
@@ -175,6 +180,7 @@ Agent                          Server                         Solana
 ### Built
 
 - [x] On-chain reputation (register, vouch, revoke, dispute, resolve)
+- [x] First-class author disputes with optional skill context and linked backing vouchers
 - [x] Skill marketplace (list, update, purchase, claim revenue)
 - [x] 60/40 revenue split enforced on-chain
 - [x] x402 API payment flow routed through `purchaseSkill`
@@ -186,7 +192,7 @@ Agent                          Server                         Solana
 
 | Gap | Priority | Notes |
 |---|---|---|
-| **Author-native claims** | High | The current dispute primitive targets a `Vouch` PDA. The author page now frames this as filing a claim against an author, but the on-chain slashable object is still the backing voucher. A future `Claim` account plus author-bonded stake would make that UX semantically exact. |
+| **Author-bonded stake** | High | Author disputes now exist as first-class objects, but author slashing still does not exist. Phase 3 should add `AuthorBond` / self-stake as first-loss capital ahead of backing vouchers. |
 | **Transitive trust (sanad chains)** | Medium | Vouches are flat. A chain model (A→B→C) would let reputation propagate and enable "degrees of trust." |
 | **Trust threshold ("mutawatir")** | Medium | No formal definition of when a skill is "verified." Could be: N vouches from M unique stakers totaling X SOL. |
 | **Code signing / content integrity** | High | VISION.md's #1 problem. Skills are unsigned. Content hash on-chain (IPFS CID) is a partial solution but doesn't verify safety. |
@@ -210,8 +216,8 @@ Agent                          Server                         Solana
 
 ```
 programs/reputation-oracle/     Anchor program (Rust)
-├── src/instructions/           10 instruction handlers
-├── src/state/                  6 account definitions
+├── src/instructions/           13 instruction handlers
+├── src/state/                  8 account definitions
 ├── src/events.rs               On-chain events
 └── src/lib.rs                  Program entry point
 

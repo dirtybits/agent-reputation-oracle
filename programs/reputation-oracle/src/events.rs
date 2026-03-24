@@ -36,6 +36,34 @@ pub struct DisputeResolved {
 }
 
 #[event]
+pub struct AuthorDisputeOpened {
+    pub author_dispute: Pubkey,
+    pub author: Pubkey,
+    pub challenger: Pubkey,
+    pub reason: String,
+    pub skill_listing: Option<Pubkey>,
+    pub purchase: Option<Pubkey>,
+    pub bond_amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct AuthorDisputeResolved {
+    pub author_dispute: Pubkey,
+    pub author: Pubkey,
+    pub ruling: String,
+    pub linked_vouch_count: u32,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct AuthorDisputeVouchLinked {
+    pub author_dispute: Pubkey,
+    pub vouch: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
 pub struct SkillListingCreated {
     pub skill_listing: Pubkey,
     pub author: Pubkey,
