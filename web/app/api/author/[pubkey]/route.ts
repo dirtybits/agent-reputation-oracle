@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolveAuthorTrust, verifyAuthorTrust } from '@/lib/trust';
 import { linkSolanaRegistryIdentity, resolveAgentIdentityByWallet } from '@/lib/agentIdentity';
 import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
+import { discoverSolanaRegistryCandidatesByWallet } from '@/lib/solanaAgentRegistry';
 
 export async function GET(
   _request: NextRequest,
@@ -39,27 +40,31 @@ export async function POST(
     const body = await request.json();
     const {
       auth,
+      selected_registry_asset_pubkey,
       registry_address,
       core_asset_pubkey,
       operational_wallet_pubkey,
+      display_name,
       chain_context,
       raw_upstream_chain_label,
       raw_upstream_chain_id,
       external_agent_id,
     } = body as {
       auth: AuthPayload;
+      selected_registry_asset_pubkey?: string;
       registry_address: string;
       core_asset_pubkey: string;
       operational_wallet_pubkey?: string;
+      display_name?: string;
       chain_context?: string;
       raw_upstream_chain_label?: string;
       raw_upstream_chain_id?: string;
       external_agent_id?: string;
     };
 
-    if (!auth || !registry_address || !core_asset_pubkey) {
+    if (!auth) {
       return NextResponse.json(
-        { error: 'Missing required fields: auth, registry_address, core_asset_pubkey' },
+        { error: 'Missing required fields: auth' },
         { status: 400 }
       );
     }
@@ -87,17 +92,53 @@ export async function POST(
       );
     }
 
-    const authorIdentity = await linkSolanaRegistryIdentity({
-      ownerWalletPubkey: pubkey,
-      registryAddress: registry_address,
-      coreAssetPubkey: core_asset_pubkey,
-      operationalWalletPubkey: operational_wallet_pubkey ?? null,
-      chainContext: chain_context ?? null,
-      rawUpstreamChainLabel: raw_upstream_chain_label ?? null,
-      rawUpstreamChainId: raw_upstream_chain_id ?? null,
-      externalAgentId: external_agent_id ?? null,
-      hasAgentProfile: true,
-    });
+    let authorIdentity;
+    if (selected_registry_asset_pubkey) {
+      const candidates = await discoverSolanaRegistryCandidatesByWallet(pubkey, { useCache: false });
+      const selectedCandidate = candidates.find(
+        (candidate) => candidate.coreAssetPubkey === selected_registry_asset_pubkey
+      );
+
+      if (!selectedCandidate) {
+        return NextResponse.json(
+          { error: 'Selected registry identity was not found for this wallet.' },
+          { status: 400 }
+        );
+      }
+
+      authorIdentity = await linkSolanaRegistryIdentity({
+        ownerWalletPubkey: pubkey,
+        registryAddress: selectedCandidate.registryAddress,
+        coreAssetPubkey: selectedCandidate.coreAssetPubkey,
+        operationalWalletPubkey: selectedCandidate.operationalWallet,
+        displayName: selectedCandidate.displayName,
+        chainContext: selectedCandidate.chainContext,
+        rawUpstreamChainLabel: selectedCandidate.rawUpstreamChainLabel,
+        rawUpstreamChainId: selectedCandidate.rawUpstreamChainId,
+        externalAgentId: selectedCandidate.externalAgentId,
+        hasAgentProfile: true,
+      });
+    } else {
+      if (!registry_address || !core_asset_pubkey) {
+        return NextResponse.json(
+          { error: 'Missing required fields: registry_address, core_asset_pubkey' },
+          { status: 400 }
+        );
+      }
+
+      authorIdentity = await linkSolanaRegistryIdentity({
+        ownerWalletPubkey: pubkey,
+        registryAddress: registry_address,
+        coreAssetPubkey: core_asset_pubkey,
+        operationalWalletPubkey: operational_wallet_pubkey ?? null,
+        displayName: display_name ?? null,
+        chainContext: chain_context ?? null,
+        rawUpstreamChainLabel: raw_upstream_chain_label ?? null,
+        rawUpstreamChainId: raw_upstream_chain_id ?? null,
+        externalAgentId: external_agent_id ?? null,
+        hasAgentProfile: true,
+      });
+    }
 
     return NextResponse.json(
       {

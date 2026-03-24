@@ -33,6 +33,7 @@ export interface AgentIdentitySummary {
   identitySource: AgentIdentitySource;
   homeChainContext: string | null;
   status: string;
+  displayName: string | null;
   bindings: AgentIdentityBinding[];
   ownerWallet: string | null;
   operationalWallet: string | null;
@@ -62,6 +63,7 @@ type DbAgent = {
   identity_source: AgentIdentitySource;
   home_chain_context: string | null;
   status: string;
+  display_name: string | null;
 };
 
 type DbBinding = {
@@ -215,6 +217,7 @@ async function buildSyntheticLocalIdentity(params: {
     identitySource: 'local',
     homeChainContext: chainContext,
     status: 'active',
+    displayName: null,
     bindings,
     ownerWallet: params.walletPubkey,
     operationalWallet: null,
@@ -225,7 +228,7 @@ async function buildSyntheticLocalIdentity(params: {
 
 async function getAgentByWallet(walletPubkey: string, chainContext: string): Promise<DbAgent | null> {
   const rows = await sql()`
-    SELECT a.id, a.canonical_agent_id, a.identity_source, a.home_chain_context, a.status
+    SELECT a.id, a.canonical_agent_id, a.identity_source, a.home_chain_context, a.status, a.display_name
     FROM agents a
     JOIN agent_identity_bindings b ON b.agent_id = a.id
     WHERE b.binding_type = ${BINDING_TYPES.walletOwner}
@@ -240,7 +243,7 @@ async function getAgentByWallet(walletPubkey: string, chainContext: string): Pro
 
 async function getAgentByCanonicalId(canonicalAgentId: string): Promise<DbAgent | null> {
   const rows = await sql()`
-    SELECT id, canonical_agent_id, identity_source, home_chain_context, status
+    SELECT id, canonical_agent_id, identity_source, home_chain_context, status, display_name
     FROM agents
     WHERE canonical_agent_id = ${canonicalAgentId}
     LIMIT 1
@@ -342,6 +345,7 @@ async function loadAgentSummary(agent: DbAgent): Promise<AgentIdentitySummary> {
     identitySource: agent.identity_source,
     homeChainContext: agent.home_chain_context,
     status: agent.status,
+    displayName: agent.display_name,
     bindings: mappedBindings,
     ownerWallet,
     operationalWallet,
@@ -403,7 +407,7 @@ export async function upsertLocalAgentIdentity(params: {
       display_name = COALESCE(agents.display_name, EXCLUDED.display_name),
       home_chain_context = EXCLUDED.home_chain_context,
       updated_at = NOW()
-    RETURNING id, canonical_agent_id, identity_source, home_chain_context, status
+    RETURNING id, canonical_agent_id, identity_source, home_chain_context, status, display_name
   `;
 
   const agent = rows[0] as DbAgent;
@@ -499,6 +503,7 @@ export async function linkSolanaRegistryIdentity(params: {
   registryAddress: string;
   coreAssetPubkey: string;
   operationalWalletPubkey?: string | null;
+  displayName?: string | null;
   chainContext?: string | null;
   rawUpstreamChainLabel?: string | null;
   rawUpstreamChainId?: string | null;
@@ -542,9 +547,10 @@ export async function linkSolanaRegistryIdentity(params: {
     SET canonical_agent_id = ${canonicalAgentId},
         identity_source = 'erc8004',
         home_chain_context = ${normalizedChainContext},
+        display_name = COALESCE(${params.displayName?.trim() || null}, display_name),
         updated_at = NOW()
     WHERE id = ${currentAgent.id}::uuid
-    RETURNING id, canonical_agent_id, identity_source, home_chain_context, status
+    RETURNING id, canonical_agent_id, identity_source, home_chain_context, status, display_name
   `;
 
   const agent = rows[0] as DbAgent;

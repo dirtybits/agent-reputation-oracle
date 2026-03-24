@@ -41,7 +41,12 @@ export function AgentIdentityPanel({
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <FiLink2 className="w-4 h-4 text-[var(--sea-accent)]" />
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
+            {identity.displayName && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{identity.displayName}</p>
+            )}
+          </div>
         </div>
         <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400">
           {identity.identitySource === 'erc8004' ? <FiZap className="w-3 h-3" /> : <FiUser className="w-3 h-3" />}

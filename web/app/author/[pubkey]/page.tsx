@@ -8,9 +8,11 @@ import Link from 'next/link';
 import { AgentIdentityPanel } from '@/components/AgentIdentityPanel';
 import { AgentProfileSetupCard } from '@/components/AgentProfileSetupCard';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
+import type { AuthPayload } from '@/lib/auth';
 import { navButtonPrimaryInlineClass } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import type { AgentIdentitySummary } from '@/lib/agentIdentity';
+import type { SolanaRegistryCandidate } from '@/lib/solanaAgentRegistry';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import { formatSolAmount } from '@/lib/pricing';
@@ -108,6 +110,11 @@ export default function AuthorProfilePage() {
   const [registryProgramAddress, setRegistryProgramAddress] = useState('');
   const [registryAssetPubkey, setRegistryAssetPubkey] = useState('');
   const [operationalWalletPubkey, setOperationalWalletPubkey] = useState('');
+  const [registryCandidates, setRegistryCandidates] = useState<SolanaRegistryCandidate[]>([]);
+  const [discoveringRegistryCandidates, setDiscoveringRegistryCandidates] = useState(false);
+  const [registryCandidatesLoaded, setRegistryCandidatesLoaded] = useState(false);
+  const [showManualRegistryLink, setShowManualRegistryLink] = useState(false);
+  const [registryLinkAuth, setRegistryLinkAuth] = useState<AuthPayload | null>(null);
   const [linkingIdentity, setLinkingIdentity] = useState(false);
   const [linkIdentityStatus, setLinkIdentityStatus] = useState<{ success: boolean; message: string } | null>(null);
   const myProfileFetchId = useRef(0);
@@ -172,6 +179,13 @@ export default function AuthorProfilePage() {
     // oracle is intentionally omitted — it changes reference every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, myPubkey, isOwnProfile]);
+
+  useEffect(() => {
+    setRegistryLinkAuth(null);
+    setRegistryCandidates([]);
+    setRegistryCandidatesLoaded(false);
+    setLinkIdentityStatus(null);
+  }, [myPubkey, pubkey]);
 
   const copyPubkey = () => {
     navigator.clipboard.writeText(pubkey);
@@ -289,16 +303,69 @@ export default function AuthorProfilePage() {
     }
   };
 
-  const handleLinkRegistryIdentity = async () => {
+  const authorizeRegistryLinking = useCallback(async (): Promise<AuthPayload> => {
     if (!connected || !myPubkey || myPubkey !== pubkey || !signMessage) {
-      setLinkIdentityStatus({
-        success: false,
-        message: 'Connect the author wallet with message signing enabled to link registry identity.',
-      });
-      return;
+      throw new Error('Connect the author wallet with message signing enabled to link registry identity.');
     }
 
-    if (!registryProgramAddress.trim() || !registryAssetPubkey.trim()) {
+    if (registryLinkAuth && Date.now() - registryLinkAuth.timestamp < 4 * 60_000) {
+      return registryLinkAuth;
+    }
+
+    const timestamp = Date.now();
+    const message = `AgentVouch Author Profile\nAction: author-registry-link\nAuthor: ${pubkey}\nTimestamp: ${timestamp}`;
+    const sigBytes = await signMessage(new TextEncoder().encode(message));
+    const auth = {
+      pubkey: myPubkey,
+      signature: Buffer.from(sigBytes).toString('base64'),
+      message,
+      timestamp,
+    };
+    setRegistryLinkAuth(auth);
+    return auth;
+  }, [connected, myPubkey, pubkey, registryLinkAuth, signMessage]);
+
+  const handleDiscoverRegistryIdentities = async () => {
+    setDiscoveringRegistryCandidates(true);
+    setLinkIdentityStatus(null);
+
+    try {
+      const auth = await authorizeRegistryLinking();
+      const response = await fetch(`/api/author/${pubkey}/discover-registry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auth }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to discover registry identities');
+      }
+
+      const candidates = data.candidates ?? [];
+      setRegistryCandidates(candidates);
+      setRegistryCandidatesLoaded(true);
+      setLinkIdentityStatus(
+        candidates.length === 0
+          ? {
+              success: false,
+              message: 'No registry identities were found for this wallet on the configured Solana network.',
+            }
+          : null
+      );
+    } catch (error: any) {
+      setRegistryCandidates([]);
+      setRegistryCandidatesLoaded(true);
+      setLinkIdentityStatus({
+        success: false,
+        message: error.message || 'Failed to discover registry identities',
+      });
+    } finally {
+      setDiscoveringRegistryCandidates(false);
+    }
+  };
+
+  const handleLinkRegistryIdentity = async (candidate?: SolanaRegistryCandidate) => {
+    if (!candidate && (!registryProgramAddress.trim() || !registryAssetPubkey.trim())) {
       setLinkIdentityStatus({
         success: false,
         message: 'Enter both the registry program address and registry asset pubkey.',
@@ -310,25 +377,23 @@ export default function AuthorProfilePage() {
     setLinkIdentityStatus(null);
 
     try {
-      const timestamp = Date.now();
-      const message = `AgentVouch Author Profile\nAction: link-registry-identity\nAuthor: ${pubkey}\nTimestamp: ${timestamp}`;
-      const sigBytes = await signMessage(new TextEncoder().encode(message));
-      const signature = Buffer.from(sigBytes).toString('base64');
-
+      const auth = await authorizeRegistryLinking();
       const response = await fetch(`/api/author/${pubkey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          auth: {
-            pubkey: myPubkey,
-            signature,
-            message,
-            timestamp,
-          },
-          registry_address: registryProgramAddress.trim(),
-          core_asset_pubkey: registryAssetPubkey.trim(),
-          operational_wallet_pubkey: operationalWalletPubkey.trim() || undefined,
-        }),
+        body: JSON.stringify(
+          candidate
+            ? {
+                auth,
+                selected_registry_asset_pubkey: candidate.coreAssetPubkey,
+              }
+            : {
+                auth,
+                registry_address: registryProgramAddress.trim(),
+                core_asset_pubkey: registryAssetPubkey.trim(),
+                operational_wallet_pubkey: operationalWalletPubkey.trim() || undefined,
+              }
+        ),
       });
 
       const data = await response.json();
@@ -341,6 +406,7 @@ export default function AuthorProfilePage() {
         success: true,
         message: 'Registry identity linked.',
       });
+      setShowManualRegistryLink(false);
     } catch (error: any) {
       setLinkIdentityStatus({
         success: false,
@@ -472,54 +538,19 @@ export default function AuthorProfilePage() {
               Add a registry asset above your existing AgentProfile. Vouching, payouts, and authorization stay unchanged.
             </p>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Registry Program Address
-                </label>
-                <input
-                  type="text"
-                  value={registryProgramAddress}
-                  onChange={(e) => setRegistryProgramAddress(e.target.value)}
-                  placeholder="Agent registry program address"
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Registry Asset Pubkey
-                </label>
-                <input
-                  type="text"
-                  value={registryAssetPubkey}
-                  onChange={(e) => setRegistryAssetPubkey(e.target.value)}
-                  placeholder="Metaplex Core asset pubkey"
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Operational Wallet
-                </label>
-                <input
-                  type="text"
-                  value={operationalWalletPubkey}
-                  onChange={(e) => setOperationalWalletPubkey(e.target.value)}
-                  placeholder="Optional agent wallet"
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={handleLinkRegistryIdentity}
-                disabled={linkingIdentity || !connected || !signMessage}
+                onClick={handleDiscoverRegistryIdentities}
+                disabled={discoveringRegistryCandidates || linkingIdentity || !connected || !signMessage}
                 className={navButtonPrimaryInlineClass}
               >
-                {linkingIdentity ? 'Linking...' : (authorIdentity?.registryAsset ? 'Update Registry Link' : 'Link Registry Identity')}
+                {discoveringRegistryCandidates ? 'Finding identities...' : 'Find my registry identities'}
+              </button>
+              <button
+                onClick={() => setShowManualRegistryLink((value) => !value)}
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+              >
+                {showManualRegistryLink ? 'Hide manual entry' : 'Enter manually instead'}
               </button>
               {!signMessage && (
                 <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -527,6 +558,117 @@ export default function AuthorProfilePage() {
                 </span>
               )}
             </div>
+
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              One wallet signature authorizes discovery and linking for the next few minutes.
+            </p>
+
+            {registryCandidates.length > 0 && (
+              <div className="mt-4 grid gap-3">
+                {registryCandidates.map((candidate) => (
+                  <div
+                    key={candidate.coreAssetPubkey}
+                    className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="space-y-2">
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {candidate.displayName || `Agent ${shortAddr(candidate.coreAssetPubkey)}`}
+                          </div>
+                          {candidate.description && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {candidate.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
+                          <div>Asset: {candidate.coreAssetPubkey}</div>
+                          <div>Owner: {candidate.ownerWallet}</div>
+                          {candidate.operationalWallet && (
+                            <div>Operational: {candidate.operationalWallet}</div>
+                          )}
+                        </div>
+
+                        <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                          Match: {candidate.matchType === 'both' ? 'owner + operational wallet' : candidate.matchType}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleLinkRegistryIdentity(candidate)}
+                        disabled={linkingIdentity}
+                        className={navButtonPrimaryInlineClass}
+                      >
+                        {linkingIdentity ? 'Linking...' : 'Link this identity'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {registryCandidatesLoaded && registryCandidates.length === 0 && !discoveringRegistryCandidates && (
+              <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No public registry identities were found for this wallet on the configured Solana network.
+                </p>
+              </div>
+            )}
+
+            {showManualRegistryLink && (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Registry Program Address
+                  </label>
+                  <input
+                    type="text"
+                    value={registryProgramAddress}
+                    onChange={(e) => setRegistryProgramAddress(e.target.value)}
+                    placeholder="Agent registry program address"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Registry Asset Pubkey
+                  </label>
+                  <input
+                    type="text"
+                    value={registryAssetPubkey}
+                    onChange={(e) => setRegistryAssetPubkey(e.target.value)}
+                    placeholder="Metaplex Core asset pubkey"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Operational Wallet
+                  </label>
+                  <input
+                    type="text"
+                    value={operationalWalletPubkey}
+                    onChange={(e) => setOperationalWalletPubkey(e.target.value)}
+                    placeholder="Optional agent wallet"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <button
+                    onClick={() => handleLinkRegistryIdentity()}
+                    disabled={linkingIdentity || !connected || !signMessage}
+                    className={navButtonPrimaryInlineClass}
+                  >
+                    {linkingIdentity ? 'Linking...' : 'Link registry identity manually'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {linkIdentityStatus && (
               <p className={`mt-3 text-sm ${linkIdentityStatus.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
