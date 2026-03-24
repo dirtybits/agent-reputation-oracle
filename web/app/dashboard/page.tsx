@@ -703,16 +703,16 @@ export default function DashboardPage() {
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiShield /></div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to open disputes.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to challenge backing vouches.</p>
               <ClientWalletButton />
             </div>
           )}
 
           {activeTab === 'disputes' && connected && (
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-              <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Open Dispute</h2>
+              <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Dispute Backing Vouch</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Challenge a vouch if you believe the voucher endorsed a bad actor. Requires a dispute bond.
+                Use this lower-level flow to challenge a backing vouch directly. Author pages now frame the same action as filing a claim against the author.
               </p>
               <div className="space-y-4">
                 <div>
@@ -747,7 +747,7 @@ export default function DashboardPage() {
                   disabled={loading}
                   className={`w-full ${navButtonFlexClass} font-semibold bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white disabled:text-gray-500 transition`}
                 >
-                  {loading ? 'Opening Dispute...' : 'Open Dispute'}
+                  {loading ? 'Opening Dispute...' : 'Open Vouch Dispute'}
                 </button>
               </div>
 

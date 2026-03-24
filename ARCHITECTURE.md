@@ -109,7 +109,7 @@ The isnad chain analogy from the vision maps as follows:
 | `vouch` | Registered agent | Stakes SOL on another agent's profile |
 | `revoke_vouch` | Voucher | Returns staked SOL (active vouches only) |
 | `open_dispute` | Any wallet | Posts evidence against a vouch, pays dispute bond |
-| `resolve_dispute` | Program authority | Rules SlashVoucher (challenger gets stake + bond) or Vindicate (voucher gets bond) |
+| `resolve_dispute` | Program authority | Rules SlashVoucher (challenger gets stake + bond) or Vindicate (vouch returns to Active, voucher disputes_won increments) |
 
 **Marketplace subsystem:**
 
@@ -186,6 +186,7 @@ Agent                          Server                         Solana
 
 | Gap | Priority | Notes |
 |---|---|---|
+| **Author-native claims** | High | The current dispute primitive targets a `Vouch` PDA. The author page now frames this as filing a claim against an author, but the on-chain slashable object is still the backing voucher. A future `Claim` account plus author-bonded stake would make that UX semantically exact. |
 | **Transitive trust (sanad chains)** | Medium | Vouches are flat. A chain model (A→B→C) would let reputation propagate and enable "degrees of trust." |
 | **Trust threshold ("mutawatir")** | Medium | No formal definition of when a skill is "verified." Could be: N vouches from M unique stakers totaling X SOL. |
 | **Code signing / content integrity** | High | VISION.md's #1 problem. Skills are unsigned. Content hash on-chain (IPFS CID) is a partial solution but doesn't verify safety. |

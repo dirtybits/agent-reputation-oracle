@@ -9,14 +9,20 @@ import { AgentIdentityPanel } from '@/components/AgentIdentityPanel';
 import { AgentProfileSetupCard } from '@/components/AgentProfileSetupCard';
 import { ClientWalletButton } from '@/components/ClientWalletButton';
 import type { AuthPayload } from '@/lib/auth';
-import { navButtonPrimaryInlineClass } from '@/lib/buttonStyles';
+import {
+  navButtonPrimaryFlexClass,
+  navButtonPrimaryInlineClass,
+  navButtonSecondaryInlineClass,
+} from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import type { AgentIdentitySummary } from '@/lib/agentIdentity';
+import { getVouchStatusLabel, isClaimableVouchStatus } from '@/lib/disputes';
 import type { SolanaRegistryCandidate } from '@/lib/solanaAgentRegistry';
 import { SolAmount } from '@/components/SolAmount';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import { formatSolAmount } from '@/lib/pricing';
 import {
+  FiAlertTriangle,
   FiArrowLeft,
   FiCalendar,
   FiCheckCircle,
@@ -117,6 +123,15 @@ export default function AuthorProfilePage() {
   const [registryLinkAuth, setRegistryLinkAuth] = useState<AuthPayload | null>(null);
   const [linkingIdentity, setLinkingIdentity] = useState(false);
   const [linkIdentityStatus, setLinkIdentityStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [profileAuthorityByPda, setProfileAuthorityByPda] = useState<Record<string, string>>({});
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [selectedClaimVouch, setSelectedClaimVouch] = useState('');
+  const [claimReason, setClaimReason] = useState('malicious-skill');
+  const [claimSkillContext, setClaimSkillContext] = useState('');
+  const [claimEvidenceUri, setClaimEvidenceUri] = useState('');
+  const [claiming, setClaiming] = useState(false);
+  const [claimStatus, setClaimStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [claimTx, setClaimTx] = useState<string | null>(null);
   const myProfileFetchId = useRef(0);
 
   const isOwnProfile = myPubkey === pubkey;
@@ -133,14 +148,36 @@ export default function AuthorProfilePage() {
         fetch(`/api/skills?author=${pubkey}`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`/api/author/${pubkey}`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
+      const relatedProfileKeys = Array.from(
+        new Set(
+          [
+            ...received.map((vouch: any) => String(vouch.account.voucher ?? '')),
+            ...given.map((vouch: any) => String(vouch.account.vouchee ?? '')),
+          ].filter(Boolean),
+        ),
+      );
+      const relatedProfiles = await Promise.all(
+        relatedProfileKeys.map(async (profileKey) => {
+          const relatedProfile = await oracle
+            .getAgentProfileByAddress(address(profileKey))
+            .catch(() => null);
+          return [profileKey, relatedProfile?.authority ? String(relatedProfile.authority) : null] as const;
+        }),
+      );
+      const nextProfileAuthorityByPda = relatedProfiles.reduce<Record<string, string>>((acc, [profileKey, authority]) => {
+        if (authority) acc[profileKey] = authority;
+        return acc;
+      }, {});
       setProfile(prof);
       setVouchesReceived(received);
       setVouchesGiven(given);
       setChainSkills(chainListings);
       setRepoSkills(repoRes?.skills ?? []);
       setAuthorIdentity(authorRes?.author_identity ?? null);
+      setProfileAuthorityByPda(nextProfileAuthorityByPda);
     } catch (e) {
       console.error('Failed to load author profile:', e);
+      setProfileAuthorityByPda({});
     } finally {
       setLoading(false);
     }
@@ -441,6 +478,99 @@ export default function AuthorProfilePage() {
     isRegistered: true,
   } : null;
 
+  const claimableVouches = vouchesReceived.filter((vouch: any) =>
+    isClaimableVouchStatus(vouch.account.status),
+  );
+  const claimSkillOptions = [
+    ...repoSkills.map((skill) => ({
+      value: `repo:${skill.id}`,
+      label: skill.name,
+    })),
+    ...chainSkills
+      .filter((skill) => !repoSkills.some((repoSkill) => repoSkill.on_chain_address === skill.publicKey))
+      .map((skill) => ({
+        value: `chain:${skill.publicKey}`,
+        label: skill.account.name || `On-chain skill ${shortAddr(skill.publicKey)}`,
+      })),
+  ];
+  const selectedClaimVouchEntry = claimableVouches.find(
+    (vouch: any) => vouch.publicKey === selectedClaimVouch,
+  ) ?? null;
+  const selectedClaimSkillLabel = claimSkillOptions.find(
+    (skill) => skill.value === claimSkillContext,
+  )?.label;
+
+  const openClaimModal = (vouchPublicKey?: string) => {
+    if (claimableVouches.length === 0) return;
+    setClaimStatus(null);
+    setClaimTx(null);
+    setSelectedClaimVouch(vouchPublicKey ?? claimableVouches[0]?.publicKey ?? '');
+    setClaimReason('malicious-skill');
+    setClaimSkillContext('');
+    setClaimEvidenceUri('');
+    setShowClaimModal(true);
+  };
+
+  const closeClaimModal = () => {
+    if (claiming) return;
+    setShowClaimModal(false);
+  };
+
+  const handleSubmitClaim = async () => {
+    if (!connected) {
+      setClaimStatus({ success: false, message: 'Connect your wallet to file a claim.' });
+      setClaimTx(null);
+      return;
+    }
+
+    if (!selectedClaimVouch) {
+      setClaimStatus({ success: false, message: 'Select a backing voucher to challenge.' });
+      setClaimTx(null);
+      return;
+    }
+
+    const evidenceUri = claimEvidenceUri.trim();
+    if (!evidenceUri) {
+      setClaimStatus({ success: false, message: 'Add an evidence URI for this claim.' });
+      setClaimTx(null);
+      return;
+    }
+
+    if (evidenceUri.length > 200) {
+      setClaimStatus({ success: false, message: 'Evidence URI must be 200 characters or fewer.' });
+      setClaimTx(null);
+      return;
+    }
+
+    setClaiming(true);
+    setClaimStatus(null);
+    setClaimTx(null);
+
+    try {
+      const { tx } = await oracle.openDispute(address(selectedClaimVouch), evidenceUri);
+      const contextLabel = selectedClaimSkillLabel ? ` for ${selectedClaimSkillLabel}` : '';
+      setClaimStatus({
+        success: true,
+        message: `Claim filed against this author's backing voucher${contextLabel}.`,
+      });
+      setClaimTx(tx);
+      setShowClaimModal(false);
+      setClaimReason('malicious-skill');
+      setClaimSkillContext('');
+      setClaimEvidenceUri('');
+      setSelectedClaimVouch('');
+      setTimeout(loadData, 2000);
+    } catch (error: any) {
+      setClaimStatus({
+        success: false,
+        message: error.message || 'Failed to file claim.',
+      });
+      setClaimTx(null);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -481,6 +611,172 @@ export default function AuthorProfilePage() {
           </div>
         )}
 
+        {showClaimModal && !isOwnProfile && profile && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="relative w-full max-w-2xl rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-xl">
+              <button
+                onClick={closeClaimModal}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <FiX className="w-4 h-4" />
+              </button>
+
+              <div className="mb-5 pr-8">
+                <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white">
+                  File a claim against this author
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  Claims currently challenge a backing voucher tied to this author.
+                </p>
+              </div>
+
+              {!connected ? (
+                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6 text-center">
+                  <FiShield className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Connect your wallet to file a claim and post the dispute bond.
+                  </p>
+                  <ClientWalletButton />
+                </div>
+              ) : claimableVouches.length === 0 ? (
+                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    This author does not currently have an active backing voucher that can be challenged on-chain.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Claim reason
+                      </label>
+                      <select
+                        value={claimReason}
+                        onChange={(e) => setClaimReason(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                      >
+                        <option value="malicious-skill">Malicious skill or payload</option>
+                        <option value="fraudulent-claims">Fraudulent or deceptive claims</option>
+                        <option value="failed-delivery">Paid skill failed to deliver</option>
+                        <option value="other">Other misconduct</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Related skill
+                      </label>
+                      <select
+                        value={claimSkillContext}
+                        onChange={(e) => setClaimSkillContext(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                      >
+                        <option value="">Not tied to a specific skill</option>
+                        {claimSkillOptions.map((skill) => (
+                          <option key={skill.value} value={skill.value}>
+                            {skill.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Backing voucher to challenge
+                      </label>
+                      <select
+                        value={selectedClaimVouch}
+                        onChange={(e) => setSelectedClaimVouch(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                      >
+                        {claimableVouches.map((vouch: any) => {
+                          const voucherProfile = String(vouch.account.voucher);
+                          const voucherAuthority = profileAuthorityByPda[voucherProfile];
+                          const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
+                          const voucherLabel = voucherAuthority
+                            ? shortAddr(voucherAuthority)
+                            : shortAddr(voucherProfile);
+                          return (
+                            <option key={vouch.publicKey} value={vouch.publicKey}>
+                              {voucherLabel} · {formatSol(Number(stakeAmount))} SOL · {shortAddr(vouch.publicKey)}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Evidence URI
+                      </label>
+                      <input
+                        type="url"
+                        value={claimEvidenceUri}
+                        onChange={(e) => setClaimEvidenceUri(e.target.value)}
+                        placeholder="https://github.com/... or ipfs://..."
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                      />
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        The current on-chain dispute stores the challenged voucher and this evidence URI.
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedClaimVouchEntry && (
+                    <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
+                      <div className="flex flex-col gap-1 text-sm">
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          Selected backing voucher
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400 font-mono text-xs break-all">
+                          Vouch account: {selectedClaimVouchEntry.publicKey}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400 text-xs">
+                          Voucher: {profileAuthorityByPda[String(selectedClaimVouchEntry.account.voucher)] ?? shortAddr(String(selectedClaimVouchEntry.account.voucher))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-900/20 p-4">
+                    <p className="text-sm text-amber-800 dark:text-amber-300">
+                      <span className="inline-flex items-center gap-1">
+                        <FiAlertTriangle className="w-4 h-4" />
+                      </span>{' '}
+                      Opening a claim posts the dispute bond. If the claim is rejected, the bond may be forfeited.
+                    </p>
+                  </div>
+
+                  {claimStatus && !claimStatus.success && (
+                    <div className="mt-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        {claimStatus.message}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      onClick={closeClaimModal}
+                      className={navButtonSecondaryInlineClass}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSubmitClaim}
+                      disabled={claiming}
+                      className={`sm:min-w-[13rem] ${navButtonPrimaryFlexClass}`}
+                    >
+                      {claiming ? 'Filing claim...' : 'File a claim'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3">
@@ -516,6 +812,67 @@ export default function AuthorProfilePage() {
                 <FiCalendar className="w-3 h-3" />
                 Member since {formatDate(Number(profile.registeredAt))}
               </p>
+            )}
+          </div>
+        )}
+
+        {!isOwnProfile && profile && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-2">
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <FiShield className="text-[var(--lobster-accent)]" /> File a claim
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Report malicious or deceptive behavior by this author. Today, claims challenge an active backing voucher tied to the author.
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  {claimableVouches.length > 0
+                    ? `${claimableVouches.length} active backing ${claimableVouches.length === 1 ? 'voucher is' : 'vouchers are'} available for challenge.`
+                    : 'No active backing vouchers can be challenged on-chain for this author yet.'}
+                </p>
+              </div>
+
+              <button
+                onClick={() => openClaimModal()}
+                disabled={claimableVouches.length === 0}
+                className={navButtonPrimaryInlineClass}
+              >
+                File a claim
+              </button>
+            </div>
+
+            {claimStatus && (
+              <div
+                className={`mt-4 rounded-lg border p-4 ${
+                  claimStatus.success
+                    ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
+                    : 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
+                }`}
+              >
+                <div className="space-y-1">
+                  <p
+                    className={`text-sm ${
+                      claimStatus.success
+                        ? 'text-green-700 dark:text-green-300'
+                        : 'text-red-700 dark:text-red-300'
+                    }`}
+                  >
+                    {claimStatus.message}
+                  </p>
+                  {claimTx && (
+                    <a
+                      href={getSolanaFmTxUrl(claimTx)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+                    >
+                      View transaction on Solana FM
+                      <FiExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -684,7 +1041,7 @@ export default function AuthorProfilePage() {
             { label: 'Skills Published', value: skillsPublished.toString(), icon: <FiPackage /> },
             { label: 'Total Downloads', value: totalDownloads.toLocaleString(), icon: <FiDownload /> },
             { label: 'Total Revenue', value: `${formatSol(totalRevenue)} SOL`, icon: <FiTrendingUp /> },
-            { label: 'Vouches Received', value: vouchesReceived.length.toString(), icon: <FiUsers /> },
+            { label: 'Vouches Received', value: Number(profile?.totalVouchesReceived ?? vouchesReceived.length).toString(), icon: <FiUsers /> },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center">
               <div className="flex items-center justify-center text-[var(--lobster-accent)] mb-1">
@@ -866,23 +1223,62 @@ export default function AuthorProfilePage() {
               <FiUsers className="text-[var(--lobster-accent)]" /> Vouchers
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {vouchesReceived.length} {vouchesReceived.length === 1 ? 'agent is' : 'agents are'} staking SOL for this author.
+              {vouchesReceived.length} {vouchesReceived.length === 1 ? 'backing voucher is' : 'backing vouchers are'} currently recorded for this author.
             </p>
             <div className="space-y-2">
-              {vouchesReceived.map((vouch: any, idx: number) => {
-                const voucher = vouch.account.voucher;
+              {vouchesReceived.map((vouch: any) => {
+                const voucherProfile = String(vouch.account.voucher);
+                const voucherAuthority = profileAuthorityByPda[voucherProfile];
                 const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
+                const statusLabel = getVouchStatusLabel(vouch.account.status);
+                const claimable = isClaimableVouchStatus(vouch.account.status);
                 return (
-                  <Link
-                    key={idx}
-                    href={`/author/${voucher}`}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition"
+                  <div
+                    key={vouch.publicKey}
+                    className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
                   >
-                    <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{shortAddr(voucher)}</span>
-                    <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">
-                      {formatSol(Number(stakeAmount))} SOL
-                    </span>
-                  </Link>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {voucherAuthority ? (
+                            <Link
+                              href={`/author/${voucherAuthority}`}
+                              className="font-mono text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+                            >
+                              {shortAddr(voucherAuthority)}
+                            </Link>
+                          ) : (
+                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                              {shortAddr(voucherProfile)}
+                            </span>
+                          )}
+                          <span className="rounded-full bg-gray-200/70 dark:bg-gray-700/70 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300">
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                          Voucher profile: <span className="font-mono">{shortAddr(voucherProfile)}</span>
+                        </p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 font-mono break-all">
+                          Vouch account: {vouch.publicKey}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">
+                          {formatSol(Number(stakeAmount))} SOL
+                        </span>
+                        {claimable && !isOwnProfile && (
+                          <button
+                            onClick={() => openClaimModal(vouch.publicKey)}
+                            className={navButtonSecondaryInlineClass}
+                          >
+                            File claim
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -896,20 +1292,48 @@ export default function AuthorProfilePage() {
               <FiZap className="text-[var(--lobster-accent)]" /> Vouching For
             </h2>
             <div className="space-y-2">
-              {vouchesGiven.map((vouch: any, idx: number) => {
-                const vouchee = vouch.account.vouchee;
+              {vouchesGiven.map((vouch: any) => {
+                const voucheeProfile = String(vouch.account.vouchee);
+                const voucheeAuthority = profileAuthorityByPda[voucheeProfile];
                 const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
+                const statusLabel = getVouchStatusLabel(vouch.account.status);
                 return (
-                  <Link
-                    key={idx}
-                    href={`/author/${vouchee}`}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition"
+                  <div
+                    key={vouch.publicKey}
+                    className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
                   >
-                    <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{shortAddr(vouchee)}</span>
-                    <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">
-                      {formatSol(Number(stakeAmount))} SOL
-                    </span>
-                  </Link>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {voucheeAuthority ? (
+                            <Link
+                              href={`/author/${voucheeAuthority}`}
+                              className="font-mono text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+                            >
+                              {shortAddr(voucheeAuthority)}
+                            </Link>
+                          ) : (
+                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                              {shortAddr(voucheeProfile)}
+                            </span>
+                          )}
+                          <span className="rounded-full bg-gray-200/70 dark:bg-gray-700/70 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300">
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                          Vouchee profile: <span className="font-mono">{shortAddr(voucheeProfile)}</span>
+                        </p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 font-mono break-all">
+                          Vouch account: {vouch.publicKey}
+                        </p>
+                      </div>
+
+                      <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">
+                        {formatSol(Number(stakeAmount))} SOL
+                      </span>
+                    </div>
+                  </div>
                 );
               })}
             </div>

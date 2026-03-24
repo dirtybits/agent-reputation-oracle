@@ -168,16 +168,20 @@ export function useReputationOracle() {
     return { tx: await sendIx(ix) };
   }, [signer, walletAddress, sendIx]);
 
-  const getAgentProfile = useCallback(async (agentKey: Address) => {
-    const pda = await getAgentPDA(agentKey);
+  const getAgentProfileByAddress = useCallback(async (profileAddress: Address) => {
     try {
-      const account = await fetchMaybeAgentProfile(rpc, pda);
+      const account = await fetchMaybeAgentProfile(rpc, profileAddress);
       if (!account.exists) return null;
       return account.data;
     } catch {
       return null;
     }
   }, []);
+
+  const getAgentProfile = useCallback(async (agentKey: Address) => {
+    const pda = await getAgentPDA(agentKey);
+    return getAgentProfileByAddress(pda);
+  }, [getAgentProfileByAddress]);
 
   const getAllAgents = useCallback(async () => {
     try {
@@ -365,6 +369,7 @@ export function useReputationOracle() {
     revokeVouch,
     openDispute,
     getAgentProfile,
+    getAgentProfileByAddress,
     getAllVouchesForAgent,
     getAllVouchesReceivedByAgent,
     getAllAgents,
