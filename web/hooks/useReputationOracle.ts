@@ -7,15 +7,17 @@ import {
   getProgramDerivedAddress,
   getUtf8Encoder,
   isAddress,
+  signature,
   type Address,
   type Account,
   type TransactionSigner,
 } from '@solana/kit';
 import { createWalletTransactionSigner } from '@solana/client';
 import type { Base64EncodedBytes, Base58EncodedBytes } from '@solana/rpc-types';
+import { decodeBase64, encodeBase64 } from '@/lib/base64';
 
 const asBase64 = (bytes: Uint8Array) =>
-  Buffer.from(bytes).toString('base64') as Base64EncodedBytes;
+  encodeBase64(bytes) as Base64EncodedBytes;
 const asBase58 = (addr: string) => addr as unknown as Base58EncodedBytes;
 import {
   fetchMaybeAgentProfile,
@@ -60,9 +62,17 @@ import { countsTowardAuthorWideReportSnapshot } from '@/lib/disputes';
 const LAMPORTS_PER_SOL = 1_000_000_000n;
 const ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com';
 const rpc = createSolanaRpc(ENDPOINT);
+const SIGNATURE_CONFIRMATION_TIMEOUT_MS = 45_000;
+const SIGNATURE_CONFIRMATION_POLL_MS = 1_000;
 
 const textEncoder = getUtf8Encoder();
 const addressEncoder = getAddressEncoder();
+
+function encodeU64LE(value: number | bigint): Uint8Array {
+  const bytes = new Uint8Array(8);
+  new DataView(bytes.buffer).setBigUint64(0, BigInt(value), true);
+  return bytes;
+}
 
 async function deriveAddress(seeds: (string | Address)[], programId: Address = REPUTATION_ORACLE_PROGRAM_ADDRESS): Promise<Address> {
   const encodedSeeds = seeds.map((s) =>
@@ -87,14 +97,12 @@ async function getConfigPDA(): Promise<Address> {
 }
 
 async function getAuthorDisputePDA(author: Address, disputeId: number | bigint): Promise<Address> {
-  const disputeIdSeed = Buffer.alloc(8);
-  disputeIdSeed.writeBigUInt64LE(BigInt(disputeId));
   const [derived] = await getProgramDerivedAddress({
     programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
     seeds: [
       textEncoder.encode('author_dispute'),
       addressEncoder.encode(author),
-      disputeIdSeed,
+      encodeU64LE(disputeId),
     ],
   });
   return derived;
@@ -126,6 +134,42 @@ async function getPurchasePDA(buyer: Address, skillListing: Address): Promise<Ad
   return deriveAddress(['purchase', buyer, skillListing]);
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForConfirmedSignature(txSignature: ReturnType<typeof signature>) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < SIGNATURE_CONFIRMATION_TIMEOUT_MS) {
+    const response = await rpc.getSignatureStatuses(
+      [txSignature],
+      { searchTransactionHistory: true },
+    ).send();
+    const status = response.value[0];
+
+    if (status?.err) {
+      throw new Error(
+        `Transaction ${txSignature} failed on-chain: ${JSON.stringify(status.err)}`,
+      );
+    }
+
+    if (
+      status &&
+      (status.confirmationStatus === 'confirmed' ||
+        status.confirmationStatus === 'finalized')
+    ) {
+      return;
+    }
+
+    await sleep(SIGNATURE_CONFIRMATION_POLL_MS);
+  }
+
+  throw new Error(
+    `Transaction ${txSignature} was sent but not confirmed within ${SIGNATURE_CONFIRMATION_TIMEOUT_MS / 1000} seconds.`,
+  );
+}
+
 export function useReputationOracle() {
   const { wallet, status } = useWalletConnection();
   const connected = status === 'connected' && wallet;
@@ -154,9 +198,10 @@ export function useReputationOracle() {
           instructions: [addressOnlyIx],
           authority: wallet,
         },
-        { skipPreflight: true },
       );
-      return String(sig);
+      const txSignature = signature(String(sig));
+      await waitForConfirmedSignature(txSignature);
+      return txSignature;
     } catch (err: any) {
       const cause = err?.cause ?? err;
       const logs = cause?.logs ?? cause?.context?.logs;
@@ -257,7 +302,7 @@ export function useReputationOracle() {
       const decoder = getAuthorDisputeDecoder();
       const records = accounts.map((account) => ({
         publicKey: account.pubkey,
-        account: decoder.decode(new Uint8Array(Buffer.from(account.account.data[0], 'base64'))),
+        account: decoder.decode(decodeBase64(account.account.data[0])),
       }));
       const linkedVouchesByDispute = new Map<string, string[]>();
       await Promise.all(
@@ -342,7 +387,7 @@ export function useReputationOracle() {
       const decoder = getAgentProfileDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
-        account: decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64'))),
+        account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch (e) {
       console.error('Error fetching all agents:', e);
@@ -363,7 +408,7 @@ export function useReputationOracle() {
       const decoder = getVouchDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
-        account: decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64'))),
+        account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch {
       return [];
@@ -383,7 +428,7 @@ export function useReputationOracle() {
       const decoder = getVouchDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
-        account: decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64'))),
+        account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch {
       return [];
@@ -399,7 +444,7 @@ export function useReputationOracle() {
       const decoder = getSkillListingDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
-        account: decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64'))),
+        account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch (e) {
       console.error('Error fetching skill listings:', e);
@@ -419,7 +464,7 @@ export function useReputationOracle() {
       const decoder = getSkillListingDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
-        account: decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64'))),
+        account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch {
       return [];
@@ -435,7 +480,7 @@ export function useReputationOracle() {
       const decoder = getPurchaseDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
-        account: decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64'))),
+        account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch {
       return [];
@@ -454,7 +499,7 @@ export function useReputationOracle() {
       const decoder = getPurchaseDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
-        account: decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64'))),
+        account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch {
       return [];

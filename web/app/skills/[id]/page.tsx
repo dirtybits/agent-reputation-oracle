@@ -6,6 +6,7 @@ import { AgentIdentityPanel } from '@/components/AgentIdentityPanel';
 import TrustBadge, { type TrustData } from '@/components/TrustBadge';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { SolAmount } from '@/components/SolAmount';
+import { encodeBase64 } from '@/lib/base64';
 import {
   navButtonInlineClass,
   navButtonPrimaryInlineClass,
@@ -213,7 +214,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
       const message = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${timestamp}`;
       const msgBytes = new TextEncoder().encode(message);
       const sigBytes = await signMessage(msgBytes);
-      const signature = Buffer.from(sigBytes).toString('base64');
+      const signature = encodeBase64(sigBytes);
 
       await fetch(`/api/skills/${id}`, {
         method: 'PATCH',
@@ -242,7 +243,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
       const message = `AgentVouch Skill Repo\nAction: install-skill\nTimestamp: ${timestamp}`;
       const msgBytes = new TextEncoder().encode(message);
       const sigBytes = await signMessage(msgBytes);
-      const signature = Buffer.from(sigBytes).toString('base64');
+      const signature = encodeBase64(sigBytes);
 
       const res = await fetch(`/api/skills/${id}/install`, {
         method: 'POST',

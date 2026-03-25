@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AgentProfileSetupCard } from '@/components/AgentProfileSetupCard';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { encodeBase64 } from '@/lib/base64';
 import {
   navButtonFlexClass,
   navButtonInlineClass,
@@ -244,7 +245,7 @@ function PublishSkillPageInner() {
       const message = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${timestamp}`;
       const messageBytes = new TextEncoder().encode(message);
       const signatureBytes = await signMessage(messageBytes);
-      const signature = Buffer.from(signatureBytes).toString('base64');
+      const signature = encodeBase64(signatureBytes);
       const auth = { pubkey: publicKey!, signature, message, timestamp };
 
       const res = await fetch('/api/skills', {
@@ -276,7 +277,7 @@ function PublishSkillPageInner() {
         const patchMessage = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${patchTimestamp}`;
         const patchMsgBytes = new TextEncoder().encode(patchMessage);
         const patchSigBytes = await signMessage(patchMsgBytes);
-        const patchSignature = Buffer.from(patchSigBytes).toString('base64');
+        const patchSignature = encodeBase64(patchSigBytes);
 
         const patchRes = await fetch(`/api/skills/${skillDbId}`, {
           method: 'PATCH',

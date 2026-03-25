@@ -16,6 +16,7 @@ import {
 } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import type { AgentIdentitySummary } from '@/lib/agentIdentity';
+import { encodeBase64 } from '@/lib/base64';
 import { countsTowardAuthorWideReportSnapshot, getVouchStatusLabel } from '@/lib/disputes';
 import { AuthorDisputeReason, AuthorDisputeRuling } from '@/generated/reputation-oracle/src/generated';
 import type { SolanaRegistryCandidate } from '@/lib/solanaAgentRegistry';
@@ -362,7 +363,7 @@ export default function AuthorProfilePage() {
     const sigBytes = await signMessage(new TextEncoder().encode(message));
     const auth = {
       pubkey: myPubkey,
-      signature: Buffer.from(sigBytes).toString('base64'),
+      signature: encodeBase64(sigBytes),
       message,
       timestamp,
     };

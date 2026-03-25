@@ -1,5 +1,6 @@
 import { createSolanaRpc } from '@solana/kit';
 import type { Base58EncodedBytes, Base64EncodedBytes } from '@solana/rpc-types';
+import { decodeBase64, encodeBase64 } from '@/lib/base64';
 import {
   AUTHOR_DISPUTE_DISCRIMINATOR,
   AuthorDisputeReason,
@@ -15,7 +16,7 @@ const rpc = createSolanaRpc(RPC_URL);
 const CACHE_TTL_MS = 60_000;
 
 const asBase64 = (bytes: Uint8Array) =>
-  Buffer.from(bytes).toString('base64') as Base64EncodedBytes;
+  encodeBase64(bytes) as Base64EncodedBytes;
 const asBase58 = (value: string) => value as unknown as Base58EncodedBytes;
 
 type DecodedAuthorDisputeAccount = {
@@ -132,7 +133,7 @@ async function getAllAuthorDisputeAccounts(
   const decoder = getAuthorDisputeDecoder();
   const data = accounts.map((account) => ({
     publicKey: account.pubkey,
-    account: decoder.decode(new Uint8Array(Buffer.from(account.account.data[0], 'base64'))),
+    account: decoder.decode(decodeBase64(account.account.data[0])),
   }));
 
   allDisputesCache = { data, expires: now + CACHE_TTL_MS };
@@ -286,6 +287,6 @@ export async function listAuthorDisputesByAuthorViaFilter(
   const decoder = getAuthorDisputeDecoder();
   return accounts.map((account) => ({
     publicKey: account.pubkey,
-    account: decoder.decode(new Uint8Array(Buffer.from(account.account.data[0], 'base64'))),
+    account: decoder.decode(decodeBase64(account.account.data[0])),
   }));
 }

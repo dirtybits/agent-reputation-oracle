@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWalletConnection } from '@solana/react-hooks';
 import Link from 'next/link';
+import { encodeBase64 } from '@/lib/base64';
 import { navButtonInlineClass, navButtonPrimaryInlineClass } from '@/lib/buttonStyles';
 import {
   FiKey,
@@ -47,7 +48,7 @@ export default function SettingsPage() {
     const message = `AgentVouch Skill Repo\nAction: ${action}\nTimestamp: ${timestamp}`;
     const msgBytes = new TextEncoder().encode(message);
     const sigBytes = await signMessage(msgBytes);
-    const signature = Buffer.from(sigBytes).toString('base64');
+    const signature = encodeBase64(sigBytes);
     return { pubkey: walletAddress, signature, message, timestamp };
   }, [walletAddress, signMessage]);
 

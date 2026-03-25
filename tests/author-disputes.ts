@@ -108,7 +108,7 @@ describe("author-disputes", () => {
           50,
           new anchor.BN(86400)
         )
-        .accounts({
+        .accountsPartial({
           config: configPda,
           authority: provider.wallet.publicKey,
           systemProgram: SystemProgram.programId,
@@ -137,7 +137,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .registerAgent("https://author-dispute.author")
-      .accounts({
+      .accountsPartial({
         agentProfile: authorProfile,
         authority: author.publicKey,
         systemProgram: SystemProgram.programId,
@@ -147,7 +147,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .registerAgent("https://author-dispute.other-author")
-      .accounts({
+      .accountsPartial({
         agentProfile: otherAuthorProfile,
         authority: otherAuthor.publicKey,
         systemProgram: SystemProgram.programId,
@@ -157,7 +157,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .registerAgent("https://author-dispute.voucher-one")
-      .accounts({
+      .accountsPartial({
         agentProfile: voucherOneProfile,
         authority: voucherOne.publicKey,
         systemProgram: SystemProgram.programId,
@@ -167,7 +167,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .registerAgent("https://author-dispute.voucher-two")
-      .accounts({
+      .accountsPartial({
         agentProfile: voucherTwoProfile,
         authority: voucherTwo.publicKey,
         systemProgram: SystemProgram.programId,
@@ -190,7 +190,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .vouch(stakeAmount)
-      .accounts({
+      .accountsPartial({
         vouch: vouchOne,
         voucherProfile: voucherOneProfile,
         voucheeProfile: authorProfile,
@@ -203,7 +203,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .vouch(stakeAmount)
-      .accounts({
+      .accountsPartial({
         vouch: vouchTwo,
         voucherProfile: voucherTwoProfile,
         voucheeProfile: authorProfile,
@@ -216,7 +216,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .vouch(stakeAmount)
-      .accounts({
+      .accountsPartial({
         vouch: foreignVouch,
         voucherProfile: voucherOneProfile,
         voucheeProfile: otherAuthorProfile,
@@ -241,7 +241,7 @@ describe("author-disputes", () => {
         "Skill used to test author-native disputes",
         new anchor.BN(0.25 * anchor.web3.LAMPORTS_PER_SOL)
       )
-      .accounts({
+      .accountsPartial({
         skillListing,
         authorProfile,
         author: author.publicKey,
@@ -257,7 +257,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .purchaseSkill()
-      .accounts({
+      .accountsPartial({
         skillListing,
         purchase,
         author: author.publicKey,
@@ -280,7 +280,7 @@ describe("author-disputes", () => {
           { other: {} },
           "https://example.com/evidence/partial.json"
         )
-        .accounts({
+        .accountsPartial({
           authorDispute,
           authorProfile,
           config: configPda,
@@ -310,7 +310,7 @@ describe("author-disputes", () => {
           { other: {} },
           "https://example.com/evidence/duplicate.json"
         )
-        .accounts({
+        .accountsPartial({
           authorDispute: duplicateAuthorDispute,
           authorProfile,
           config: configPda,
@@ -335,7 +335,7 @@ describe("author-disputes", () => {
           { other: {} },
           "https://example.com/evidence/mismatched.json"
         )
-        .accounts({
+        .accountsPartial({
           authorDispute: mismatchedAuthorDispute,
           authorProfile,
           config: configPda,
@@ -365,7 +365,7 @@ describe("author-disputes", () => {
         { maliciousSkill: {} },
         "https://example.com/evidence/malicious-skill.json"
       )
-      .accounts({
+      .accountsPartial({
         authorDispute,
         authorProfile,
         config: configPda,
@@ -391,7 +391,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .resolveAuthorDispute(disputeId, { upheld: {} })
-      .accounts({
+      .accountsPartial({
         authorDispute,
         authorProfile,
         config: configPda,
