@@ -19,6 +19,7 @@
     "@solana/client": "^1.7.0",
     "@solana/kit": "^6.1.0",
     "@solana/react-hooks": "^1.4.1",
+    "@solana/sysvars": "^4.0.0",
     "@vercel/analytics": "^1.6.1",
     "codama": "^1.5.1",
     "highlight.js": "^11.11.1",
