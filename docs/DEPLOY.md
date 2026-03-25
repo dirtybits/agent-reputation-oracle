@@ -64,6 +64,15 @@ Build the program:
 anchor build
 ```
 
+If the web app consumes the checked-in IDL or generated client, refresh those artifacts after the build:
+
+```bash
+cp target/idl/reputation_oracle.json web/reputation_oracle.json
+cd web
+npx tsx ./scripts/generate-client.ts
+cd ..
+```
+
 ## Deploy
 
 Use the explicit program keypair so Anchor upgrades the existing program instead of creating a new one:
@@ -155,3 +164,30 @@ After a successful deploy:
 1. Retry the author-wide dispute flow in the app.
 2. Confirm the transaction targets `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`.
 3. Confirm the UI either succeeds cleanly or surfaces a real on-chain error.
+
+## IDL Verification And Fallback Triage
+
+If the frontend throws `Fallback functions are not supported`, verify the deployed program and the web client are using the same interface.
+
+Fetch the on-chain IDL:
+
+```bash
+anchor idl fetch ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf \
+  --provider.cluster devnet
+```
+
+Compare it against:
+
+- `target/idl/reputation_oracle.json`
+- `web/reputation_oracle.json`
+
+If the local files contain a new instruction but `anchor idl fetch` does not, the on-chain program/IDL is stale and needs a fresh build + deploy.
+
+If `target/idl/reputation_oracle.json` contains the new instruction but `web/reputation_oracle.json` or `web/generated/reputation-oracle/` does not, the web client artifacts are stale and need to be regenerated:
+
+```bash
+cp target/idl/reputation_oracle.json web/reputation_oracle.json
+cd web
+npx tsx ./scripts/generate-client.ts
+cd ..
+```
