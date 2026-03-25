@@ -260,143 +260,6 @@
       ]
     },
     {
-      "name": "link_author_dispute_vouch",
-      "discriminator": [
-        226,
-        163,
-        168,
-        56,
-        244,
-        246,
-        217,
-        33
-      ],
-      "accounts": [
-        {
-          "name": "author_dispute",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  95,
-                  100,
-                  105,
-                  115,
-                  112,
-                  117,
-                  116,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "author_profile.authority",
-                "account": "AgentProfile"
-              },
-              {
-                "kind": "arg",
-                "path": "dispute_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "author_dispute_vouch_link",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  95,
-                  100,
-                  105,
-                  115,
-                  112,
-                  117,
-                  116,
-                  101,
-                  95,
-                  118,
-                  111,
-                  117,
-                  99,
-                  104,
-                  95,
-                  108,
-                  105,
-                  110,
-                  107
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "author_dispute"
-              },
-              {
-                "kind": "account",
-                "path": "vouch"
-              }
-            ]
-          }
-        },
-        {
-          "name": "vouch"
-        },
-        {
-          "name": "author_profile",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  103,
-                  101,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "author_profile.authority",
-                "account": "AgentProfile"
-              }
-            ]
-          }
-        },
-        {
-          "name": "challenger",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "dispute_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "open_author_dispute",
       "discriminator": [
         37,
@@ -1327,19 +1190,6 @@
       ]
     },
     {
-      "name": "AuthorDisputeVouchLink",
-      "discriminator": [
-        30,
-        4,
-        152,
-        103,
-        232,
-        184,
-        75,
-        177
-      ]
-    },
-    {
       "name": "Dispute",
       "discriminator": [
         36,
@@ -1686,6 +1536,10 @@
             }
           },
           {
+            "name": "backing_vouch_count_snapshot",
+            "type": "u32"
+          },
+          {
             "name": "linked_vouch_count",
             "type": "u32"
           },
@@ -1742,6 +1596,10 @@
             "type": {
               "option": "pubkey"
             }
+          },
+          {
+            "name": "linked_vouch_count",
+            "type": "u32"
           },
           {
             "name": "bond_amount",
@@ -1826,30 +1684,6 @@
           },
           {
             "name": "Resolved"
-          }
-        ]
-      }
-    },
-    {
-      "name": "AuthorDisputeVouchLink",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "author_dispute",
-            "type": "pubkey"
-          },
-          {
-            "name": "vouch",
-            "type": "pubkey"
-          },
-          {
-            "name": "added_at",
-            "type": "i64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
           }
         ]
       }

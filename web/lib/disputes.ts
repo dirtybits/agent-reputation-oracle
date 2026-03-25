@@ -6,6 +6,16 @@ export function isClaimableVouchStatus(
   return status === VouchStatus.Active;
 }
 
+export function countsTowardAuthorWideReportSnapshot(
+  status: VouchStatus | number | null | undefined,
+): boolean {
+  return (
+    status === VouchStatus.Active ||
+    status === VouchStatus.Disputed ||
+    status === VouchStatus.Vindicated
+  );
+}
+
 export function getVouchStatusLabel(
   status: VouchStatus | number | null | undefined,
 ): string {

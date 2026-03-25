@@ -41,4 +41,8 @@ impl VouchStatus {
     pub fn is_live(self) -> bool {
         matches!(self, Self::Active | Self::Vindicated)
     }
+
+    pub fn counts_toward_author_wide_backing_snapshot(self) -> bool {
+        matches!(self, Self::Active | Self::Disputed | Self::Vindicated)
+    }
 }

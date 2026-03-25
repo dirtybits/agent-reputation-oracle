@@ -46,6 +46,10 @@ pub fn handler(
     let clock = Clock::get()?;
 
     let author_dispute = &mut ctx.accounts.author_dispute;
+    require!(
+        author_dispute.linked_vouch_count == author_dispute.backing_vouch_count_snapshot,
+        ErrorCode::IncompleteBackingSnapshot
+    );
     author_dispute.status = AuthorDisputeStatus::Resolved;
     author_dispute.ruling = Some(ruling);
     author_dispute.resolved_at = Some(clock.unix_timestamp);
@@ -113,4 +117,6 @@ pub enum ErrorCode {
     ChallengerMismatch,
     #[msg("Insufficient funds")]
     InsufficientFunds,
+    #[msg("Author dispute cannot resolve without its full author-wide backing snapshot")]
+    IncompleteBackingSnapshot,
 }

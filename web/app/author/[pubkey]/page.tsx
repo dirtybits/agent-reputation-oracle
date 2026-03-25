@@ -16,7 +16,7 @@ import {
 } from '@/lib/buttonStyles';
 import { useReputationOracle } from '@/hooks/useReputationOracle';
 import type { AgentIdentitySummary } from '@/lib/agentIdentity';
-import { getVouchStatusLabel, isClaimableVouchStatus } from '@/lib/disputes';
+import { countsTowardAuthorWideReportSnapshot, getVouchStatusLabel } from '@/lib/disputes';
 import { AuthorDisputeReason, AuthorDisputeRuling } from '@/generated/reputation-oracle/src/generated';
 import type { SolanaRegistryCandidate } from '@/lib/solanaAgentRegistry';
 import { SolAmount } from '@/components/SolAmount';
@@ -31,6 +31,7 @@ import {
   FiCheck,
   FiDownload,
   FiExternalLink,
+  FiFlag,
   FiLoader,
   FiPackage,
   FiShield,
@@ -129,7 +130,6 @@ export default function AuthorProfilePage() {
   const [linkIdentityStatus, setLinkIdentityStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [profileAuthorityByPda, setProfileAuthorityByPda] = useState<Record<string, string>>({});
   const [showClaimModal, setShowClaimModal] = useState(false);
-  const [selectedClaimVouches, setSelectedClaimVouches] = useState<string[]>([]);
   const [claimReason, setClaimReason] = useState('malicious-skill');
   const [claimSkillContext, setClaimSkillContext] = useState('');
   const [claimEvidenceUri, setClaimEvidenceUri] = useState('');
@@ -489,8 +489,8 @@ export default function AuthorProfilePage() {
     isRegistered: true,
   } : null);
 
-  const claimableVouches = vouchesReceived.filter((vouch: any) =>
-    isClaimableVouchStatus(vouch.account.status),
+  const authorWideBackingVouches = vouchesReceived.filter((vouch: any) =>
+    countsTowardAuthorWideReportSnapshot(vouch.account.status),
   );
   const claimSkillOptions = [
     ...repoSkills.map((skill) => ({
@@ -504,17 +504,13 @@ export default function AuthorProfilePage() {
         label: skill.account.name || `On-chain skill ${shortAddr(skill.publicKey)}`,
       })),
   ];
-  const selectedClaimVouchEntries = claimableVouches.filter(
-    (vouch: any) => selectedClaimVouches.includes(vouch.publicKey),
-  );
   const selectedClaimSkillLabel = claimSkillOptions.find(
     (skill) => skill.value === claimSkillContext,
   )?.label;
 
-  const openClaimModal = (vouchPublicKey?: string) => {
+  const openClaimModal = () => {
     setClaimStatus(null);
     setClaimTx(null);
-    setSelectedClaimVouches(vouchPublicKey ? [vouchPublicKey] : []);
     setClaimReason('malicious-skill');
     setClaimSkillContext(searchParams.get('skill') ?? '');
     setClaimEvidenceUri('');
@@ -566,19 +562,17 @@ export default function AuthorProfilePage() {
         reason,
         evidenceUri,
         skillListing: selectedSkillListing,
-        linkedVouches: selectedClaimVouches.map((vouch) => address(vouch)),
       });
       const contextLabel = selectedClaimSkillLabel ? ` for ${selectedClaimSkillLabel}` : '';
       setClaimStatus({
         success: true,
-        message: `Report opened against this author${contextLabel}.`,
+        message: `Author-wide report opened${contextLabel}. The protocol snapshotted this author's current backing set automatically.`,
       });
       setClaimTx(tx);
       setShowClaimModal(false);
       setClaimReason('malicious-skill');
       setClaimSkillContext('');
       setClaimEvidenceUri('');
-      setSelectedClaimVouches([]);
       setTimeout(loadData, 2000);
     } catch (error: any) {
       setClaimStatus({
@@ -653,7 +647,7 @@ export default function AuthorProfilePage() {
                   Report this author
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Open a first-class author dispute and optionally link active backing vouchers for enforcement review.
+                  Open a first-class author dispute. The protocol will snapshot this author&apos;s full current backing set automatically.
                 </p>
               </div>
 
@@ -704,51 +698,17 @@ export default function AuthorProfilePage() {
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Link backing vouchers
+                        Author-wide backing snapshot
                       </label>
-                      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 space-y-2">
-                        {claimableVouches.length === 0 ? (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            No active backing vouchers are available to link right now. You can still open the author dispute.
-                          </p>
-                        ) : (
-                          claimableVouches.map((vouch: any) => {
-                            const voucherProfile = String(vouch.account.voucher);
-                            const voucherAuthority = profileAuthorityByPda[voucherProfile];
-                            const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
-                            const voucherLabel = voucherAuthority
-                              ? shortAddr(voucherAuthority)
-                              : shortAddr(voucherProfile);
-                            const checked = selectedClaimVouches.includes(vouch.publicKey);
-                            return (
-                              <label
-                                key={vouch.publicKey}
-                                className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={(e) => {
-                                    setSelectedClaimVouches((current) => (
-                                      e.target.checked
-                                        ? [...current, vouch.publicKey]
-                                        : current.filter((key) => key !== vouch.publicKey)
-                                    ));
-                                  }}
-                                  className="mt-1"
-                                />
-                                <span className="min-w-0 text-sm text-gray-600 dark:text-gray-300">
-                                  <span className="block font-medium text-gray-900 dark:text-white">
-                                    {voucherLabel} · {formatSol(Number(stakeAmount))} SOL
-                                  </span>
-                                  <span className="block font-mono text-xs text-gray-500 dark:text-gray-400 break-all">
-                                    {vouch.publicKey}
-                                  </span>
-                                </span>
-                              </label>
-                            );
-                          })
-                        )}
+                      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 space-y-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          This report targets the author as a whole. You cannot choose individual backers.
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {authorWideBackingVouches.length > 0
+                            ? `The protocol will snapshot ${authorWideBackingVouches.length} current backing ${authorWideBackingVouches.length === 1 ? 'voucher' : 'vouchers'} when you open the report.`
+                            : 'This author has no live backing vouchers right now, so the report will open without linked voucher exposure.'}
+                        </p>
                       </div>
                     </div>
 
@@ -764,25 +724,10 @@ export default function AuthorProfilePage() {
                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                       />
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        The author dispute stores this evidence URI and any linked backing vouchers.
+                        Skill and purchase references provide evidence context only. Liability stays author-wide.
                       </p>
                     </div>
                   </div>
-
-                  {selectedClaimVouchEntries.length > 0 && (
-                    <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
-                      <div className="flex flex-col gap-1 text-sm">
-                        <span className="font-semibold text-gray-900 dark:text-white">
-                          Linked backing vouchers
-                        </span>
-                        {selectedClaimVouchEntries.map((entry: any) => (
-                          <span key={entry.publicKey} className="text-gray-500 dark:text-gray-400 font-mono text-xs break-all">
-                            {entry.publicKey}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-900/20 p-4">
                     <p className="text-sm text-amber-800 dark:text-amber-300">
@@ -861,66 +806,6 @@ export default function AuthorProfilePage() {
           </div>
         )}
 
-        {!isOwnProfile && profile && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="space-y-2">
-                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <FiShield className="text-[var(--lobster-accent)]" /> Report this author
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Open a first-class author dispute. You can optionally link active backing vouchers so enforcement stays traceable.
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {claimableVouches.length > 0
-                    ? `${claimableVouches.length} active backing ${claimableVouches.length === 1 ? 'voucher is' : 'vouchers are'} available to link.`
-                    : 'No active backing vouchers are available to link yet, but reports can still be opened.'}
-                </p>
-              </div>
-
-              <button
-                onClick={() => openClaimModal()}
-                className={navButtonPrimaryInlineClass}
-              >
-                Open report
-              </button>
-            </div>
-
-            {claimStatus && (
-              <div
-                className={`mt-4 rounded-lg border p-4 ${
-                  claimStatus.success
-                    ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
-                    : 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
-                }`}
-              >
-                <div className="space-y-1">
-                  <p
-                    className={`text-sm ${
-                      claimStatus.success
-                        ? 'text-green-700 dark:text-green-300'
-                        : 'text-red-700 dark:text-red-300'
-                    }`}
-                  >
-                    {claimStatus.message}
-                  </p>
-                  {claimTx && (
-                    <a
-                      href={getSolanaFmTxUrl(claimTx)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
-                    >
-                      View transaction on Solana FM
-                      <FiExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {authorDisputes.length > 0 && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -949,9 +834,9 @@ export default function AuthorProfilePage() {
                     <p>Opened {formatDate(dispute.createdAt)}</p>
                     <p className="font-mono text-xs break-all">Dispute: {dispute.publicKey}</p>
                     <p className="font-mono text-xs break-all">Evidence: {dispute.evidenceUri}</p>
-                    {dispute.linkedVouchCount > 0 && (
-                      <p>{dispute.linkedVouchCount} linked backing {dispute.linkedVouchCount === 1 ? 'voucher' : 'vouchers'}</p>
-                    )}
+                    <p>
+                      Snapshot scope: {dispute.linkedVouchCount} backing {dispute.linkedVouchCount === 1 ? 'voucher' : 'vouchers'}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -1313,7 +1198,7 @@ export default function AuthorProfilePage() {
                 const voucherAuthority = profileAuthorityByPda[voucherProfile];
                 const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
                 const statusLabel = getVouchStatusLabel(vouch.account.status);
-                const claimable = isClaimableVouchStatus(vouch.account.status);
+                const includedInAuthorWideReports = countsTowardAuthorWideReportSnapshot(vouch.account.status);
                 return (
                   <div
                     key={vouch.publicKey}
@@ -1350,13 +1235,10 @@ export default function AuthorProfilePage() {
                         <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">
                           {formatSol(Number(stakeAmount))} SOL
                         </span>
-                        {claimable && !isOwnProfile && (
-                          <button
-                            onClick={() => openClaimModal(vouch.publicKey)}
-                            className={navButtonSecondaryInlineClass}
-                          >
-                            Link to report
-                          </button>
+                        {includedInAuthorWideReports && !isOwnProfile && (
+                          <span className="text-[11px] text-gray-400 dark:text-gray-500 text-right max-w-[11rem]">
+                            Included automatically in author-wide reports while this backing stays live.
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1419,6 +1301,67 @@ export default function AuthorProfilePage() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {!isOwnProfile && profile && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-2">
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <FiShield className="text-[var(--lobster-accent)]" /> Report this author
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Open a first-class author dispute. The protocol snapshots the author&apos;s full live backing set automatically, so one bad skill affects author-wide trust.
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  {authorWideBackingVouches.length > 0
+                    ? `${authorWideBackingVouches.length} live backing ${authorWideBackingVouches.length === 1 ? 'voucher is' : 'vouchers are'} currently in scope for an author-wide report.`
+                    : 'No live backing vouchers are currently in scope, but reports can still be opened.'}
+                </p>
+              </div>
+
+              <button
+                onClick={() => openClaimModal()}
+                className={navButtonPrimaryInlineClass}
+              >
+                <FiFlag className="w-4 h-4" />
+                Report
+              </button>
+            </div>
+
+            {claimStatus && (
+              <div
+                className={`mt-4 rounded-lg border p-4 ${
+                  claimStatus.success
+                    ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
+                    : 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
+                }`}
+              >
+                <div className="space-y-1">
+                  <p
+                    className={`text-sm ${
+                      claimStatus.success
+                        ? 'text-green-700 dark:text-green-300'
+                        : 'text-red-700 dark:text-red-300'
+                    }`}
+                  >
+                    {claimStatus.message}
+                  </p>
+                  {claimTx && (
+                    <a
+                      href={getSolanaFmTxUrl(claimTx)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+                    >
+                      View transaction on Solana FM
+                      <FiExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -749,7 +749,7 @@ export default function DashboardPage() {
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiShield /></div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to challenge backing vouches.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to review author-wide reports and lower-level vouch disputes.</p>
               <ClientWalletButton />
             </div>
           )}
@@ -760,8 +760,8 @@ export default function DashboardPage() {
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Author Disputes</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   {configAuthority === publicKey
-                    ? 'You are the configured resolver, so this view shows every author dispute plus resolution controls.'
-                    : 'This view shows first-class disputes opened against your author wallet. Use author pages to open new reports.'}
+                    ? 'You are the configured resolver, so this view shows every author-wide dispute plus resolution controls.'
+                    : 'This view shows first-class, author-wide reports opened against your author wallet. Use author pages to open new reports.'}
                 </p>
                 {authorDisputes.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">No author disputes found.</p>
@@ -799,11 +799,9 @@ export default function DashboardPage() {
                             <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
                               Evidence: {dispute.account.evidenceUri}
                             </p>
-                            {dispute.linkedVouches.length > 0 && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {dispute.linkedVouches.length} linked backing {dispute.linkedVouches.length === 1 ? 'voucher' : 'vouchers'}
-                              </p>
-                            )}
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Author-wide snapshot: {dispute.account.linkedVouchCount} of {dispute.account.backingVouchCountSnapshot} backing {dispute.account.backingVouchCountSnapshot === 1 ? 'voucher' : 'vouchers'}
+                            </p>
                           </div>
 
                           {configAuthority === publicKey && dispute.statusLabel === 'Open' && (
@@ -834,7 +832,7 @@ export default function DashboardPage() {
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Vouch Disputes</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Use this lower-level flow to challenge a backing vouch directly. Author disputes stay separate and can link multiple backing vouchers.
+                  Use this lower-level flow to challenge a backing vouch directly. Author disputes are separate and now snapshot the full author-wide backing set at open time.
                 </p>
                 <div className="space-y-4">
                   <div>

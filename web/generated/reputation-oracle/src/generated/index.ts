@@ -11,7 +11,6 @@ export * from "./errors";
 export * from "./instructions/claimVoucherRevenue";
 export * from "./instructions/createSkillListing";
 export * from "./instructions/initializeConfig";
-export * from "./instructions/linkAuthorDisputeVouch";
 export * from "./instructions/openAuthorDispute";
 export * from "./instructions/openDispute";
 export * from "./instructions/purchaseSkill";

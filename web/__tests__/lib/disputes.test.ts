@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { VouchStatus } from '@/generated/reputation-oracle/src/generated';
-import { getVouchStatusLabel, isClaimableVouchStatus } from '@/lib/disputes';
+import {
+  countsTowardAuthorWideReportSnapshot,
+  getVouchStatusLabel,
+  isClaimableVouchStatus,
+} from '@/lib/disputes';
 
 describe('dispute helpers', () => {
   it('only allows claims against active backing vouches', () => {
@@ -18,5 +22,13 @@ describe('dispute helpers', () => {
     expect(getVouchStatusLabel(VouchStatus.Disputed)).toBe('In dispute');
     expect(getVouchStatusLabel(VouchStatus.Slashed)).toBe('Slashed');
     expect(getVouchStatusLabel(VouchStatus.Vindicated)).toBe('Vindicated');
+  });
+
+  it('matches the author-wide report snapshot statuses used on-chain', () => {
+    expect(countsTowardAuthorWideReportSnapshot(VouchStatus.Active)).toBe(true);
+    expect(countsTowardAuthorWideReportSnapshot(VouchStatus.Disputed)).toBe(true);
+    expect(countsTowardAuthorWideReportSnapshot(VouchStatus.Vindicated)).toBe(true);
+    expect(countsTowardAuthorWideReportSnapshot(VouchStatus.Revoked)).toBe(false);
+    expect(countsTowardAuthorWideReportSnapshot(VouchStatus.Slashed)).toBe(false);
   });
 });

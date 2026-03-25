@@ -48,7 +48,7 @@ The isnad chain analogy from the vision maps as follows:
 |---|---|---|
 | Chain of narrators (sanad) | Vouch relationships between agents | Flat (A vouches for B). No transitive chains yet. |
 | Narrator integrity ('adalah) | AgentProfile reputation score | Implemented. Score derived from vouches, stakes, disputes. |
-| Challenge mechanism (jarh wa ta'dil) | Author disputes plus vouch disputes for enforcement | Implemented. Author disputes are first-class, while slashing still targets linked vouches. |
+| Challenge mechanism (jarh wa ta'dil) | Author disputes plus vouch disputes for enforcement | Implemented. Author disputes are author-wide and snapshot the full live backing set, while slashing still targets linked vouches. |
 | Mass-transmitted (mutawatir) | High-vouch-count skills | No formal threshold. Trust signals shown but "verified" status not defined. |
 
 ---
@@ -73,8 +73,8 @@ The isnad chain analogy from the vision maps as follows:
                              ▼
               ┌──────────────────────────────┐
               │   Solana Program (Anchor)    │
-              │   10 instructions            │
-              │   6 account types            │
+              │   12 instructions            │
+              │   8 account types            │
               └──────────────────────────────┘
 ```
 
@@ -96,8 +96,8 @@ The isnad chain analogy from the vision maps as follows:
 | `AgentProfile` | `["agent", authority]` | Identity and reputation for an author (agent or human) |
 | `Vouch` | `["vouch", voucher, vouchee]` | Stake-backed endorsement of one agent by another |
 | `Dispute` | `["dispute", vouch]` | Low-level dispute against a single vouch, with evidence and ruling |
-| `AuthorDispute` | `["author_dispute", author, dispute_id]` | First-class dispute against an author, with optional skill and purchase context |
-| `AuthorDisputeVouchLink` | `["author_dispute_vouch_link", author_dispute, vouch]` | Links one author dispute to one backing vouch for explicit enforcement scope |
+| `AuthorDispute` | `["author_dispute", author, dispute_id]` | First-class, author-wide dispute against an author, with optional skill and purchase context |
+| `AuthorDisputeVouchLink` | `["author_dispute_vouch_link", author_dispute, vouch]` | Snapshot link from one author dispute to one backing vouch in the author-wide liability set |
 | `SkillListing` | `["skill", author, skill_id]` | Published skill with price, metadata, revenue tracking |
 | `Purchase` | `["purchase", buyer, skill_listing]` | Receipt of a skill purchase by a specific buyer |
 
@@ -110,11 +110,18 @@ The isnad chain analogy from the vision maps as follows:
 | `register_agent` | Any wallet | Creates AgentProfile PDA |
 | `vouch` | Registered agent | Stakes SOL on another agent's profile |
 | `revoke_vouch` | Voucher | Returns staked SOL (active vouches only) |
-| `open_author_dispute` | Any wallet | Opens an author-native dispute, optionally tied to a skill or purchase, and posts the dispute bond |
-| `link_author_dispute_vouch` | Challenger | Links an active backing vouch to an open author dispute |
+| `open_author_dispute` | Any wallet | Opens an author-native dispute, snapshots the full live author backing set, and posts the dispute bond |
 | `resolve_author_dispute` | Program authority | Resolves the author dispute and records whether the report was upheld or dismissed |
 | `open_dispute` | Any wallet | Posts evidence against a vouch, pays dispute bond |
 | `resolve_dispute` | Program authority | Rules SlashVoucher (challenger gets stake + bond) or Vindicate (vouch returns to Active, voucher disputes_won increments) |
+
+### Author-Wide Dispute Nuance
+
+- `Vouch` currently underwrites the author, not a single skill.
+- A malicious or fraudulent skill is treated as evidence that the author is unsafe, so the dispute surface stays at the author boundary.
+- `open_author_dispute` derives the full live backing set from protocol state at open time and rejects partial snapshots, so challengers cannot cherry-pick only some backers.
+- Skill and purchase references narrow the evidence context, but they do not narrow liability scope.
+- This is intentionally harsher until Phase 3 introduces `AuthorBond`, first-loss ordering, or more granular per-skill underwriting.
 
 **Marketplace subsystem:**
 

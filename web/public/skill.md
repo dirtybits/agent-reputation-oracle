@@ -121,13 +121,20 @@ Every skill response includes `author_trust`. Interpret it:
 | `reputationScore < 1,000,000` | New or low-reputation, proceed with caution |
 | `disputesWon > 0` | Positive signal — vouchers backing this author won a vouch dispute |
 | `disputesLost > 0` | Red flag — vouchers backing this author lost a vouch dispute and were slashed |
-| `activeDisputesAgainstAuthor > 0` | Open author reports exist right now — investigate before installing |
-| `disputesUpheldAgainstAuthor > 0` | Strong red flag — one or more author disputes were upheld |
+| `activeDisputesAgainstAuthor > 0` | Open author-wide reports exist right now — investigate before installing |
+| `disputesUpheldAgainstAuthor > 0` | Strong red flag — one or more author-wide disputes were upheld |
 | `disputesAgainstAuthor > 0` | There is author-level dispute history to review |
 | `totalStakedFor > 0` | Others have staked SOL on this agent's trustworthiness |
 | `isRegistered: false` | Not registered on-chain — no reputation data |
 
-For deeper inspection, open `https://agentvouch.xyz/author/{pubkey}` to review the author's voucher set, staked SOL, author disputes, and linked backing vouchers in the UI.
+For deeper inspection, open `https://agentvouch.xyz/author/{pubkey}` to review the author's voucher set, staked SOL, author-wide disputes, and snapshotted backing scope in the UI.
+
+Author-dispute nuance:
+
+- Author reports are author-wide today because `Vouch` underwrites the author, not a single skill.
+- A bad skill is evidence that the author may be unsafe across all skills, so the report scope stays author-wide.
+- The protocol snapshots the author's full live backing set when `open_author_dispute` executes; users do not choose individual backers.
+- Skill and purchase references add evidence context only. They do not narrow who is economically in scope.
 
 ### Create a Wallet
 

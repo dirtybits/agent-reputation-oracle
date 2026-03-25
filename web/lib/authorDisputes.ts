@@ -2,14 +2,11 @@ import { createSolanaRpc } from '@solana/kit';
 import type { Base58EncodedBytes, Base64EncodedBytes } from '@solana/rpc-types';
 import {
   AUTHOR_DISPUTE_DISCRIMINATOR,
-  AUTHOR_DISPUTE_VOUCH_LINK_DISCRIMINATOR,
   AuthorDisputeReason,
   AuthorDisputeRuling,
   AuthorDisputeStatus,
   getAuthorDisputeDecoder,
-  getAuthorDisputeVouchLinkDecoder,
   type AuthorDispute,
-  type AuthorDisputeVouchLink,
 } from '../generated/reputation-oracle/src/generated';
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../generated/reputation-oracle/src/generated/programs';
 
@@ -24,11 +21,6 @@ const asBase58 = (value: string) => value as unknown as Base58EncodedBytes;
 type DecodedAuthorDisputeAccount = {
   publicKey: string;
   account: AuthorDispute;
-};
-
-type DecodedAuthorDisputeVouchLinkAccount = {
-  publicKey: string;
-  account: AuthorDisputeVouchLink;
 };
 
 export interface AuthorDisputeMetrics {
@@ -51,6 +43,7 @@ export interface AuthorDisputeRecord {
   rulingLabel: string | null;
   skillListing: string | null;
   purchase: string | null;
+  backingVouchCountSnapshot: number;
   linkedVouchCount: number;
   linkedVouches: string[];
   bondAmount: number;
@@ -60,9 +53,6 @@ export interface AuthorDisputeRecord {
 
 let allDisputesCache:
   | { expires: number; data: DecodedAuthorDisputeAccount[] }
-  | null = null;
-let allLinksCache:
-  | { expires: number; data: DecodedAuthorDisputeVouchLinkAccount[] }
   | null = null;
 
 function unwrapOption<T>(value: unknown): T | null {
@@ -149,36 +139,6 @@ async function getAllAuthorDisputeAccounts(
   return data;
 }
 
-async function getAllAuthorDisputeVouchLinkAccounts(
-  useCache = true,
-): Promise<DecodedAuthorDisputeVouchLinkAccount[]> {
-  const now = Date.now();
-  if (useCache && allLinksCache && allLinksCache.expires > now) {
-    return allLinksCache.data;
-  }
-
-  const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
-    encoding: 'base64',
-    filters: [
-      {
-        memcmp: {
-          offset: 0n,
-          bytes: asBase64(AUTHOR_DISPUTE_VOUCH_LINK_DISCRIMINATOR),
-          encoding: 'base64',
-        },
-      },
-    ],
-  }).send();
-  const decoder = getAuthorDisputeVouchLinkDecoder();
-  const data = accounts.map((account) => ({
-    publicKey: account.pubkey,
-    account: decoder.decode(new Uint8Array(Buffer.from(account.account.data[0], 'base64'))),
-  }));
-
-  allLinksCache = { data, expires: now + CACHE_TTL_MS };
-  return data;
-}
-
 export async function listAuthorDisputesByAuthor(
   authorPubkey: string,
   options: { includeLinks?: boolean; useCache?: boolean } = {},
@@ -189,15 +149,6 @@ export async function listAuthorDisputesByAuthor(
   const authorDisputes = disputes.filter(
     (dispute) => String(dispute.account.author) === authorPubkey,
   );
-
-  const links = includeLinks ? await getAllAuthorDisputeVouchLinkAccounts(useCache) : [];
-  const linksByDispute = new Map<string, string[]>();
-  for (const link of links) {
-    const disputeKey = String(link.account.authorDispute);
-    const current = linksByDispute.get(disputeKey) ?? [];
-    current.push(String(link.account.vouch));
-    linksByDispute.set(disputeKey, current);
-  }
 
   return authorDisputes
     .map((dispute) => {
@@ -219,8 +170,9 @@ export async function listAuthorDisputesByAuthor(
         rulingLabel: getAuthorDisputeRulingLabel(ruling),
         skillListing,
         purchase,
+        backingVouchCountSnapshot: dispute.account.backingVouchCountSnapshot,
         linkedVouchCount: dispute.account.linkedVouchCount,
-        linkedVouches: linksByDispute.get(dispute.publicKey) ?? [],
+        linkedVouches: includeLinks ? [] : [],
         bondAmount: Number(dispute.account.bondAmount),
         createdAt: Number(dispute.account.createdAt),
         resolvedAt: resolvedAt === null ? null : Number(resolvedAt),
@@ -303,12 +255,10 @@ export async function getAuthorDisputePublicKeysByAuthor(
 
 export async function listAuthorDisputeLinks(
   authorDisputePubkey: string,
-  useCache = true,
+  _useCache = true,
 ): Promise<string[]> {
-  const all = await getAllAuthorDisputeVouchLinkAccounts(useCache);
-  return all
-    .filter((link) => String(link.account.authorDispute) === authorDisputePubkey)
-    .map((link) => String(link.account.vouch));
+  void authorDisputePubkey;
+  return [];
 }
 
 export async function listAuthorDisputesByAuthorViaFilter(

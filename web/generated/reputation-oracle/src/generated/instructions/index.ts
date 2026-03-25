@@ -9,7 +9,6 @@
 export * from "./claimVoucherRevenue";
 export * from "./createSkillListing";
 export * from "./initializeConfig";
-export * from "./linkAuthorDisputeVouch";
 export * from "./openAuthorDispute";
 export * from "./openDispute";
 export * from "./purchaseSkill";

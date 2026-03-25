@@ -16,23 +16,74 @@ describe("author-disputes", () => {
   );
 
   let author: Keypair;
+  let otherAuthor: Keypair;
   let voucherOne: Keypair;
   let voucherTwo: Keypair;
   let challenger: Keypair;
   let buyer: Keypair;
 
   let authorProfile: PublicKey;
+  let otherAuthorProfile: PublicKey;
   let voucherOneProfile: PublicKey;
   let voucherTwoProfile: PublicKey;
   let vouchOne: PublicKey;
   let vouchTwo: PublicKey;
+  let foreignVouch: PublicKey;
   let skillListing: PublicKey;
   let purchase: PublicKey;
 
   const stakeAmount = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL);
 
+  function toDisputeSeed(disputeId: anchor.BN): Buffer {
+    const seed = Buffer.alloc(8);
+    seed.writeBigUInt64LE(BigInt(disputeId.toString()));
+    return seed;
+  }
+
+  function getAuthorDisputePda(authorKey: PublicKey, disputeId: anchor.BN): PublicKey {
+    const [authorDispute] = PublicKey.findProgramAddressSync(
+      [Buffer.from("author_dispute"), authorKey.toBuffer(), toDisputeSeed(disputeId)],
+      program.programId
+    );
+    return authorDispute;
+  }
+
+  function getAuthorDisputeLinkPda(authorDispute: PublicKey, vouch: PublicKey): PublicKey {
+    const [link] = PublicKey.findProgramAddressSync(
+      [Buffer.from("author_dispute_vouch_link"), authorDispute.toBuffer(), vouch.toBuffer()],
+      program.programId
+    );
+    return link;
+  }
+
+  function getRemainingAccounts(authorDispute: PublicKey, vouches: PublicKey[]) {
+    return vouches.flatMap((vouch) => [
+      {
+        pubkey: getAuthorDisputeLinkPda(authorDispute, vouch),
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: vouch,
+        isWritable: false,
+        isSigner: false,
+      },
+    ]);
+  }
+
+  async function expectFailure(promise: Promise<unknown>, expectedMessage: string) {
+    try {
+      await promise;
+      assert.fail(`Expected failure containing "${expectedMessage}"`);
+    } catch (error: any) {
+      const message = String(error?.message ?? error ?? "");
+      assert.include(message, expectedMessage);
+    }
+  }
+
   before(async () => {
     author = Keypair.generate();
+    otherAuthor = Keypair.generate();
     voucherOne = Keypair.generate();
     voucherTwo = Keypair.generate();
     challenger = Keypair.generate();
@@ -40,6 +91,7 @@ describe("author-disputes", () => {
 
     await Promise.all([
       provider.connection.requestAirdrop(author.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
+      provider.connection.requestAirdrop(otherAuthor.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
       provider.connection.requestAirdrop(voucherOne.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
       provider.connection.requestAirdrop(voucherTwo.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
       provider.connection.requestAirdrop(challenger.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
@@ -70,6 +122,10 @@ describe("author-disputes", () => {
       [Buffer.from("agent"), author.publicKey.toBuffer()],
       program.programId
     );
+    [otherAuthorProfile] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), otherAuthor.publicKey.toBuffer()],
+      program.programId
+    );
     [voucherOneProfile] = PublicKey.findProgramAddressSync(
       [Buffer.from("agent"), voucherOne.publicKey.toBuffer()],
       program.programId
@@ -87,6 +143,16 @@ describe("author-disputes", () => {
         systemProgram: SystemProgram.programId,
       })
       .signers([author])
+      .rpc();
+
+    await program.methods
+      .registerAgent("https://author-dispute.other-author")
+      .accounts({
+        agentProfile: otherAuthorProfile,
+        authority: otherAuthor.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([otherAuthor])
       .rpc();
 
     await program.methods
@@ -117,6 +183,10 @@ describe("author-disputes", () => {
       [Buffer.from("vouch"), voucherTwoProfile.toBuffer(), authorProfile.toBuffer()],
       program.programId
     );
+    [foreignVouch] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vouch"), voucherOneProfile.toBuffer(), otherAuthorProfile.toBuffer()],
+      program.programId
+    );
 
     await program.methods
       .vouch(stakeAmount)
@@ -142,6 +212,19 @@ describe("author-disputes", () => {
         systemProgram: SystemProgram.programId,
       })
       .signers([voucherTwo])
+      .rpc();
+
+    await program.methods
+      .vouch(stakeAmount)
+      .accounts({
+        vouch: foreignVouch,
+        voucherProfile: voucherOneProfile,
+        voucheeProfile: otherAuthorProfile,
+        config: configPda,
+        voucher: voucherOne.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([voucherOne])
       .rpc();
 
     const skillId = `ad-${Date.now()}`;
@@ -186,51 +269,93 @@ describe("author-disputes", () => {
       .rpc();
   });
 
-  it("opens an author dispute without a skill or purchase reference", async () => {
+  it("rejects author disputes that do not carry the full backing snapshot", async () => {
     const disputeId = new anchor.BN(1);
-    const [authorDispute] = PublicKey.findProgramAddressSync(
-      [Buffer.from("author_dispute"), author.publicKey.toBuffer(), Buffer.from(Uint8Array.of(1, 0, 0, 0, 0, 0, 0, 0))],
-      program.programId
+    const authorDispute = getAuthorDisputePda(author.publicKey, disputeId);
+
+    await expectFailure(
+      program.methods
+        .openAuthorDispute(
+          disputeId,
+          { other: {} },
+          "https://example.com/evidence/partial.json"
+        )
+        .accounts({
+          authorDispute,
+          authorProfile,
+          config: configPda,
+          skillListing: null,
+          purchase: null,
+          challenger: challenger.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .remainingAccounts(getRemainingAccounts(authorDispute, [vouchOne]))
+        .signers([challenger])
+        .rpc(),
+      "Author disputes must snapshot the full author-wide backing set"
     );
 
-    await program.methods
-      .openAuthorDispute(disputeId, { other: {} }, "https://example.com/evidence/no-skill.json")
-      .accounts({
-        authorDispute,
-        authorProfile,
-        config: configPda,
-        skillListing: null,
-        purchase: null,
-        challenger: challenger.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([challenger])
-      .rpc();
-
-    const authorDisputeAccount = await program.account.authorDispute.fetch(authorDispute);
-    assert.equal(authorDisputeAccount.author.toBase58(), author.publicKey.toBase58());
-    assert.equal(authorDisputeAccount.challenger.toBase58(), challenger.publicKey.toBase58());
-    assert.equal(authorDisputeAccount.skillListing, null);
-    assert.equal(authorDisputeAccount.purchase, null);
-    assert.equal(authorDisputeAccount.status.open !== undefined, true);
+    const account = await provider.connection.getAccountInfo(authorDispute);
+    assert.equal(account, null);
   });
 
-  it("opens, links, and resolves an author dispute without changing low-level vouch state", async () => {
-    const disputeId = new anchor.BN(2);
-    const disputeSeed = Buffer.alloc(8);
-    disputeSeed.writeBigUInt64LE(BigInt(disputeId.toString()));
-    const [authorDispute] = PublicKey.findProgramAddressSync(
-      [Buffer.from("author_dispute"), author.publicKey.toBuffer(), disputeSeed],
-      program.programId
+  it("rejects duplicate and mismatched backing vouches", async () => {
+    const duplicateDisputeId = new anchor.BN(2);
+    const duplicateAuthorDispute = getAuthorDisputePda(author.publicKey, duplicateDisputeId);
+
+    await expectFailure(
+      program.methods
+        .openAuthorDispute(
+          duplicateDisputeId,
+          { other: {} },
+          "https://example.com/evidence/duplicate.json"
+        )
+        .accounts({
+          authorDispute: duplicateAuthorDispute,
+          authorProfile,
+          config: configPda,
+          skillListing: null,
+          purchase: null,
+          challenger: challenger.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .remainingAccounts(getRemainingAccounts(duplicateAuthorDispute, [vouchOne, vouchOne]))
+        .signers([challenger])
+        .rpc(),
+      "Duplicate backing vouches are not allowed"
     );
-    const [linkOne] = PublicKey.findProgramAddressSync(
-      [Buffer.from("author_dispute_vouch_link"), authorDispute.toBuffer(), vouchOne.toBuffer()],
-      program.programId
+
+    const mismatchedDisputeId = new anchor.BN(3);
+    const mismatchedAuthorDispute = getAuthorDisputePda(author.publicKey, mismatchedDisputeId);
+
+    await expectFailure(
+      program.methods
+        .openAuthorDispute(
+          mismatchedDisputeId,
+          { other: {} },
+          "https://example.com/evidence/mismatched.json"
+        )
+        .accounts({
+          authorDispute: mismatchedAuthorDispute,
+          authorProfile,
+          config: configPda,
+          skillListing: null,
+          purchase: null,
+          challenger: challenger.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .remainingAccounts(getRemainingAccounts(mismatchedAuthorDispute, [vouchOne, foreignVouch]))
+        .signers([challenger])
+        .rpc(),
+      "does not belong to the disputed author"
     );
-    const [linkTwo] = PublicKey.findProgramAddressSync(
-      [Buffer.from("author_dispute_vouch_link"), authorDispute.toBuffer(), vouchTwo.toBuffer()],
-      program.programId
-    );
+  });
+
+  it("opens and resolves a skill-linked author dispute with the full author-wide backing snapshot", async () => {
+    const disputeId = new anchor.BN(4);
+    const authorDispute = getAuthorDisputePda(author.publicKey, disputeId);
+    const linkOne = getAuthorDisputeLinkPda(authorDispute, vouchOne);
+    const linkTwo = getAuthorDisputeLinkPda(authorDispute, vouchTwo);
 
     const challengerBalanceBefore = await provider.connection.getBalance(challenger.publicKey);
 
@@ -249,44 +374,20 @@ describe("author-disputes", () => {
         challenger: challenger.publicKey,
         systemProgram: SystemProgram.programId,
       })
-      .signers([challenger])
-      .rpc();
-
-    await program.methods
-      .linkAuthorDisputeVouch(disputeId)
-      .accounts({
-        authorDispute,
-        authorDisputeVouchLink: linkOne,
-        vouch: vouchOne,
-        authorProfile,
-        challenger: challenger.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([challenger])
-      .rpc();
-
-    await program.methods
-      .linkAuthorDisputeVouch(disputeId)
-      .accounts({
-        authorDispute,
-        authorDisputeVouchLink: linkTwo,
-        vouch: vouchTwo,
-        authorProfile,
-        challenger: challenger.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
+      .remainingAccounts(getRemainingAccounts(authorDispute, [vouchOne, vouchTwo]))
       .signers([challenger])
       .rpc();
 
     const opened = await program.account.authorDispute.fetch(authorDispute);
     assert.equal(opened.skillListing?.toBase58(), skillListing.toBase58());
     assert.equal(opened.purchase?.toBase58(), purchase.toBase58());
+    assert.equal(opened.backingVouchCountSnapshot, 2);
     assert.equal(opened.linkedVouchCount, 2);
 
-    const linkedOne = await program.account.authorDisputeVouchLink.fetch(linkOne);
-    const linkedTwo = await program.account.authorDisputeVouchLink.fetch(linkTwo);
-    assert.equal(linkedOne.vouch.toBase58(), vouchOne.toBase58());
-    assert.equal(linkedTwo.vouch.toBase58(), vouchTwo.toBase58());
+    const linkedOne = await provider.connection.getAccountInfo(linkOne);
+    const linkedTwo = await provider.connection.getAccountInfo(linkTwo);
+    assert.isNotNull(linkedOne);
+    assert.isNotNull(linkedTwo);
 
     await program.methods
       .resolveAuthorDispute(disputeId, { upheld: {} })
@@ -302,6 +403,7 @@ describe("author-disputes", () => {
     const resolved = await program.account.authorDispute.fetch(authorDispute);
     assert.equal(resolved.status.resolved !== undefined, true);
     assert.equal(resolved.ruling?.upheld !== undefined, true);
+    assert.equal(resolved.linkedVouchCount, resolved.backingVouchCountSnapshot);
 
     const vouchOneAccount = await program.account.vouch.fetch(vouchOne);
     const vouchTwoAccount = await program.account.vouch.fetch(vouchTwo);
@@ -309,6 +411,9 @@ describe("author-disputes", () => {
     assert.equal(vouchTwoAccount.status.active !== undefined, true);
 
     const challengerBalanceAfter = await provider.connection.getBalance(challenger.publicKey);
-    assert.isTrue(challengerBalanceAfter > challengerBalanceBefore - 0.02 * anchor.web3.LAMPORTS_PER_SOL);
+    assert.isTrue(
+      challengerBalanceAfter >
+        challengerBalanceBefore - 0.02 * anchor.web3.LAMPORTS_PER_SOL
+    );
   });
 });

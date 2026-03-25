@@ -22,7 +22,6 @@ import {
   fetchMaybeAuthorDispute,
   fetchMaybeReputationConfig,
   getAuthorDisputeDecoder,
-  getLinkAuthorDisputeVouchInstructionAsync,
   getOpenAuthorDisputeInstructionAsync,
   getResolveAuthorDisputeInstructionAsync,
   getAgentProfileDecoder,
@@ -56,6 +55,7 @@ import {
   listAuthorDisputesByAuthor,
   type AuthorDisputeRecord,
 } from '@/lib/authorDisputes';
+import { countsTowardAuthorWideReportSnapshot } from '@/lib/disputes';
 
 const LAMPORTS_PER_SOL = 1_000_000_000n;
 const ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com';
@@ -298,60 +298,6 @@ export function useReputationOracle() {
     }
   }, []);
 
-  const openAuthorDispute = useCallback(async (
-    authorKey: Address,
-    params: {
-      reason: AuthorDisputeReason;
-      evidenceUri: string;
-      skillListing?: Address;
-      purchase?: Address;
-      linkedVouches?: Address[];
-      disputeId?: number | bigint;
-    },
-  ) => {
-    if (!signer || !walletAddress) throw new Error('Wallet not connected');
-
-    const authorProfile = await getAgentPDA(authorKey);
-    const disputeId = params.disputeId ?? BigInt(Date.now());
-    const authorDispute = await getAuthorDisputePDA(authorKey, disputeId);
-    const openIx = await getOpenAuthorDisputeInstructionAsync({
-      authorDispute,
-      authorProfile,
-      challenger: signer,
-      disputeId,
-      reason: params.reason,
-      evidenceUri: params.evidenceUri,
-      skillListing: params.skillListing,
-      purchase: params.purchase,
-    });
-    const tx = await sendIx(openIx);
-
-    const linkedVouches = [...new Set((params.linkedVouches ?? []).map((vouch) => String(vouch)))].map(
-      (vouch) => address(vouch),
-    );
-    const linkTxs: string[] = [];
-    try {
-      for (const vouch of linkedVouches) {
-        const authorDisputeVouchLink = await getAuthorDisputeVouchLinkPDA(authorDispute, vouch);
-        const linkIx = await getLinkAuthorDisputeVouchInstructionAsync({
-          authorDispute,
-          authorDisputeVouchLink,
-          vouch,
-          authorProfile,
-          challenger: signer,
-          disputeId,
-        });
-        linkTxs.push(await sendIx(linkIx));
-      }
-    } catch (error: any) {
-      throw new Error(
-        `Author dispute opened, but linking backing vouches failed: ${error?.message || 'unknown error'}`,
-      );
-    }
-
-    return { tx, linkTxs, authorDispute, disputeId };
-  }, [signer, walletAddress, sendIx]);
-
   const resolveAuthorDispute = useCallback(async (
     authorKey: Address,
     disputeId: number | bigint,
@@ -514,6 +460,52 @@ export function useReputationOracle() {
       return [];
     }
   }, []);
+
+  const openAuthorDispute = useCallback(async (
+    authorKey: Address,
+    params: {
+      reason: AuthorDisputeReason;
+      evidenceUri: string;
+      skillListing?: Address;
+      purchase?: Address;
+      disputeId?: number | bigint;
+    },
+  ) => {
+    if (!signer || !walletAddress) throw new Error('Wallet not connected');
+
+    const authorProfile = await getAgentPDA(authorKey);
+    const disputeId = params.disputeId ?? BigInt(Date.now());
+    const authorDispute = await getAuthorDisputePDA(authorKey, disputeId);
+    const backingVouches = (await getAllVouchesReceivedByAgent(authorKey))
+      .filter((vouch) => countsTowardAuthorWideReportSnapshot(vouch.account.status));
+    const uniqueBackingVouches = [...new Set(backingVouches.map((vouch) => vouch.publicKey))]
+      .map((vouch) => address(vouch));
+    const openIx = await getOpenAuthorDisputeInstructionAsync({
+      authorDispute,
+      authorProfile,
+      challenger: signer,
+      disputeId,
+      reason: params.reason,
+      evidenceUri: params.evidenceUri,
+      skillListing: params.skillListing,
+      purchase: params.purchase,
+    });
+    const remainingAccounts = await Promise.all(
+      uniqueBackingVouches.map(async (vouch) => {
+        const authorDisputeVouchLink = await getAuthorDisputeVouchLinkPDA(authorDispute, vouch);
+        return [
+          { address: authorDisputeVouchLink, role: 1 },
+          { address: vouch, role: 0 },
+        ];
+      }),
+    );
+    const tx = await sendIx({
+      ...openIx,
+      accounts: [...openIx.accounts, ...remainingAccounts.flat()],
+    });
+
+    return { tx, authorDispute, disputeId, linkedVouches: uniqueBackingVouches };
+  }, [getAllVouchesReceivedByAgent, signer, walletAddress, sendIx]);
 
   const createSkillListing = useCallback(async (
     skillId: string,

@@ -61,20 +61,13 @@ pub mod reputation_oracle {
         instructions::resolve_dispute::handler(ctx, ruling)
     }
 
-    pub fn open_author_dispute(
-        ctx: Context<OpenAuthorDispute>,
+    pub fn open_author_dispute<'info>(
+        ctx: Context<'_, '_, 'info, 'info, OpenAuthorDispute<'info>>,
         dispute_id: u64,
         reason: AuthorDisputeReason,
         evidence_uri: String,
     ) -> Result<()> {
         instructions::open_author_dispute::handler(ctx, dispute_id, reason, evidence_uri)
-    }
-
-    pub fn link_author_dispute_vouch(
-        ctx: Context<LinkAuthorDisputeVouch>,
-        dispute_id: u64,
-    ) -> Result<()> {
-        instructions::link_author_dispute_vouch::handler(ctx, dispute_id)
     }
 
     pub fn resolve_author_dispute(

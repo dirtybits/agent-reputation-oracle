@@ -39,6 +39,7 @@ export type AuthorDisputeOpened = {
   reason: string;
   skillListing: Option<Address>;
   purchase: Option<Address>;
+  linkedVouchCount: number;
   bondAmount: bigint;
   timestamp: bigint;
 };
@@ -50,6 +51,7 @@ export type AuthorDisputeOpenedArgs = {
   reason: string;
   skillListing: OptionOrNullable<Address>;
   purchase: OptionOrNullable<Address>;
+  linkedVouchCount: number;
   bondAmount: number | bigint;
   timestamp: number | bigint;
 };
@@ -62,6 +64,7 @@ export function getAuthorDisputeOpenedEncoder(): Encoder<AuthorDisputeOpenedArgs
     ["reason", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ["skillListing", getOptionEncoder(getAddressEncoder())],
     ["purchase", getOptionEncoder(getAddressEncoder())],
+    ["linkedVouchCount", getU32Encoder()],
     ["bondAmount", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
@@ -75,6 +78,7 @@ export function getAuthorDisputeOpenedDecoder(): Decoder<AuthorDisputeOpened> {
     ["reason", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["skillListing", getOptionDecoder(getAddressDecoder())],
     ["purchase", getOptionDecoder(getAddressDecoder())],
+    ["linkedVouchCount", getU32Decoder()],
     ["bondAmount", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);

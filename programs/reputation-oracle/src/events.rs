@@ -43,6 +43,7 @@ pub struct AuthorDisputeOpened {
     pub reason: String,
     pub skill_listing: Option<Pubkey>,
     pub purchase: Option<Pubkey>,
+    pub linked_vouch_count: u32,
     pub bond_amount: u64,
     pub timestamp: i64,
 }

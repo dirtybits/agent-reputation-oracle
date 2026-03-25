@@ -364,7 +364,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             Author Trust Signals
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Reputation, vouches, staked SOL, and dispute history help show how much accountability sits behind this author.
+            Reputation, vouches, staked SOL, and author-wide dispute history help show how much accountability sits behind this author.
           </p>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm text-gray-500 dark:text-gray-400">Author:</span>
@@ -405,7 +405,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               href={`/author/${skill.author_pubkey}?report=1${skill.on_chain_address ? `&skill=${encodeURIComponent(`skill:${skill.on_chain_address}`)}` : ''}`}
               className={navButtonSecondaryInlineClass}
             >
-              Report author
+              Report author-wide
             </Link>
           </div>
         </div>

@@ -31,6 +31,7 @@ pub struct AuthorDispute {
     pub ruling: Option<AuthorDisputeRuling>,
     pub skill_listing: Option<Pubkey>,
     pub purchase: Option<Pubkey>,
+    pub backing_vouch_count_snapshot: u32,
     pub linked_vouch_count: u32,
     pub bond_amount: u64,
     pub created_at: i64,
@@ -51,6 +52,7 @@ impl AuthorDispute {
         (1 + 1) + // ruling
         (1 + 32) + // skill_listing
         (1 + 32) + // purchase
+        4 + // backing_vouch_count_snapshot
         4 + // linked_vouch_count
         8 + // bond_amount
         8 + // created_at

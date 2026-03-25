@@ -86,6 +86,7 @@ export type AuthorDispute = {
   ruling: Option<AuthorDisputeRuling>;
   skillListing: Option<Address>;
   purchase: Option<Address>;
+  backingVouchCountSnapshot: number;
   linkedVouchCount: number;
   bondAmount: bigint;
   createdAt: bigint;
@@ -103,6 +104,7 @@ export type AuthorDisputeArgs = {
   ruling: OptionOrNullable<AuthorDisputeRulingArgs>;
   skillListing: OptionOrNullable<Address>;
   purchase: OptionOrNullable<Address>;
+  backingVouchCountSnapshot: number;
   linkedVouchCount: number;
   bondAmount: number | bigint;
   createdAt: number | bigint;
@@ -124,6 +126,7 @@ export function getAuthorDisputeEncoder(): Encoder<AuthorDisputeArgs> {
       ["ruling", getOptionEncoder(getAuthorDisputeRulingEncoder())],
       ["skillListing", getOptionEncoder(getAddressEncoder())],
       ["purchase", getOptionEncoder(getAddressEncoder())],
+      ["backingVouchCountSnapshot", getU32Encoder()],
       ["linkedVouchCount", getU32Encoder()],
       ["bondAmount", getU64Encoder()],
       ["createdAt", getI64Encoder()],
@@ -147,6 +150,7 @@ export function getAuthorDisputeDecoder(): Decoder<AuthorDispute> {
     ["ruling", getOptionDecoder(getAuthorDisputeRulingDecoder())],
     ["skillListing", getOptionDecoder(getAddressDecoder())],
     ["purchase", getOptionDecoder(getAddressDecoder())],
+    ["backingVouchCountSnapshot", getU32Decoder()],
     ["linkedVouchCount", getU32Decoder()],
     ["bondAmount", getU64Decoder()],
     ["createdAt", getI64Decoder()],
