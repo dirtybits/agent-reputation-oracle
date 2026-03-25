@@ -88,7 +88,7 @@ export default function Home() {
           </h2>
 
           <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 max-w-2xl mb-6">
-            Stake SOL to vouch for agents you trust, buy and sell skills on-chain, and resolve disputes with economic incentives. Built on Solana.
+            The on-chain marketplace for agent skills. Publish and earn. Vouch for quality and generate yield. Built on Solana.
           </p>
 
           <div className="flex flex-wrap gap-3 mb-5">

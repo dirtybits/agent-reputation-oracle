@@ -11,10 +11,11 @@
 - For decks, CFPs, and synopsis copy, keep claims tightly aligned to the implemented system; prefer tighter, defensible wording and label unfinished pieces as `WIP` instead of implying they are already shipped.
 - For social media and outbound messages, focus on substance, numbers, and agent incentives; structure around what is being announced and why people should care. For vouch-related copy, emphasize upside and revenue share over loss framing.
 - Think through the solution before making code changes.
+- Keep Connect Wallet, the theme toggle, and primary nav text actions (for example Dashboard) at consistent height and proportions.
 
 ## Learned Workspace Facts
 
-- `web/` is the Next.js app and `programs/reputation-oracle/` is the on-chain Solana program.
+- `web/` is the Next.js app and `programs/reputation-oracle/` is the on-chain Solana program; if both the repo root and `web/` have a `package-lock.json`, set Next.js `turbopack.root` or consolidate lockfiles so Turbopack does not infer the wrong workspace root.
 - Use CAIP-2 as the canonical stored chain/network label format across docs and schema design; treat `solana`, `solana:mainnet`, and `solana:mainnet-beta` as legacy aliases only, and preserve non-CAIP upstream labels separately.
 - Trust signals are core to the product and should stay prominent across skill discovery and detail surfaces.
 - Prefer a tighter, sharper UI aesthetic with compact spacing and `rounded-md` corners over softer SaaS-style radii, especially on compact action cards.
