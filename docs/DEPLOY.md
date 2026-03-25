@@ -64,6 +64,13 @@ Build the program:
 anchor build
 ```
 
+If the deployed behavior still looks old, do not assume `anchor build` refreshed the executable. `anchor deploy` uploads `target/deploy/reputation_oracle.so`, so a stale `.so` can redeploy stale code even when the IDL and generated types are newer. In that case, force a clean rebuild:
+
+```bash
+anchor clean
+anchor build
+```
+
 If the web app consumes the checked-in IDL or generated client, refresh those artifacts after the build:
 
 ```bash
@@ -99,6 +106,20 @@ You should see:
 - the same program ID: `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`
 - authority: `<UPGRADE_AUTHORITY_PUBKEY>`
 - a newer `Last Deployed In Slot`
+
+Verify the executable binary too, not just the metadata:
+
+```bash
+solana program dump --url https://api.devnet.solana.com \
+  ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf \
+  /tmp/reputation_oracle_devnet.so
+
+shasum -a 256 \
+  target/deploy/reputation_oracle.so \
+  /tmp/reputation_oracle_devnet.so
+```
+
+Those two hashes should match. If they do not, the deploy did not put the local executable on-chain.
 
 ## Anchor IDL
 
@@ -182,6 +203,12 @@ Compare it against:
 - `web/reputation_oracle.json`
 
 If the local files contain a new instruction but `anchor idl fetch` does not, the on-chain program/IDL is stale and needs a fresh build + deploy.
+
+If `anchor idl fetch` contains the new instruction but the program still throws `Fallback functions are not supported`, the on-chain IDL may be newer than the deployed executable. In that case:
+
+1. Run `anchor clean && anchor build`.
+2. Redeploy with the canonical program keypair.
+3. Compare `target/deploy/reputation_oracle.so` against `solana program dump` from the live program.
 
 If `target/idl/reputation_oracle.json` contains the new instruction but `web/reputation_oracle.json` or `web/generated/reputation-oracle/` does not, the web client artifacts are stale and need to be regenerated:
 
