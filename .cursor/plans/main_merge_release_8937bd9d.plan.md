@@ -209,6 +209,62 @@ Once the workflow is reliable, enable branch protection on `main`:
 - require the CI check to pass
 - optionally require up-to-date branches before merge
 
+## Vercel Production Checklist
+
+If you want `main` to power `agentvouch.xyz`, verify these in the `agentvouch` Vercel project:
+
+- `Settings -> Git -> Production Branch` is set to `main`
+- `Domains -> agentvouch.xyz` is attached to the `agentvouch` project
+- if you use `www.agentvouch.xyz`, decide whether `www` redirects to apex or apex redirects to `www`
+- project build settings still point at the correct app root, likely `web/`
+- Production environment variables exist and match what the app expects
+- callback URLs, webhook URLs, wallet/auth URLs, and any canonical site URL settings point at `https://agentvouch.xyz`
+
+Recommended order:
+
+1. Merge `dev` into `main`.
+2. Confirm `main` passes lint, test, and build.
+3. Update the Vercel production branch to `main`.
+4. Verify `agentvouch.xyz` is assigned to the `agentvouch` project.
+5. Trigger or confirm a production deploy from `main`.
+6. Smoke test the live domain after deploy.
+
+Main risk areas when switching production to `main`:
+
+- missing production env vars
+- stale callback or webhook URLs pointing at preview or `vercel.app` domains
+- project root/build settings targeting the wrong directory
+- accidental live deploys from future direct pushes to `main` before branch protection is added
+
+## Post-Deploy Smoke Test
+
+After `main` is live on `https://agentvouch.xyz`, verify the basics:
+
+- homepage loads on `https://agentvouch.xyz`
+- no obvious runtime error screen or broken styling
+- primary navigation loads expected pages such as `/dashboard`, `/docs`, and `/skills`
+- wallet/connect flow renders correctly
+- theme toggle and main nav actions still display correctly
+- at least one API-backed page or interaction works
+- browser console does not show obvious production-breaking errors
+- canonical URLs and redirects behave as expected for apex and `www` if both are configured
+
+Useful manual checks:
+
+```bash
+curl -I https://agentvouch.xyz
+curl -I https://www.agentvouch.xyz
+vercel list
+vercel inspect https://agentvouch.vercel.app
+```
+
+If anything looks wrong after the switch:
+
+- inspect the latest production deployment in Vercel
+- compare production env vars against local expectations
+- confirm the deployed commit is from `main`
+- roll back to the prior production deployment if needed
+
 ## Recommended Order
 
 1. Confirm Vercel production branch.
