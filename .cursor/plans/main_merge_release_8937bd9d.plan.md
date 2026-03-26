@@ -22,61 +22,202 @@ isProject: false
 
 # Merge `dev` Into `main`
 
-## Recommendation
+## How Manual Is This?
 
-Use a small, durable process:
+Almost all of it can be done from the command line:
 
-- Open a PR from `dev` to `main` even though the merge can fast-forward.
-- Validate the current repo scripts before merging.
-- Merge to `main`, then create a tag and GitHub Release on the merged commit.
-- Add basic GitHub Actions now, and delay heavier release automation until the project stabilizes.
+- `git`: inspect history, switch branches, tag, and push
+- `gh`: open the PR, merge it, and create the GitHub Release
+- `vercel`: inspect linked project info, deployments, and logs
 
-## Why This Fits This Repo
+The only truly manual parts are:
 
-- `main` is a direct ancestor of `dev`, so the git merge itself is low-risk.
-- The repo has no in-repo GitHub Actions yet, so there are no existing protections or release automations to preserve.
-- Existing scripts already support a basic CI gate:
-  - root: `npm run lint`
-  - `web/`: `npm run lint`, `npm run test`, `npm run build`
-- On-chain deployment appears manual/documented rather than branch-triggered, so GitHub Releases should be treated as source checkpoints, not chain deploy events.
+- deciding the release tag name
+- reading the PR diff before you merge
+- confirming whether Vercel production is tied to `main`
+- deciding when to enable branch protection
 
-## Suggested GitHub Actions
+## Manual CLI Runbook
 
-Add only these first:
+### 1. Confirm Current Branch State
 
-- `ci.yml` on pull requests to `main` and `dev`
-- Jobs:
-  - root `npm ci && npm run lint`
-  - `web` `npm ci && npm run lint && npm run test && npm run build`
-  - optional `anchor build` if you want Solana program interface drift caught in CI
-- Add branch protection on `main` once CI is green and reliable.
+Run these from the repo root:
+
+```bash
+git fetch origin
+git status
+git branch --show-current
+git rev-list --left-right --count main...dev
+git log --oneline --decorate --graph main..dev -20
+git tag --list
+```
+
+What you are looking for:
+
+- `dev` is clean
+- `main...dev` shows `0 129` or similar, meaning `main` has no unique commits
+- existing tags are minimal, so you can introduce a first post-hackathon release tag cleanly
+
+### 2. Check What Vercel Production Uses
+
+This is the one step that may be partly dashboard-driven if the local repo is not linked yet.
+
+Try:
+
+```bash
+vercel whoami
+vercel link
+vercel project ls
+vercel list
+```
+
+Useful follow-ups if needed:
+
+```bash
+vercel inspect <deployment-url-or-id>
+vercel logs <deployment-url-or-id>
+```
+
+Goal:
+
+- confirm which project this repo is linked to
+- confirm whether production deploys are tied to `main`
+
+If the CLI output is unclear, check the Vercel dashboard Git settings once before merging.
+
+### 3. Run Pre-Merge Checks On `dev`
+
+From the repo root:
+
+```bash
+npm ci
+npm run lint
+```
+
+From `web/`:
+
+```bash
+cd web
+npm ci
+npm run lint
+npm run test
+npm run build
+cd ..
+```
+
+Optional if the Anchor program or IDL changed:
+
+```bash
+anchor build
+```
+
+If `anchor build` changes generated files, review those before merging.
+
+### 4. Open A PR From `dev` To `main`
+
+Push `dev` first if needed:
+
+```bash
+git checkout dev
+git push origin dev
+```
+
+Create the PR:
+
+```bash
+gh pr create --base main --head dev --title "Merge dev into main" --body "Post-hackathon merge of the long-lived dev branch into main. This establishes main as the current baseline and keeps the release history explicit."
+```
+
+Then inspect it:
+
+```bash
+gh pr view --web
+```
+
+This is where the human review happens. Since the merge is large, skim the files changed and the commit range before merging.
+
+### 5. Merge The PR
+
+If you want to preserve the branch history as-is and `main` is strictly behind `dev`, use:
+
+```bash
+gh pr merge --merge --delete-branch=false
+```
+
+If GitHub allows a fast-forward style update through the UI and you prefer that, that is also fine. I would avoid squash here because this branch represents several weeks of work.
+
+Then sync local `main`:
+
+```bash
+git checkout main
+git pull origin main
+```
+
+### 6. Tag The Merged Commit
+
+Pick one tag. Reasonable choices:
+
+- `v0.1.0` if this is the first real release baseline
+- `v0.2.0` if you consider the hackathon submission the earlier baseline
+
+Create and push it:
+
+```bash
+git tag -a v0.1.0 -m "First post-hackathon main release"
+git push origin v0.1.0
+```
+
+### 7. Create The GitHub Release
+
+Create release notes manually:
+
+```bash
+gh release create v0.1.0 --title "v0.1.0" --notes "First post-hackathon main release. Merges the long-lived dev branch into main and establishes the new default baseline. Web changes are included in this source release. Solana program deployment remains a separate manual operation unless explicitly redeployed."
+```
+
+If you want GitHub to draft notes from commits:
+
+```bash
+gh release create v0.1.0 --title "v0.1.0" --generate-notes
+```
+
+I would still edit the notes after generation so they clearly state whether an on-chain deploy is included.
+
+## Should You Add GitHub Actions?
+
+Yes, but only a basic CI workflow first.
+
+Add one workflow that runs on pull requests to `main` and `dev`:
+
+- root `npm ci && npm run lint`
+- `web` `npm ci && npm run lint && npm run test && npm run build`
+- optional `anchor build`
 
 Do not start with:
 
-- auto-deploy on tag
+- auto-release on tag
+- auto-deploy on merge
 - auto-publish packages
-- auto-create releases from commits
 
-Those add process without matching current repo automation.
+This repo does not currently have a release automation pattern, so start by protecting code quality, not by automating deployments.
 
-## Release Strategy
+## After CI Exists
 
-After merging:
+Once the workflow is reliable, enable branch protection on `main`:
 
-- Create a tag on `main` such as `v0.1.0` or `v0.2.0`.
-- Publish a GitHub Release tied to that tag.
-- Use release notes to state:
-  - this is the first post-hackathon `main` sync
-  - what is included in the app/web state
-  - whether any Solana program deployment is included or still manual
+- require PRs
+- require the CI check to pass
+- optionally require up-to-date branches before merge
 
-## Order Of Operations
+## Recommended Order
 
-1. Confirm what branch Vercel production tracks.
-2. Run the repo checks you trust on `dev`.
-3. Open PR `dev -> main`.
-4. Merge.
-5. Tag the merge commit.
-6. Publish GitHub Release.
-7. Add CI workflow and then enable branch protection.
+1. Confirm Vercel production branch.
+2. Run lint, test, and build on `dev`.
+3. Open PR `dev -> main` with `gh`.
+4. Review PR.
+5. Merge PR.
+6. Tag `main`.
+7. Create GitHub Release.
+8. Add CI workflow.
+9. Turn on branch protection.
 
