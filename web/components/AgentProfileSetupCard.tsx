@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { navButtonPrimaryFlexClass } from '@/lib/buttonStyles';
-import { FiArrowRight, FiLoader, FiShield } from 'react-icons/fi';
+import { navButtonPrimaryFlexClass } from "@/lib/buttonStyles";
+import { FiArrowRight, FiLoader, FiShield } from "react-icons/fi";
 
 interface AgentProfileSetupCardProps {
   registering: boolean;
@@ -25,19 +25,23 @@ export function AgentProfileSetupCard({
   description,
   primaryStepLabel,
   secondaryStepLabel,
-  className = 'max-w-md mx-auto mt-8',
-  actionLabel = 'Create Profile',
+  className = "max-w-md mx-auto mt-8",
+  actionLabel = "Create Profile",
 }: AgentProfileSetupCardProps) {
   return (
     <div className={className}>
       <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 mb-8">
         <span className="flex items-center gap-1.5 font-semibold text-gray-900 dark:text-white">
-          <span className="w-5 h-5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center text-xs font-bold">1</span>
+          <span className="w-5 h-5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center text-xs font-bold">
+            1
+          </span>
           {primaryStepLabel}
         </span>
         <FiArrowRight className="w-3.5 h-3.5" />
         <span className="flex items-center gap-1.5 opacity-50">
-          <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs">2</span>
+          <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs">
+            2
+          </span>
           {secondaryStepLabel}
         </span>
       </div>
@@ -57,7 +61,9 @@ export function AgentProfileSetupCard({
           <p className="text-xs text-red-600 dark:text-red-400 mb-4">{error}</p>
         )}
         {!error && status && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{status}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            {status}
+          </p>
         )}
 
         <button
@@ -68,7 +74,7 @@ export function AgentProfileSetupCard({
           {registering ? (
             <>
               <FiLoader className="w-4 h-4 animate-spin" />
-              {status ?? 'Creating profile…'}
+              {status ?? "Creating profile…"}
             </>
           ) : (
             <>

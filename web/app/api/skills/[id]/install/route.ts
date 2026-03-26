@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
-import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
-import { getOnChainPrice } from '@/lib/onchain';
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
+import { getOnChainPrice } from "@/lib/onchain";
 
-const CHAIN_PREFIX = 'chain-';
+const CHAIN_PREFIX = "chain-";
 
 export async function POST(
   request: NextRequest,
@@ -16,7 +16,7 @@ export async function POST(
 
     if (!auth) {
       return NextResponse.json(
-        { error: 'Missing auth payload' },
+        { error: "Missing auth payload" },
         { status: 400 }
       );
     }
@@ -24,7 +24,7 @@ export async function POST(
     const verification = verifyWalletSignature(auth);
     if (!verification.valid) {
       return NextResponse.json(
-        { error: verification.error || 'Invalid signature' },
+        { error: verification.error || "Invalid signature" },
         { status: 401 }
       );
     }
@@ -33,11 +33,14 @@ export async function POST(
       const pubkey = id.slice(CHAIN_PREFIX.length);
       const listing = await getOnChainPrice(pubkey);
       if (!listing) {
-        return NextResponse.json({ error: 'Skill not found on-chain' }, { status: 404 });
+        return NextResponse.json(
+          { error: "Skill not found on-chain" },
+          { status: 404 }
+        );
       }
       if (listing.price > 0) {
         return NextResponse.json(
-          { error: 'Paid skills require an on-chain purchase' },
+          { error: "Paid skills require an on-chain purchase" },
           { status: 402 }
         );
       }
@@ -54,7 +57,7 @@ export async function POST(
     `;
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+      return NextResponse.json({ error: "Skill not found" }, { status: 404 });
     }
 
     const skill = rows[0];
@@ -63,7 +66,7 @@ export async function POST(
       const listing = await getOnChainPrice(skill.on_chain_address);
       if (listing && listing.price > 0) {
         return NextResponse.json(
-          { error: 'Paid skills require an on-chain purchase' },
+          { error: "Paid skills require an on-chain purchase" },
           { status: 402 }
         );
       }
@@ -83,7 +86,7 @@ export async function POST(
       installed_by: verification.pubkey,
     });
   } catch (error: any) {
-    console.error('POST /api/skills/[id]/install error:', error);
+    console.error("POST /api/skills/[id]/install error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,9 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { resolveAuthorTrust, verifyAuthorTrust } from '@/lib/trust';
-import { linkSolanaRegistryIdentity, resolveAgentIdentityByWallet } from '@/lib/agentIdentity';
-import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
-import { discoverSolanaRegistryCandidatesByWallet } from '@/lib/solanaAgentRegistry';
-import { listAuthorDisputesByAuthor } from '@/lib/authorDisputes';
+import { NextRequest, NextResponse } from "next/server";
+import { resolveAuthorTrust, verifyAuthorTrust } from "@/lib/trust";
+import {
+  linkSolanaRegistryIdentity,
+  resolveAgentIdentityByWallet,
+} from "@/lib/agentIdentity";
+import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
+import { discoverSolanaRegistryCandidatesByWallet } from "@/lib/solanaAgentRegistry";
+import { listAuthorDisputesByAuthor } from "@/lib/authorDisputes";
 
 export async function GET(
   _request: NextRequest,
@@ -19,7 +22,10 @@ export async function GET(
         hasAgentProfile: authorTrust.isRegistered,
       });
     } catch (error) {
-      console.error('Failed to resolve author identity for /api/author/[pubkey]:', error);
+      console.error(
+        "Failed to resolve author identity for /api/author/[pubkey]:",
+        error
+      );
     }
 
     return NextResponse.json({
@@ -29,7 +35,7 @@ export async function GET(
       author_disputes: authorDisputes,
     });
   } catch (error: any) {
-    console.error('GET /api/author/[pubkey] error:', error);
+    console.error("GET /api/author/[pubkey] error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -67,7 +73,7 @@ export async function POST(
 
     if (!auth) {
       return NextResponse.json(
-        { error: 'Missing required fields: auth' },
+        { error: "Missing required fields: auth" },
         { status: 400 }
       );
     }
@@ -75,14 +81,14 @@ export async function POST(
     const verification = verifyWalletSignature(auth);
     if (!verification.valid || !verification.pubkey) {
       return NextResponse.json(
-        { error: verification.error || 'Invalid signature' },
+        { error: verification.error || "Invalid signature" },
         { status: 401 }
       );
     }
 
     if (verification.pubkey !== pubkey) {
       return NextResponse.json(
-        { error: 'Only the author wallet can link registry identity' },
+        { error: "Only the author wallet can link registry identity" },
         { status: 403 }
       );
     }
@@ -90,21 +96,30 @@ export async function POST(
     const authorTrust = await verifyAuthorTrust(pubkey);
     if (!authorTrust.isRegistered) {
       return NextResponse.json(
-        { error: 'You must register an on-chain AgentProfile before linking registry identity.' },
+        {
+          error:
+            "You must register an on-chain AgentProfile before linking registry identity.",
+        },
         { status: 403 }
       );
     }
 
     let authorIdentity;
     if (selected_registry_asset_pubkey) {
-      const candidates = await discoverSolanaRegistryCandidatesByWallet(pubkey, { useCache: false });
+      const candidates = await discoverSolanaRegistryCandidatesByWallet(
+        pubkey,
+        { useCache: false }
+      );
       const selectedCandidate = candidates.find(
-        (candidate) => candidate.coreAssetPubkey === selected_registry_asset_pubkey
+        (candidate) =>
+          candidate.coreAssetPubkey === selected_registry_asset_pubkey
       );
 
       if (!selectedCandidate) {
         return NextResponse.json(
-          { error: 'Selected registry identity was not found for this wallet.' },
+          {
+            error: "Selected registry identity was not found for this wallet.",
+          },
           { status: 400 }
         );
       }
@@ -124,7 +139,10 @@ export async function POST(
     } else {
       if (!registry_address || !core_asset_pubkey) {
         return NextResponse.json(
-          { error: 'Missing required fields: registry_address, core_asset_pubkey' },
+          {
+            error:
+              "Missing required fields: registry_address, core_asset_pubkey",
+          },
           { status: 400 }
         );
       }
@@ -152,7 +170,7 @@ export async function POST(
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('POST /api/author/[pubkey] error:', error);
+    console.error("POST /api/author/[pubkey] error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import hljs from 'highlight.js';
-import { FiCheck, FiCopy } from 'react-icons/fi';
+import { useMemo, useState } from "react";
+import hljs from "highlight.js";
+import { FiCheck, FiCopy } from "react-icons/fi";
 
 interface CopyCodeBlockProps {
   value: string;
@@ -15,13 +15,13 @@ interface CopyCodeBlockProps {
 export function CopyCodeBlock({
   value,
   copyValue,
-  copyLabel = 'Copy code',
+  copyLabel = "Copy code",
   language,
-  className = '',
+  className = "",
 }: CopyCodeBlockProps) {
   const [copied, setCopied] = useState(false);
-  const isMultiline = value.includes('\n');
-  const normalizedValue = value.replace(/\n$/, '');
+  const isMultiline = value.includes("\n");
+  const normalizedValue = value.replace(/\n$/, "");
   const highlighted = useMemo(() => {
     if (!language || !hljs.getLanguage(language)) {
       return null;
@@ -42,14 +42,16 @@ export function CopyCodeBlock({
   return (
     <div
       className={`rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 flex gap-2 ${
-        isMultiline ? 'items-start' : 'items-center'
+        isMultiline ? "items-start" : "items-center"
       } ${className}`}
     >
       {isMultiline ? (
         <pre className="m-0 min-w-0 flex-1 overflow-x-auto">
           <code
             className="code-block-content hljs block bg-transparent p-0 font-mono text-xs text-gray-700 dark:text-gray-300"
-            dangerouslySetInnerHTML={highlighted ? { __html: highlighted } : undefined}
+            dangerouslySetInnerHTML={
+              highlighted ? { __html: highlighted } : undefined
+            }
           >
             {!highlighted ? normalizedValue : undefined}
           </code>
@@ -57,7 +59,9 @@ export function CopyCodeBlock({
       ) : (
         <code
           className="code-block-content hljs min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-xs text-gray-700 dark:text-gray-300 bg-transparent p-0"
-          dangerouslySetInnerHTML={highlighted ? { __html: highlighted } : undefined}
+          dangerouslySetInnerHTML={
+            highlighted ? { __html: highlighted } : undefined
+          }
         >
           {!highlighted ? normalizedValue : undefined}
         </code>
@@ -69,7 +73,11 @@ export function CopyCodeBlock({
         title={copyLabel}
         aria-label={copyLabel}
       >
-        {copied ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
+        {copied ? (
+          <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" />
+        ) : (
+          <FiCopy className="w-3.5 h-3.5" />
+        )}
       </button>
     </div>
   );

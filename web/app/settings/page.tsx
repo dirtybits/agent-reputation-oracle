@@ -1,10 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useWalletConnection } from '@solana/react-hooks';
-import Link from 'next/link';
-import { encodeBase64 } from '@/lib/base64';
-import { navButtonInlineClass, navButtonPrimaryInlineClass } from '@/lib/buttonStyles';
+import { useState, useEffect, useCallback } from "react";
+import { useWalletConnection } from "@solana/react-hooks";
+import Link from "next/link";
+import { encodeBase64 } from "@/lib/base64";
+import {
+  navButtonInlineClass,
+  navButtonPrimaryInlineClass,
+} from "@/lib/buttonStyles";
 import {
   FiKey,
   FiPlus,
@@ -15,7 +18,7 @@ import {
   FiShield,
   FiArrowLeft,
   FiAlertTriangle,
-} from 'react-icons/fi';
+} from "react-icons/fi";
 
 interface ApiKeyRow {
   id: string;
@@ -29,43 +32,47 @@ interface ApiKeyRow {
 
 export default function SettingsPage() {
   const { wallet, status } = useWalletConnection();
-  const connected = status === 'connected' && !!wallet;
+  const connected = status === "connected" && !!wallet;
   const walletAddress = wallet?.account.address ?? null;
   const signMessage = wallet?.signMessage ?? null;
 
   const [keys, setKeys] = useState<ApiKeyRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyName, setNewKeyName] = useState("");
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
 
-  const signAuth = useCallback(async (action: string) => {
-    if (!walletAddress || !signMessage) throw new Error('Wallet not connected');
-    const timestamp = Date.now();
-    const message = `AgentVouch Skill Repo\nAction: ${action}\nTimestamp: ${timestamp}`;
-    const msgBytes = new TextEncoder().encode(message);
-    const sigBytes = await signMessage(msgBytes);
-    const signature = encodeBase64(sigBytes);
-    return { pubkey: walletAddress, signature, message, timestamp };
-  }, [walletAddress, signMessage]);
+  const signAuth = useCallback(
+    async (action: string) => {
+      if (!walletAddress || !signMessage)
+        throw new Error("Wallet not connected");
+      const timestamp = Date.now();
+      const message = `AgentVouch Skill Repo\nAction: ${action}\nTimestamp: ${timestamp}`;
+      const msgBytes = new TextEncoder().encode(message);
+      const sigBytes = await signMessage(msgBytes);
+      const signature = encodeBase64(sigBytes);
+      return { pubkey: walletAddress, signature, message, timestamp };
+    },
+    [walletAddress, signMessage]
+  );
 
   const loadKeys = useCallback(async () => {
     if (!connected || !walletAddress || !signMessage) return;
     setLoading(true);
     try {
-      const auth = await signAuth('list-keys');
-      const res = await fetch('/api/keys', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+      const auth = await signAuth("list-keys");
+      const res = await fetch("/api/keys", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ auth }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to load keys');
+        throw new Error(err.error || "Failed to load keys");
       }
 
       const data = await res.json();
@@ -75,7 +82,7 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, walletAddress]);
 
   useEffect(() => {
@@ -88,17 +95,17 @@ export default function SettingsPage() {
     setError(null);
     setNewKey(null);
     try {
-      const auth = await signAuth('create-key');
-      const res = await fetch('/api/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auth, name: newKeyName || 'default' }),
+      const auth = await signAuth("create-key");
+      const res = await fetch("/api/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auth, name: newKeyName || "default" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create key');
+      if (!res.ok) throw new Error(data.error || "Failed to create key");
 
       setNewKey(data.key);
-      setNewKeyName('');
+      setNewKeyName("");
       await loadKeys();
     } catch (err: any) {
       setError(err.message);
@@ -112,14 +119,14 @@ export default function SettingsPage() {
     setRevoking(keyId);
     setError(null);
     try {
-      const auth = await signAuth('revoke-key');
-      const res = await fetch('/api/keys', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+      const auth = await signAuth("revoke-key");
+      const res = await fetch("/api/keys", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ auth, key_id: keyId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to revoke key');
+      if (!res.ok) throw new Error(data.error || "Failed to revoke key");
       await loadKeys();
     } catch (err: any) {
       setError(err.message);
@@ -136,8 +143,8 @@ export default function SettingsPage() {
     }
   };
 
-  const activeKeys = keys.filter(k => !k.revoked_at);
-  const revokedKeys = keys.filter(k => k.revoked_at);
+  const activeKeys = keys.filter((k) => !k.revoked_at);
+  const revokedKeys = keys.filter((k) => k.revoked_at);
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
@@ -166,7 +173,9 @@ export default function SettingsPage() {
         {!connected ? (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-12 text-center">
             <FiKey className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-700 mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 mb-2">Connect your wallet to manage API keys.</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-2">
+              Connect your wallet to manage API keys.
+            </p>
           </div>
         ) : (
           <>
@@ -190,7 +199,11 @@ export default function SettingsPage() {
                         onClick={copyKey}
                         className="shrink-0 p-2 rounded-lg bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 transition text-green-700 dark:text-green-300"
                       >
-                        {copied ? <FiCheck className="w-4 h-4" /> : <FiCopy className="w-4 h-4" />}
+                        {copied ? (
+                          <FiCheck className="w-4 h-4" />
+                        ) : (
+                          <FiCopy className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -200,7 +213,9 @@ export default function SettingsPage() {
 
             {error && (
               <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10 p-4 mb-6">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {error}
+                </p>
               </div>
             )}
 
@@ -225,14 +240,23 @@ export default function SettingsPage() {
                   className={navButtonPrimaryInlineClass}
                 >
                   {creating ? (
-                    <><FiLoader className="w-4 h-4 animate-spin" />Creating…</>
+                    <>
+                      <FiLoader className="w-4 h-4 animate-spin" />
+                      Creating…
+                    </>
                   ) : (
-                    <><FiKey className="w-4 h-4" />Generate Key</>
+                    <>
+                      <FiKey className="w-4 h-4" />
+                      Generate Key
+                    </>
                   )}
                 </button>
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                Use API keys for programmatic access. Pass via <code className="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">Authorization: Bearer sk_...</code>
+                Use API keys for programmatic access. Pass via{" "}
+                <code className="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">
+                  Authorization: Bearer sk_...
+                </code>
               </p>
             </div>
 
@@ -259,15 +283,23 @@ export default function SettingsPage() {
                     >
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{key.name}</span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {key.name}
+                          </span>
                           <code className="text-xs font-mono text-[var(--sea-accent)] bg-[var(--sea-accent-soft)] px-1.5 py-0.5 rounded border border-[var(--sea-accent-border)]">
                             {key.key_prefix}...
                           </code>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
-                          <span>Created {new Date(key.created_at).toLocaleDateString()}</span>
+                          <span>
+                            Created{" "}
+                            {new Date(key.created_at).toLocaleDateString()}
+                          </span>
                           {key.last_used_at && (
-                            <span>Last used {new Date(key.last_used_at).toLocaleDateString()}</span>
+                            <span>
+                              Last used{" "}
+                              {new Date(key.last_used_at).toLocaleDateString()}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -303,11 +335,18 @@ export default function SettingsPage() {
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{key.name}</span>
-                          <code className="text-xs font-mono text-gray-400 dark:text-gray-500">{key.key_prefix}...</code>
+                          <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                            {key.name}
+                          </span>
+                          <code className="text-xs font-mono text-gray-400 dark:text-gray-500">
+                            {key.key_prefix}...
+                          </code>
                         </div>
                         <span className="text-xs text-gray-400 dark:text-gray-500">
-                          Revoked {key.revoked_at ? new Date(key.revoked_at).toLocaleDateString() : ''}
+                          Revoked{" "}
+                          {key.revoked_at
+                            ? new Date(key.revoked_at).toLocaleDateString()
+                            : ""}
                         </span>
                       </div>
                     </div>

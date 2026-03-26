@@ -1,4 +1,4 @@
-import { PinataSDK } from 'pinata';
+import { PinataSDK } from "pinata";
 
 let pinataClient: PinataSDK | null = null;
 
@@ -7,7 +7,7 @@ function getPinata(): PinataSDK | null {
   if (!pinataClient) {
     pinataClient = new PinataSDK({
       pinataJwt: process.env.PINATA_JWT,
-      pinataGateway: process.env.PINATA_GATEWAY || 'gateway.pinata.cloud',
+      pinataGateway: process.env.PINATA_GATEWAY || "gateway.pinata.cloud",
     });
   }
   return pinataClient;
@@ -31,12 +31,16 @@ export async function pinSkillContent(
 ): Promise<PinResult> {
   const pinata = getPinata();
   if (!pinata) {
-    return { cid: '', success: false, error: 'Pinata not configured (PINATA_JWT missing)' };
+    return {
+      cid: "",
+      success: false,
+      error: "Pinata not configured (PINATA_JWT missing)",
+    };
   }
 
   try {
     const file = new File([content], `${skillId}-v${version}.md`, {
-      type: 'text/markdown',
+      type: "text/markdown",
     });
 
     const upload = await pinata.upload.public
@@ -46,7 +50,7 @@ export async function pinSkillContent(
 
     return { cid: upload.cid, success: true };
   } catch (err: any) {
-    console.error('Pinata pin error:', err);
-    return { cid: '', success: false, error: err.message };
+    console.error("Pinata pin error:", err);
+    return { cid: "", success: false, error: err.message };
   }
 }

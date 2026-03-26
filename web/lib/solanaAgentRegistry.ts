@@ -3,7 +3,7 @@ import {
   SOLANA_MAINNET_CHAIN_CONTEXT,
   getConfiguredSolanaChainContext,
   normalizePersistedChainContext,
-} from '@/lib/chains';
+} from "@/lib/chains";
 
 export interface SolanaRegistryCandidate {
   chainContext: string;
@@ -19,7 +19,7 @@ export interface SolanaRegistryCandidate {
   rawUpstreamChainLabel: string | null;
   rawUpstreamChainId: string | null;
   externalAgentId: string | null;
-  matchType: 'owner' | 'operational' | 'both';
+  matchType: "owner" | "operational" | "both";
 }
 
 type GraphqlAgent = {
@@ -50,12 +50,17 @@ type DiscoveryConfig = {
   rawUpstreamChainLabel: string | null;
 };
 
-const DEVNET_AGENT_REGISTRY_PROGRAM_ID = '8oo4J9tBB3Hna1jRQ3rWvJjojqM5DYTDJo5cejUuJy3C';
-const MAINNET_AGENT_REGISTRY_PROGRAM_ID = '8oo4dC4JvBLwy5tGgiH3WwK4B9PWxL9Z4XjA2jzkQMbQ';
+const DEVNET_AGENT_REGISTRY_PROGRAM_ID =
+  "8oo4J9tBB3Hna1jRQ3rWvJjojqM5DYTDJo5cejUuJy3C";
+const MAINNET_AGENT_REGISTRY_PROGRAM_ID =
+  "8oo4dC4JvBLwy5tGgiH3WwK4B9PWxL9Z4XjA2jzkQMbQ";
 const CACHE_TTL_MS = 60_000;
 const DEFAULT_FIRST = 25;
 
-const queryCache = new Map<string, { expiresAt: number; value: SolanaRegistryCandidate[] }>();
+const queryCache = new Map<
+  string,
+  { expiresAt: number; value: SolanaRegistryCandidate[] }
+>();
 
 const DISCOVERY_QUERY = `
   query DiscoverAgentsByWallet($wallet: String!, $first: Int!) {
@@ -108,23 +113,28 @@ const DISCOVERY_QUERY = `
   }
 `;
 
-function getDiscoveryConfig(chainContext?: string | null): DiscoveryConfig | null {
+function getDiscoveryConfig(
+  chainContext?: string | null
+): DiscoveryConfig | null {
   const normalizedChainContext = normalizePersistedChainContext(
     chainContext ?? getConfiguredSolanaChainContext()
   );
-  const overrideEndpoint = process.env.SOLANA_AGENT_REGISTRY_INDEXER_URL?.trim() || null;
-  const overrideFallback = process.env.SOLANA_AGENT_REGISTRY_INDEXER_FALLBACK_URL?.trim() || null;
-  const overrideProgramId = process.env.SOLANA_AGENT_REGISTRY_PROGRAM_ID?.trim() || null;
+  const overrideEndpoint =
+    process.env.SOLANA_AGENT_REGISTRY_INDEXER_URL?.trim() || null;
+  const overrideFallback =
+    process.env.SOLANA_AGENT_REGISTRY_INDEXER_FALLBACK_URL?.trim() || null;
+  const overrideProgramId =
+    process.env.SOLANA_AGENT_REGISTRY_PROGRAM_ID?.trim() || null;
 
   if (normalizedChainContext === SOLANA_MAINNET_CHAIN_CONTEXT) {
     return {
       chainContext: normalizedChainContext,
       endpoints: [
-        overrideEndpoint || 'https://8004-indexer-main.qnt.sh/v2/graphql',
-        overrideFallback || 'https://8004-indexer-main2.qnt.sh/v2/graphql',
+        overrideEndpoint || "https://8004-indexer-main.qnt.sh/v2/graphql",
+        overrideFallback || "https://8004-indexer-main2.qnt.sh/v2/graphql",
       ].filter(Boolean),
       registryAddress: overrideProgramId || MAINNET_AGENT_REGISTRY_PROGRAM_ID,
-      rawUpstreamChainLabel: 'solana-mainnet',
+      rawUpstreamChainLabel: "solana-mainnet",
     };
   }
 
@@ -132,11 +142,11 @@ function getDiscoveryConfig(chainContext?: string | null): DiscoveryConfig | nul
     return {
       chainContext: normalizedChainContext,
       endpoints: [
-        overrideEndpoint || 'https://8004-indexer-dev.qnt.sh/v2/graphql',
-        overrideFallback || 'https://8004-indexer-dev2.qnt.sh/v2/graphql',
+        overrideEndpoint || "https://8004-indexer-dev.qnt.sh/v2/graphql",
+        overrideFallback || "https://8004-indexer-dev2.qnt.sh/v2/graphql",
       ].filter(Boolean),
       registryAddress: overrideProgramId || DEVNET_AGENT_REGISTRY_PROGRAM_ID,
-      rawUpstreamChainLabel: 'solana-devnet',
+      rawUpstreamChainLabel: "solana-devnet",
     };
   }
 
@@ -153,8 +163,8 @@ async function fetchGraphql<T>(
   for (const endpoint of endpoints) {
     try {
       const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        method: "POST",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ query, variables }),
       });
 
@@ -164,7 +174,9 @@ async function fetchGraphql<T>(
 
       const payload = await response.json();
       if (payload.errors?.length) {
-        throw new Error(payload.errors[0]?.message || 'Registry indexer query failed');
+        throw new Error(
+          payload.errors[0]?.message || "Registry indexer query failed"
+        );
       }
 
       return payload.data as T;
@@ -173,27 +185,31 @@ async function fetchGraphql<T>(
     }
   }
 
-  throw lastError || new Error('Registry indexer request failed');
+  throw lastError || new Error("Registry indexer request failed");
 }
 
 function toHttpUrl(uri: string): string | null {
   if (!uri) return null;
   if (/^https?:\/\//i.test(uri)) return uri;
-  if (uri.startsWith('ipfs://')) {
-    const cidPath = uri.slice('ipfs://'.length).replace(/^ipfs\//, '');
+  if (uri.startsWith("ipfs://")) {
+    const cidPath = uri.slice("ipfs://".length).replace(/^ipfs\//, "");
     return `https://ipfs.io/ipfs/${cidPath}`;
   }
   return null;
 }
 
-async function readRegistrations(agentUri: string | null | undefined): Promise<unknown[]> {
+async function readRegistrations(
+  agentUri: string | null | undefined
+): Promise<unknown[]> {
   const httpUrl = agentUri ? toHttpUrl(agentUri) : null;
   if (!httpUrl) {
     return [];
   }
 
   try {
-    const response = await fetch(httpUrl, { headers: { accept: 'application/json' } });
+    const response = await fetch(httpUrl, {
+      headers: { accept: "application/json" },
+    });
     if (!response.ok) {
       return [];
     }
@@ -205,15 +221,18 @@ async function readRegistrations(agentUri: string | null | undefined): Promise<u
   }
 }
 
-function readMetadataValue(metadata: GraphqlAgent['metadata'], key: string): string | null {
+function readMetadataValue(
+  metadata: GraphqlAgent["metadata"],
+  key: string
+): string | null {
   const entry = metadata?.find((item) => item.key === key);
-  return typeof entry?.value === 'string' ? entry.value : null;
+  return typeof entry?.value === "string" ? entry.value : null;
 }
 
 async function normalizeCandidate(
   agent: GraphqlAgent,
   config: DiscoveryConfig,
-  matchType: 'owner' | 'operational' | 'both'
+  matchType: "owner" | "operational" | "both"
 ): Promise<SolanaRegistryCandidate | null> {
   const coreAssetPubkey = agent.solana?.assetPubkey || agent.id;
   if (!coreAssetPubkey || !agent.owner) {
@@ -223,7 +242,9 @@ async function normalizeCandidate(
   const metadataUri = agent.agentURI || null;
   const registrations = await readRegistrations(metadataUri);
   const operationalWallet =
-    agent.agentWallet && agent.agentWallet !== agent.owner ? agent.agentWallet : null;
+    agent.agentWallet && agent.agentWallet !== agent.owner
+      ? agent.agentWallet
+      : null;
 
   return {
     chainContext: config.chainContext,
@@ -233,16 +254,16 @@ async function normalizeCandidate(
     operationalWallet,
     displayName:
       agent.registrationFile?.name ||
-      readMetadataValue(agent.metadata, 'name') ||
-      readMetadataValue(agent.metadata, 'displayName') ||
+      readMetadataValue(agent.metadata, "name") ||
+      readMetadataValue(agent.metadata, "displayName") ||
       null,
     description:
       agent.registrationFile?.description ||
-      readMetadataValue(agent.metadata, 'description') ||
+      readMetadataValue(agent.metadata, "description") ||
       null,
     image:
       agent.registrationFile?.image ||
-      readMetadataValue(agent.metadata, 'image') ||
+      readMetadataValue(agent.metadata, "image") ||
       null,
     metadataUri,
     registrations,
@@ -277,7 +298,10 @@ export async function discoverSolanaRegistryCandidatesByWallet(
     first: options?.first ?? DEFAULT_FIRST,
   });
 
-  const byAsset = new Map<string, { agent: GraphqlAgent; ownerMatch: boolean; walletMatch: boolean }>();
+  const byAsset = new Map<
+    string,
+    { agent: GraphqlAgent; ownerMatch: boolean; walletMatch: boolean }
+  >();
 
   for (const agent of data.byOwner ?? []) {
     const asset = agent.solana?.assetPubkey || agent.id;
@@ -307,17 +331,25 @@ export async function discoverSolanaRegistryCandidatesByWallet(
         normalizeCandidate(
           agent,
           config,
-          ownerMatch && walletMatch ? 'both' : ownerMatch ? 'owner' : 'operational'
+          ownerMatch && walletMatch
+            ? "both"
+            : ownerMatch
+            ? "owner"
+            : "operational"
         )
       )
     )
   )
-    .filter((candidate): candidate is SolanaRegistryCandidate => Boolean(candidate))
+    .filter((candidate): candidate is SolanaRegistryCandidate =>
+      Boolean(candidate)
+    )
     .sort((a, b) => {
-      const aMatchScore = a.matchType === 'both' ? 2 : 1;
-      const bMatchScore = b.matchType === 'both' ? 2 : 1;
+      const aMatchScore = a.matchType === "both" ? 2 : 1;
+      const bMatchScore = b.matchType === "both" ? 2 : 1;
       if (bMatchScore !== aMatchScore) return bMatchScore - aMatchScore;
-      return (a.displayName || a.coreAssetPubkey).localeCompare(b.displayName || b.coreAssetPubkey);
+      return (a.displayName || a.coreAssetPubkey).localeCompare(
+        b.displayName || b.coreAssetPubkey
+      );
     });
 
   queryCache.set(cacheKey, {

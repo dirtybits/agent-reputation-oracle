@@ -1,8 +1,13 @@
-'use client';
+"use client";
 
-import { FiShield, FiUsers, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
-import { LiaCoinsSolid } from 'react-icons/lia';
-import { formatSolAmount } from '@/lib/pricing';
+import {
+  FiShield,
+  FiUsers,
+  FiAlertTriangle,
+  FiCheckCircle,
+} from "react-icons/fi";
+import { LiaCoinsSolid } from "react-icons/lia";
+import { formatSolAmount } from "@/lib/pricing";
 
 export interface TrustData {
   reputationScore: number;
@@ -26,24 +31,47 @@ function formatSol(lamports: number): string {
   return formatSolAmount(lamports);
 }
 
-function getDisputeStatus(won: number, lost: number): { label: string; color: string } {
-  if (won === 0 && lost === 0) return { label: 'Clean', color: 'text-green-600 dark:text-green-400' };
-  if (lost === 0) return { label: `${won} resolved`, color: 'text-green-600 dark:text-green-400' };
-  return { label: `${won}W / ${lost}L`, color: 'text-yellow-600 dark:text-yellow-400' };
+function getDisputeStatus(
+  won: number,
+  lost: number
+): { label: string; color: string } {
+  if (won === 0 && lost === 0)
+    return { label: "Clean", color: "text-green-600 dark:text-green-400" };
+  if (lost === 0)
+    return {
+      label: `${won} resolved`,
+      color: "text-green-600 dark:text-green-400",
+    };
+  return {
+    label: `${won}W / ${lost}L`,
+    color: "text-yellow-600 dark:text-yellow-400",
+  };
 }
 
 function getAuthorReportStatus(
   total: number,
   upheld: number,
-  active: number,
+  active: number
 ): { label: string; color: string } {
-  if (total === 0) return { label: 'Clean', color: 'text-green-600 dark:text-green-400' };
-  if (active > 0) return { label: `${active} open`, color: 'text-red-600 dark:text-red-400' };
-  if (upheld > 0) return { label: `${upheld} upheld`, color: 'text-yellow-600 dark:text-yellow-400' };
-  return { label: `${total} resolved`, color: 'text-gray-600 dark:text-gray-300' };
+  if (total === 0)
+    return { label: "Clean", color: "text-green-600 dark:text-green-400" };
+  if (active > 0)
+    return { label: `${active} open`, color: "text-red-600 dark:text-red-400" };
+  if (upheld > 0)
+    return {
+      label: `${upheld} upheld`,
+      color: "text-yellow-600 dark:text-yellow-400",
+    };
+  return {
+    label: `${total} resolved`,
+    color: "text-gray-600 dark:text-gray-300",
+  };
 }
 
-export default function TrustBadge({ trust, compact = false }: TrustBadgeProps) {
+export default function TrustBadge({
+  trust,
+  compact = false,
+}: TrustBadgeProps) {
   if (!trust || !trust.isRegistered) {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
@@ -57,7 +85,7 @@ export default function TrustBadge({ trust, compact = false }: TrustBadgeProps) 
   const authorReports = getAuthorReportStatus(
     trust.disputesAgainstAuthor,
     trust.disputesUpheldAgainstAuthor,
-    trust.activeDisputesAgainstAuthor,
+    trust.activeDisputesAgainstAuthor
   );
 
   if (compact) {
@@ -75,7 +103,11 @@ export default function TrustBadge({ trust, compact = false }: TrustBadgeProps) 
           {formatSol(trust.totalStakedFor)} SOL
         </span>
         <span className={`flex items-center gap-1 ${dispute.color}`}>
-          {trust.disputesLost > 0 ? <FiAlertTriangle className="w-3.5 h-3.5" /> : <FiCheckCircle className="w-3.5 h-3.5" />}
+          {trust.disputesLost > 0 ? (
+            <FiAlertTriangle className="w-3.5 h-3.5" />
+          ) : (
+            <FiCheckCircle className="w-3.5 h-3.5" />
+          )}
           {dispute.label}
         </span>
         <span className={`flex items-center gap-1 ${authorReports.color}`}>
@@ -93,7 +125,9 @@ export default function TrustBadge({ trust, compact = false }: TrustBadgeProps) 
           <FiShield className="w-4 h-4" />
         </div>
         <div className="text-lg font-bold">{trust.reputationScore}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">Reputation</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          Reputation
+        </div>
       </div>
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
@@ -108,24 +142,40 @@ export default function TrustBadge({ trust, compact = false }: TrustBadgeProps) 
         <div className="flex items-center justify-center gap-1 text-[var(--lobster-accent)] mb-1">
           <LiaCoinsSolid className="w-4 h-4" />
         </div>
-        <div className="text-lg font-bold">{formatSol(trust.totalStakedFor)}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">SOL Staked</div>
+        <div className="text-lg font-bold">
+          {formatSol(trust.totalStakedFor)}
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          SOL Staked
+        </div>
       </div>
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
-        <div className={`flex items-center justify-center gap-1 ${dispute.color} mb-1`}>
-          {trust.disputesLost > 0 ? <FiAlertTriangle className="w-4 h-4" /> : <FiCheckCircle className="w-4 h-4" />}
+        <div
+          className={`flex items-center justify-center gap-1 ${dispute.color} mb-1`}
+        >
+          {trust.disputesLost > 0 ? (
+            <FiAlertTriangle className="w-4 h-4" />
+          ) : (
+            <FiCheckCircle className="w-4 h-4" />
+          )}
         </div>
         <div className="text-sm font-bold">{dispute.label}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">Vouch Disputes</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          Vouch Disputes
+        </div>
       </div>
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
-        <div className={`flex items-center justify-center gap-1 ${authorReports.color} mb-1`}>
+        <div
+          className={`flex items-center justify-center gap-1 ${authorReports.color} mb-1`}
+        >
           <FiAlertTriangle className="w-4 h-4" />
         </div>
         <div className="text-sm font-bold">{authorReports.label}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">Author Reports</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          Author Reports
+        </div>
       </div>
     </div>
   );

@@ -9,7 +9,9 @@ async function main() {
   const metadataUri = process.argv[3] || "";
 
   if (!walletPath) {
-    console.error("Usage: ts-node register-agent.ts <keypair-path> [metadata-uri]");
+    console.error(
+      "Usage: ts-node register-agent.ts <keypair-path> [metadata-uri]"
+    );
     process.exit(1);
   }
 
@@ -23,16 +25,15 @@ async function main() {
   );
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.ReputationOracle as Program<ReputationOracle>;
+  const program = anchor.workspace
+    .ReputationOracle as Program<ReputationOracle>;
 
   console.log("Program ID:", program.programId.toBase58());
   console.log("Agent:", keypair.publicKey.toBase58());
   console.log("Metadata URI:", metadataUri || "(empty)");
 
   try {
-    const tx = await program.methods
-      .registerAgent(metadataUri)
-      .rpc();
+    const tx = await program.methods.registerAgent(metadataUri).rpc();
 
     console.log("\n✅ Agent registered!");
     console.log("Transaction:", tx);

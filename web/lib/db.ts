@@ -1,17 +1,22 @@
-import { neon } from '@neondatabase/serverless';
+import { neon } from "@neondatabase/serverless";
 import {
   SOLANA_DEVNET_CHAIN_CONTEXT,
   SOLANA_MAINNET_CHAIN_CONTEXT,
   SOLANA_TESTNET_CHAIN_CONTEXT,
   getConfiguredSolanaChainContext,
-} from '@/lib/chains';
+} from "@/lib/chains";
 
 let _sql: ReturnType<typeof neon> | null = null;
 
-export function sql(): (strings: TemplateStringsArray, ...values: any[]) => Promise<any[]> {
+export function sql(): (
+  strings: TemplateStringsArray,
+  ...values: any[]
+) => Promise<any[]> {
   if (!_sql) {
     if (!process.env.DATABASE_URL) {
-      throw new Error('DATABASE_URL environment variable is required. Set it in web/.env.local');
+      throw new Error(
+        "DATABASE_URL environment variable is required. Set it in web/.env.local"
+      );
     }
     _sql = neon(process.env.DATABASE_URL);
   }

@@ -1,41 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
-import { verifyAuthorTrust, resolveMultipleAuthorTrust } from '@/lib/trust';
-import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
-import { pinSkillContent } from '@/lib/ipfs';
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import { verifyAuthorTrust, resolveMultipleAuthorTrust } from "@/lib/trust";
+import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
+import { pinSkillContent } from "@/lib/ipfs";
 import {
   resolveManyAgentIdentitiesByWallet,
   upsertLocalAgentIdentity,
-} from '@/lib/agentIdentity';
+} from "@/lib/agentIdentity";
 import {
   getConfiguredSolanaChainContext,
   normalizeInputChainContext,
   normalizePersistedChainContext,
-} from '@/lib/chains';
-import { createSolanaRpc } from '@solana/kit';
-import type { Base64EncodedBytes } from '@solana/rpc-types';
+} from "@/lib/chains";
+import { createSolanaRpc } from "@solana/kit";
+import type { Base64EncodedBytes } from "@solana/rpc-types";
 import {
   getSkillListingDecoder,
   SKILL_LISTING_DISCRIMINATOR,
-} from '../../../generated/reputation-oracle/src/generated';
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../../../generated/reputation-oracle/src/generated/programs';
+} from "../../../generated/reputation-oracle/src/generated";
+import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../../../generated/reputation-oracle/src/generated/programs";
 
 const PAGE_SIZE = 20;
-const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com');
+const rpc = createSolanaRpc(
+  process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com"
+);
 const configuredSolanaChainContext = getConfiguredSolanaChainContext();
 const asBase64 = (bytes: Uint8Array) =>
-  Buffer.from(bytes).toString('base64') as Base64EncodedBytes;
+  Buffer.from(bytes).toString("base64") as Base64EncodedBytes;
 
 async function fetchOnChainListings(): Promise<any[]> {
   try {
-    const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
-      encoding: 'base64',
-      filters: [{ memcmp: { offset: 0n, bytes: asBase64(SKILL_LISTING_DISCRIMINATOR), encoding: 'base64' } }],
-    }).send();
+    const accounts = await rpc
+      .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        encoding: "base64",
+        filters: [
+          {
+            memcmp: {
+              offset: 0n,
+              bytes: asBase64(SKILL_LISTING_DISCRIMINATOR),
+              encoding: "base64",
+            },
+          },
+        ],
+      })
+      .send();
     const decoder = getSkillListingDecoder();
     return accounts
       .map((a) => {
-        const data = decoder.decode(new Uint8Array(Buffer.from(a.account.data[0], 'base64')));
+        const data = decoder.decode(
+          new Uint8Array(Buffer.from(a.account.data[0], "base64"))
+        );
         return { pubkey: a.pubkey, data };
       })
       .map((l) => ({
@@ -56,22 +70,23 @@ async function fetchOnChainListings(): Promise<any[]> {
         total_revenue: Number(l.data.totalRevenue),
         created_at: new Date(Number(l.data.createdAt) * 1000).toISOString(),
         updated_at: new Date(Number(l.data.updatedAt) * 1000).toISOString(),
-        source: 'chain' as const,
+        source: "chain" as const,
       }));
   } catch (err) {
-    console.error('Failed to fetch on-chain listings:', err);
+    console.error("Failed to fetch on-chain listings:", err);
     return [];
   }
 }
 
 function mergeSkills(pgSkills: any[], chainSkills: any[]): any[] {
-  const merged = pgSkills.map(s => ({ ...s, source: 'repo' }));
+  const merged = pgSkills.map((s) => ({ ...s, source: "repo" }));
 
   for (const chain of chainSkills) {
     // Only merge into a PG skill if the on_chain_address already recorded there matches.
     // Two separate on-chain listings (different pubkeys) are always kept as separate cards.
     const existing = merged.find(
-      s => s.source === 'repo' && s.on_chain_address === chain.on_chain_address
+      (s) =>
+        s.source === "repo" && s.on_chain_address === chain.on_chain_address
     );
     if (existing) {
       existing.price_lamports = chain.price_lamports;
@@ -89,11 +104,11 @@ function mergeSkills(pgSkills: any[], chainSkills: any[]): any[] {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
-    const q = searchParams.get('q');
-    const sort = searchParams.get('sort') || 'newest';
-    const author = searchParams.get('author');
-    const tags = searchParams.get('tags');
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const q = searchParams.get("q");
+    const sort = searchParams.get("sort") || "newest";
+    const author = searchParams.get("author");
+    const tags = searchParams.get("tags");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
 
     let pgSkills: any[] = [];
     try {
@@ -103,7 +118,11 @@ export async function GET(request: NextRequest) {
           FROM skills
           WHERE to_tsvector('english', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('english', ${q})
           ${author ? sql()`AND author_pubkey = ${author}` : sql()``}
-          ${tags ? sql()`AND tags && ${tags.split(',').filter(Boolean)}::text[]` : sql()``}
+          ${
+            tags
+              ? sql()`AND tags && ${tags.split(",").filter(Boolean)}::text[]`
+              : sql()``
+          }
         `;
       } else {
         pgSkills = await sql()`
@@ -111,7 +130,11 @@ export async function GET(request: NextRequest) {
           FROM skills
           WHERE 1=1
           ${author ? sql()`AND author_pubkey = ${author}` : sql()``}
-          ${tags ? sql()`AND tags && ${tags.split(',').filter(Boolean)}::text[]` : sql()``}
+          ${
+            tags
+              ? sql()`AND tags && ${tags.split(",").filter(Boolean)}::text[]`
+              : sql()``
+          }
         `;
       }
     } catch {
@@ -128,53 +151,67 @@ export async function GET(request: NextRequest) {
     let allSkills = mergeSkills(pgSkills, chainSkills);
 
     if (author) {
-      allSkills = allSkills.filter(s => s.author_pubkey === author);
+      allSkills = allSkills.filter((s) => s.author_pubkey === author);
     }
     if (q) {
       const lower = q.toLowerCase();
-      allSkills = allSkills.filter(s =>
-        s.source === 'repo' ||
-        s.name.toLowerCase().includes(lower) ||
-        (s.description || '').toLowerCase().includes(lower)
+      allSkills = allSkills.filter(
+        (s) =>
+          s.source === "repo" ||
+          s.name.toLowerCase().includes(lower) ||
+          (s.description || "").toLowerCase().includes(lower)
       );
     }
 
-    const authorPubkeys = [...new Set(allSkills.map(s => s.author_pubkey))];
-    const trustMap = authorPubkeys.length > 0
-      ? await resolveMultipleAuthorTrust(authorPubkeys)
-      : new Map();
+    const authorPubkeys = [...new Set(allSkills.map((s) => s.author_pubkey))];
+    const trustMap =
+      authorPubkeys.length > 0
+        ? await resolveMultipleAuthorTrust(authorPubkeys)
+        : new Map();
     let identityMap = new Map();
     if (authorPubkeys.length > 0) {
       try {
         identityMap = await resolveManyAgentIdentitiesByWallet(authorPubkeys, {
           hasAgentProfileByWallet: new Map(
-            authorPubkeys.map((authorPubkey) => [authorPubkey, trustMap.get(authorPubkey)?.isRegistered ?? false])
+            authorPubkeys.map((authorPubkey) => [
+              authorPubkey,
+              trustMap.get(authorPubkey)?.isRegistered ?? false,
+            ])
           ),
         });
       } catch (error) {
-        console.error('Failed to resolve author identities for /api/skills:', error);
+        console.error(
+          "Failed to resolve author identities for /api/skills:",
+          error
+        );
       }
     }
 
-    const enriched = allSkills.map(skill => ({
+    const enriched = allSkills.map((skill) => ({
       ...skill,
       author_trust: trustMap.get(skill.author_pubkey) || null,
       author_identity: identityMap.get(skill.author_pubkey) || null,
     }));
 
-    if (sort === 'trusted') {
-      enriched.sort((a, b) =>
-        (b.author_trust?.reputationScore ?? 0) - (a.author_trust?.reputationScore ?? 0)
+    if (sort === "trusted") {
+      enriched.sort(
+        (a, b) =>
+          (b.author_trust?.reputationScore ?? 0) -
+          (a.author_trust?.reputationScore ?? 0)
       );
-    } else if (sort === 'installs') {
-      enriched.sort((a, b) =>
-        (b.total_installs + (b.total_downloads ?? 0)) - (a.total_installs + (a.total_downloads ?? 0))
+    } else if (sort === "installs") {
+      enriched.sort(
+        (a, b) =>
+          b.total_installs +
+          (b.total_downloads ?? 0) -
+          (a.total_installs + (a.total_downloads ?? 0))
       );
-    } else if (sort === 'name') {
+    } else if (sort === "name") {
       enriched.sort((a, b) => a.name.localeCompare(b.name));
     } else {
-      enriched.sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      enriched.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     }
 
@@ -192,7 +229,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('GET /api/skills error:', error);
+    console.error("GET /api/skills error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -200,20 +237,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { auth, skill_id, name, description, tags, content, contact } = body as {
-      auth: AuthPayload;
-      skill_id: string;
-      name: string;
-      description?: string;
-      tags?: string[];
-      content: string;
-      contact?: string;
-      chain_context?: string;
-    };
+    const { auth, skill_id, name, description, tags, content, contact } =
+      body as {
+        auth: AuthPayload;
+        skill_id: string;
+        name: string;
+        description?: string;
+        tags?: string[];
+        content: string;
+        contact?: string;
+        chain_context?: string;
+      };
 
     if (!auth || !skill_id || !name || !content) {
       return NextResponse.json(
-        { error: 'Missing required fields: auth, skill_id, name, content' },
+        { error: "Missing required fields: auth, skill_id, name, content" },
         { status: 400 }
       );
     }
@@ -221,7 +259,7 @@ export async function POST(request: NextRequest) {
     const verification = verifyWalletSignature(auth);
     if (!verification.valid) {
       return NextResponse.json(
-        { error: verification.error || 'Invalid signature' },
+        { error: verification.error || "Invalid signature" },
         { status: 401 }
       );
     }
@@ -233,7 +271,10 @@ export async function POST(request: NextRequest) {
 
     if (body.chain_context && !normalizedChainContext) {
       return NextResponse.json(
-        { error: 'Invalid chain_context. Use a supported CAIP-2 value or known alias.' },
+        {
+          error:
+            "Invalid chain_context. Use a supported CAIP-2 value or known alias.",
+        },
         { status: 400 }
       );
     }
@@ -243,14 +284,17 @@ export async function POST(request: NextRequest) {
       trust = await verifyAuthorTrust(authorPubkey);
     } catch {
       return NextResponse.json(
-        { error: 'Unable to verify on-chain registration. Please try again.' },
+        { error: "Unable to verify on-chain registration. Please try again." },
         { status: 503 }
       );
     }
 
     if (!trust.isRegistered) {
       return NextResponse.json(
-        { error: 'You must register an on-chain AgentProfile before publishing. Go to your Profile tab to register.' },
+        {
+          error:
+            "You must register an on-chain AgentProfile before publishing. Go to your Profile tab to register.",
+        },
         { status: 403 }
       );
     }
@@ -263,7 +307,10 @@ export async function POST(request: NextRequest) {
         hasAgentProfile: trust.isRegistered,
       });
     } catch (error) {
-      console.error('Failed to upsert local agent identity during skill publish:', error);
+      console.error(
+        "Failed to upsert local agent identity during skill publish:",
+        error
+      );
     }
 
     const [skill] = await sql()`
@@ -293,15 +340,18 @@ export async function POST(request: NextRequest) {
       )
     `;
 
-    return NextResponse.json({
-      ...skill,
-      ipfs: pinResult,
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        ...skill,
+        ipfs: pinResult,
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
-    console.error('POST /api/skills error:', error);
-    if (error.message?.includes('unique')) {
+    console.error("POST /api/skills error:", error);
+    if (error.message?.includes("unique")) {
       return NextResponse.json(
-        { error: 'A skill with this ID already exists for your account' },
+        { error: "A skill with this ID already exists for your account" },
         { status: 409 }
       );
     }

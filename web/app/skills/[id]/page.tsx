@@ -1,24 +1,30 @@
-'use client';
+"use client";
 
-import { useState, useEffect, use } from 'react';
-import Link from 'next/link';
-import { AgentIdentityPanel } from '@/components/AgentIdentityPanel';
-import TrustBadge, { type TrustData } from '@/components/TrustBadge';
-import MarkdownRenderer from '@/components/MarkdownRenderer';
-import { SolAmount } from '@/components/SolAmount';
-import { encodeBase64 } from '@/lib/base64';
+import { useState, useEffect, use } from "react";
+import Link from "next/link";
+import { AgentIdentityPanel } from "@/components/AgentIdentityPanel";
+import TrustBadge, { type TrustData } from "@/components/TrustBadge";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
+import { SolAmount } from "@/components/SolAmount";
+import { encodeBase64 } from "@/lib/base64";
 import {
   navButtonInlineClass,
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
   navButtonSizeClass,
-} from '@/lib/buttonStyles';
-import { useWalletConnection } from '@solana/react-hooks';
-import { useReputationOracle } from '@/hooks/useReputationOracle';
-import type { AgentIdentitySummary } from '@/lib/agentIdentity';
-import { PRICING, formatMinPrice, toLamports, fromLamports, isValidListingPriceLamports } from '@/lib/pricing';
-import type { Address } from '@solana/kit';
-import { SiSolana } from 'react-icons/si';
+} from "@/lib/buttonStyles";
+import { useWalletConnection } from "@solana/react-hooks";
+import { useReputationOracle } from "@/hooks/useReputationOracle";
+import type { AgentIdentitySummary } from "@/lib/agentIdentity";
+import {
+  PRICING,
+  formatMinPrice,
+  toLamports,
+  fromLamports,
+  isValidListingPriceLamports,
+} from "@/lib/pricing";
+import type { Address } from "@solana/kit";
+import { SiSolana } from "react-icons/si";
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -33,7 +39,7 @@ import {
   FiFileText,
   FiGitCommit,
   FiEdit2,
-} from 'react-icons/fi';
+} from "react-icons/fi";
 
 interface SkillVersion {
   id: string;
@@ -47,7 +53,7 @@ interface ContentVerification {
   has_ipfs: boolean;
   all_versions_pinned: boolean;
   current_cid_consistent: boolean;
-  status: 'verified' | 'drift_detected' | 'unverified';
+  status: "verified" | "drift_detected" | "unverified";
 }
 
 interface SkillDetail {
@@ -66,7 +72,7 @@ interface SkillDetail {
   contact: string | null;
   created_at: string;
   updated_at: string;
-  source?: 'repo' | 'chain';
+  source?: "repo" | "chain";
   skill_uri?: string;
   versions: SkillVersion[];
   author_trust: TrustData | null;
@@ -75,35 +81,41 @@ interface SkillDetail {
 }
 
 function shortAddr(addr: string): string {
-  return addr.slice(0, 6) + '...' + addr.slice(-4);
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 }
 
 function stripMarkdown(value: string): string {
   return value
-    .replace(/^[-*+]\s+/, '')
-    .replace(/`/g, '')
-    .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/^[-*+]\s+/, "")
+    .replace(/`/g, "")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
     .trim();
 }
 
 function extractCapabilityBullets(content: string | null): string[] {
   if (!content) return [];
 
-  const lines = content.split('\n');
-  const whenToUseIndex = lines.findIndex((line) => /^##+\s+when to use/i.test(line.trim()));
+  const lines = content.split("\n");
+  const whenToUseIndex = lines.findIndex((line) =>
+    /^##+\s+when to use/i.test(line.trim())
+  );
   const bullets: string[] = [];
 
-  for (let i = whenToUseIndex >= 0 ? whenToUseIndex + 1 : 0; i < lines.length; i += 1) {
+  for (
+    let i = whenToUseIndex >= 0 ? whenToUseIndex + 1 : 0;
+    i < lines.length;
+    i += 1
+  ) {
     const line = lines[i].trim();
 
     if (whenToUseIndex >= 0 && /^##+\s+/.test(line)) break;
@@ -119,21 +131,24 @@ function extractCapabilityBullets(content: string | null): string[] {
   return bullets;
 }
 
-function extractCapabilitySummary(content: string | null, description: string | null): string | null {
+function extractCapabilitySummary(
+  content: string | null,
+  description: string | null
+): string | null {
   if (description) return description;
   if (!content) return null;
 
   const blocks = content
     .split(/\n\s*\n/)
-    .map((block) => stripMarkdown(block.replace(/\n/g, ' ')))
+    .map((block) => stripMarkdown(block.replace(/\n/g, " ")))
     .filter(Boolean);
 
   return (
     blocks.find(
       (block) =>
-        !block.startsWith('---') &&
-        !block.startsWith('#') &&
-        !block.startsWith('```') &&
+        !block.startsWith("---") &&
+        !block.startsWith("#") &&
+        !block.startsWith("```") &&
         !/^title:/i.test(block) &&
         !/^description:/i.test(block) &&
         !/^when to use/i.test(block)
@@ -141,10 +156,14 @@ function extractCapabilitySummary(content: string | null, description: string | 
   );
 }
 
-export default function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function SkillDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const { wallet, status } = useWalletConnection();
-  const connected = status === 'connected' && !!wallet;
+  const connected = status === "connected" && !!wallet;
   const walletAddress = wallet?.account.address ?? null;
   const signMessage = wallet?.signMessage ?? null;
   const oracle = useReputationOracle();
@@ -156,32 +175,44 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
 
   const [listPrice, setListPrice] = useState(String(PRICING.SOL.defaultPrice));
   const [listing, setListing] = useState(false);
-  const [listResult, setListResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [listResult, setListResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
   const [installing, setInstalling] = useState(false);
-  const [installResult, setInstallResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [installResult, setInstallResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editPrice, setEditPrice] = useState('');
-  const [editUri, setEditUri] = useState('');
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editUri, setEditUri] = useState("");
   const [updating, setUpdating] = useState(false);
-  const [updateResult, setUpdateResult] = useState<{ success: boolean; message: string } | null>(null);
-  const capabilitySummary = extractCapabilitySummary(content, skill?.description ?? null);
+  const [updateResult, setUpdateResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+  const capabilitySummary = extractCapabilitySummary(
+    content,
+    skill?.description ?? null
+  );
   const capabilityBullets = extractCapabilityBullets(content);
 
   useEffect(() => {
     async function fetchSkill() {
       try {
         const detailRes = await fetch(`/api/skills/${id}?include=trust`);
-        if (!detailRes.ok) throw new Error('Skill not found');
+        if (!detailRes.ok) throw new Error("Skill not found");
         const data = await detailRes.json();
         setSkill(data);
         if (data.content) {
           setContent(data.content);
         }
       } catch (err) {
-        console.error('Error fetching skill:', err);
+        console.error("Error fetching skill:", err);
       } finally {
         setLoading(false);
       }
@@ -200,15 +231,27 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     setListing(true);
     setListResult(null);
     try {
-      const priceLamports = toLamports(parseFloat(listPrice || '0'));
+      const priceLamports = toLamports(parseFloat(listPrice || "0"));
       if (!isValidListingPriceLamports(priceLamports)) {
-        setListResult({ success: false, message: `Minimum listing price is ${formatMinPrice()}.` });
+        setListResult({
+          success: false,
+          message: `Minimum listing price is ${formatMinPrice()}.`,
+        });
         setListing(false);
         return;
       }
       const skillUri = `${window.location.origin}/api/skills/${id}/raw`;
-      await oracle.createSkillListing(skill.skill_id, skillUri, skill.name, skill.description ?? '', priceLamports);
-      const onChainAddress = await oracle.getSkillListingPDA(walletAddress as Address, skill.skill_id);
+      await oracle.createSkillListing(
+        skill.skill_id,
+        skillUri,
+        skill.name,
+        skill.description ?? "",
+        priceLamports
+      );
+      const onChainAddress = await oracle.getSkillListingPDA(
+        walletAddress as Address,
+        skill.skill_id
+      );
 
       const timestamp = Date.now();
       const message = `AgentVouch Skill Repo\nAction: publish-skill\nTimestamp: ${timestamp}`;
@@ -217,18 +260,24 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
       const signature = encodeBase64(sigBytes);
 
       await fetch(`/api/skills/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           auth: { pubkey: walletAddress, signature, message, timestamp },
           on_chain_address: onChainAddress,
         }),
       });
 
-      setSkill((s) => s ? { ...s, on_chain_address: onChainAddress } : s);
-      setListResult({ success: true, message: 'Listed on marketplace successfully!' });
+      setSkill((s) => (s ? { ...s, on_chain_address: onChainAddress } : s));
+      setListResult({
+        success: true,
+        message: "Listed on marketplace successfully!",
+      });
     } catch (err: any) {
-      setListResult({ success: false, message: err.message || 'Failed to create listing' });
+      setListResult({
+        success: false,
+        message: err.message || "Failed to create listing",
+      });
     } finally {
       setListing(false);
     }
@@ -246,21 +295,30 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
       const signature = encodeBase64(sigBytes);
 
       const res = await fetch(`/api/skills/${id}/install`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           auth: { pubkey: walletAddress, signature, message, timestamp },
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setInstallResult({ success: false, message: data.error || 'Install failed' });
+        setInstallResult({
+          success: false,
+          message: data.error || "Install failed",
+        });
         return;
       }
-      setInstallResult({ success: true, message: 'Skill installed successfully!' });
-      setSkill((s) => s ? { ...s, total_installs: data.total_installs } : s);
+      setInstallResult({
+        success: true,
+        message: "Skill installed successfully!",
+      });
+      setSkill((s) => (s ? { ...s, total_installs: data.total_installs } : s));
     } catch (err: any) {
-      setInstallResult({ success: false, message: err.message || 'Install failed' });
+      setInstallResult({
+        success: false,
+        message: err.message || "Install failed",
+      });
     } finally {
       setInstalling(false);
     }
@@ -269,9 +327,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const startEditing = () => {
     if (!skill) return;
     setEditName(skill.name);
-    setEditDescription(skill.description ?? '');
-    setEditPrice(skill.price_lamports ? fromLamports(skill.price_lamports).toString() : String(PRICING.SOL.defaultPrice));
-    setEditUri(skill.skill_uri ?? '');
+    setEditDescription(skill.description ?? "");
+    setEditPrice(
+      skill.price_lamports
+        ? fromLamports(skill.price_lamports).toString()
+        : String(PRICING.SOL.defaultPrice)
+    );
+    setEditUri(skill.skill_uri ?? "");
     setUpdateResult(null);
     setEditing(true);
   };
@@ -281,34 +343,52 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     setUpdating(true);
     setUpdateResult(null);
     try {
-      const priceLamports = toLamports(parseFloat(editPrice || '0'));
+      const priceLamports = toLamports(parseFloat(editPrice || "0"));
       if (!isValidListingPriceLamports(priceLamports)) {
-        setUpdateResult({ success: false, message: `Minimum listing price is ${formatMinPrice()}.` });
+        setUpdateResult({
+          success: false,
+          message: `Minimum listing price is ${formatMinPrice()}.`,
+        });
         setUpdating(false);
         return;
       }
-      await oracle.updateSkillListing(skill.skill_id, editUri, editName, editDescription, priceLamports);
-      setSkill((s) => s ? {
-        ...s,
-        name: editName,
-        description: editDescription,
-        price_lamports: priceLamports,
-        skill_uri: editUri,
-      } : s);
-      setUpdateResult({ success: true, message: 'Listing updated on-chain!' });
+      await oracle.updateSkillListing(
+        skill.skill_id,
+        editUri,
+        editName,
+        editDescription,
+        priceLamports
+      );
+      setSkill((s) =>
+        s
+          ? {
+              ...s,
+              name: editName,
+              description: editDescription,
+              price_lamports: priceLamports,
+              skill_uri: editUri,
+            }
+          : s
+      );
+      setUpdateResult({ success: true, message: "Listing updated on-chain!" });
       setEditing(false);
     } catch (err: any) {
-      setUpdateResult({ success: false, message: err.message || 'Failed to update listing' });
+      setUpdateResult({
+        success: false,
+        message: err.message || "Failed to update listing",
+      });
     } finally {
       setUpdating(false);
     }
   };
 
-  const isChainOnly = skill?.source === 'chain';
-  const CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agentvouch.xyz';
-  const installUrl = isChainOnly && skill?.skill_uri
-    ? skill.skill_uri
-    : `${CANONICAL_ORIGIN}/api/skills/${id}/raw`;
+  const isChainOnly = skill?.source === "chain";
+  const CANONICAL_ORIGIN =
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://agentvouch.xyz";
+  const installUrl =
+    isChainOnly && skill?.skill_uri
+      ? skill.skill_uri
+      : `${CANONICAL_ORIGIN}/api/skills/${id}/raw`;
   const installCommand = `curl -sL ${installUrl} -o SKILL.md`;
 
   if (loading) {
@@ -323,8 +403,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     return (
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Skill not found</p>
-          <Link href="/skills" className="text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
+            Skill not found
+          </p>
+          <Link
+            href="/skills"
+            className="text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+          >
             ← Back to skills
           </Link>
         </div>
@@ -347,13 +432,17 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 Skills
               </Link>
               <span className="text-gray-300 dark:text-gray-700">/</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">{skill.name}</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {skill.name}
+              </span>
             </div>
             <h1 className="text-3xl font-heading font-bold text-gray-900 dark:text-white">
               {skill.name}
             </h1>
             {skill.description && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{skill.description}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {skill.description}
+              </p>
             )}
           </div>
         </div>
@@ -365,10 +454,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             Author Trust Signals
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Reputation, vouches, staked SOL, and author-wide dispute history help show how much accountability sits behind this author.
+            Reputation, vouches, staked SOL, and author-wide dispute history
+            help show how much accountability sits behind this author.
           </p>
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Author:</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Author:
+            </span>
             <Link
               href={`/author/${skill.author_pubkey}`}
               className="flex items-center gap-1.5 font-mono text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline transition"
@@ -377,21 +469,31 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               <FiExternalLink className="w-3.5 h-3.5" />
             </Link>
             <button
-              onClick={() => copyToClipboard(skill.author_pubkey, 'author')}
+              onClick={() => copyToClipboard(skill.author_pubkey, "author")}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
               title="Copy address"
             >
-              {copied === 'author' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
+              {copied === "author" ? (
+                <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" />
+              ) : (
+                <FiCopy className="w-3.5 h-3.5" />
+              )}
             </button>
             {skill.author_trust?.registeredAt ? (
               <span className="text-xs text-gray-400 dark:text-gray-500">
-                Registered {formatDate(new Date(skill.author_trust.registeredAt * 1000).toISOString())}
+                Registered{" "}
+                {formatDate(
+                  new Date(skill.author_trust.registeredAt * 1000).toISOString()
+                )}
               </span>
             ) : null}
           </div>
           {skill.contact && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Contact: <span className="text-gray-900 dark:text-white">{skill.contact}</span>
+              Contact:{" "}
+              <span className="text-gray-900 dark:text-white">
+                {skill.contact}
+              </span>
             </p>
           )}
           <TrustBadge trust={skill.author_trust} />
@@ -400,10 +502,17 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               href={`/author/${skill.author_pubkey}`}
               className="inline-flex items-center gap-1 text-sm font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
             >
-              View full author trust history <FiExternalLink className="w-3.5 h-3.5" />
+              View full author trust history{" "}
+              <FiExternalLink className="w-3.5 h-3.5" />
             </Link>
             <Link
-              href={`/author/${skill.author_pubkey}?report=1${skill.on_chain_address ? `&skill=${encodeURIComponent(`skill:${skill.on_chain_address}`)}` : ''}`}
+              href={`/author/${skill.author_pubkey}?report=1${
+                skill.on_chain_address
+                  ? `&skill=${encodeURIComponent(
+                      `skill:${skill.on_chain_address}`
+                    )}`
+                  : ""
+              }`}
               className={navButtonSecondaryInlineClass}
             >
               Report author-wide
@@ -415,35 +524,58 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           <div className="mb-6">
             <AgentIdentityPanel
               identity={skill.author_identity}
-              title={skill.author_identity.registryAsset ? 'Registry Identity' : 'Author Identity'}
+              title={
+                skill.author_identity.registryAsset
+                  ? "Registry Identity"
+                  : "Author Identity"
+              }
             />
           </div>
         )}
 
         {/* Meta Row */}
-        <div className={`grid grid-cols-2 ${isChainOnly ? 'sm:grid-cols-4' : 'sm:grid-cols-4'} gap-3 mb-6`}>
+        <div
+          className={`grid grid-cols-2 ${
+            isChainOnly ? "sm:grid-cols-4" : "sm:grid-cols-4"
+          } gap-3 mb-6`}
+        >
           {skill.price_lamports != null && skill.price_lamports > 0 && (
             <div className="rounded-lg border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-3 text-center">
               <div className="text-lg font-bold text-green-700 dark:text-green-400 font-mono flex items-center justify-center">
-                <SolAmount amount={fromLamports(skill.price_lamports).toFixed(4)} iconClassName="w-4 h-4" />
+                <SolAmount
+                  amount={fromLamports(skill.price_lamports).toFixed(4)}
+                  iconClassName="w-4 h-4"
+                />
               </div>
-              <div className="text-xs text-green-600 dark:text-green-500">Price</div>
+              <div className="text-xs text-green-600 dark:text-green-500">
+                Price
+              </div>
             </div>
           )}
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
-            <div className="text-lg font-bold text-gray-900 dark:text-white">v{skill.current_version}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Version</div>
+            <div className="text-lg font-bold text-gray-900 dark:text-white">
+              v{skill.current_version}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Version
+            </div>
           </div>
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
             <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center justify-center gap-1">
               <FiDownload className="w-4 h-4" />
               {(skill.total_installs ?? 0) + (skill.total_downloads ?? 0)}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Downloads</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Downloads
+            </div>
           </div>
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
-            <div className="text-sm font-bold text-gray-900 dark:text-white">{formatDate(skill.created_at)}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Published</div>
+            <div className="text-sm font-bold text-gray-900 dark:text-white">
+              {formatDate(skill.created_at)}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Published
+            </div>
           </div>
         </div>
 
@@ -462,7 +594,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
-        {(capabilitySummary || capabilityBullets.length > 0 || skill.tags?.length > 0) && (
+        {(capabilitySummary ||
+          capabilityBullets.length > 0 ||
+          skill.tags?.length > 0) && (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
               <FiFileText className="w-4 h-4 text-[var(--sea-accent)]" />
@@ -503,7 +637,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           <div className="rounded-xl border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] p-4 mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Free Skill</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
+                  Free Skill
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Install with a wallet signature — no transaction fee.
                 </p>
@@ -515,9 +651,15 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                   className={navButtonPrimaryInlineClass}
                 >
                   {installing ? (
-                    <><FiLoader className="w-4 h-4 animate-spin" />Installing…</>
+                    <>
+                      <FiLoader className="w-4 h-4 animate-spin" />
+                      Installing…
+                    </>
                   ) : (
-                    <><FiDownload className="w-4 h-4" />Install</>
+                    <>
+                      <FiDownload className="w-4 h-4" />
+                      Install
+                    </>
                   )}
                 </button>
               ) : (
@@ -527,15 +669,24 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               )}
             </div>
             {installResult && (
-              <p className={`text-xs mt-2 ${installResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              <p
+                className={`text-xs mt-2 ${
+                  installResult.success
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
                 {installResult.message}
               </p>
             )}
-            {connected && walletAddress === skill.author_pubkey && skill.on_chain_address && (
-              <p className="text-xs mt-2 text-amber-600 dark:text-amber-400">
-                This skill is listed for free. You can set a price via Edit Listing above.
-              </p>
-            )}
+            {connected &&
+              walletAddress === skill.author_pubkey &&
+              skill.on_chain_address && (
+                <p className="text-xs mt-2 text-amber-600 dark:text-amber-400">
+                  This skill is listed for free. You can set a price via Edit
+                  Listing above.
+                </p>
+              )}
           </div>
         )}
 
@@ -546,11 +697,15 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               Install
             </span>
             <button
-              onClick={() => copyToClipboard(installCommand, 'install')}
+              onClick={() => copyToClipboard(installCommand, "install")}
               className="flex items-center gap-1 text-xs text-gray-400 hover:text-[var(--sea-accent)] transition"
             >
-              {copied === 'install' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
-              {copied === 'install' ? 'Copied!' : 'Copy'}
+              {copied === "install" ? (
+                <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" />
+              ) : (
+                <FiCopy className="w-3.5 h-3.5" />
+              )}
+              {copied === "install" ? "Copied!" : "Copy"}
             </button>
           </div>
           <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
@@ -566,26 +721,53 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            {skill.price_lamports != null && skill.price_lamports > 0
-              ? <>This is a paid skill. Requests return <code className="text-amber-600 dark:text-amber-400">402</code> with payment requirements until a valid payment proof is provided.</>
-              : <>This is a free skill. Agents receive content directly — no payment required.</>
-            }
+            {skill.price_lamports != null && skill.price_lamports > 0 ? (
+              <>
+                This is a paid skill. Requests return{" "}
+                <code className="text-amber-600 dark:text-amber-400">402</code>{" "}
+                with payment requirements until a valid payment proof is
+                provided.
+              </>
+            ) : (
+              <>
+                This is a free skill. Agents receive content directly — no
+                payment required.
+              </>
+            )}
           </p>
           <div className="flex items-center gap-2">
             <pre className="flex-1 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
               <code>{`GET /api/skills/${skill.id}/raw`}</code>
             </pre>
             <button
-              onClick={() => copyToClipboard(`${typeof window !== 'undefined' ? window.location.origin : ''}/api/skills/${skill.id}/raw`, 'api')}
+              onClick={() =>
+                copyToClipboard(
+                  `${
+                    typeof window !== "undefined" ? window.location.origin : ""
+                  }/api/skills/${skill.id}/raw`,
+                  "api"
+                )
+              }
               className="flex items-center gap-1 text-xs text-gray-400 hover:text-[var(--sea-accent)] transition shrink-0"
             >
-              {copied === 'api' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
-              {copied === 'api' ? 'Copied!' : 'Copy URL'}
+              {copied === "api" ? (
+                <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" />
+              ) : (
+                <FiCopy className="w-3.5 h-3.5" />
+              )}
+              {copied === "api" ? "Copied!" : "Copy URL"}
             </button>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-            Auth: <code className="text-gray-500 dark:text-gray-400">Authorization: Bearer sk_...</code> or wallet signature.{' '}
-            <Link href="/settings" className="text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline">
+            Auth:{" "}
+            <code className="text-gray-500 dark:text-gray-400">
+              Authorization: Bearer sk_...
+            </code>{" "}
+            or wallet signature.{" "}
+            <Link
+              href="/settings"
+              className="text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+            >
               Get API key →
             </Link>
           </p>
@@ -611,26 +793,32 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               </a>
             </div>
             <button
-              onClick={() => copyToClipboard(skill.ipfs_cid!, 'cid')}
+              onClick={() => copyToClipboard(skill.ipfs_cid!, "cid")}
               className="mt-2 font-mono text-sm text-gray-600 dark:text-gray-400 hover:text-[var(--sea-accent)] flex items-center gap-1.5 transition"
             >
               {skill.ipfs_cid}
-              {copied === 'cid' ? <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" /> : <FiCopy className="w-3.5 h-3.5" />}
+              {copied === "cid" ? (
+                <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" />
+              ) : (
+                <FiCopy className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
         )}
 
         {/* Content Verification */}
         {skill.content_verification && (
-          <div className={`rounded-xl border p-4 mb-6 ${
-            skill.content_verification.status === 'verified'
-              ? 'border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10'
-              : skill.content_verification.status === 'drift_detected'
-              ? 'border-yellow-200 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10'
-              : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900'
-          }`}>
+          <div
+            className={`rounded-xl border p-4 mb-6 ${
+              skill.content_verification.status === "verified"
+                ? "border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10"
+                : skill.content_verification.status === "drift_detected"
+                ? "border-yellow-200 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10"
+                : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
+            }`}
+          >
             <div className="flex items-center gap-2">
-              {skill.content_verification.status === 'verified' ? (
+              {skill.content_verification.status === "verified" ? (
                 <>
                   <FiShield className="w-4 h-4 text-green-600 dark:text-green-400" />
                   <span className="text-sm font-medium text-green-700 dark:text-green-400">
@@ -640,7 +828,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                     — All versions pinned to IPFS, current CID consistent
                   </span>
                 </>
-              ) : skill.content_verification.status === 'drift_detected' ? (
+              ) : skill.content_verification.status === "drift_detected" ? (
                 <>
                   <FiShield className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                   <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
@@ -670,25 +858,35 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 <FiCheckCircle className="w-4 h-4" />
                 Listed on-chain
               </div>
-              {connected && walletAddress === skill.author_pubkey && !editing && (
-                <button
-                  onClick={startEditing}
-                  className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
-                >
-                  <FiEdit2 className="w-3.5 h-3.5" />
-                  Edit Listing
-                </button>
-              )}
+              {connected &&
+                walletAddress === skill.author_pubkey &&
+                !editing && (
+                  <button
+                    onClick={startEditing}
+                    className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
+                  >
+                    <FiEdit2 className="w-3.5 h-3.5" />
+                    Edit Listing
+                  </button>
+                )}
             </div>
             {updateResult && !editing && (
-              <p className={`text-xs mt-2 ${updateResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              <p
+                className={`text-xs mt-2 ${
+                  updateResult.success
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
                 {updateResult.message}
               </p>
             )}
             {editing && (
               <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800/50 space-y-3">
                 <div>
-                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Name
+                  </label>
                   <input
                     type="text"
                     value={editName}
@@ -698,7 +896,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Description</label>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Description
+                  </label>
                   <textarea
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
@@ -709,7 +909,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Price (SOL)</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      Price (SOL)
+                    </label>
                     <input
                       type="number"
                       min={PRICING.SOL.minPrice}
@@ -720,7 +922,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Skill URI</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      Skill URI
+                    </label>
                     <input
                       type="text"
                       value={editUri}
@@ -730,7 +934,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                   </div>
                 </div>
                 {updateResult && (
-                  <p className={`text-xs ${updateResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <p
+                    className={`text-xs ${
+                      updateResult.success
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
                     {updateResult.message}
                   </p>
                 )}
@@ -741,7 +951,10 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                     className={navButtonPrimaryInlineClass}
                   >
                     {updating ? (
-                      <><FiLoader className="w-4 h-4 animate-spin" />Updating…</>
+                      <>
+                        <FiLoader className="w-4 h-4 animate-spin" />
+                        Updating…
+                      </>
                     ) : (
                       <>Save Changes</>
                     )}
@@ -757,52 +970,71 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               </div>
             )}
           </div>
-        ) : connected && walletAddress === skill.author_pubkey && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <SiSolana className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                List on Marketplace
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Create an on-chain SkillListing so other agents can purchase this skill.
-            </p>
-
-            {listResult && (
-              <p className={`text-xs mb-3 ${listResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {listResult.message}
-              </p>
-            )}
-
-            <div className="flex items-center gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Price (SOL)</label>
-                <input
-                  type="number"
-                  min={PRICING.SOL.minPrice}
-                  step={PRICING.SOL.step}
-                  value={listPrice}
-                  onChange={(e) => setListPrice(e.target.value)}
-                  className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
-                />
+        ) : (
+          connected &&
+          walletAddress === skill.author_pubkey && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <SiSolana className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  List on Marketplace
+                </span>
               </div>
-              <button
-                onClick={handleListOnMarketplace}
-                disabled={listing}
-                className={`mt-5 ${navButtonPrimaryInlineClass}`}
-              >
-                {listing ? (
-                  <><FiLoader className="w-4 h-4 animate-spin" />Creating listing…</>
-                ) : (
-                  <><SiSolana className="w-4 h-4" />List Now</>
-                )}
-              </button>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Create an on-chain SkillListing so other agents can purchase
+                this skill.
+              </p>
+
+              {listResult && (
+                <p
+                  className={`text-xs mb-3 ${
+                    listResult.success
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {listResult.message}
+                </p>
+              )}
+
+              <div className="flex items-center gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Price (SOL)
+                  </label>
+                  <input
+                    type="number"
+                    min={PRICING.SOL.minPrice}
+                    step={PRICING.SOL.step}
+                    value={listPrice}
+                    onChange={(e) => setListPrice(e.target.value)}
+                    className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                  />
+                </div>
+                <button
+                  onClick={handleListOnMarketplace}
+                  disabled={listing}
+                  className={`mt-5 ${navButtonPrimaryInlineClass}`}
+                >
+                  {listing ? (
+                    <>
+                      <FiLoader className="w-4 h-4 animate-spin" />
+                      Creating listing…
+                    </>
+                  ) : (
+                    <>
+                      <SiSolana className="w-4 h-4" />
+                      List Now
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                Minimum price is {formatMinPrice()}. Requires one Solana
+                transaction.
+              </p>
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-              Minimum price is {formatMinPrice()}. Requires one Solana transaction.
-            </p>
-          </div>
+          )
         )}
 
         {/* Skill URI */}
@@ -838,12 +1070,16 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <MarkdownRenderer content={content} />
           </div>
-        ) : isChainOnly && skill.skill_uri && (
-          <div className="rounded-xl border border-yellow-200 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10 p-4 mb-6">
-            <p className="text-sm text-yellow-700 dark:text-yellow-400">
-              Content could not be loaded from the source URL. The file may have been moved or is temporarily unavailable.
-            </p>
-          </div>
+        ) : (
+          isChainOnly &&
+          skill.skill_uri && (
+            <div className="rounded-xl border border-yellow-200 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10 p-4 mb-6">
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                Content could not be loaded from the source URL. The file may
+                have been moved or is temporarily unavailable.
+              </p>
+            </div>
+          )
         )}
 
         {/* Version History */}
@@ -873,7 +1109,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                       )}
                     </div>
                     {ver.changelog && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{ver.changelog}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {ver.changelog}
+                      </p>
                     )}
                     {ver.ipfs_cid && (
                       <span className="text-xs font-mono text-gray-400 dark:text-gray-500 mt-1 block">

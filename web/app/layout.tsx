@@ -4,13 +4,13 @@ import "./globals.css";
 import { AppFooter } from "@/components/AppFooter";
 import { AppNavbar } from "@/components/AppNavbar";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
-import { ThemeProvider } from 'next-themes'
-import { VercelAnalytics } from '@/components/VercelAnalytics';
+import { ThemeProvider } from "next-themes";
+import { VercelAnalytics } from "@/components/VercelAnalytics";
 import Script from "next/script";
 
-const inconsolata = Inconsolata({ 
+const inconsolata = Inconsolata({
   subsets: ["latin"],
-  variable: '--font-inconsolata',
+  variable: "--font-inconsolata",
 });
 
 export const metadata: Metadata = {
@@ -40,7 +40,11 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={`${inconsolata.variable} font-mono`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+        >
           <WalletContextProvider>
             <AppNavbar />
             {children}

@@ -3,16 +3,16 @@ import {
   getProgramDerivedAddress,
   getUtf8Encoder,
   type Address,
-} from '@solana/kit';
-import { sql } from '@/lib/db';
+} from "@solana/kit";
+import { sql } from "@/lib/db";
 import {
   getConfiguredSolanaChainContext,
   normalizeInputChainContext,
   normalizePersistedChainContext,
-} from '@/lib/chains';
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../generated/reputation-oracle/src/generated/programs';
+} from "@/lib/chains";
+import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
 
-export type AgentIdentitySource = 'local' | 'erc8004' | 'imported';
+export type AgentIdentitySource = "local" | "erc8004" | "imported";
 
 export interface AgentIdentityBinding {
   id: string;
@@ -42,14 +42,14 @@ export interface AgentIdentitySummary {
 }
 
 const BINDING_TYPES = {
-  walletOwner: 'wallet_owner',
-  walletOperational: 'wallet_operational',
-  agentProfilePda: 'agent_profile_pda',
-  solana8004Asset: 'solana_8004_asset',
-  evm8004Token: 'evm_8004_token',
+  walletOwner: "wallet_owner",
+  walletOperational: "wallet_operational",
+  agentProfilePda: "agent_profile_pda",
+  solana8004Asset: "solana_8004_asset",
+  evm8004Token: "evm_8004_token",
 } as const;
 
-const LOCAL_IDENTITY_REGISTRY = 'agentvouch-local';
+const LOCAL_IDENTITY_REGISTRY = "agentvouch-local";
 
 let schemaReady: Promise<void> | null = null;
 
@@ -79,7 +79,10 @@ type DbBinding = {
   raw_upstream_chain_id: string | null;
 };
 
-export function buildLocalCanonicalAgentId(walletPubkey: string, chainContext = getConfiguredSolanaChainContext()): string {
+export function buildLocalCanonicalAgentId(
+  walletPubkey: string,
+  chainContext = getConfiguredSolanaChainContext()
+): string {
   const normalized = normalizePersistedChainContext(chainContext);
   return `${normalized}:${LOCAL_IDENTITY_REGISTRY}#${walletPubkey}`;
 }
@@ -165,7 +168,7 @@ async function deriveAgentProfilePda(walletPubkey: string): Promise<string> {
   const [pda] = await getProgramDerivedAddress({
     programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
     seeds: [
-      textEncoder.encode('agent'),
+      textEncoder.encode("agent"),
       addressEncoder.encode(walletPubkey as Address),
     ],
   });
@@ -188,7 +191,7 @@ async function buildSyntheticLocalIdentity(params: {
       registryAddress: null,
       externalAgentId: null,
       isPrimary: true,
-      verificationStatus: 'derived',
+      verificationStatus: "derived",
       rawUpstreamChainLabel: null,
       rawUpstreamChainId: null,
     },
@@ -205,7 +208,7 @@ async function buildSyntheticLocalIdentity(params: {
       registryAddress: null,
       externalAgentId: null,
       isPrimary: false,
-      verificationStatus: 'derived',
+      verificationStatus: "derived",
       rawUpstreamChainLabel: null,
       rawUpstreamChainId: null,
     });
@@ -213,10 +216,13 @@ async function buildSyntheticLocalIdentity(params: {
 
   return {
     id: `ephemeral:${chainContext}:${params.walletPubkey}`,
-    canonicalAgentId: buildLocalCanonicalAgentId(params.walletPubkey, chainContext),
-    identitySource: 'local',
+    canonicalAgentId: buildLocalCanonicalAgentId(
+      params.walletPubkey,
+      chainContext
+    ),
+    identitySource: "local",
     homeChainContext: chainContext,
-    status: 'active',
+    status: "active",
     displayName: null,
     bindings,
     ownerWallet: params.walletPubkey,
@@ -226,7 +232,10 @@ async function buildSyntheticLocalIdentity(params: {
   };
 }
 
-async function getAgentByWallet(walletPubkey: string, chainContext: string): Promise<DbAgent | null> {
+async function getAgentByWallet(
+  walletPubkey: string,
+  chainContext: string
+): Promise<DbAgent | null> {
   const rows = await sql()`
     SELECT a.id, a.canonical_agent_id, a.identity_source, a.home_chain_context, a.status, a.display_name
     FROM agents a
@@ -241,7 +250,9 @@ async function getAgentByWallet(walletPubkey: string, chainContext: string): Pro
   return (rows[0] as DbAgent | undefined) ?? null;
 }
 
-async function getAgentByCanonicalId(canonicalAgentId: string): Promise<DbAgent | null> {
+async function getAgentByCanonicalId(
+  canonicalAgentId: string
+): Promise<DbAgent | null> {
   const rows = await sql()`
     SELECT id, canonical_agent_id, identity_source, home_chain_context, status, display_name
     FROM agents
@@ -252,17 +263,20 @@ async function getAgentByCanonicalId(canonicalAgentId: string): Promise<DbAgent 
   return (rows[0] as DbAgent | undefined) ?? null;
 }
 
-async function upsertBinding(agentId: string, binding: {
-  bindingType: string;
-  chainContext: string;
-  bindingRef: string;
-  registryAddress?: string | null;
-  externalAgentId?: string | null;
-  isPrimary?: boolean;
-  verificationStatus?: string;
-  rawUpstreamChainLabel?: string | null;
-  rawUpstreamChainId?: string | null;
-}) {
+async function upsertBinding(
+  agentId: string,
+  binding: {
+    bindingType: string;
+    chainContext: string;
+    bindingRef: string;
+    registryAddress?: string | null;
+    externalAgentId?: string | null;
+    isPrimary?: boolean;
+    verificationStatus?: string;
+    rawUpstreamChainLabel?: string | null;
+    rawUpstreamChainId?: string | null;
+  }
+) {
   await sql()`
     INSERT INTO agent_identity_bindings (
       agent_id,
@@ -284,7 +298,7 @@ async function upsertBinding(agentId: string, binding: {
       ${binding.registryAddress ?? null},
       ${binding.externalAgentId ?? null},
       ${binding.isPrimary ?? false},
-      ${binding.verificationStatus ?? 'verified'},
+      ${binding.verificationStatus ?? "verified"},
       ${binding.rawUpstreamChainLabel ?? null},
       ${binding.rawUpstreamChainId ?? null}
     )
@@ -331,13 +345,21 @@ async function loadAgentSummary(agent: DbAgent): Promise<AgentIdentitySummary> {
   }));
 
   const ownerWallet =
-    mappedBindings.find((binding) => binding.bindingType === BINDING_TYPES.walletOwner)?.bindingRef ?? null;
+    mappedBindings.find(
+      (binding) => binding.bindingType === BINDING_TYPES.walletOwner
+    )?.bindingRef ?? null;
   const operationalWallet =
-    mappedBindings.find((binding) => binding.bindingType === BINDING_TYPES.walletOperational)?.bindingRef ?? null;
+    mappedBindings.find(
+      (binding) => binding.bindingType === BINDING_TYPES.walletOperational
+    )?.bindingRef ?? null;
   const agentProfilePda =
-    mappedBindings.find((binding) => binding.bindingType === BINDING_TYPES.agentProfilePda)?.bindingRef ?? null;
+    mappedBindings.find(
+      (binding) => binding.bindingType === BINDING_TYPES.agentProfilePda
+    )?.bindingRef ?? null;
   const registryAsset =
-    mappedBindings.find((binding) => binding.bindingType === BINDING_TYPES.solana8004Asset)?.bindingRef ?? null;
+    mappedBindings.find(
+      (binding) => binding.bindingType === BINDING_TYPES.solana8004Asset
+    )?.bindingRef ?? null;
 
   return {
     id: agent.id,
@@ -367,11 +389,16 @@ export async function upsertLocalAgentIdentity(params: {
   await ensureAgentIdentitySchema();
 
   const chainContext = normalizePersistedChainContext(params.chainContext);
-  const existingAgent = await getAgentByWallet(params.walletPubkey, chainContext);
+  const existingAgent = await getAgentByWallet(
+    params.walletPubkey,
+    chainContext
+  );
   if (existingAgent) {
     await sql()`
       UPDATE agents
-      SET display_name = COALESCE(display_name, ${params.displayName?.trim() || null}),
+      SET display_name = COALESCE(display_name, ${
+        params.displayName?.trim() || null
+      }),
           home_chain_context = COALESCE(home_chain_context, ${chainContext}),
           updated_at = NOW()
       WHERE id = ${existingAgent.id}::uuid
@@ -396,7 +423,10 @@ export async function upsertLocalAgentIdentity(params: {
     return loadAgentSummary(existingAgent);
   }
 
-  const canonicalAgentId = buildLocalCanonicalAgentId(params.walletPubkey, chainContext);
+  const canonicalAgentId = buildLocalCanonicalAgentId(
+    params.walletPubkey,
+    chainContext
+  );
   const displayName = params.displayName?.trim() || null;
 
   const rows = await sql()`
@@ -433,7 +463,11 @@ export async function upsertLocalAgentIdentity(params: {
 
 export async function resolveAgentIdentityByWallet(
   walletPubkey: string,
-  options?: { chainContext?: string | null; createIfMissing?: boolean; hasAgentProfile?: boolean }
+  options?: {
+    chainContext?: string | null;
+    createIfMissing?: boolean;
+    hasAgentProfile?: boolean;
+  }
 ): Promise<AgentIdentitySummary | null> {
   if (!hasDatabaseConfigured()) {
     return buildSyntheticLocalIdentity({
@@ -475,7 +509,10 @@ export async function resolveAgentIdentityByWallet(
 
 export async function resolveManyAgentIdentitiesByWallet(
   walletPubkeys: string[],
-  options?: { chainContext?: string | null; hasAgentProfileByWallet?: Map<string, boolean> }
+  options?: {
+    chainContext?: string | null;
+    hasAgentProfileByWallet?: Map<string, boolean>;
+  }
 ): Promise<Map<string, AgentIdentitySummary>> {
   const uniqueWallets = [...new Set(walletPubkeys.filter(Boolean))];
   const entries = await Promise.all(
@@ -483,7 +520,8 @@ export async function resolveManyAgentIdentitiesByWallet(
       const identity = await resolveAgentIdentityByWallet(walletPubkey, {
         chainContext: options?.chainContext,
         createIfMissing: true,
-        hasAgentProfile: options?.hasAgentProfileByWallet?.get(walletPubkey) ?? false,
+        hasAgentProfile:
+          options?.hasAgentProfileByWallet?.get(walletPubkey) ?? false,
       });
       return [walletPubkey, identity] as const;
     })
@@ -511,21 +549,25 @@ export async function linkSolanaRegistryIdentity(params: {
   hasAgentProfile?: boolean;
 }): Promise<AgentIdentitySummary> {
   if (!hasDatabaseConfigured()) {
-    throw new Error('DATABASE_URL environment variable is required to persist registry identity links.');
+    throw new Error(
+      "DATABASE_URL environment variable is required to persist registry identity links."
+    );
   }
 
   await ensureAgentIdentitySchema();
 
   const normalizedChainContext =
-    normalizeInputChainContext(params.chainContext ?? getConfiguredSolanaChainContext()) ??
-    getConfiguredSolanaChainContext();
+    normalizeInputChainContext(
+      params.chainContext ?? getConfiguredSolanaChainContext()
+    ) ?? getConfiguredSolanaChainContext();
 
   const currentAgent =
     (await resolveAgentIdentityByWallet(params.ownerWalletPubkey, {
       chainContext: normalizedChainContext,
       createIfMissing: true,
       hasAgentProfile: params.hasAgentProfile,
-    })) ?? (await upsertLocalAgentIdentity({
+    })) ??
+    (await upsertLocalAgentIdentity({
       walletPubkey: params.ownerWalletPubkey,
       chainContext: normalizedChainContext,
       hasAgentProfile: params.hasAgentProfile,
@@ -539,7 +581,9 @@ export async function linkSolanaRegistryIdentity(params: {
 
   const existingAgent = await getAgentByCanonicalId(canonicalAgentId);
   if (existingAgent && existingAgent.id !== currentAgent.id) {
-    throw new Error('This registry identity is already linked to another agent.');
+    throw new Error(
+      "This registry identity is already linked to another agent."
+    );
   }
 
   const rows = await sql()`
@@ -547,7 +591,9 @@ export async function linkSolanaRegistryIdentity(params: {
     SET canonical_agent_id = ${canonicalAgentId},
         identity_source = 'erc8004',
         home_chain_context = ${normalizedChainContext},
-        display_name = COALESCE(${params.displayName?.trim() || null}, display_name),
+        display_name = COALESCE(${
+          params.displayName?.trim() || null
+        }, display_name),
         updated_at = NOW()
     WHERE id = ${currentAgent.id}::uuid
     RETURNING id, canonical_agent_id, identity_source, home_chain_context, status, display_name
@@ -586,7 +632,9 @@ export async function linkSolanaRegistryIdentity(params: {
   }
 
   if (params.hasAgentProfile) {
-    const agentProfilePda = await deriveAgentProfilePda(params.ownerWalletPubkey);
+    const agentProfilePda = await deriveAgentProfilePda(
+      params.ownerWalletPubkey
+    );
     await upsertBinding(agent.id, {
       bindingType: BINDING_TYPES.agentProfilePda,
       chainContext: normalizedChainContext,

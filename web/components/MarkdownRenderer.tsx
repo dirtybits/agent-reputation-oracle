@@ -1,22 +1,27 @@
-'use client';
+"use client";
 
-import { CopyCodeBlock } from '@/components/CopyCodeBlock';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { CopyCodeBlock } from "@/components/CopyCodeBlock";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface MarkdownRendererProps {
   content: string;
   className?: string;
 }
 
-export default function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+export default function MarkdownRenderer({
+  content,
+  className = "",
+}: MarkdownRendererProps) {
   return (
     <div className={`prose prose-sm dark:prose-invert max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h1 className="text-2xl font-bold border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">{children}</h1>
+            <h1 className="text-2xl font-bold border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+              {children}
+            </h1>
           ),
           h2: ({ children }) => (
             <h2 className="text-xl font-bold mt-6 mb-3">{children}</h2>
@@ -25,10 +30,10 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
             <h3 className="text-lg font-semibold mt-4 mb-2">{children}</h3>
           ),
           code: ({ children, className: codeClassName }) => {
-            const isBlock = codeClassName?.includes('language-');
+            const isBlock = codeClassName?.includes("language-");
             if (isBlock) {
               const language = codeClassName?.match(/language-([\w-]+)/)?.[1];
-              const value = String(children).replace(/\n$/, '');
+              const value = String(children).replace(/\n$/, "");
               return (
                 <CopyCodeBlock
                   value={value}
@@ -58,7 +63,9 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
             <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>
+            <ol className="list-decimal list-inside space-y-1 my-2">
+              {children}
+            </ol>
           ),
           table: ({ children }) => (
             <div className="overflow-x-auto my-4">
@@ -73,7 +80,9 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
             </th>
           ),
           td: ({ children }) => (
-            <td className="px-3 py-2 text-sm border-b border-gray-100 dark:border-gray-800">{children}</td>
+            <td className="px-3 py-2 text-sm border-b border-gray-100 dark:border-gray-800">
+              {children}
+            </td>
           ),
         }}
       >

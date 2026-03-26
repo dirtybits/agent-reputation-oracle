@@ -1,13 +1,13 @@
-import { VouchStatus } from '@/generated/reputation-oracle/src/generated';
+import { VouchStatus } from "@/generated/reputation-oracle/src/generated";
 
 export function isClaimableVouchStatus(
-  status: VouchStatus | number | null | undefined,
+  status: VouchStatus | number | null | undefined
 ): boolean {
   return status === VouchStatus.Active;
 }
 
 export function countsTowardAuthorWideReportSnapshot(
-  status: VouchStatus | number | null | undefined,
+  status: VouchStatus | number | null | undefined
 ): boolean {
   return (
     status === VouchStatus.Active ||
@@ -17,20 +17,20 @@ export function countsTowardAuthorWideReportSnapshot(
 }
 
 export function getVouchStatusLabel(
-  status: VouchStatus | number | null | undefined,
+  status: VouchStatus | number | null | undefined
 ): string {
   switch (status) {
     case VouchStatus.Active:
-      return 'Active';
+      return "Active";
     case VouchStatus.Revoked:
-      return 'Revoked';
+      return "Revoked";
     case VouchStatus.Disputed:
-      return 'In dispute';
+      return "In dispute";
     case VouchStatus.Slashed:
-      return 'Slashed';
+      return "Slashed";
     case VouchStatus.Vindicated:
-      return 'Vindicated';
+      return "Vindicated";
     default:
-      return 'Unknown';
+      return "Unknown";
   }
 }

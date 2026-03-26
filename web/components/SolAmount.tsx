@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { SiSolana } from 'react-icons/si';
+import { SiSolana } from "react-icons/si";
 
 export function SolAmount({
   amount,
-  className = '',
-  iconClassName = 'w-3.5 h-3.5',
+  className = "",
+  iconClassName = "w-3.5 h-3.5",
 }: {
   amount: string;
   className?: string;

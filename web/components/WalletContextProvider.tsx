@@ -1,17 +1,28 @@
-'use client';
+"use client";
 
-import { createContext, FC, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { SolanaProvider } from '@solana/react-hooks';
-import { autoDiscover, createClient } from '@solana/client';
-import { PhantomProvider, type PhantomSDKConfig } from '@phantom/react-sdk';
+import {
+  createContext,
+  FC,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { SolanaProvider } from "@solana/react-hooks";
+import { autoDiscover, createClient } from "@solana/client";
+import { PhantomProvider, type PhantomSDKConfig } from "@phantom/react-sdk";
 
 const PhantomConfiguredContext = createContext(false);
 export const usePhantomConfigured = () => useContext(PhantomConfiguredContext);
 
-const ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com';
-const PHANTOM_APP_ID = process.env.NEXT_PUBLIC_PHANTOM_APP_ID ?? '';
+const ENDPOINT =
+  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
+const PHANTOM_APP_ID = process.env.NEXT_PUBLIC_PHANTOM_APP_ID ?? "";
 
-export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
+export const WalletContextProvider: FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [mounted, setMounted] = useState(false);
   const [phantomReady, setPhantomReady] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -25,14 +36,17 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
         endpoint: ENDPOINT,
         walletConnectors: autoDiscover(),
       }),
-    [],
+    []
   );
 
-  const phantomConfig = useMemo<PhantomSDKConfig>(() => ({
-    appId: PHANTOM_APP_ID,
-    providers: ['google', 'apple'],
-    addressTypes: ['Solana' as any],
-  }), []);
+  const phantomConfig = useMemo<PhantomSDKConfig>(
+    () => ({
+      appId: PHANTOM_APP_ID,
+      providers: ["google", "apple"],
+      addressTypes: ["Solana" as any],
+    }),
+    []
+  );
 
   const wantsPhantom = mounted && !!PHANTOM_APP_ID;
 

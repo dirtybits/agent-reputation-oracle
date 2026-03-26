@@ -1,21 +1,24 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
-import { useWalletConnection } from '@solana/react-hooks';
-import { type Address } from '@solana/kit';
-import Link from 'next/link';
-import { useReputationOracle } from '@/hooks/useReputationOracle';
+import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useWalletConnection } from "@solana/react-hooks";
+import { type Address } from "@solana/kit";
+import Link from "next/link";
+import { useReputationOracle } from "@/hooks/useReputationOracle";
 import {
   navButtonFlexClass,
   navButtonInlineClass,
   navButtonPrimaryFlexClass,
   navButtonPrimaryInlineClass,
   navButtonSizeClass,
-} from '@/lib/buttonStyles';
-import { formatSolAmount } from '@/lib/pricing';
-import { SolAmount } from '@/components/SolAmount';
-import TrustBadge, { type TrustData } from '@/components/TrustBadge';
-import type { SkillListing, Purchase } from '../../generated/reputation-oracle/src/generated';
+} from "@/lib/buttonStyles";
+import { formatSolAmount } from "@/lib/pricing";
+import { SolAmount } from "@/components/SolAmount";
+import TrustBadge, { type TrustData } from "@/components/TrustBadge";
+import type {
+  SkillListing,
+  Purchase,
+} from "../../generated/reputation-oracle/src/generated";
 import {
   FiActivity,
   FiAward,
@@ -34,10 +37,10 @@ import {
   FiTag,
   FiTrendingUp,
   FiXCircle,
-} from 'react-icons/fi';
-import { getCompetitionPhase } from '@/lib/competition';
+} from "react-icons/fi";
+import { getCompetitionPhase } from "@/lib/competition";
 
-type PageTab = 'browse' | 'my-purchases' | 'my-listings';
+type PageTab = "browse" | "my-purchases" | "my-listings";
 
 interface SkillRow {
   id: string;
@@ -53,7 +56,7 @@ interface SkillRow {
   price_lamports?: number;
   on_chain_address?: string;
   skill_uri?: string | null;
-  source?: 'repo' | 'chain';
+  source?: "repo" | "chain";
   created_at: string;
   author_trust: TrustData | null;
 }
@@ -71,7 +74,7 @@ interface ApiResponse {
 type SkillListingData = { publicKey: Address; account: SkillListing };
 type PurchaseData = { publicKey: Address; account: Purchase };
 type FeedItem = {
-  type: 'purchase' | 'listing';
+  type: "purchase" | "listing";
   publicKey: Address;
   actor: Address;
   skillListing: Address;
@@ -82,14 +85,14 @@ type FeedItem = {
   priceLamports: number;
 };
 
-type SortOption = 'newest' | 'installs' | 'trusted' | 'name';
+type SortOption = "newest" | "installs" | "trusted" | "name";
 
 function formatSol(lamports: number): string {
   return formatSolAmount(lamports);
 }
 
 function shortAddr(addr: string): string {
-  return addr.slice(0, 4) + '...' + addr.slice(-4);
+  return addr.slice(0, 4) + "..." + addr.slice(-4);
 }
 
 function timeAgo(ts: number): string {
@@ -106,22 +109,22 @@ function formatDate(ts: number): string {
 
 function getCapabilityFallback(tags: string[]): string | null {
   if (!tags.length) return null;
-  return `Capabilities: ${tags.slice(0, 3).join(', ')}`;
+  return `Capabilities: ${tags.slice(0, 3).join(", ")}`;
 }
 
 export default function MarketplacePage() {
   const { wallet, status } = useWalletConnection();
-  const connected = status === 'connected' && !!wallet;
+  const connected = status === "connected" && !!wallet;
   const publicKey = wallet?.account.address ?? null;
   const oracle = useReputationOracle();
 
-  const [activeTab, setActiveTab] = useState<PageTab>('browse');
+  const [activeTab, setActiveTab] = useState<PageTab>("browse");
 
   // Browse state
   const [skills, setSkills] = useState<SkillRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<SortOption>('newest');
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortOption>("newest");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -140,25 +143,27 @@ export default function MarketplacePage() {
   // Feed state
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
-  const [repoSkillMap, setRepoSkillMap] = useState<Map<string, string>>(new Map());
+  const [repoSkillMap, setRepoSkillMap] = useState<Map<string, string>>(
+    new Map()
+  );
 
   const fetchSkills = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.set('q', search);
-      params.set('sort', sort);
-      params.set('page', String(page));
+      if (search) params.set("q", search);
+      params.set("sort", sort);
+      params.set("page", String(page));
 
       const res = await fetch(`/api/skills?${params}`);
-      if (!res.ok) throw new Error('Failed to fetch skills');
+      if (!res.ok) throw new Error("Failed to fetch skills");
       const data: ApiResponse = await res.json();
 
       setSkills(data.skills);
       setTotalPages(data.pagination.totalPages);
       setTotal(data.pagination.total);
     } catch (err) {
-      console.error('Error fetching skills:', err);
+      console.error("Error fetching skills:", err);
       setSkills([]);
     } finally {
       setLoading(false);
@@ -166,50 +171,54 @@ export default function MarketplacePage() {
   }, [search, sort, page]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const loadFeed = useCallback(async (
-    resolvedListings: SkillListingData[],
-    repoMap: Map<string, string>,
-  ) => {
-    setFeedLoading(true);
-    try {
-      const purchases = await oracle.getAllPurchases();
-      const listingMap = new Map(resolvedListings.map((l) => [l.publicKey as string, l]));
-      const purchaseItems: FeedItem[] = purchases
-        .map((p) => {
+  const loadFeed = useCallback(
+    async (
+      resolvedListings: SkillListingData[],
+      repoMap: Map<string, string>
+    ) => {
+      setFeedLoading(true);
+      try {
+        const purchases = await oracle.getAllPurchases();
+        const listingMap = new Map(
+          resolvedListings.map((l) => [l.publicKey as string, l])
+        );
+        const purchaseItems: FeedItem[] = purchases.map((p) => {
           const listing = listingMap.get(p.account.skillListing as string);
           return {
-            type: 'purchase',
+            type: "purchase",
             publicKey: p.publicKey,
             actor: p.account.buyer,
             skillListing: p.account.skillListing,
-            skillName: listing?.account.name ?? 'Unknown Skill',
+            skillName: listing?.account.name ?? "Unknown Skill",
             skillRepoId: repoMap.get(p.account.skillListing as string) ?? null,
-            author: listing?.account.author ?? ('' as Address),
+            author: listing?.account.author ?? ("" as Address),
             timestamp: Number(p.account.purchasedAt),
             priceLamports: Number(p.account.pricePaid),
           };
         });
-      const listingItems: FeedItem[] = resolvedListings.map((listing) => ({
-        type: 'listing',
-        publicKey: listing.publicKey,
-        actor: listing.account.author,
-        skillListing: listing.publicKey,
-        skillName: listing.account.name,
-        skillRepoId: repoMap.get(listing.publicKey as string) ?? null,
-        author: listing.account.author,
-        timestamp: Number(listing.account.createdAt),
-        priceLamports: Number(listing.account.priceLamports),
-      }));
-      const items: FeedItem[] = [...purchaseItems, ...listingItems]
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 20);
-      setFeedItems(items);
-    } catch (e) {
-      console.error('Failed to load feed:', e);
-    } finally {
-      setFeedLoading(false);
-    }
-  }, []);
+        const listingItems: FeedItem[] = resolvedListings.map((listing) => ({
+          type: "listing",
+          publicKey: listing.publicKey,
+          actor: listing.account.author,
+          skillListing: listing.publicKey,
+          skillName: listing.account.name,
+          skillRepoId: repoMap.get(listing.publicKey as string) ?? null,
+          author: listing.account.author,
+          timestamp: Number(listing.account.createdAt),
+          priceLamports: Number(listing.account.priceLamports),
+        }));
+        const items: FeedItem[] = [...purchaseItems, ...listingItems]
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 20);
+        setFeedItems(items);
+      } catch (e) {
+        console.error("Failed to load feed:", e);
+      } finally {
+        setFeedLoading(false);
+      }
+    },
+    []
+  );
 
   const loadListings = useCallback(async () => {
     try {
@@ -227,7 +236,7 @@ export default function MarketplacePage() {
       setListings(all);
       void loadFeed(all, repoMap);
     } catch (e) {
-      console.error('Failed to load listings:', e);
+      console.error("Failed to load listings:", e);
     }
   }, []);
 
@@ -242,13 +251,19 @@ export default function MarketplacePage() {
       setMyListings(authorListings);
       setPurchasedKeys(new Set(purchases.map((p) => p.account.skillListing)));
     } catch (e) {
-      console.error('Failed to load user data:', e);
+      console.error("Failed to load user data:", e);
     }
   }, [publicKey]);
 
-  useEffect(() => { fetchSkills(); }, [fetchSkills]);
-  useEffect(() => { loadListings(); }, [loadListings]);
-  useEffect(() => { loadMyData(); }, [loadMyData]);
+  useEffect(() => {
+    fetchSkills();
+  }, [fetchSkills]);
+  useEffect(() => {
+    loadListings();
+  }, [loadListings]);
+  useEffect(() => {
+    loadMyData();
+  }, [loadMyData]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,31 +281,67 @@ export default function MarketplacePage() {
       setTxSuccess(tx);
       await Promise.all([loadListings(), loadMyData()]);
     } catch (e: any) {
-      console.error('Purchase failed:', e);
-      setTxError(e.message || 'Transaction failed');
+      console.error("Purchase failed:", e);
+      setTxError(e.message || "Transaction failed");
     } finally {
       setPurchasing(null);
     }
   };
 
-  const getListingForSkill = (skill: SkillRow): SkillListingData | undefined => {
+  const getListingForSkill = (
+    skill: SkillRow
+  ): SkillListingData | undefined => {
     if (skill.on_chain_address) {
-      return listings.find((l) => (l.publicKey as string) === skill.on_chain_address);
+      return listings.find(
+        (l) => (l.publicKey as string) === skill.on_chain_address
+      );
     }
     return undefined;
   };
 
-  const sortOptions: { value: SortOption; label: string; icon: React.ReactNode }[] = [
-    { value: 'newest', label: 'Newest', icon: <FiClock className="w-3.5 h-3.5" /> },
-    { value: 'trusted', label: 'Most Trusted', icon: <FiShield className="w-3.5 h-3.5" /> },
-    { value: 'installs', label: 'Most Installed', icon: <FiTrendingUp className="w-3.5 h-3.5" /> },
-    { value: 'name', label: 'Name', icon: <FiBookOpen className="w-3.5 h-3.5" /> },
+  const sortOptions: {
+    value: SortOption;
+    label: string;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      value: "newest",
+      label: "Newest",
+      icon: <FiClock className="w-3.5 h-3.5" />,
+    },
+    {
+      value: "trusted",
+      label: "Most Trusted",
+      icon: <FiShield className="w-3.5 h-3.5" />,
+    },
+    {
+      value: "installs",
+      label: "Most Installed",
+      icon: <FiTrendingUp className="w-3.5 h-3.5" />,
+    },
+    {
+      value: "name",
+      label: "Name",
+      icon: <FiBookOpen className="w-3.5 h-3.5" />,
+    },
   ];
 
   const tabs: { key: PageTab; label: string; icon: ReactNode }[] = [
-    { key: 'browse', label: 'Browse', icon: <FiBookOpen className="inline-block mr-1" /> },
-    { key: 'my-purchases', label: 'My Purchases', icon: <FiShoppingCart className="inline-block mr-1" /> },
-    { key: 'my-listings', label: 'My Listings', icon: <FiPackage className="inline-block mr-1" /> },
+    {
+      key: "browse",
+      label: "Browse",
+      icon: <FiBookOpen className="inline-block mr-1" />,
+    },
+    {
+      key: "my-purchases",
+      label: "My Purchases",
+      icon: <FiShoppingCart className="inline-block mr-1" />,
+    },
+    {
+      key: "my-listings",
+      label: "My Listings",
+      icon: <FiPackage className="inline-block mr-1" />,
+    },
   ];
 
   return (
@@ -303,8 +354,11 @@ export default function MarketplacePage() {
               Marketplace
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Browse, buy, and publish AI agent skills. Every skill shows author trust signals.
-              {total > 0 && activeTab === 'browse' && <span className="ml-2 text-gray-400">({total} skills)</span>}
+              Browse, buy, and publish AI agent skills. Every skill shows author
+              trust signals.
+              {total > 0 && activeTab === "browse" && (
+                <span className="ml-2 text-gray-400">({total} skills)</span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -315,13 +369,14 @@ export default function MarketplacePage() {
               <FiAward className="w-4 h-4" />
               <span className="hidden sm:inline">Competition</span>
               <span className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40">
-                {getCompetitionPhase() === 'upcoming' ? 'Mar 11' : getCompetitionPhase() === 'active' ? 'Live' : 'Ended'}
+                {getCompetitionPhase() === "upcoming"
+                  ? "Mar 11"
+                  : getCompetitionPhase() === "active"
+                  ? "Live"
+                  : "Ended"}
               </span>
             </Link>
-            <Link
-              href="/skills/publish"
-              className={navButtonPrimaryFlexClass}
-            >
+            <Link href="/skills/publish" className={navButtonPrimaryFlexClass}>
               <FiPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Publish Skill</span>
               <span className="sm:hidden">Publish</span>
@@ -333,9 +388,11 @@ export default function MarketplacePage() {
         {txSuccess && (
           <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-green-600 dark:text-green-400"><FiCheckCircle /></span>
+              <span className="text-green-600 dark:text-green-400">
+                <FiCheckCircle />
+              </span>
               <span className="text-green-800 dark:text-green-200 text-sm">
-                Transaction confirmed:{' '}
+                Transaction confirmed:{" "}
                 <a
                   href={`https://explorer.solana.com/tx/${txSuccess}?cluster=devnet`}
                   target="_blank"
@@ -346,16 +403,30 @@ export default function MarketplacePage() {
                 </a>
               </span>
             </div>
-            <button onClick={() => setTxSuccess(null)} className="text-green-600 dark:text-green-400 hover:text-green-800">✕</button>
+            <button
+              onClick={() => setTxSuccess(null)}
+              className="text-green-600 dark:text-green-400 hover:text-green-800"
+            >
+              ✕
+            </button>
           </div>
         )}
         {txError && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-red-600 dark:text-red-400"><FiXCircle /></span>
-              <span className="text-red-800 dark:text-red-200 text-sm">{txError}</span>
+              <span className="text-red-600 dark:text-red-400">
+                <FiXCircle />
+              </span>
+              <span className="text-red-800 dark:text-red-200 text-sm">
+                {txError}
+              </span>
             </div>
-            <button onClick={() => setTxError(null)} className="text-red-600 dark:text-red-400 hover:text-red-800">✕</button>
+            <button
+              onClick={() => setTxError(null)}
+              className="text-red-600 dark:text-red-400 hover:text-red-800"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -367,8 +438,8 @@ export default function MarketplacePage() {
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2.5 font-medium whitespace-nowrap transition text-sm border-b-2 -mb-[2px] ${
                 activeTab === tab.key
-                  ? 'border-[var(--sea-accent)] text-[var(--sea-accent-strong)]'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-[var(--sea-accent)]'
+                  ? "border-[var(--sea-accent)] text-[var(--sea-accent-strong)]"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-[var(--sea-accent)]"
               }`}
             >
               {tab.icon} {tab.label}
@@ -377,7 +448,7 @@ export default function MarketplacePage() {
         </div>
 
         {/* ===== BROWSE TAB ===== */}
-        {activeTab === 'browse' && (
+        {activeTab === "browse" && (
           <div className="flex gap-8 items-start">
             <div className="flex-1 min-w-0">
               {/* Search + Sort */}
@@ -396,11 +467,14 @@ export default function MarketplacePage() {
                   {sortOptions.map((opt) => (
                     <button
                       key={opt.value}
-                      onClick={() => { setSort(opt.value); setPage(1); }}
+                      onClick={() => {
+                        setSort(opt.value);
+                        setPage(1);
+                      }}
                       className={`${navButtonFlexClass} font-medium ${
                         sort === opt.value
-                          ? 'bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] border border-[var(--sea-accent-border)]'
-                          : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                          ? "bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] border border-[var(--sea-accent-border)]"
+                          : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
                       }`}
                     >
                       {opt.icon}
@@ -418,20 +492,32 @@ export default function MarketplacePage() {
               ) : skills.length === 0 ? (
                 <div className="text-center py-20">
                   <FiBookOpen className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-700 mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 mb-2">No skills found</p>
+                  <p className="text-gray-500 dark:text-gray-400 mb-2">
+                    No skills found
+                  </p>
                   <p className="text-sm text-gray-400 dark:text-gray-500">
-                    {search ? 'Try a different search term' : 'Be the first to publish a skill'}
+                    {search
+                      ? "Try a different search term"
+                      : "Be the first to publish a skill"}
                   </p>
                 </div>
               ) : (
                 <>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {skills.map((skill) => {
-                      const downloads = (skill.total_installs ?? 0) + (skill.total_downloads ?? 0);
+                      const downloads =
+                        (skill.total_installs ?? 0) +
+                        (skill.total_downloads ?? 0);
                       const listing = getListingForSkill(skill);
-                      const hasPurchased = listing ? purchasedKeys.has(listing.publicKey) : false;
-                      const isOwn = publicKey && skill.author_pubkey === (publicKey as string);
-                      const isPurchasing = listing ? purchasing === (listing.publicKey as string) : false;
+                      const hasPurchased = listing
+                        ? purchasedKeys.has(listing.publicKey)
+                        : false;
+                      const isOwn =
+                        publicKey &&
+                        skill.author_pubkey === (publicKey as string);
+                      const isPurchasing = listing
+                        ? purchasing === (listing.publicKey as string)
+                        : false;
                       const price = skill.price_lamports ?? 0;
 
                       return (
@@ -450,14 +536,19 @@ export default function MarketplacePage() {
                               <div className="flex items-center gap-2 shrink-0">
                                 {price > 0 ? (
                                   <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
-                                    <SolAmount amount={formatSol(price)} iconClassName="w-3 h-3" />
+                                    <SolAmount
+                                      amount={formatSol(price)}
+                                      iconClassName="w-3 h-3"
+                                    />
                                   </span>
-                                ) : listing && (
-                                  <span className="px-2 py-0.5 rounded-full bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs font-semibold">
-                                    Free
-                                  </span>
+                                ) : (
+                                  listing && (
+                                    <span className="px-2 py-0.5 rounded-full bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs font-semibold">
+                                      Free
+                                    </span>
+                                  )
                                 )}
-                                {skill.source !== 'chain' && (
+                                {skill.source !== "chain" && (
                                   <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
                                     v{skill.current_version}
                                   </span>
@@ -478,14 +569,16 @@ export default function MarketplacePage() {
                             <div className="mb-3">
                               <TrustBadge trust={skill.author_trust} compact />
                               <p className="mt-2 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
-                                Reputation, vouches, staked SOL, and dispute history help signal author trust.
+                                Reputation, vouches, staked SOL, and dispute
+                                history help signal author trust.
                               </p>
                               <Link
                                 href={`/author/${skill.author_pubkey}`}
                                 className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
                                 title={skill.author_pubkey}
                               >
-                                View author trust <FiExternalLink className="w-3 h-3" />
+                                View author trust{" "}
+                                <FiExternalLink className="w-3 h-3" />
                               </Link>
                             </div>
 
@@ -498,7 +591,7 @@ export default function MarketplacePage() {
                                 {skill.tags?.length > 0 && (
                                   <span className="flex items-center gap-1">
                                     <FiTag className="w-3.5 h-3.5" />
-                                    {skill.tags.slice(0, 2).join(', ')}
+                                    {skill.tags.slice(0, 2).join(", ")}
                                   </span>
                                 )}
                               </div>
@@ -515,7 +608,10 @@ export default function MarketplacePage() {
                             {skill.ipfs_cid && (
                               <div className="mt-2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                                 <FiShield className="w-3 h-3" />
-                                <span className="font-mono truncate" title={skill.ipfs_cid}>
+                                <span
+                                  className="font-mono truncate"
+                                  title={skill.ipfs_cid}
+                                >
                                   {skill.ipfs_cid.slice(0, 12)}...
                                 </span>
                               </div>
@@ -531,7 +627,9 @@ export default function MarketplacePage() {
                               className="mt-2 flex items-center gap-1 text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate"
                             >
                               <FiExternalLink className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{skill.skill_uri}</span>
+                              <span className="truncate">
+                                {skill.skill_uri}
+                              </span>
                             </a>
                           )}
 
@@ -539,7 +637,9 @@ export default function MarketplacePage() {
                           {listing && (
                             <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
                               {isOwn ? (
-                                <div className={`w-full ${navButtonSizeClass} bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-medium text-center border border-gray-200 dark:border-gray-700`}>
+                                <div
+                                  className={`w-full ${navButtonSizeClass} bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-medium text-center border border-gray-200 dark:border-gray-700`}
+                                >
                                   Your Skill
                                 </div>
                               ) : price === 0 ? (
@@ -547,29 +647,44 @@ export default function MarketplacePage() {
                                   href={`/skills/${skill.id}`}
                                   className={`w-full ${navButtonFlexClass} font-medium bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-center border border-[var(--sea-accent-border)] hover:bg-[var(--sea-accent-soft-hover)] transition`}
                                 >
-                                  <FiDownload className="w-3 h-3" /> Free — View & Install
+                                  <FiDownload className="w-3 h-3" /> Free — View
+                                  & Install
                                 </Link>
                               ) : hasPurchased ? (
-                                <div className={`w-full ${navButtonSizeClass} bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-medium text-center border border-green-200 dark:border-green-800`}>
-                                  <span className="inline-flex items-center gap-1"><FiCheckCircle className="w-3 h-3" /> Purchased</span>
+                                <div
+                                  className={`w-full ${navButtonSizeClass} bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-medium text-center border border-green-200 dark:border-green-800`}
+                                >
+                                  <span className="inline-flex items-center gap-1">
+                                    <FiCheckCircle className="w-3 h-3" />{" "}
+                                    Purchased
+                                  </span>
                                 </div>
                               ) : (
                                 <button
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    handlePurchase(listing.publicKey, listing.account.author);
+                                    handlePurchase(
+                                      listing.publicKey,
+                                      listing.account.author
+                                    );
                                   }}
                                   disabled={!connected || isPurchasing}
                                   className={`w-full ${navButtonPrimaryFlexClass}`}
                                 >
                                   {isPurchasing ? (
-                                    <span className="animate-pulse">Processing...</span>
+                                    <span className="animate-pulse">
+                                      Processing...
+                                    </span>
                                   ) : connected ? (
                                     <span className="inline-flex items-center gap-1 justify-center">
-                                      Buy for <SolAmount amount={formatSol(price)} iconClassName="w-3 h-3" />
+                                      Buy for{" "}
+                                      <SolAmount
+                                        amount={formatSol(price)}
+                                        iconClassName="w-3 h-3"
+                                      />
                                     </span>
                                   ) : (
-                                    'Connect Wallet to Buy'
+                                    "Connect Wallet to Buy"
                                   )}
                                 </button>
                               )}
@@ -611,7 +726,9 @@ export default function MarketplacePage() {
               <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden sticky top-6">
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                   <FiActivity className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">Recent Activity</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Recent Activity
+                  </span>
                   {feedLoading && (
                     <span className="ml-auto">
                       <FiLoader className="w-3 h-3 text-gray-400 animate-spin" />
@@ -622,20 +739,25 @@ export default function MarketplacePage() {
                 {feedItems.length === 0 && !feedLoading ? (
                   <div className="px-4 py-8 text-center">
                     <FiClock className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-700" />
-                    <p className="text-xs text-gray-400 dark:text-gray-500">No recent activity yet.</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      No recent activity yet.
+                    </p>
                   </div>
                 ) : (
                   <ul className="divide-y divide-gray-50 dark:divide-gray-800/50 max-h-[520px] overflow-y-auto">
                     {feedItems.map((item) => (
-                      <li key={item.publicKey} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
+                      <li
+                        key={item.publicKey}
+                        className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition"
+                      >
                         <p className="text-xs text-gray-900 dark:text-gray-100 leading-relaxed">
                           <Link
                             href={`/author/${item.actor}`}
                             className="font-mono font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
                           >
                             {shortAddr(item.actor)}
-                          </Link>{' '}
-                          {item.type === 'listing' ? 'listed ' : 'bought '}
+                          </Link>{" "}
+                          {item.type === "listing" ? "listed " : "bought "}
                           {item.skillRepoId ? (
                             <Link
                               href={`/skills/${item.skillRepoId}`}
@@ -647,13 +769,13 @@ export default function MarketplacePage() {
                             <span className="font-semibold text-gray-900 dark:text-white">
                               &ldquo;{item.skillName}&rdquo;
                             </span>
-                          )}{' '}
-                          {item.type === 'purchase' && item.author ? (
+                          )}{" "}
+                          {item.type === "purchase" && item.author ? (
                             <>
-                              from{' '}
+                              from{" "}
                               <Link
                                 href={`/author/${item.author}`}
-                            className="font-mono font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+                                className="font-mono font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
                               >
                                 {shortAddr(item.author)}
                               </Link>
@@ -667,7 +789,10 @@ export default function MarketplacePage() {
                           </span>
                           {item.priceLamports > 0 && (
                             <span className="text-xs font-mono text-green-600 dark:text-green-400">
-                              <SolAmount amount={formatSol(item.priceLamports)} iconClassName="w-3 h-3" />
+                              <SolAmount
+                                amount={formatSol(item.priceLamports)}
+                                iconClassName="w-3 h-3"
+                              />
                             </span>
                           )}
                         </div>
@@ -681,24 +806,38 @@ export default function MarketplacePage() {
         )}
 
         {/* ===== MY PURCHASES TAB ===== */}
-        {activeTab === 'my-purchases' && (
+        {activeTab === "my-purchases" && (
           <div>
             {!connected ? (
               <div className="text-center py-20">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiShoppingCart /></div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Connect your wallet to see your purchases.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
+                  <FiShoppingCart />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Connect Wallet
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Connect your wallet to see your purchases.
+                </p>
               </div>
             ) : myPurchases.length === 0 ? (
               <div className="text-center py-20">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiShoppingCart /></div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No purchases yet</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Browse the marketplace to find useful skills.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
+                  <FiShoppingCart />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  No purchases yet
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Browse the marketplace to find useful skills.
+                </p>
                 <button
-                  onClick={() => setActiveTab('browse')}
+                  onClick={() => setActiveTab("browse")}
                   className={navButtonPrimaryInlineClass}
                 >
-                  <span className="inline-flex items-center gap-2"><FiBookOpen /> Browse Skills</span>
+                  <span className="inline-flex items-center gap-2">
+                    <FiBookOpen /> Browse Skills
+                  </span>
                 </button>
               </div>
             ) : (
@@ -714,12 +853,15 @@ export default function MarketplacePage() {
                     >
                       <div>
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white">
-                          {listing?.account.name || 'Unknown Skill'}
+                          {listing?.account.name || "Unknown Skill"}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Purchased {formatDate(Number(purchase.account.purchasedAt))} ·{' '}
+                          Purchased{" "}
+                          {formatDate(Number(purchase.account.purchasedAt))} ·{" "}
                           <SolAmount
-                            amount={formatSol(Number(purchase.account.pricePaid))}
+                            amount={formatSol(
+                              Number(purchase.account.pricePaid)
+                            )}
                             className="font-mono text-gray-900 dark:text-white"
                             iconClassName="w-3 h-3"
                           />
@@ -732,7 +874,9 @@ export default function MarketplacePage() {
                           rel="noopener noreferrer"
                           className={`${navButtonInlineClass} font-semibold bg-green-600 hover:bg-green-700 text-white transition`}
                         >
-                          <span className="inline-flex items-center gap-1"><FiDownload /> Download</span>
+                          <span className="inline-flex items-center gap-1">
+                            <FiDownload /> Download
+                          </span>
                         </a>
                       )}
                     </div>
@@ -744,19 +888,31 @@ export default function MarketplacePage() {
         )}
 
         {/* ===== MY LISTINGS TAB ===== */}
-        {activeTab === 'my-listings' && (
+        {activeTab === "my-listings" && (
           <div>
             {!connected ? (
               <div className="text-center py-20">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiBox /></div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Connect your wallet to see your listings.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
+                  <FiBox />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Connect Wallet
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Connect your wallet to see your listings.
+                </p>
               </div>
             ) : myListings.length === 0 ? (
               <div className="text-center py-20">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiBox /></div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No skills published</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Publish your first skill to start earning.</p>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
+                  <FiBox />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  No skills published
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Publish your first skill to start earning.
+                </p>
                 <Link
                   href="/skills/publish"
                   className={navButtonPrimaryInlineClass}
@@ -782,7 +938,10 @@ export default function MarketplacePage() {
                           {listing.account.name}
                         </h3>
                         <span className="text-green-600 dark:text-green-400 font-mono font-bold">
-                          <SolAmount amount={formatSol(price)} iconClassName="w-3.5 h-3.5" />
+                          <SolAmount
+                            amount={formatSol(price)}
+                            iconClassName="w-3.5 h-3.5"
+                          />
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -790,10 +949,15 @@ export default function MarketplacePage() {
                       </p>
                       <div className="flex gap-4 text-sm">
                         <span className="text-gray-500 dark:text-gray-400">
-                          <span className="inline-flex items-center gap-1"><FiDownload /> {downloads} downloads</span>
+                          <span className="inline-flex items-center gap-1">
+                            <FiDownload /> {downloads} downloads
+                          </span>
                         </span>
                         <span className="text-green-600 dark:text-green-400 font-mono">
-                          <span className="inline-flex items-center gap-1"><FiTrendingUp /> {formatSol(revenue)} SOL total ({formatSol(authorEarnings)} your share)</span>
+                          <span className="inline-flex items-center gap-1">
+                            <FiTrendingUp /> {formatSol(revenue)} SOL total (
+                            {formatSol(authorEarnings)} your share)
+                          </span>
                         </span>
                       </div>
                     </div>

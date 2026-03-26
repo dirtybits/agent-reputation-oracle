@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   BASE_CHAIN_CONTEXT,
   SOLANA_DEVNET_CHAIN_CONTEXT,
@@ -6,11 +6,11 @@ import {
   getConfiguredSolanaChainContext,
   normalizeInputChainContext,
   normalizePersistedChainContext,
-} from '@/lib/chains';
+} from "@/lib/chains";
 
 const ORIGINAL_ENV = { ...process.env };
 
-describe('chains', () => {
+describe("chains", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...ORIGINAL_ENV };
@@ -24,22 +24,30 @@ describe('chains', () => {
     process.env = { ...ORIGINAL_ENV };
   });
 
-  it('normalizes legacy aliases to CAIP-2 chain contexts', () => {
-    expect(normalizeInputChainContext('solana:mainnet-beta')).toBe(SOLANA_MAINNET_CHAIN_CONTEXT);
-    expect(normalizeInputChainContext('solana:devnet')).toBe(SOLANA_DEVNET_CHAIN_CONTEXT);
-    expect(normalizeInputChainContext('base')).toBe(BASE_CHAIN_CONTEXT);
+  it("normalizes legacy aliases to CAIP-2 chain contexts", () => {
+    expect(normalizeInputChainContext("solana:mainnet-beta")).toBe(
+      SOLANA_MAINNET_CHAIN_CONTEXT
+    );
+    expect(normalizeInputChainContext("solana:devnet")).toBe(
+      SOLANA_DEVNET_CHAIN_CONTEXT
+    );
+    expect(normalizeInputChainContext("base")).toBe(BASE_CHAIN_CONTEXT);
   });
 
-  it('uses the configured RPC cluster for bare solana aliases', () => {
-    process.env.SOLANA_RPC_URL = 'https://api.mainnet-beta.solana.com';
-    expect(normalizeInputChainContext('solana')).toBe(SOLANA_MAINNET_CHAIN_CONTEXT);
+  it("uses the configured RPC cluster for bare solana aliases", () => {
+    process.env.SOLANA_RPC_URL = "https://api.mainnet-beta.solana.com";
+    expect(normalizeInputChainContext("solana")).toBe(
+      SOLANA_MAINNET_CHAIN_CONTEXT
+    );
   });
 
-  it('defaults to devnet when no explicit cluster is configured', () => {
+  it("defaults to devnet when no explicit cluster is configured", () => {
     expect(getConfiguredSolanaChainContext()).toBe(SOLANA_DEVNET_CHAIN_CONTEXT);
   });
 
-  it('preserves unknown stored values instead of guessing silently', () => {
-    expect(normalizePersistedChainContext('custom:unknown-network')).toBe('custom:unknown-network');
+  it("preserves unknown stored values instead of guessing silently", () => {
+    expect(normalizePersistedChainContext("custom:unknown-network")).toBe(
+      "custom:unknown-network"
+    );
   });
 });

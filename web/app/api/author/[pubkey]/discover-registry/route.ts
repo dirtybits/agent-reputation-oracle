@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuthorTrust } from '@/lib/trust';
-import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
-import { discoverSolanaRegistryCandidatesByWallet } from '@/lib/solanaAgentRegistry';
+import { NextRequest, NextResponse } from "next/server";
+import { verifyAuthorTrust } from "@/lib/trust";
+import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
+import { discoverSolanaRegistryCandidatesByWallet } from "@/lib/solanaAgentRegistry";
 
 export async function POST(
   request: NextRequest,
@@ -13,20 +13,26 @@ export async function POST(
     const { auth } = body as { auth: AuthPayload };
 
     if (!auth) {
-      return NextResponse.json({ error: 'Missing auth payload' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing auth payload" },
+        { status: 400 }
+      );
     }
 
     const verification = verifyWalletSignature(auth);
     if (!verification.valid || !verification.pubkey) {
       return NextResponse.json(
-        { error: verification.error || 'Invalid signature' },
+        { error: verification.error || "Invalid signature" },
         { status: 401 }
       );
     }
 
     if (verification.pubkey !== pubkey) {
       return NextResponse.json(
-        { error: 'Only the author wallet can discover registry identities for linking' },
+        {
+          error:
+            "Only the author wallet can discover registry identities for linking",
+        },
         { status: 403 }
       );
     }
@@ -34,7 +40,10 @@ export async function POST(
     const authorTrust = await verifyAuthorTrust(pubkey);
     if (!authorTrust.isRegistered) {
       return NextResponse.json(
-        { error: 'You must register an on-chain AgentProfile before linking registry identity.' },
+        {
+          error:
+            "You must register an on-chain AgentProfile before linking registry identity.",
+        },
         { status: 403 }
       );
     }
@@ -45,7 +54,7 @@ export async function POST(
       candidates,
     });
   } catch (error: any) {
-    console.error('POST /api/author/[pubkey]/discover-registry error:', error);
+    console.error("POST /api/author/[pubkey]/discover-registry error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

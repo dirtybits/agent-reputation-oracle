@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect, type ReactNode } from 'react';
-import { useWalletConnection } from '@solana/react-hooks';
-import { address } from '@solana/kit';
-import { useReputationOracle } from '@/hooks/useReputationOracle';
-import { ClientWalletButton } from '@/components/ClientWalletButton';
+import { useState, useEffect, type ReactNode } from "react";
+import { useWalletConnection } from "@solana/react-hooks";
+import { address } from "@solana/kit";
+import { useReputationOracle } from "@/hooks/useReputationOracle";
+import { ClientWalletButton } from "@/components/ClientWalletButton";
 import {
   navButtonFlexClass,
   navButtonInlineClass,
@@ -12,10 +12,10 @@ import {
   navButtonPrimaryInlineClass,
   navButtonSecondaryFlexClass,
   navButtonSecondaryInlineClass,
-} from '@/lib/buttonStyles';
-import { formatSolAmount } from '@/lib/pricing';
-import Link from 'next/link';
-import { AuthorDisputeRuling } from '@/generated/reputation-oracle/src/generated';
+} from "@/lib/buttonStyles";
+import { formatSolAmount } from "@/lib/pricing";
+import Link from "next/link";
+import { AuthorDisputeRuling } from "@/generated/reputation-oracle/src/generated";
 import {
   FiAlertTriangle,
   FiCalendar,
@@ -26,11 +26,11 @@ import {
   FiUser,
   FiUsers,
   FiZap,
-} from 'react-icons/fi';
+} from "react-icons/fi";
 
-type Tab = 'profile' | 'vouch' | 'explorer' | 'disputes';
+type Tab = "profile" | "vouch" | "explorer" | "disputes";
 
-const SOLANA_FM_CLUSTER = 'devnet-solana';
+const SOLANA_FM_CLUSTER = "devnet-solana";
 
 function getSolanaFmTxUrl(tx: string): string {
   return `https://solana.fm/tx/${tx}?cluster=${SOLANA_FM_CLUSTER}`;
@@ -38,28 +38,30 @@ function getSolanaFmTxUrl(tx: string): string {
 
 export default function DashboardPage() {
   const { wallet, status: walletStatus } = useWalletConnection();
-  const connected = walletStatus === 'connected' && !!wallet;
+  const connected = walletStatus === "connected" && !!wallet;
   const publicKey = wallet?.account.address ?? null;
   const oracle = useReputationOracle();
 
-  const [activeTab, setActiveTab] = useState<Tab>('profile');
-  const [metadataUri, setMetadataUri] = useState('');
-  const [voucheeAddress, setVoucheeAddress] = useState('');
-  const [vouchAmount, setVouchAmount] = useState('0.1');
-  const [searchAddress, setSearchAddress] = useState('');
+  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [metadataUri, setMetadataUri] = useState("");
+  const [voucheeAddress, setVoucheeAddress] = useState("");
+  const [vouchAmount, setVouchAmount] = useState("0.1");
+  const [searchAddress, setSearchAddress] = useState("");
   const [searchedAgent, setSearchedAgent] = useState<any>(null);
-  const [disputeVouchAddress, setDisputeVouchAddress] = useState('');
-  const [disputeEvidence, setDisputeEvidence] = useState('');
+  const [disputeVouchAddress, setDisputeVouchAddress] = useState("");
+  const [disputeEvidence, setDisputeEvidence] = useState("");
   const [agentProfile, setAgentProfile] = useState<any>(null);
   const [vouches, setVouches] = useState<any[]>([]);
   const [vouchesReceived, setVouchesReceived] = useState<any[]>([]);
   const [allAgents, setAllAgents] = useState<any[]>([]);
   const [authorDisputes, setAuthorDisputes] = useState<any[]>([]);
   const [configAuthority, setConfigAuthority] = useState<string | null>(null);
-  const [resolvingAuthorDispute, setResolvingAuthorDispute] = useState<string | null>(null);
+  const [resolvingAuthorDispute, setResolvingAuthorDispute] = useState<
+    string | null
+  >(null);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState("");
   const [statusTx, setStatusTx] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export default function DashboardPage() {
       loadAgentProfile();
       loadVouches();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, publicKey]);
 
   const loadAgentProfile = async () => {
@@ -77,7 +79,7 @@ export default function DashboardPage() {
       const profile = await oracle.getAgentProfile(publicKey);
       setAgentProfile(profile);
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error("Error loading profile:", error);
     } finally {
       setLoading(false);
     }
@@ -87,11 +89,13 @@ export default function DashboardPage() {
     if (!publicKey) return;
     try {
       const vouchList = await oracle.getAllVouchesForAgent(publicKey);
-      const vouchesReceivedList = await oracle.getAllVouchesReceivedByAgent(publicKey);
+      const vouchesReceivedList = await oracle.getAllVouchesReceivedByAgent(
+        publicKey
+      );
       setVouches(vouchList);
       setVouchesReceived(vouchesReceivedList);
     } catch (error) {
-      console.error('Error loading vouches:', error);
+      console.error("Error loading vouches:", error);
     }
   };
 
@@ -106,7 +110,7 @@ export default function DashboardPage() {
       });
       setAllAgents(sorted);
     } catch (error) {
-      console.error('Error loading agents:', error);
+      console.error("Error loading agents:", error);
     } finally {
       setLoadingAgents(false);
     }
@@ -119,47 +123,51 @@ export default function DashboardPage() {
         oracle.getConfig(),
         oracle.getAllAuthorDisputes(),
       ]);
-      const resolverWallet = config?.authority ? String(config.authority) : null;
+      const resolverWallet = config?.authority
+        ? String(config.authority)
+        : null;
       setConfigAuthority(resolverWallet);
       setAuthorDisputes(
         resolverWallet === publicKey
           ? disputes
-          : disputes.filter((dispute: any) => String(dispute.account.author) === publicKey)
+          : disputes.filter(
+              (dispute: any) => String(dispute.account.author) === publicKey
+            )
       );
     } catch (error) {
-      console.error('Error loading author disputes:', error);
+      console.error("Error loading author disputes:", error);
     }
   };
 
   useEffect(() => {
-    if (activeTab === 'explorer' && allAgents.length === 0) {
+    if (activeTab === "explorer" && allAgents.length === 0) {
       loadAllAgents();
-    } else if (activeTab === 'vouch' && connected && allAgents.length === 0) {
+    } else if (activeTab === "vouch" && connected && allAgents.length === 0) {
       loadAllAgents();
-    } else if (activeTab === 'disputes' && connected) {
+    } else if (activeTab === "disputes" && connected) {
       loadAuthorDisputes();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, connected]);
 
   const searchAgent = async () => {
     if (!searchAddress) {
-      setStatus('Please enter an agent address');
+      setStatus("Please enter an agent address");
       setStatusTx(null);
       return;
     }
     setLoading(true);
-    setStatus('Searching...');
+    setStatus("Searching...");
     setStatusTx(null);
     try {
       const agentKey = address(searchAddress);
       const profile = await oracle.getAgentProfile(agentKey);
       if (profile) {
         setSearchedAgent(profile);
-        setStatus('Agent found!');
+        setStatus("Agent found!");
       } else {
         setSearchedAgent(null);
-        setStatus('Agent not found - they may not be registered yet');
+        setStatus("Agent not found - they may not be registered yet");
       }
       setStatusTx(null);
     } catch (error: any) {
@@ -173,20 +181,20 @@ export default function DashboardPage() {
 
   const handleDispute = async () => {
     if (!disputeVouchAddress || !disputeEvidence) {
-      setStatus('Please enter vouch address and evidence');
+      setStatus("Please enter vouch address and evidence");
       setStatusTx(null);
       return;
     }
     setLoading(true);
-    setStatus('Opening dispute...');
+    setStatus("Opening dispute...");
     setStatusTx(null);
     try {
       const vouchKey = address(disputeVouchAddress);
       const { tx } = await oracle.openDispute(vouchKey, disputeEvidence);
-      setStatus('Dispute opened!');
+      setStatus("Dispute opened!");
       setStatusTx(tx);
-      setDisputeVouchAddress('');
-      setDisputeEvidence('');
+      setDisputeVouchAddress("");
+      setDisputeEvidence("");
     } catch (error: any) {
       setStatus(`Error: ${error.message}`);
       setStatusTx(null);
@@ -195,18 +203,25 @@ export default function DashboardPage() {
     }
   };
 
-  const handleResolveAuthorDispute = async (dispute: any, ruling: AuthorDisputeRuling) => {
+  const handleResolveAuthorDispute = async (
+    dispute: any,
+    ruling: AuthorDisputeRuling
+  ) => {
     setResolvingAuthorDispute(dispute.publicKey);
-    setStatus('');
+    setStatus("");
     setStatusTx(null);
     try {
       const { tx } = await oracle.resolveAuthorDispute(
         address(String(dispute.account.author)),
         BigInt(dispute.account.disputeId),
         ruling,
-        address(String(dispute.account.challenger)),
+        address(String(dispute.account.challenger))
       );
-      setStatus(`Author dispute ${ruling === AuthorDisputeRuling.Upheld ? 'upheld' : 'dismissed'} successfully.`);
+      setStatus(
+        `Author dispute ${
+          ruling === AuthorDisputeRuling.Upheld ? "upheld" : "dismissed"
+        } successfully.`
+      );
       setStatusTx(tx);
       await loadAuthorDisputes();
     } catch (error: any) {
@@ -218,11 +233,11 @@ export default function DashboardPage() {
 
   const handleRegister = async () => {
     setLoading(true);
-    setStatus('Registering agent...');
+    setStatus("Registering agent...");
     setStatusTx(null);
     try {
-      const { tx } = await oracle.registerAgent(metadataUri || '');
-      setStatus('Agent registered!');
+      const { tx } = await oracle.registerAgent(metadataUri || "");
+      setStatus("Agent registered!");
       setStatusTx(tx);
       setTimeout(loadAgentProfile, 2000);
     } catch (error: any) {
@@ -235,24 +250,26 @@ export default function DashboardPage() {
 
   const handleVouch = async () => {
     if (!voucheeAddress) {
-      setStatus('Please enter a vouchee address');
+      setStatus("Please enter a vouchee address");
       setStatusTx(null);
       return;
     }
     setLoading(true);
-    setStatus('Creating vouch...');
+    setStatus("Creating vouch...");
     setStatusTx(null);
     try {
       const vouchee = address(voucheeAddress);
       const voucheeData = await oracle.getAgentProfile(vouchee);
       if (!voucheeData) {
-        setStatus('Error: That agent is not registered yet. They need to register before you can vouch for them.');
+        setStatus(
+          "Error: That agent is not registered yet. They need to register before you can vouch for them."
+        );
         setStatusTx(null);
         setLoading(false);
         return;
       }
       const { tx } = await oracle.vouch(vouchee, parseFloat(vouchAmount));
-      setStatus('Vouch created!');
+      setStatus("Vouch created!");
       setStatusTx(tx);
       setTimeout(loadAgentProfile, 2000);
     } catch (error: any) {
@@ -264,7 +281,7 @@ export default function DashboardPage() {
   };
 
   const formatScore = (score: any) => {
-    if (!score) return '0';
+    if (!score) return "0";
     return Number(score).toLocaleString();
   };
 
@@ -274,10 +291,26 @@ export default function DashboardPage() {
   };
 
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
-    { id: 'profile', label: 'My Profile', icon: <FiUser className="inline-block mr-1" /> },
-    { id: 'vouch', label: 'Vouch', icon: <FiZap className="inline-block mr-1" /> },
-    { id: 'explorer', label: 'Explore', icon: <FiSearch className="inline-block mr-1" /> },
-    { id: 'disputes', label: 'Disputes', icon: <FiShield className="inline-block mr-1" /> },
+    {
+      id: "profile",
+      label: "My Profile",
+      icon: <FiUser className="inline-block mr-1" />,
+    },
+    {
+      id: "vouch",
+      label: "Vouch",
+      icon: <FiZap className="inline-block mr-1" />,
+    },
+    {
+      id: "explorer",
+      label: "Explore",
+      icon: <FiSearch className="inline-block mr-1" />,
+    },
+    {
+      id: "disputes",
+      label: "Disputes",
+      icon: <FiShield className="inline-block mr-1" />,
+    },
   ];
 
   return (
@@ -302,8 +335,8 @@ export default function DashboardPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-2.5 font-medium whitespace-nowrap transition text-sm border-b-2 -mb-[2px] ${
                   activeTab === tab.id
-                    ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                    ? "border-gray-900 dark:border-white text-gray-900 dark:text-white"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 }`}
               >
                 {tab.icon} {tab.label}
@@ -311,20 +344,28 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {activeTab === 'profile' && !connected && (
+          {activeTab === "profile" && !connected && (
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiUser /></div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to view and manage your agent profile.</p>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
+                <FiUser />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                Connect Wallet
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Connect your wallet to view and manage your agent profile.
+              </p>
               <ClientWalletButton />
             </div>
           )}
 
-          {activeTab === 'profile' && connected && (
+          {activeTab === "profile" && connected && (
             <>
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white">Your Agent Profile</h2>
+                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
+                    Your Agent Profile
+                  </h2>
                   {publicKey && (
                     <Link
                       href={`/author/${publicKey}`}
@@ -334,42 +375,69 @@ export default function DashboardPage() {
                     </Link>
                   )}
                 </div>
-                
+
                 {loading && !agentProfile ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Loading...
+                  </p>
                 ) : agentProfile ? (
                   <div className="space-y-0 divide-y divide-gray-100 dark:divide-gray-800">
                     <div className="flex justify-between py-3">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Reputation Score</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Reputation Score
+                      </span>
                       <span className="font-bold text-xl text-green-600 dark:text-green-400">
                         {formatScore(agentProfile.reputationScore)}
                       </span>
                     </div>
                     <div className="flex justify-between py-3">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Total Staked</span>
-                      <span className="text-sm font-mono text-gray-900 dark:text-white">{(Number(agentProfile.totalStakedFor) / 1e9).toFixed(4)} SOL</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Total Staked
+                      </span>
+                      <span className="text-sm font-mono text-gray-900 dark:text-white">
+                        {(Number(agentProfile.totalStakedFor) / 1e9).toFixed(4)}{" "}
+                        SOL
+                      </span>
                     </div>
                     <div className="flex justify-between py-3">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Vouches Received</span>
-                      <span className="text-sm font-mono text-gray-900 dark:text-white">{String(agentProfile.totalVouchesReceived)}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Vouches Received
+                      </span>
+                      <span className="text-sm font-mono text-gray-900 dark:text-white">
+                        {String(agentProfile.totalVouchesReceived)}
+                      </span>
                     </div>
                     <div className="flex justify-between py-3">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Vouches Given</span>
-                      <span className="text-sm font-mono text-gray-900 dark:text-white">{String(agentProfile.totalVouchesGiven)}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Vouches Given
+                      </span>
+                      <span className="text-sm font-mono text-gray-900 dark:text-white">
+                        {String(agentProfile.totalVouchesGiven)}
+                      </span>
                     </div>
                     <div className="flex justify-between py-3">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Disputes Lost</span>
-                      <span className="text-sm font-mono text-red-600 dark:text-red-400">{String(agentProfile.disputesLost)}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Disputes Lost
+                      </span>
+                      <span className="text-sm font-mono text-red-600 dark:text-red-400">
+                        {String(agentProfile.disputesLost)}
+                      </span>
                     </div>
                     <div className="flex justify-between py-3">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Registered</span>
-                      <span className="text-sm text-gray-900 dark:text-white">{formatTimestamp(agentProfile.registeredAt)}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Registered
+                      </span>
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        {formatTimestamp(agentProfile.registeredAt)}
+                      </span>
                     </div>
                     <div className="pt-3">
-                      <span className="text-xs text-gray-400 dark:text-gray-500">Metadata</span>
-                      <a 
-                        href={agentProfile.metadataUri} 
-                        target="_blank" 
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        Metadata
+                      </span>
+                      <a
+                        href={agentProfile.metadataUri}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="block text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline break-all mt-1"
                       >
@@ -379,9 +447,13 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">You&apos;re not registered as an agent yet.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      You&apos;re not registered as an agent yet.
+                    </p>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metadata URI (optional)</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Metadata URI (optional)
+                      </label>
                       <input
                         type="text"
                         value={metadataUri}
@@ -390,7 +462,8 @@ export default function DashboardPage() {
                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
                       />
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        Leave empty or enter a URL to metadata describing your agent
+                        Leave empty or enter a URL to metadata describing your
+                        agent
                       </p>
                     </div>
                     <button
@@ -398,7 +471,7 @@ export default function DashboardPage() {
                       disabled={loading}
                       className={`w-full ${navButtonPrimaryFlexClass}`}
                     >
-                      {loading ? 'Registering...' : 'Register as Agent'}
+                      {loading ? "Registering..." : "Register as Agent"}
                     </button>
                   </div>
                 )}
@@ -406,30 +479,47 @@ export default function DashboardPage() {
 
               {agentProfile && vouchesReceived.length > 0 && (
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiUsers className="text-[var(--lobster-accent)]" /> Agents Vouching For You</h2>
+                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                    <FiUsers className="text-[var(--lobster-accent)]" /> Agents
+                    Vouching For You
+                  </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    {vouchesReceived.length} {vouchesReceived.length === 1 ? 'agent is' : 'agents are'} staking SOL to vouch for you.
+                    {vouchesReceived.length}{" "}
+                    {vouchesReceived.length === 1 ? "agent is" : "agents are"}{" "}
+                    staking SOL to vouch for you.
                   </p>
                   <div className="space-y-3">
                     {vouchesReceived.map((vouch: any, idx: number) => {
                       const voucher = vouch.account.voucher;
-                      const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
-                      const createdAt = vouch.account.createdAt || vouch.account.created_at;
+                      const stakeAmount =
+                        vouch.account.stakeAmount || vouch.account.stake_amount;
+                      const createdAt =
+                        vouch.account.createdAt || vouch.account.created_at;
                       return (
-                        <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition">
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                        >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
                                   {(Number(stakeAmount) / 1e9).toFixed(4)} SOL
                                 </span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">staked</span>
+                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                  staked
+                                </span>
                               </div>
-                              <Link href={`/author/${voucher}`} className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2">
+                              <Link
+                                href={`/author/${voucher}`}
+                                className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2"
+                              >
                                 {voucher}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
-                                <span className="inline-flex items-center gap-1"><FiCalendar /> {formatTimestamp(createdAt)}</span>
+                                <span className="inline-flex items-center gap-1">
+                                  <FiCalendar /> {formatTimestamp(createdAt)}
+                                </span>
                               </div>
                             </div>
                             <Link
@@ -448,30 +538,47 @@ export default function DashboardPage() {
 
               {agentProfile && vouches.length > 0 && (
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2"><FiZap className="text-[var(--lobster-accent)]" /> Agents You&apos;re Vouching For</h2>
+                  <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                    <FiZap className="text-[var(--lobster-accent)]" /> Agents
+                    You&apos;re Vouching For
+                  </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    You&apos;re currently staking SOL to vouch for {vouches.length} {vouches.length === 1 ? 'agent' : 'agents'}.
+                    You&apos;re currently staking SOL to vouch for{" "}
+                    {vouches.length} {vouches.length === 1 ? "agent" : "agents"}
+                    .
                   </p>
                   <div className="space-y-3">
                     {vouches.map((vouch: any, idx: number) => {
                       const vouchee = vouch.account.vouchee;
-                      const stakeAmount = vouch.account.stakeAmount || vouch.account.stake_amount;
-                      const createdAt = vouch.account.createdAt || vouch.account.created_at;
+                      const stakeAmount =
+                        vouch.account.stakeAmount || vouch.account.stake_amount;
+                      const createdAt =
+                        vouch.account.createdAt || vouch.account.created_at;
                       return (
-                        <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition">
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                        >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
                                   {(Number(stakeAmount) / 1e9).toFixed(4)} SOL
                                 </span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">staked</span>
+                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                  staked
+                                </span>
                               </div>
-                              <Link href={`/author/${vouchee}`} className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2">
+                              <Link
+                                href={`/author/${vouchee}`}
+                                className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2"
+                              >
                                 {vouchee}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
-                                <span className="inline-flex items-center gap-1"><FiCalendar /> {formatTimestamp(createdAt)}</span>
+                                <span className="inline-flex items-center gap-1">
+                                  <FiCalendar /> {formatTimestamp(createdAt)}
+                                </span>
                               </div>
                             </div>
                             <Link
@@ -490,25 +597,36 @@ export default function DashboardPage() {
             </>
           )}
 
-          {activeTab === 'vouch' && !connected && (
+          {activeTab === "vouch" && !connected && (
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiZap /></div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to vouch for agents.</p>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
+                <FiZap />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                Connect Wallet
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Connect your wallet to vouch for agents.
+              </p>
               <ClientWalletButton />
             </div>
           )}
 
-          {activeTab === 'vouch' && connected && agentProfile && (
+          {activeTab === "vouch" && connected && agentProfile && (
             <div className="space-y-6">
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">Vouch for an Agent</h2>
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">
+                  Vouch for an Agent
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Stake SOL to vouch for another agent&apos;s reputation. If they misbehave and lose a dispute, your stake gets slashed.
+                  Stake SOL to vouch for another agent&apos;s reputation. If
+                  they misbehave and lose a dispute, your stake gets slashed.
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Agent Wallet Address</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Agent Wallet Address
+                    </label>
                     <input
                       type="text"
                       value={voucheeAddress}
@@ -518,7 +636,9 @@ export default function DashboardPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stake Amount (SOL)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Stake Amount (SOL)
+                    </label>
                     <input
                       type="number"
                       value={vouchAmount}
@@ -533,57 +653,88 @@ export default function DashboardPage() {
                     disabled={loading || !voucheeAddress}
                     className={`w-full ${navButtonPrimaryFlexClass}`}
                   >
-                    {loading ? 'Creating Vouch...' : `Vouch with ${vouchAmount} SOL`}
+                    {loading
+                      ? "Creating Vouch..."
+                      : `Vouch with ${vouchAmount} SOL`}
                   </button>
                 </div>
               </div>
 
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">Registered Agents</h3>
+                  <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
+                    Registered Agents
+                  </h3>
                   <button
                     onClick={loadAllAgents}
                     disabled={loadingAgents}
                     className={navButtonSecondaryInlineClass}
                   >
-                    {loadingAgents ? 'Loading...' : 'Refresh'}
+                    {loadingAgents ? "Loading..." : "Refresh"}
                   </button>
                 </div>
                 {loadingAgents ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading agents...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Loading agents...
+                  </p>
                 ) : allAgents.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No agents found. Be the first to register!</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No agents found. Be the first to register!
+                  </p>
                 ) : (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {allAgents.map((agent: any, idx: number) => {
                       const agentKey = agent.publicKey;
                       const isCurrentUser = agentKey === publicKey;
                       return (
-                        <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition">
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                        >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
                                   {formatScore(agent.account.reputationScore)}
                                 </span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">reputation</span>
+                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                  reputation
+                                </span>
                                 {isCurrentUser && (
-                                  <span className="px-2 py-0.5 bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs rounded font-medium border border-[var(--sea-accent-border)]">You</span>
+                                  <span className="px-2 py-0.5 bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs rounded font-medium border border-[var(--sea-accent-border)]">
+                                    You
+                                  </span>
                                 )}
                               </div>
-                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2">
+                              <Link
+                                href={`/author/${agent.account.authority}`}
+                                className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2"
+                              >
                                 {agent.account.authority}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
-                                <span className="inline-flex items-center gap-1"><FiZap /> {String(agent.account.totalVouchesReceived)} vouches</span>
-                                <span className="inline-flex items-center gap-1"><FiDollarSign /> {formatSolAmount(Number(agent.account.totalStakedFor))} SOL</span>
+                                <span className="inline-flex items-center gap-1">
+                                  <FiZap />{" "}
+                                  {String(agent.account.totalVouchesReceived)}{" "}
+                                  vouches
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <FiDollarSign />{" "}
+                                  {formatSolAmount(
+                                    Number(agent.account.totalStakedFor)
+                                  )}{" "}
+                                  SOL
+                                </span>
                               </div>
                             </div>
                             {!isCurrentUser && (
                               <button
                                 onClick={() => {
                                   setVoucheeAddress(agent.account.authority);
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  window.scrollTo({
+                                    top: 0,
+                                    behavior: "smooth",
+                                  });
                                 }}
                                 className={`${navButtonPrimaryInlineClass} whitespace-nowrap`}
                               >
@@ -600,21 +751,28 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {activeTab === 'vouch' && connected && !agentProfile && (
+          {activeTab === "vouch" && connected && !agentProfile && (
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-              <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">Vouch for an Agent</h2>
+              <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">
+                Vouch for an Agent
+              </h2>
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                You must register as an agent before you can vouch for others. Go to the &quot;My Profile&quot; tab to register.
+                You must register as an agent before you can vouch for others.
+                Go to the &quot;My Profile&quot; tab to register.
               </p>
             </div>
           )}
 
-          {activeTab === 'explorer' && (
+          {activeTab === "explorer" && (
             <div className="space-y-6">
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiSearch className="text-[var(--sea-accent)]" /> Search Agents</h2>
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <FiSearch className="text-[var(--sea-accent)]" /> Search
+                  Agents
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Search for any agent by their Solana wallet address to view their reputation and vouches.
+                  Search for any agent by their Solana wallet address to view
+                  their reputation and vouches.
                 </p>
                 <div className="space-y-4">
                   <div className="flex gap-2">
@@ -630,44 +788,73 @@ export default function DashboardPage() {
                       disabled={loading}
                       className={`${navButtonSecondaryInlineClass} whitespace-nowrap`}
                     >
-                      {loading ? '...' : 'Search'}
+                      {loading ? "..." : "Search"}
                     </button>
                   </div>
 
                   {searchedAgent && (
                     <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6 space-y-0 divide-y divide-gray-100 dark:divide-gray-700">
-                      <h3 className="text-base font-heading font-bold text-green-600 dark:text-green-400 mb-3 pb-0">Agent Found</h3>
+                      <h3 className="text-base font-heading font-bold text-green-600 dark:text-green-400 mb-3 pb-0">
+                        Agent Found
+                      </h3>
                       <div className="flex justify-between py-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Reputation Score</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Reputation Score
+                        </span>
                         <span className="font-bold text-xl text-green-600 dark:text-green-400">
                           {formatScore(searchedAgent.reputationScore)}
                         </span>
                       </div>
                       <div className="flex justify-between py-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Total Staked</span>
-                        <span className="text-sm font-mono text-gray-900 dark:text-white">{(Number(searchedAgent.totalStakedFor) / 1e9).toFixed(4)} SOL</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Total Staked
+                        </span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">
+                          {(Number(searchedAgent.totalStakedFor) / 1e9).toFixed(
+                            4
+                          )}{" "}
+                          SOL
+                        </span>
                       </div>
                       <div className="flex justify-between py-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Vouches Received</span>
-                        <span className="text-sm font-mono text-gray-900 dark:text-white">{String(searchedAgent.totalVouchesReceived)}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Vouches Received
+                        </span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">
+                          {String(searchedAgent.totalVouchesReceived)}
+                        </span>
                       </div>
                       <div className="flex justify-between py-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Vouches Given</span>
-                        <span className="text-sm font-mono text-gray-900 dark:text-white">{String(searchedAgent.totalVouchesGiven)}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Vouches Given
+                        </span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">
+                          {String(searchedAgent.totalVouchesGiven)}
+                        </span>
                       </div>
                       <div className="flex justify-between py-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Disputes Lost</span>
-                        <span className="text-sm font-mono text-red-600 dark:text-red-400">{String(searchedAgent.disputesLost)}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Disputes Lost
+                        </span>
+                        <span className="text-sm font-mono text-red-600 dark:text-red-400">
+                          {String(searchedAgent.disputesLost)}
+                        </span>
                       </div>
                       <div className="flex justify-between py-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Registered</span>
-                        <span className="text-sm text-gray-900 dark:text-white">{formatTimestamp(searchedAgent.registeredAt)}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Registered
+                        </span>
+                        <span className="text-sm text-gray-900 dark:text-white">
+                          {formatTimestamp(searchedAgent.registeredAt)}
+                        </span>
                       </div>
                       <div className="pt-3">
-                        <span className="text-xs text-gray-400 dark:text-gray-500">Metadata</span>
-                        <a 
-                          href={searchedAgent.metadataUri} 
-                          target="_blank" 
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          Metadata
+                        </span>
+                        <a
+                          href={searchedAgent.metadataUri}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="block text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline break-all mt-1"
                         >
@@ -690,43 +877,73 @@ export default function DashboardPage() {
 
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">All Registered Agents</h3>
+                  <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
+                    All Registered Agents
+                  </h3>
                   <button
                     onClick={loadAllAgents}
                     disabled={loadingAgents}
                     className={navButtonSecondaryInlineClass}
                   >
-                    {loadingAgents ? 'Loading...' : allAgents.length > 0 ? 'Refresh' : 'Load Agents'}
+                    {loadingAgents
+                      ? "Loading..."
+                      : allAgents.length > 0
+                      ? "Refresh"
+                      : "Load Agents"}
                   </button>
                 </div>
                 {loadingAgents ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading agents...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Loading agents...
+                  </p>
                 ) : allAgents.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No agents found.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No agents found.
+                  </p>
                 ) : (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {allAgents.map((agent: any, idx: number) => {
                       const agentKey = agent.publicKey;
                       const isCurrentUser = agentKey === publicKey;
                       return (
-                        <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition">
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                        >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
                                   {formatScore(agent.account.reputationScore)}
                                 </span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">reputation</span>
+                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                  reputation
+                                </span>
                                 {isCurrentUser && (
-                                  <span className="px-2 py-0.5 bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs rounded font-medium border border-[var(--sea-accent-border)]">You</span>
+                                  <span className="px-2 py-0.5 bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs rounded font-medium border border-[var(--sea-accent-border)]">
+                                    You
+                                  </span>
                                 )}
                               </div>
-                              <Link href={`/author/${agent.account.authority}`} className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2">
+                              <Link
+                                href={`/author/${agent.account.authority}`}
+                                className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2"
+                              >
                                 {agent.account.authority}
                               </Link>
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
-                                <span className="inline-flex items-center gap-1"><FiZap /> {String(agent.account.totalVouchesReceived)} vouches</span>
-                                <span className="inline-flex items-center gap-1"><FiDollarSign /> {formatSolAmount(Number(agent.account.totalStakedFor))} SOL</span>
+                                <span className="inline-flex items-center gap-1">
+                                  <FiZap />{" "}
+                                  {String(agent.account.totalVouchesReceived)}{" "}
+                                  vouches
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <FiDollarSign />{" "}
+                                  {formatSolAmount(
+                                    Number(agent.account.totalStakedFor)
+                                  )}{" "}
+                                  SOL
+                                </span>
                               </div>
                             </div>
                             <Link
@@ -745,26 +962,38 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {activeTab === 'disputes' && !connected && (
+          {activeTab === "disputes" && !connected && (
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500"><FiShield /></div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Connect your wallet to review author-wide reports and lower-level vouch disputes.</p>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
+                <FiShield />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                Connect Wallet
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Connect your wallet to review author-wide reports and
+                lower-level vouch disputes.
+              </p>
               <ClientWalletButton />
             </div>
           )}
 
-          {activeTab === 'disputes' && connected && (
+          {activeTab === "disputes" && connected && (
             <div className="space-y-6">
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Author Disputes</h2>
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <FiShield className="text-[var(--lobster-accent)]" /> Author
+                  Disputes
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   {configAuthority === publicKey
-                    ? 'You are the configured resolver, so this view shows every author-wide dispute plus resolution controls.'
-                    : 'This view shows first-class, author-wide reports opened against your author wallet. Use author pages to open new reports.'}
+                    ? "You are the configured resolver, so this view shows every author-wide dispute plus resolution controls."
+                    : "This view shows first-class, author-wide reports opened against your author wallet. Use author pages to open new reports."}
                 </p>
                 {authorDisputes.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No author disputes found.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No author disputes found.
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {authorDisputes.map((dispute) => (
@@ -788,10 +1017,16 @@ export default function DashboardPage() {
                               )}
                             </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Author: <span className="font-mono">{String(dispute.account.author)}</span>
+                              Author:{" "}
+                              <span className="font-mono">
+                                {String(dispute.account.author)}
+                              </span>
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Challenger: <span className="font-mono">{String(dispute.account.challenger)}</span>
+                              Challenger:{" "}
+                              <span className="font-mono">
+                                {String(dispute.account.challenger)}
+                              </span>
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
                               Dispute: {dispute.publicKey}
@@ -800,28 +1035,49 @@ export default function DashboardPage() {
                               Evidence: {dispute.account.evidenceUri}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Author-wide snapshot: {dispute.account.linkedVouchCount} of {dispute.account.backingVouchCountSnapshot} backing {dispute.account.backingVouchCountSnapshot === 1 ? 'voucher' : 'vouchers'}
+                              Author-wide snapshot:{" "}
+                              {dispute.account.linkedVouchCount} of{" "}
+                              {dispute.account.backingVouchCountSnapshot}{" "}
+                              backing{" "}
+                              {dispute.account.backingVouchCountSnapshot === 1
+                                ? "voucher"
+                                : "vouchers"}
                             </p>
                           </div>
 
-                          {configAuthority === publicKey && dispute.statusLabel === 'Open' && (
-                            <div className="flex gap-2 shrink-0">
-                              <button
-                                onClick={() => handleResolveAuthorDispute(dispute, AuthorDisputeRuling.Upheld)}
-                                disabled={resolvingAuthorDispute === dispute.publicKey}
-                                className={navButtonPrimaryInlineClass}
-                              >
-                                Uphold
-                              </button>
-                              <button
-                                onClick={() => handleResolveAuthorDispute(dispute, AuthorDisputeRuling.Dismissed)}
-                                disabled={resolvingAuthorDispute === dispute.publicKey}
-                                className={navButtonSecondaryInlineClass}
-                              >
-                                Dismiss
-                              </button>
-                            </div>
-                          )}
+                          {configAuthority === publicKey &&
+                            dispute.statusLabel === "Open" && (
+                              <div className="flex gap-2 shrink-0">
+                                <button
+                                  onClick={() =>
+                                    handleResolveAuthorDispute(
+                                      dispute,
+                                      AuthorDisputeRuling.Upheld
+                                    )
+                                  }
+                                  disabled={
+                                    resolvingAuthorDispute === dispute.publicKey
+                                  }
+                                  className={navButtonPrimaryInlineClass}
+                                >
+                                  Uphold
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleResolveAuthorDispute(
+                                      dispute,
+                                      AuthorDisputeRuling.Dismissed
+                                    )
+                                  }
+                                  disabled={
+                                    resolvingAuthorDispute === dispute.publicKey
+                                  }
+                                  className={navButtonSecondaryInlineClass}
+                                >
+                                  Dismiss
+                                </button>
+                              </div>
+                            )}
                         </div>
                       </div>
                     ))}
@@ -830,13 +1086,20 @@ export default function DashboardPage() {
               </div>
 
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><FiShield className="text-[var(--lobster-accent)]" /> Vouch Disputes</h2>
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <FiShield className="text-[var(--lobster-accent)]" /> Vouch
+                  Disputes
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Use this lower-level flow to challenge a backing vouch directly. Author disputes are separate and now snapshot the full author-wide backing set at open time.
+                  Use this lower-level flow to challenge a backing vouch
+                  directly. Author disputes are separate and now snapshot the
+                  full author-wide backing set at open time.
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vouch Account Address</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Vouch Account Address
+                    </label>
                     <input
                       type="text"
                       value={disputeVouchAddress}
@@ -845,11 +1108,14 @@ export default function DashboardPage() {
                       className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
                     />
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Find vouch account addresses by exploring an agent&apos;s vouches
+                      Find vouch account addresses by exploring an agent&apos;s
+                      vouches
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Evidence (URI)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Evidence (URI)
+                    </label>
                     <textarea
                       value={disputeEvidence}
                       onChange={(e) => setDisputeEvidence(e.target.value)}
@@ -859,7 +1125,12 @@ export default function DashboardPage() {
                   </div>
                   <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                     <p className="text-amber-800 dark:text-amber-300 text-sm">
-                      <span className="inline-flex items-center gap-1"><FiAlertTriangle /></span> <strong>Warning:</strong> Opening a dispute requires a bond. If rejected, you may lose your bond. Only dispute with strong evidence.
+                      <span className="inline-flex items-center gap-1">
+                        <FiAlertTriangle />
+                      </span>{" "}
+                      <strong>Warning:</strong> Opening a dispute requires a
+                      bond. If rejected, you may lose your bond. Only dispute
+                      with strong evidence.
                     </p>
                   </div>
                   <button
@@ -867,18 +1138,27 @@ export default function DashboardPage() {
                     disabled={loading}
                     className={`w-full ${navButtonFlexClass} font-semibold bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white disabled:text-gray-500 transition`}
                   >
-                    {loading ? 'Opening Dispute...' : 'Open Vouch Dispute'}
+                    {loading ? "Opening Dispute..." : "Open Vouch Dispute"}
                   </button>
                 </div>
 
                 {vouches.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
-                    <h3 className="text-base font-heading font-bold text-gray-900 dark:text-white mb-4">Your Vouches</h3>
+                    <h3 className="text-base font-heading font-bold text-gray-900 dark:text-white mb-4">
+                      Your Vouches
+                    </h3>
                     <div className="space-y-2">
                       {vouches.map((vouch, idx) => (
-                        <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3">
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Vouch Account</p>
-                          <p className="font-mono text-xs text-gray-900 dark:text-white break-all">{vouch.publicKey}</p>
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
+                        >
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
+                            Vouch Account
+                          </p>
+                          <p className="font-mono text-xs text-gray-900 dark:text-white break-all">
+                            {vouch.publicKey}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -889,17 +1169,23 @@ export default function DashboardPage() {
           )}
 
           {status && (
-            <div className={`rounded-xl p-4 ${
-              status.includes('Error') || status.includes('not found')
-                ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-            }`}>
+            <div
+              className={`rounded-xl p-4 ${
+                status.includes("Error") || status.includes("not found")
+                  ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+                  : "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+              }`}
+            >
               <div className="space-y-1">
-                <p className={`font-mono text-sm break-all ${
-                  status.includes('Error') || status.includes('not found')
-                    ? 'text-red-700 dark:text-red-300'
-                    : 'text-green-700 dark:text-green-300'
-                }`}>{status}</p>
+                <p
+                  className={`font-mono text-sm break-all ${
+                    status.includes("Error") || status.includes("not found")
+                      ? "text-red-700 dark:text-red-300"
+                      : "text-green-700 dark:text-green-300"
+                  }`}
+                >
+                  {status}
+                </p>
                 {statusTx && (
                   <a
                     href={getSolanaFmTxUrl(statusTx)}

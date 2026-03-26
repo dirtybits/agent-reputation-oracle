@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Analytics } from '@vercel/analytics/next';
+import { Analytics } from "@vercel/analytics/next";
 
 export function VercelAnalytics() {
   return (
@@ -8,8 +8,8 @@ export function VercelAnalytics() {
       beforeSend={(event) => {
         try {
           const url = new URL(event.url);
-          url.search = '';
-          url.hash = '';
+          url.search = "";
+          url.hash = "";
           return { ...event, url: url.toString() };
         } catch {
           return event;

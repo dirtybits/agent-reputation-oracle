@@ -1,6 +1,6 @@
-import { createSolanaRpc } from '@solana/kit';
-import type { Base58EncodedBytes, Base64EncodedBytes } from '@solana/rpc-types';
-import { decodeBase64, encodeBase64 } from '@/lib/base64';
+import { createSolanaRpc } from "@solana/kit";
+import type { Base58EncodedBytes, Base64EncodedBytes } from "@solana/rpc-types";
+import { decodeBase64, encodeBase64 } from "@/lib/base64";
 import {
   AUTHOR_DISPUTE_DISCRIMINATOR,
   AuthorDisputeReason,
@@ -8,10 +8,13 @@ import {
   AuthorDisputeStatus,
   getAuthorDisputeDecoder,
   type AuthorDispute,
-} from '../generated/reputation-oracle/src/generated';
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../generated/reputation-oracle/src/generated/programs';
+} from "../generated/reputation-oracle/src/generated";
+import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
 
-const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+const RPC_URL =
+  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+  process.env.SOLANA_RPC_URL ||
+  "https://api.devnet.solana.com";
 const rpc = createSolanaRpc(RPC_URL);
 const CACHE_TTL_MS = 60_000;
 
@@ -52,84 +55,93 @@ export interface AuthorDisputeRecord {
   resolvedAt: number | null;
 }
 
-let allDisputesCache:
-  | { expires: number; data: DecodedAuthorDisputeAccount[] }
-  | null = null;
+let allDisputesCache: {
+  expires: number;
+  data: DecodedAuthorDisputeAccount[];
+} | null = null;
 
 function unwrapOption<T>(value: unknown): T | null {
   if (value === null || value === undefined) return null;
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     const maybeOption = value as Record<string, unknown>;
-    if ('value' in maybeOption) {
+    if ("value" in maybeOption) {
       return (maybeOption.value as T | null) ?? null;
     }
-    if ('__option' in maybeOption) {
-      return maybeOption.__option === 'Some' ? (maybeOption.value as T | null) ?? null : null;
+    if ("__option" in maybeOption) {
+      return maybeOption.__option === "Some"
+        ? (maybeOption.value as T | null) ?? null
+        : null;
     }
   }
   return value as T;
 }
 
-export function getAuthorDisputeReasonLabel(reason: AuthorDisputeReason | number): string {
+export function getAuthorDisputeReasonLabel(
+  reason: AuthorDisputeReason | number
+): string {
   switch (reason) {
     case AuthorDisputeReason.MaliciousSkill:
-      return 'Malicious skill';
+      return "Malicious skill";
     case AuthorDisputeReason.FraudulentClaims:
-      return 'Fraudulent claims';
+      return "Fraudulent claims";
     case AuthorDisputeReason.FailedDelivery:
-      return 'Failed delivery';
+      return "Failed delivery";
     case AuthorDisputeReason.Other:
-      return 'Other';
+      return "Other";
     default:
-      return 'Unknown';
+      return "Unknown";
   }
 }
 
-export function getAuthorDisputeStatusLabel(status: AuthorDisputeStatus | number): string {
+export function getAuthorDisputeStatusLabel(
+  status: AuthorDisputeStatus | number
+): string {
   switch (status) {
     case AuthorDisputeStatus.Open:
-      return 'Open';
+      return "Open";
     case AuthorDisputeStatus.Resolved:
-      return 'Resolved';
+      return "Resolved";
     default:
-      return 'Unknown';
+      return "Unknown";
   }
 }
 
 export function getAuthorDisputeRulingLabel(
-  ruling: AuthorDisputeRuling | number | null | undefined,
+  ruling: AuthorDisputeRuling | number | null | undefined
 ): string | null {
   if (ruling === null || ruling === undefined) return null;
   switch (ruling) {
     case AuthorDisputeRuling.Upheld:
-      return 'Upheld';
+      return "Upheld";
     case AuthorDisputeRuling.Dismissed:
-      return 'Dismissed';
+      return "Dismissed";
     default:
-      return 'Unknown';
+      return "Unknown";
   }
 }
 
 async function getAllAuthorDisputeAccounts(
-  useCache = true,
+  useCache = true
 ): Promise<DecodedAuthorDisputeAccount[]> {
   const now = Date.now();
   if (useCache && allDisputesCache && allDisputesCache.expires > now) {
     return allDisputesCache.data;
   }
 
-  const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
-    encoding: 'base64',
-    filters: [
-      {
-        memcmp: {
-          offset: 0n,
-          bytes: asBase64(AUTHOR_DISPUTE_DISCRIMINATOR),
-          encoding: 'base64',
+  const accounts = await rpc
+    .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+      encoding: "base64",
+      filters: [
+        {
+          memcmp: {
+            offset: 0n,
+            bytes: asBase64(AUTHOR_DISPUTE_DISCRIMINATOR),
+            encoding: "base64",
+          },
         },
-      },
-    ],
-  }).send();
+      ],
+    })
+    .send();
   const decoder = getAuthorDisputeDecoder();
   const data = accounts.map((account) => ({
     publicKey: account.pubkey,
@@ -142,13 +154,13 @@ async function getAllAuthorDisputeAccounts(
 
 export async function listAuthorDisputesByAuthor(
   authorPubkey: string,
-  options: { includeLinks?: boolean; useCache?: boolean } = {},
+  options: { includeLinks?: boolean; useCache?: boolean } = {}
 ): Promise<AuthorDisputeRecord[]> {
   const useCache = options.useCache ?? true;
   const includeLinks = options.includeLinks ?? true;
   const disputes = await getAllAuthorDisputeAccounts(useCache);
   const authorDisputes = disputes.filter(
-    (dispute) => String(dispute.account.author) === authorPubkey,
+    (dispute) => String(dispute.account.author) === authorPubkey
   );
 
   return authorDisputes
@@ -184,7 +196,7 @@ export async function listAuthorDisputesByAuthor(
 
 export async function resolveAuthorDisputeMetrics(
   authorPubkey: string,
-  useCache = true,
+  useCache = true
 ): Promise<AuthorDisputeMetrics> {
   const disputes = await getAllAuthorDisputeAccounts(useCache);
   const metrics: AuthorDisputeMetrics = {
@@ -199,7 +211,10 @@ export async function resolveAuthorDisputeMetrics(
     if (dispute.account.status === AuthorDisputeStatus.Open) {
       metrics.activeDisputesAgainstAuthor += 1;
     }
-    if (unwrapOption<AuthorDisputeRuling>(dispute.account.ruling) === AuthorDisputeRuling.Upheld) {
+    if (
+      unwrapOption<AuthorDisputeRuling>(dispute.account.ruling) ===
+      AuthorDisputeRuling.Upheld
+    ) {
       metrics.disputesUpheldAgainstAuthor += 1;
     }
   }
@@ -209,7 +224,7 @@ export async function resolveAuthorDisputeMetrics(
 
 export async function resolveMultipleAuthorDisputeMetrics(
   authorPubkeys: string[],
-  useCache = true,
+  useCache = true
 ): Promise<Map<string, AuthorDisputeMetrics>> {
   const unique = [...new Set(authorPubkeys)];
   const metrics = new Map<string, AuthorDisputeMetrics>();
@@ -236,7 +251,10 @@ export async function resolveMultipleAuthorDisputeMetrics(
     if (dispute.account.status === AuthorDisputeStatus.Open) {
       next.activeDisputesAgainstAuthor += 1;
     }
-    if (unwrapOption<AuthorDisputeRuling>(dispute.account.ruling) === AuthorDisputeRuling.Upheld) {
+    if (
+      unwrapOption<AuthorDisputeRuling>(dispute.account.ruling) ===
+      AuthorDisputeRuling.Upheld
+    ) {
       next.disputesUpheldAgainstAuthor += 1;
     }
   }
@@ -246,7 +264,7 @@ export async function resolveMultipleAuthorDisputeMetrics(
 
 export async function getAuthorDisputePublicKeysByAuthor(
   authorPubkey: string,
-  useCache = true,
+  useCache = true
 ): Promise<string[]> {
   const all = await getAllAuthorDisputeAccounts(useCache);
   return all
@@ -256,34 +274,36 @@ export async function getAuthorDisputePublicKeysByAuthor(
 
 export async function listAuthorDisputeLinks(
   authorDisputePubkey: string,
-  _useCache = true,
+  _useCache = true
 ): Promise<string[]> {
   void authorDisputePubkey;
   return [];
 }
 
 export async function listAuthorDisputesByAuthorViaFilter(
-  authorPubkey: string,
+  authorPubkey: string
 ): Promise<DecodedAuthorDisputeAccount[]> {
-  const accounts = await rpc.getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
-    encoding: 'base64',
-    filters: [
-      {
-        memcmp: {
-          offset: 0n,
-          bytes: asBase64(AUTHOR_DISPUTE_DISCRIMINATOR),
-          encoding: 'base64',
+  const accounts = await rpc
+    .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+      encoding: "base64",
+      filters: [
+        {
+          memcmp: {
+            offset: 0n,
+            bytes: asBase64(AUTHOR_DISPUTE_DISCRIMINATOR),
+            encoding: "base64",
+          },
         },
-      },
-      {
-        memcmp: {
-          offset: 16n,
-          bytes: asBase58(authorPubkey),
-          encoding: 'base58',
+        {
+          memcmp: {
+            offset: 16n,
+            bytes: asBase58(authorPubkey),
+            encoding: "base58",
+          },
         },
-      },
-    ],
-  }).send();
+      ],
+    })
+    .send();
   const decoder = getAuthorDisputeDecoder();
   return accounts.map((account) => ({
     publicKey: account.pubkey,

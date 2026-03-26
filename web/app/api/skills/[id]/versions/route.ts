@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
-import { verifyWalletSignature, type AuthPayload } from '@/lib/auth';
-import { pinSkillContent } from '@/lib/ipfs';
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
+import { pinSkillContent } from "@/lib/ipfs";
 
 export async function POST(
   request: NextRequest,
@@ -18,7 +18,7 @@ export async function POST(
 
     if (!auth || !content) {
       return NextResponse.json(
-        { error: 'Missing required fields: auth, content' },
+        { error: "Missing required fields: auth, content" },
         { status: 400 }
       );
     }
@@ -26,7 +26,7 @@ export async function POST(
     const verification = verifyWalletSignature(auth);
     if (!verification.valid) {
       return NextResponse.json(
-        { error: verification.error || 'Invalid signature' },
+        { error: verification.error || "Invalid signature" },
         { status: 401 }
       );
     }
@@ -36,18 +36,25 @@ export async function POST(
     `;
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+      return NextResponse.json({ error: "Skill not found" }, { status: 404 });
     }
 
     const skill = rows[0];
 
     if (skill.author_pubkey !== verification.pubkey) {
-      return NextResponse.json({ error: 'Not the skill author' }, { status: 403 });
+      return NextResponse.json(
+        { error: "Not the skill author" },
+        { status: 403 }
+      );
     }
 
     const newVersion = skill.current_version + 1;
 
-    const pinResult = await pinSkillContent(content, skill.skill_id, newVersion);
+    const pinResult = await pinSkillContent(
+      content,
+      skill.skill_id,
+      newVersion
+    );
 
     await sql()`
       INSERT INTO skill_versions (skill_id, version, content, ipfs_cid, changelog)
@@ -68,12 +75,15 @@ export async function POST(
       WHERE id = ${id}::uuid
     `;
 
-    return NextResponse.json({
-      version: newVersion,
-      ipfs: pinResult,
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        version: newVersion,
+        ipfs: pinResult,
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
-    console.error('POST /api/skills/[id]/versions error:', error);
+    console.error("POST /api/skills/[id]/versions error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

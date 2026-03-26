@@ -8,7 +8,8 @@ describe("author-disputes", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.ReputationOracle as Program<ReputationOracle>;
+  const program = anchor.workspace
+    .ReputationOracle as Program<ReputationOracle>;
 
   const [configPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
@@ -40,23 +41,40 @@ describe("author-disputes", () => {
     return seed;
   }
 
-  function getAuthorDisputePda(authorKey: PublicKey, disputeId: anchor.BN): PublicKey {
+  function getAuthorDisputePda(
+    authorKey: PublicKey,
+    disputeId: anchor.BN
+  ): PublicKey {
     const [authorDispute] = PublicKey.findProgramAddressSync(
-      [Buffer.from("author_dispute"), authorKey.toBuffer(), toDisputeSeed(disputeId)],
+      [
+        Buffer.from("author_dispute"),
+        authorKey.toBuffer(),
+        toDisputeSeed(disputeId),
+      ],
       program.programId
     );
     return authorDispute;
   }
 
-  function getAuthorDisputeLinkPda(authorDispute: PublicKey, vouch: PublicKey): PublicKey {
+  function getAuthorDisputeLinkPda(
+    authorDispute: PublicKey,
+    vouch: PublicKey
+  ): PublicKey {
     const [link] = PublicKey.findProgramAddressSync(
-      [Buffer.from("author_dispute_vouch_link"), authorDispute.toBuffer(), vouch.toBuffer()],
+      [
+        Buffer.from("author_dispute_vouch_link"),
+        authorDispute.toBuffer(),
+        vouch.toBuffer(),
+      ],
       program.programId
     );
     return link;
   }
 
-  function getRemainingAccounts(authorDispute: PublicKey, vouches: PublicKey[]) {
+  function getRemainingAccounts(
+    authorDispute: PublicKey,
+    vouches: PublicKey[]
+  ) {
     return vouches.flatMap((vouch) => [
       {
         pubkey: getAuthorDisputeLinkPda(authorDispute, vouch),
@@ -71,7 +89,10 @@ describe("author-disputes", () => {
     ]);
   }
 
-  async function expectFailure(promise: Promise<unknown>, expectedMessage: string) {
+  async function expectFailure(
+    promise: Promise<unknown>,
+    expectedMessage: string
+  ) {
     try {
       await promise;
       assert.fail(`Expected failure containing "${expectedMessage}"`);
@@ -90,12 +111,30 @@ describe("author-disputes", () => {
     buyer = Keypair.generate();
 
     await Promise.all([
-      provider.connection.requestAirdrop(author.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
-      provider.connection.requestAirdrop(otherAuthor.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
-      provider.connection.requestAirdrop(voucherOne.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
-      provider.connection.requestAirdrop(voucherTwo.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
-      provider.connection.requestAirdrop(challenger.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
-      provider.connection.requestAirdrop(buyer.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL),
+      provider.connection.requestAirdrop(
+        author.publicKey,
+        10 * anchor.web3.LAMPORTS_PER_SOL
+      ),
+      provider.connection.requestAirdrop(
+        otherAuthor.publicKey,
+        10 * anchor.web3.LAMPORTS_PER_SOL
+      ),
+      provider.connection.requestAirdrop(
+        voucherOne.publicKey,
+        10 * anchor.web3.LAMPORTS_PER_SOL
+      ),
+      provider.connection.requestAirdrop(
+        voucherTwo.publicKey,
+        10 * anchor.web3.LAMPORTS_PER_SOL
+      ),
+      provider.connection.requestAirdrop(
+        challenger.publicKey,
+        10 * anchor.web3.LAMPORTS_PER_SOL
+      ),
+      provider.connection.requestAirdrop(
+        buyer.publicKey,
+        10 * anchor.web3.LAMPORTS_PER_SOL
+      ),
     ]);
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -176,15 +215,27 @@ describe("author-disputes", () => {
       .rpc();
 
     [vouchOne] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vouch"), voucherOneProfile.toBuffer(), authorProfile.toBuffer()],
+      [
+        Buffer.from("vouch"),
+        voucherOneProfile.toBuffer(),
+        authorProfile.toBuffer(),
+      ],
       program.programId
     );
     [vouchTwo] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vouch"), voucherTwoProfile.toBuffer(), authorProfile.toBuffer()],
+      [
+        Buffer.from("vouch"),
+        voucherTwoProfile.toBuffer(),
+        authorProfile.toBuffer(),
+      ],
       program.programId
     );
     [foreignVouch] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vouch"), voucherOneProfile.toBuffer(), otherAuthorProfile.toBuffer()],
+      [
+        Buffer.from("vouch"),
+        voucherOneProfile.toBuffer(),
+        otherAuthorProfile.toBuffer(),
+      ],
       program.programId
     );
 
@@ -251,7 +302,11 @@ describe("author-disputes", () => {
       .rpc();
 
     [purchase] = PublicKey.findProgramAddressSync(
-      [Buffer.from("purchase"), buyer.publicKey.toBuffer(), skillListing.toBuffer()],
+      [
+        Buffer.from("purchase"),
+        buyer.publicKey.toBuffer(),
+        skillListing.toBuffer(),
+      ],
       program.programId
     );
 
@@ -301,7 +356,10 @@ describe("author-disputes", () => {
 
   it("rejects duplicate and mismatched backing vouches", async () => {
     const duplicateDisputeId = new anchor.BN(2);
-    const duplicateAuthorDispute = getAuthorDisputePda(author.publicKey, duplicateDisputeId);
+    const duplicateAuthorDispute = getAuthorDisputePda(
+      author.publicKey,
+      duplicateDisputeId
+    );
 
     await expectFailure(
       program.methods
@@ -319,14 +377,19 @@ describe("author-disputes", () => {
           challenger: challenger.publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .remainingAccounts(getRemainingAccounts(duplicateAuthorDispute, [vouchOne, vouchOne]))
+        .remainingAccounts(
+          getRemainingAccounts(duplicateAuthorDispute, [vouchOne, vouchOne])
+        )
         .signers([challenger])
         .rpc(),
       "Duplicate backing vouches are not allowed"
     );
 
     const mismatchedDisputeId = new anchor.BN(3);
-    const mismatchedAuthorDispute = getAuthorDisputePda(author.publicKey, mismatchedDisputeId);
+    const mismatchedAuthorDispute = getAuthorDisputePda(
+      author.publicKey,
+      mismatchedDisputeId
+    );
 
     await expectFailure(
       program.methods
@@ -344,7 +407,12 @@ describe("author-disputes", () => {
           challenger: challenger.publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .remainingAccounts(getRemainingAccounts(mismatchedAuthorDispute, [vouchOne, foreignVouch]))
+        .remainingAccounts(
+          getRemainingAccounts(mismatchedAuthorDispute, [
+            vouchOne,
+            foreignVouch,
+          ])
+        )
         .signers([challenger])
         .rpc(),
       "does not belong to the disputed author"
@@ -357,7 +425,9 @@ describe("author-disputes", () => {
     const linkOne = getAuthorDisputeLinkPda(authorDispute, vouchOne);
     const linkTwo = getAuthorDisputeLinkPda(authorDispute, vouchTwo);
 
-    const challengerBalanceBefore = await provider.connection.getBalance(challenger.publicKey);
+    const challengerBalanceBefore = await provider.connection.getBalance(
+      challenger.publicKey
+    );
 
     await program.methods
       .openAuthorDispute(
@@ -374,7 +444,9 @@ describe("author-disputes", () => {
         challenger: challenger.publicKey,
         systemProgram: SystemProgram.programId,
       })
-      .remainingAccounts(getRemainingAccounts(authorDispute, [vouchOne, vouchTwo]))
+      .remainingAccounts(
+        getRemainingAccounts(authorDispute, [vouchOne, vouchTwo])
+      )
       .signers([challenger])
       .rpc();
 
@@ -410,7 +482,9 @@ describe("author-disputes", () => {
     assert.equal(vouchOneAccount.status.active !== undefined, true);
     assert.equal(vouchTwoAccount.status.active !== undefined, true);
 
-    const challengerBalanceAfter = await provider.connection.getBalance(challenger.publicKey);
+    const challengerBalanceAfter = await provider.connection.getBalance(
+      challenger.publicKey
+    );
     assert.isTrue(
       challengerBalanceAfter >
         challengerBalanceBefore - 0.02 * anchor.web3.LAMPORTS_PER_SOL

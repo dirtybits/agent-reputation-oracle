@@ -11,10 +11,13 @@ async function main() {
   );
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.ReputationOracle as Program<ReputationOracle>;
+  const program = anchor.workspace
+    .ReputationOracle as Program<ReputationOracle>;
 
-  const agentAddress = new PublicKey(process.argv[2] || "dmt4CBeNrF6iMV793zfJGiAAqVK9C9bifdL9cvqNTou");
-  
+  const agentAddress = new PublicKey(
+    process.argv[2] || "dmt4CBeNrF6iMV793zfJGiAAqVK9C9bifdL9cvqNTou"
+  );
+
   const [agentProfilePda] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("agent"), agentAddress.toBuffer()],
     program.programId
@@ -29,9 +32,16 @@ async function main() {
     console.log("Reputation Score:", profile.reputationScore.toString());
     console.log("Vouches Received:", profile.totalVouchesReceived.toString());
     console.log("Vouches Given:", profile.totalVouchesGiven.toString());
-    console.log("Total Staked For:", (profile.totalStakedFor.toNumber() / 1e9).toFixed(4), "SOL");
+    console.log(
+      "Total Staked For:",
+      (profile.totalStakedFor.toNumber() / 1e9).toFixed(4),
+      "SOL"
+    );
     console.log("Metadata URI:", profile.metadataUri);
-    console.log("Registered At:", new Date(profile.registeredAt.toNumber() * 1000).toLocaleString());
+    console.log(
+      "Registered At:",
+      new Date(profile.registeredAt.toNumber() * 1000).toLocaleString()
+    );
   } catch (e: any) {
     console.log("\n❌ Agent not registered yet");
     console.log("Error:", e.message);

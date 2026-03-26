@@ -4,16 +4,16 @@ import {
   getProgramDerivedAddress,
   getUtf8Encoder,
   type Address,
-} from '@solana/kit';
-import { fetchMaybeAgentProfile } from '../generated/reputation-oracle/src/generated';
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from '../generated/reputation-oracle/src/generated/programs';
+} from "@solana/kit";
+import { fetchMaybeAgentProfile } from "../generated/reputation-oracle/src/generated";
+import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
 import {
   resolveAuthorDisputeMetrics,
   resolveMultipleAuthorDisputeMetrics,
   type AuthorDisputeMetrics,
-} from './authorDisputes';
+} from "./authorDisputes";
 
-const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const rpc = createSolanaRpc(RPC_URL);
 
 export interface AuthorTrust {
@@ -30,9 +30,9 @@ export interface AuthorTrust {
 }
 
 export class AuthorTrustVerificationError extends Error {
-  constructor(message = 'Unable to verify author trust') {
+  constructor(message = "Unable to verify author trust") {
     super(message);
-    this.name = 'AuthorTrustVerificationError';
+    this.name = "AuthorTrustVerificationError";
   }
 }
 
@@ -45,10 +45,7 @@ const addressEncoder = getAddressEncoder();
 async function getAgentPDA(agentKey: Address): Promise<Address> {
   const [derived] = await getProgramDerivedAddress({
     programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
-    seeds: [
-      textEncoder.encode('agent'),
-      addressEncoder.encode(agentKey),
-    ],
+    seeds: [textEncoder.encode("agent"), addressEncoder.encode(agentKey)],
   });
   return derived;
 }
@@ -143,7 +140,9 @@ export async function verifyAuthorTrust(pubkey: string): Promise<AuthorTrust> {
       isRegistered: true,
     };
   } catch (error: any) {
-    throw new AuthorTrustVerificationError(error?.message || 'Unable to verify on-chain author profile');
+    throw new AuthorTrustVerificationError(
+      error?.message || "Unable to verify on-chain author profile"
+    );
   }
 }
 
@@ -151,21 +150,27 @@ export async function resolveMultipleAuthorTrust(
   pubkeys: string[]
 ): Promise<Map<string, AuthorTrust>> {
   const unique = [...new Set(pubkeys)];
-  const disputeMetricsByAuthor = await resolveMultipleAuthorDisputeMetrics(unique);
-  const results = await Promise.all(unique.map(async (pubkey) => {
-    const trust = await resolveAuthorTrust(pubkey);
-    const disputeMetrics: AuthorDisputeMetrics = disputeMetricsByAuthor.get(pubkey) ?? {
-      disputesAgainstAuthor: 0,
-      disputesUpheldAgainstAuthor: 0,
-      activeDisputesAgainstAuthor: 0,
-    };
-    return {
-      ...trust,
-      disputesAgainstAuthor: disputeMetrics.disputesAgainstAuthor,
-      disputesUpheldAgainstAuthor: disputeMetrics.disputesUpheldAgainstAuthor,
-      activeDisputesAgainstAuthor: disputeMetrics.activeDisputesAgainstAuthor,
-    };
-  }));
+  const disputeMetricsByAuthor = await resolveMultipleAuthorDisputeMetrics(
+    unique
+  );
+  const results = await Promise.all(
+    unique.map(async (pubkey) => {
+      const trust = await resolveAuthorTrust(pubkey);
+      const disputeMetrics: AuthorDisputeMetrics = disputeMetricsByAuthor.get(
+        pubkey
+      ) ?? {
+        disputesAgainstAuthor: 0,
+        disputesUpheldAgainstAuthor: 0,
+        activeDisputesAgainstAuthor: 0,
+      };
+      return {
+        ...trust,
+        disputesAgainstAuthor: disputeMetrics.disputesAgainstAuthor,
+        disputesUpheldAgainstAuthor: disputeMetrics.disputesUpheldAgainstAuthor,
+        activeDisputesAgainstAuthor: disputeMetrics.activeDisputesAgainstAuthor,
+      };
+    })
+  );
   const map = new Map<string, AuthorTrust>();
   unique.forEach((pk, i) => map.set(pk, results[i]));
   return map;

@@ -1,19 +1,22 @@
-import { NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
-import { getConfiguredSolanaChainContext } from '@/lib/chains';
+import { NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import { getConfiguredSolanaChainContext } from "@/lib/chains";
 
 export async function POST() {
   try {
     const chainContext = getConfiguredSolanaChainContext();
-    const existingRows = await sql()`
+    const existingRows = (await sql()`
       SELECT COUNT(*) as count FROM skills
-    ` as any[];
+    `) as any[];
 
     if (parseInt(existingRows[0]?.count) > 0) {
-      return NextResponse.json({ message: 'Seed data already exists', skipped: true });
+      return NextResponse.json({
+        message: "Seed data already exists",
+        skipped: true,
+      });
     }
 
-    const skillRows = await sql()`
+    const skillRows = (await sql()`
       INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, chain_context)
       VALUES (
         'solana-dev-skill',
@@ -25,7 +28,7 @@ export async function POST() {
         ${chainContext}
       )
       RETURNING id
-    ` as any[];
+    `) as any[];
     const skill = skillRows[0];
 
     await sql()`

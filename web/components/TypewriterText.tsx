@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { ElementType } from 'react';
+import { ElementType } from "react";
 
 interface TypewriterTextProps {
   text: string;
@@ -10,12 +10,8 @@ interface TypewriterTextProps {
 
 export default function TypewriterText({
   text,
-  className = '',
-  as: Tag = 'span',
+  className = "",
+  as: Tag = "span",
 }: TypewriterTextProps) {
-  return (
-    <Tag className={`typewriter ${className}`}>
-      {text}
-    </Tag>
-  );
+  return <Tag className={`typewriter ${className}`}>{text}</Tag>;
 }
