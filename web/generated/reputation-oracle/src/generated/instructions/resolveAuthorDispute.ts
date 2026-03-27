@@ -29,7 +29,6 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
-  type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
@@ -73,7 +72,7 @@ export type ResolveAuthorDisputeInstruction<
         ? WritableAccount<TAccountAuthorDispute>
         : TAccountAuthorDispute,
       TAccountAuthorProfile extends string
-        ? ReadonlyAccount<TAccountAuthorProfile>
+        ? WritableAccount<TAccountAuthorProfile>
         : TAccountAuthorProfile,
       TAccountConfig extends string
         ? WritableAccount<TAccountConfig>
@@ -181,7 +180,7 @@ export async function getResolveAuthorDisputeInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     authorDispute: { value: input.authorDispute ?? null, isWritable: true },
-    authorProfile: { value: input.authorProfile ?? null, isWritable: false },
+    authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: false },
     challenger: { value: input.challenger ?? null, isWritable: true },
@@ -274,7 +273,7 @@ export function getResolveAuthorDisputeInstruction<
   // Original accounts.
   const originalAccounts = {
     authorDispute: { value: input.authorDispute ?? null, isWritable: true },
-    authorProfile: { value: input.authorProfile ?? null, isWritable: false },
+    authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: false },
     challenger: { value: input.challenger ?? null, isWritable: true },

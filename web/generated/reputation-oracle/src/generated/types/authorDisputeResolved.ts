@@ -18,6 +18,8 @@ import {
   getStructEncoder,
   getU32Decoder,
   getU32Encoder,
+  getU64Decoder,
+  getU64Encoder,
   getUtf8Decoder,
   getUtf8Encoder,
   type Address,
@@ -31,6 +33,7 @@ export type AuthorDisputeResolved = {
   author: Address;
   ruling: string;
   linkedVouchCount: number;
+  slashedAmount: bigint;
   timestamp: bigint;
 };
 
@@ -39,6 +42,7 @@ export type AuthorDisputeResolvedArgs = {
   author: Address;
   ruling: string;
   linkedVouchCount: number;
+  slashedAmount: number | bigint;
   timestamp: number | bigint;
 };
 
@@ -48,6 +52,7 @@ export function getAuthorDisputeResolvedEncoder(): Encoder<AuthorDisputeResolved
     ["author", getAddressEncoder()],
     ["ruling", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ["linkedVouchCount", getU32Encoder()],
+    ["slashedAmount", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -58,6 +63,7 @@ export function getAuthorDisputeResolvedDecoder(): Decoder<AuthorDisputeResolved
     ["author", getAddressDecoder()],
     ["ruling", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["linkedVouchCount", getU32Decoder()],
+    ["slashedAmount", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

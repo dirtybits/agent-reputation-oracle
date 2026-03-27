@@ -753,7 +753,8 @@ export default function AuthorProfilePage() {
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   Open a first-class author dispute. The protocol will snapshot
-                  this author&apos;s full current backing set automatically.
+                  this author&apos;s full current backing set automatically, and an
+                  upheld report will slash that snapshotted backing.
                 </p>
               </div>
 
@@ -1571,7 +1572,8 @@ export default function AuthorProfilePage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Open a first-class author dispute. The protocol snapshots the
                   author&apos;s full live backing set automatically, so one bad
-                  skill affects author-wide trust.
+                  skill affects author-wide trust and can slash the recorded
+                  backing set if upheld.
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   {authorWideBackingVouches.length > 0

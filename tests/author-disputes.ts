@@ -89,6 +89,29 @@ describe("author-disputes", () => {
     ]);
   }
 
+  function getResolveRemainingAccounts(
+    authorDispute: PublicKey,
+    entries: Array<{ vouch: PublicKey; voucherProfile: PublicKey }>
+  ) {
+    return entries.flatMap(({ vouch, voucherProfile }) => [
+      {
+        pubkey: getAuthorDisputeLinkPda(authorDispute, vouch),
+        isWritable: false,
+        isSigner: false,
+      },
+      {
+        pubkey: vouch,
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: voucherProfile,
+        isWritable: true,
+        isSigner: false,
+      },
+    ]);
+  }
+
   async function expectFailure(
     promise: Promise<unknown>,
     expectedMessage: string
@@ -424,10 +447,13 @@ describe("author-disputes", () => {
     const authorDispute = getAuthorDisputePda(author.publicKey, disputeId);
     const linkOne = getAuthorDisputeLinkPda(authorDispute, vouchOne);
     const linkTwo = getAuthorDisputeLinkPda(authorDispute, vouchTwo);
+    const slashPerVouch = stakeAmount.toNumber() / 2;
 
     const challengerBalanceBefore = await provider.connection.getBalance(
       challenger.publicKey
     );
+    const vouchOneLamportsBefore = await provider.connection.getBalance(vouchOne);
+    const vouchTwoLamportsBefore = await provider.connection.getBalance(vouchTwo);
 
     await program.methods
       .openAuthorDispute(
@@ -470,6 +496,12 @@ describe("author-disputes", () => {
         authority: provider.wallet.publicKey,
         challenger: challenger.publicKey,
       })
+      .remainingAccounts(
+        getResolveRemainingAccounts(authorDispute, [
+          { vouch: vouchOne, voucherProfile: voucherOneProfile },
+          { vouch: vouchTwo, voucherProfile: voucherTwoProfile },
+        ])
+      )
       .rpc();
 
     const resolved = await program.account.authorDispute.fetch(authorDispute);
@@ -479,15 +511,38 @@ describe("author-disputes", () => {
 
     const vouchOneAccount = await program.account.vouch.fetch(vouchOne);
     const vouchTwoAccount = await program.account.vouch.fetch(vouchTwo);
-    assert.equal(vouchOneAccount.status.active !== undefined, true);
-    assert.equal(vouchTwoAccount.status.active !== undefined, true);
+    assert.equal(vouchOneAccount.status.slashed !== undefined, true);
+    assert.equal(vouchTwoAccount.status.slashed !== undefined, true);
+
+    const voucherOneProfileAccount = await program.account.agentProfile.fetch(
+      voucherOneProfile
+    );
+    const voucherTwoProfileAccount = await program.account.agentProfile.fetch(
+      voucherTwoProfile
+    );
+    const authorProfileAccount = await program.account.agentProfile.fetch(
+      authorProfile
+    );
+    assert.equal(voucherOneProfileAccount.disputesLost, 1);
+    assert.equal(voucherOneProfileAccount.totalVouchesGiven, 1);
+    assert.equal(voucherTwoProfileAccount.disputesLost, 1);
+    assert.equal(voucherTwoProfileAccount.totalVouchesGiven, 0);
+    assert.equal(authorProfileAccount.totalVouchesReceived, 0);
+    assert.equal(Number(authorProfileAccount.totalStakedFor), 0);
+
+    const vouchOneLamportsAfter = await provider.connection.getBalance(vouchOne);
+    const vouchTwoLamportsAfter = await provider.connection.getBalance(vouchTwo);
+    assert.equal(vouchOneLamportsBefore - vouchOneLamportsAfter, slashPerVouch);
+    assert.equal(vouchTwoLamportsBefore - vouchTwoLamportsAfter, slashPerVouch);
 
     const challengerBalanceAfter = await provider.connection.getBalance(
       challenger.publicKey
     );
     assert.isTrue(
       challengerBalanceAfter >
-        challengerBalanceBefore - 0.02 * anchor.web3.LAMPORTS_PER_SOL
+        challengerBalanceBefore +
+          stakeAmount.toNumber() -
+          0.02 * anchor.web3.LAMPORTS_PER_SOL
     );
   });
 });

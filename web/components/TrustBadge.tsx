@@ -36,7 +36,7 @@ function getDisputeStatus(
   lost: number
 ): { label: string; color: string } {
   if (won === 0 && lost === 0)
-    return { label: "Clean", color: "text-green-600 dark:text-green-400" };
+    return { label: "No losses", color: "text-green-600 dark:text-green-400" };
   if (lost === 0)
     return {
       label: `${won} resolved`,
@@ -162,7 +162,7 @@ export default function TrustBadge({
         </div>
         <div className="text-sm font-bold">{dispute.label}</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          Vouch Disputes
+          As Voucher
         </div>
       </div>
 

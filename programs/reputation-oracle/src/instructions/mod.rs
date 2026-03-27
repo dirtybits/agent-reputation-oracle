@@ -6,6 +6,7 @@ pub mod open_dispute;
 pub mod open_author_dispute;
 pub mod resolve_dispute;
 pub mod resolve_author_dispute;
+pub(crate) mod vouch_settlement;
 pub mod create_skill_listing;
 pub mod update_skill_listing;
 pub mod purchase_skill;

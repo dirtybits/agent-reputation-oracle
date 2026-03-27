@@ -23,6 +23,7 @@ import {
   fetchMaybeAgentProfile,
   fetchMaybeAuthorDispute,
   fetchMaybeReputationConfig,
+  fetchVouch,
   getAuthorDisputeDecoder,
   getOpenAuthorDisputeInstructionAsync,
   getResolveAuthorDisputeInstructionAsync,
@@ -417,7 +418,36 @@ export function useReputationOracle() {
         disputeId,
         ruling,
       });
-      return { tx: await sendIx(ix), authorDispute };
+      if (ruling !== AuthorDisputeRuling.Upheld) {
+        return { tx: await sendIx(ix), authorDispute };
+      }
+
+      const linkedVouches = await listAuthorDisputeLinks(String(authorDispute));
+      const settlementAccounts = (
+        await Promise.all(
+          linkedVouches.map(async (linkedVouch) => {
+            const vouchAddress = address(linkedVouch);
+            const authorDisputeVouchLink = await getAuthorDisputeVouchLinkPDA(
+              authorDispute,
+              vouchAddress
+            );
+            const vouch = await fetchVouch(rpc, vouchAddress);
+            return [
+              { address: authorDisputeVouchLink, role: 0 },
+              { address: vouchAddress, role: 1 },
+              { address: vouch.data.voucher, role: 1 },
+            ];
+          })
+        )
+      ).flat();
+
+      return {
+        tx: await sendIx({
+          ...ix,
+          accounts: [...ix.accounts, ...settlementAccounts],
+        }),
+        authorDispute,
+      };
     },
     [signer, walletAddress, sendIx]
   );

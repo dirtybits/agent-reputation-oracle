@@ -54,6 +54,7 @@ pub struct AuthorDisputeResolved {
     pub author: Pubkey,
     pub ruling: String,
     pub linked_vouch_count: u32,
+    pub slashed_amount: u64,
     pub timestamp: i64,
 }
 

@@ -1,4 +1,4 @@
-import { createSolanaRpc } from "@solana/kit";
+import { createSolanaRpc, getAddressDecoder } from "@solana/kit";
 import type { Base58EncodedBytes, Base64EncodedBytes } from "@solana/rpc-types";
 import { decodeBase64, encodeBase64 } from "@/lib/base64";
 import {
@@ -17,10 +17,15 @@ const RPC_URL =
   "https://api.devnet.solana.com";
 const rpc = createSolanaRpc(RPC_URL);
 const CACHE_TTL_MS = 60_000;
+const AUTHOR_DISPUTE_VOUCH_LINK_DISCRIMINATOR = new Uint8Array([
+  30, 4, 152, 103, 232, 184, 75, 177,
+]);
+const AUTHOR_DISPUTE_VOUCH_LINK_SIZE = 81;
 
 const asBase64 = (bytes: Uint8Array) =>
   encodeBase64(bytes) as Base64EncodedBytes;
 const asBase58 = (value: string) => value as unknown as Base58EncodedBytes;
+const addressDecoder = getAddressDecoder();
 
 type DecodedAuthorDisputeAccount = {
   publicKey: string;
@@ -162,6 +167,18 @@ export async function listAuthorDisputesByAuthor(
   const authorDisputes = disputes.filter(
     (dispute) => String(dispute.account.author) === authorPubkey
   );
+  const linkedVouchesByDispute = includeLinks
+    ? new Map<string, string[]>(
+        await Promise.all(
+          authorDisputes.map(
+            async (dispute): Promise<[string, string[]]> => [
+              dispute.publicKey,
+              await listAuthorDisputeLinks(dispute.publicKey, useCache),
+            ]
+          )
+        )
+      )
+    : null;
 
   return authorDisputes
     .map((dispute) => {
@@ -185,7 +202,7 @@ export async function listAuthorDisputesByAuthor(
         purchase,
         backingVouchCountSnapshot: dispute.account.backingVouchCountSnapshot,
         linkedVouchCount: dispute.account.linkedVouchCount,
-        linkedVouches: includeLinks ? [] : [],
+        linkedVouches: linkedVouchesByDispute?.get(dispute.publicKey) ?? [],
         bondAmount: Number(dispute.account.bondAmount),
         createdAt: Number(dispute.account.createdAt),
         resolvedAt: resolvedAt === null ? null : Number(resolvedAt),
@@ -276,8 +293,37 @@ export async function listAuthorDisputeLinks(
   authorDisputePubkey: string,
   _useCache = true
 ): Promise<string[]> {
-  void authorDisputePubkey;
-  return [];
+  const accounts = await rpc
+    .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+      encoding: "base64",
+      filters: [
+        {
+          memcmp: {
+            offset: 0n,
+            bytes: asBase64(AUTHOR_DISPUTE_VOUCH_LINK_DISCRIMINATOR),
+            encoding: "base64",
+          },
+        },
+        {
+          memcmp: {
+            offset: 8n,
+            bytes: asBase58(authorDisputePubkey),
+            encoding: "base58",
+          },
+        },
+        {
+          dataSize: BigInt(AUTHOR_DISPUTE_VOUCH_LINK_SIZE),
+        },
+      ],
+    })
+    .send();
+
+  return accounts
+    .map((account) => {
+      const data = decodeBase64(account.account.data[0]);
+      return addressDecoder.decode(data.subarray(40, 72));
+    })
+    .sort();
 }
 
 export async function listAuthorDisputesByAuthorViaFilter(

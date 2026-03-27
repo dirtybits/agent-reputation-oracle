@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::{Vouch, VouchStatus, Dispute, DisputeStatus, DisputeRuling, AgentProfile, ReputationConfig};
 use crate::events::DisputeResolved as DisputeResolvedEvent;
+use crate::instructions::vouch_settlement::slash_vouch;
 
 #[derive(Accounts)]
 pub struct ResolveDispute<'info> {
@@ -63,24 +64,9 @@ pub fn handler(
     
     match ruling {
         DisputeRuling::SlashVoucher => {
-            let slash_amount = vouch.stake_amount
-                .saturating_mul(config.slash_percentage as u64)
-                .saturating_div(100);
-
-            vouch.status = VouchStatus::Slashed;
-
-            // Update voucher profile
             let voucher_profile = &mut ctx.accounts.voucher_profile;
-            voucher_profile.disputes_lost = voucher_profile.disputes_lost.saturating_add(1);
-            voucher_profile.total_vouches_given = voucher_profile.total_vouches_given.saturating_sub(1);
-
-            // Update vouchee profile
             let vouchee_profile = &mut ctx.accounts.vouchee_profile;
-            vouchee_profile.total_vouches_received = vouchee_profile.total_vouches_received.saturating_sub(1);
-            vouchee_profile.total_staked_for = vouchee_profile.total_staked_for.saturating_sub(vouch.stake_amount);
-
-            // Recompute reputation
-            vouchee_profile.reputation_score = vouchee_profile.compute_reputation(config);
+            let slash_amount = slash_vouch(vouch, voucher_profile, vouchee_profile, config)?;
 
             // Transfer bond + slashed stake to challenger
             let bond = config.dispute_bond;
@@ -91,15 +77,6 @@ pub fn handler(
                 .to_account_info()
                 .lamports()
                 .checked_sub(bond)
-                .ok_or(ErrorCode::InsufficientFunds)?;
-
-            // Transfer slashed stake from vouch PDA
-            **ctx.accounts.vouch.to_account_info().try_borrow_mut_lamports()? = ctx
-                .accounts
-                .vouch
-                .to_account_info()
-                .lamports()
-                .checked_sub(slash_amount)
                 .ok_or(ErrorCode::InsufficientFunds)?;
 
             // Credit challenger with bond + slashed stake

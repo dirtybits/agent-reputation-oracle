@@ -70,8 +70,8 @@ pub mod reputation_oracle {
         instructions::open_author_dispute::handler(ctx, dispute_id, reason, evidence_uri)
     }
 
-    pub fn resolve_author_dispute(
-        ctx: Context<ResolveAuthorDispute>,
+    pub fn resolve_author_dispute<'info>(
+        ctx: Context<'_, '_, 'info, 'info, ResolveAuthorDispute<'info>>,
         dispute_id: u64,
         ruling: AuthorDisputeRuling,
     ) -> Result<()> {
