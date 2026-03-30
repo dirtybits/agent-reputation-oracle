@@ -218,3 +218,52 @@ cd web
 npx tsx ./scripts/generate-client.ts
 cd ..
 ```
+
+### Quick Runbook
+
+```bash
+cd /Users/andysustic/Repos/agent-reputation-oracle
+
+mv target/deploy/reputation_oracle-keypair.json target/deploy/reputation_oracle-keypair.old.json
+cp target/deploy/reputation_oracle_v2-keypair.json target/deploy/reputation_oracle-keypair.json
+
+solana-keygen pubkey target/deploy/reputation_oracle-keypair.json
+solana-keygen verify ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf target/deploy/reputation_oracle-keypair.json
+
+export ANCHOR_WALLET=~/dev-keypair.json
+export ANCHOR_PROVIDER_URL=https://api.devnet.solana.com
+
+anchor clean
+anchor build
+
+anchor deploy \
+  --program-name reputation_oracle \
+  --program-keypair target/deploy/reputation_oracle-keypair.json \
+  --provider.cluster devnet \
+  --provider.wallet "$ANCHOR_WALLET"
+
+solana program show --url https://api.devnet.solana.com ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
+
+cp target/idl/reputation_oracle.json web/reputation_oracle.json
+cd web
+npx tsx ./scripts/generate-client.ts
+pkill -f "next dev" || true
+npm run dev
+```
+
+Expected checks:
+
+- `solana-keygen pubkey ...` prints `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`
+- `solana-keygen verify ...` succeeds
+- `anchor deploy` upgrades instead of creating a new program
+- `solana program show ...` shows the same program ID with a fresh deploy slot
+
+If you want one extra safety check after deploy:
+
+```bash
+cd /Users/andysustic/Repos/agent-reputation-oracle
+solana program dump --url https://api.devnet.solana.com ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf /tmp/reputation_oracle_devnet.so
+shasum -a 256 target/deploy/reputation_oracle.so /tmp/reputation_oracle_devnet.so
+```
+
+Those hashes should match.

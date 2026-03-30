@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useWalletConnection } from "@solana/react-hooks";
 import { address } from "@solana/kit";
 import { useReputationOracle } from "@/hooks/useReputationOracle";
@@ -14,6 +14,7 @@ import {
   navButtonSecondaryInlineClass,
 } from "@/lib/buttonStyles";
 import { formatSolAmount } from "@/lib/pricing";
+import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import Link from "next/link";
 import { AuthorDisputeRuling } from "@/generated/reputation-oracle/src/generated";
 import {
@@ -27,8 +28,22 @@ import {
   FiUsers,
   FiZap,
 } from "react-icons/fi";
+import { isRpcRateLimitError } from "@/lib/rpcErrors";
 
 type Tab = "profile" | "vouch" | "explorer" | "disputes";
+
+type MarketplaceListingRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  on_chain_address?: string | null;
+  creatorPriceLamports?: number;
+  estimatedBuyerTotalLamports?: number;
+  purchasePreflightStatus?: PurchasePreflightStatus;
+  purchasePreflightMessage?: string | null;
+  total_installs: number;
+  total_downloads?: number;
+};
 
 const SOLANA_FM_CLUSTER = "devnet-solana";
 
@@ -53,6 +68,17 @@ export default function DashboardPage() {
   const [agentProfile, setAgentProfile] = useState<any>(null);
   const [vouches, setVouches] = useState<any[]>([]);
   const [vouchesReceived, setVouchesReceived] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [purchaseListings, setPurchaseListings] = useState<Map<string, any>>(
+    new Map()
+  );
+  const [purchaseWarning, setPurchaseWarning] = useState<string | null>(null);
+  const [marketplaceListings, setMarketplaceListings] = useState<
+    MarketplaceListingRow[]
+  >([]);
+  const [marketplaceListingWarning, setMarketplaceListingWarning] = useState<
+    string | null
+  >(null);
   const [allAgents, setAllAgents] = useState<any[]>([]);
   const [authorDisputes, setAuthorDisputes] = useState<any[]>([]);
   const [configAuthority, setConfigAuthority] = useState<string | null>(null);
@@ -63,11 +89,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [statusTx, setStatusTx] = useState<string | null>(null);
+  const purchaseWalletRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (connected && publicKey) {
       loadAgentProfile();
       loadVouches();
+      loadPurchases();
+    } else {
+      setPurchases([]);
+      setPurchaseListings(new Map());
+      setPurchaseWarning(null);
+      setMarketplaceListings([]);
+      setMarketplaceListingWarning(null);
+      purchaseWalletRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, publicKey]);
@@ -96,6 +131,62 @@ export default function DashboardPage() {
       setVouchesReceived(vouchesReceivedList);
     } catch (error) {
       console.error("Error loading vouches:", error);
+    }
+  };
+
+  const loadPurchases = async () => {
+    if (!publicKey) return;
+    try {
+      const [purchaseList, listings] = await Promise.all([
+        oracle.getPurchasesByBuyer(publicKey),
+        oracle.getAllSkillListings(),
+      ]);
+      let authoredMarketplaceSkills: MarketplaceListingRow[] = [];
+      try {
+        const response = await fetch(
+          `/api/skills?author=${encodeURIComponent(String(publicKey))}&sort=newest`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch marketplace listings");
+        }
+        const data = await response.json();
+        authoredMarketplaceSkills = (data.skills ?? []).filter(
+          (skill: MarketplaceListingRow) => !!skill.on_chain_address
+        );
+        setMarketplaceListingWarning(null);
+      } catch (error) {
+        console.error("Error loading authored marketplace listings:", error);
+        authoredMarketplaceSkills = [];
+        setMarketplaceListingWarning(
+          "Marketplace listing health could not be refreshed right now."
+        );
+      }
+      setPurchases(
+        [...purchaseList].sort(
+          (a: any, b: any) =>
+            Number(b.account.purchasedAt) - Number(a.account.purchasedAt)
+        )
+      );
+      setPurchaseListings(
+        new Map(
+          listings.map((listing: any) => [String(listing.publicKey), listing])
+        )
+      );
+      setMarketplaceListings(authoredMarketplaceSkills);
+      setPurchaseWarning(null);
+      purchaseWalletRef.current = String(publicKey);
+    } catch (error) {
+      console.error("Error loading purchases:", error);
+      if (purchaseWalletRef.current !== String(publicKey)) {
+        setPurchases([]);
+        setPurchaseListings(new Map());
+        setMarketplaceListings([]);
+      }
+      setPurchaseWarning(
+        isRpcRateLimitError(error)
+          ? "Purchase history is temporarily unavailable because the RPC is rate-limiting requests."
+          : "Purchase history could not be refreshed right now."
+      );
     }
   };
 
@@ -473,6 +564,183 @@ export default function DashboardPage() {
                     >
                       {loading ? "Registering..." : "Register as Agent"}
                     </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                  <FiDollarSign className="text-[var(--sea-accent)]" /> Purchased
+                  Skills
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Skills this wallet has already bought on-chain.
+                </p>
+                {purchaseWarning && (
+                  <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                    <FiAlertTriangle className="mt-0.5 shrink-0" />
+                    <span>{purchaseWarning}</span>
+                  </div>
+                )}
+                {purchases.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {purchaseWarning
+                      ? "Purchased skills are unavailable right now."
+                      : "No purchased skills yet."}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {purchases.map((purchase: any) => {
+                      const listing = purchaseListings.get(
+                        String(purchase.account.skillListing)
+                      );
+                      return (
+                        <div
+                          key={purchase.publicKey}
+                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-base font-bold text-gray-900 dark:text-white">
+                                  {listing?.account.name ?? "Purchased skill"}
+                                </span>
+                                <span className="text-xs text-green-600 dark:text-green-400 font-mono">
+                                  {formatSolAmount(
+                                    Number(purchase.account.pricePaid)
+                                  )}{" "}
+                                  SOL
+                                </span>
+                              </div>
+                              {listing?.account.skillUri ? (
+                                <a
+                                  href={listing.account.skillUri}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2"
+                                >
+                                  {listing.account.skillUri}
+                                </a>
+                              ) : (
+                                <p className="font-mono text-xs text-gray-500 dark:text-gray-400 mb-2 break-all">
+                                  Listing: {String(purchase.account.skillListing)}
+                                </p>
+                              )}
+                              <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
+                                <span className="inline-flex items-center gap-1">
+                                  <FiCalendar />{" "}
+                                  {formatTimestamp(purchase.account.purchasedAt)}
+                                </span>
+                              </div>
+                            </div>
+                            <span
+                              className={`${navButtonInlineClass} bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 whitespace-nowrap`}
+                            >
+                              Purchased
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                  <FiDollarSign className="text-[var(--lobster-accent)]" /> Your
+                  Marketplace Listings
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Author-facing health for listings this wallet has published.
+                </p>
+                {marketplaceListingWarning && (
+                  <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                    <FiAlertTriangle className="mt-0.5 shrink-0" />
+                    <span>{marketplaceListingWarning}</span>
+                  </div>
+                )}
+                {marketplaceListings.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {marketplaceListingWarning
+                      ? "Marketplace listings are unavailable right now."
+                      : "No marketplace listings yet."}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {marketplaceListings.map((listing) => {
+                      const sellerRentBlocked =
+                        listing.purchasePreflightStatus ===
+                        "authorPayoutRentBlocked";
+                      const creatorPrice = listing.creatorPriceLamports ?? 0;
+                      const estimatedBuyerTotal =
+                        listing.estimatedBuyerTotalLamports ?? creatorPrice;
+                      const downloads =
+                        (listing.total_installs ?? 0) + (listing.total_downloads ?? 0);
+                      return (
+                        <div
+                          key={listing.id}
+                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Link
+                                  href={`/skills/${listing.id}`}
+                                  className="text-base font-bold text-gray-900 dark:text-white hover:text-[var(--lobster-accent)] transition hover:underline"
+                                >
+                                  {listing.name}
+                                </Link>
+                                <span className="text-xs text-green-600 dark:text-green-400 font-mono">
+                                  {formatSolAmount(creatorPrice)} SOL creator price
+                                </span>
+                              </div>
+                              {listing.description && (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                                  {listing.description}
+                                </p>
+                              )}
+                              {sellerRentBlocked && (
+                                <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                                  <div className="flex items-start gap-2">
+                                    <FiAlertTriangle className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                        Low-priced sales are currently blocked
+                                      </p>
+                                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                                        {listing.purchasePreflightMessage}
+                                      </p>
+                                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                                        Buyers currently see an estimated total of{" "}
+                                        {formatSolAmount(estimatedBuyerTotal)} SOL,
+                                        but purchases will fail until this payout
+                                        wallet holds enough SOL.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
+                                <span className="inline-flex items-center gap-1">
+                                  <FiZap /> {downloads} downloads
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <FiDollarSign /> {formatSolAmount(estimatedBuyerTotal)}{" "}
+                                  SOL estimated total
+                                </span>
+                              </div>
+                            </div>
+                            <Link
+                              href={`/skills/${listing.id}`}
+                              className={navButtonSecondaryInlineClass}
+                            >
+                              View
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

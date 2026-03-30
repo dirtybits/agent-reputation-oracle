@@ -20,9 +20,12 @@ const asBase64 = (bytes: Uint8Array) =>
   encodeBase64(bytes) as Base64EncodedBytes;
 const asBase58 = (addr: string) => addr as unknown as Base58EncodedBytes;
 import {
+  fetchAllMaybePurchase,
   fetchMaybeAgentProfile,
   fetchMaybeAuthorDispute,
+  fetchMaybePurchase,
   fetchMaybeReputationConfig,
+  fetchMaybeSkillListing,
   fetchVouch,
   getAuthorDisputeDecoder,
   getOpenAuthorDisputeInstructionAsync,
@@ -59,6 +62,12 @@ import {
   type AuthorDisputeRecord,
 } from "@/lib/authorDisputes";
 import { countsTowardAuthorWideReportSnapshot } from "@/lib/disputes";
+import {
+  assessPurchasePreflight,
+  createPurchasePreflightContext,
+  type PurchasePreflightAssessment,
+} from "@/lib/purchasePreflight";
+import { wrapRpcLookupError } from "@/lib/rpcErrors";
 
 const LAMPORTS_PER_SOL = 1_000_000_000n;
 const ENDPOINT =
@@ -160,6 +169,85 @@ async function getPurchasePDA(
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shortAddress(value: string) {
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function formatLamportsAsSol(lamports: bigint) {
+  const sol = Number(lamports) / Number(LAMPORTS_PER_SOL);
+  const decimals = sol >= 1 ? 4 : 6;
+  return sol.toFixed(decimals).replace(/\.?0+$/, "");
+}
+
+function describeRpcTarget(endpoint: string) {
+  const lower = endpoint.toLowerCase();
+  if (lower.includes("devnet")) return "devnet";
+  if (lower.includes("testnet")) return "testnet";
+  if (lower.includes("mainnet")) return "mainnet";
+  return endpoint;
+}
+
+function coerceLamports(value: unknown): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number") return BigInt(value);
+  if (
+    value &&
+    typeof value === "object" &&
+    "value" in value &&
+    (value as { value?: unknown }).value !== undefined
+  ) {
+    return coerceLamports((value as { value: unknown }).value);
+  }
+  throw new Error("Unexpected lamports response from RPC");
+}
+
+async function estimatePurchasePreflight(
+  buyer: Address,
+  skillListing: Address,
+  author: Address
+): Promise<PurchasePreflightAssessment> {
+  const listing = await fetchMaybeSkillListing(rpc, skillListing);
+  if (!listing.exists) throw new Error("Skill listing not found on-chain");
+  const context = await createPurchasePreflightContext({
+    rpc,
+    buyer,
+    authors: [author],
+  });
+  return assessPurchasePreflight({
+    context,
+    priceLamports: BigInt(listing.data.priceLamports),
+    author,
+  });
+}
+
+function buildPurchaseBalanceError(
+  walletAddress: Address,
+  estimate: PurchasePreflightAssessment
+) {
+  return `Connected wallet ${shortAddress(
+    walletAddress
+  )} has ${formatLamportsAsSol(
+    estimate.buyerBalanceLamports ?? 0n
+  )} SOL on the configured ${describeRpcTarget(
+    ENDPOINT
+  )} RPC. Buying this skill needs about ${formatLamportsAsSol(
+    estimate.estimatedBuyerTotalLamports
+  )} SOL including rent for the purchase record.`;
+}
+
+function buildPurchaseClusterMismatchError(
+  walletAddress: Address,
+  estimate: PurchasePreflightAssessment
+) {
+  return `Phantom reported insufficient SOL, but connected wallet ${shortAddress(
+    walletAddress
+  )} has ${formatLamportsAsSol(
+    estimate.buyerBalanceLamports ?? 0n
+  )} SOL on the configured ${describeRpcTarget(
+    ENDPOINT
+  )} RPC. Check that Phantom is using the same wallet address and devnet network, then retry.`;
 }
 
 async function waitForConfirmedSignature(
@@ -685,10 +773,36 @@ export function useReputationOracle() {
         publicKey: a.pubkey,
         account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
-    } catch {
-      return [];
+    } catch (error) {
+      console.error("Error fetching purchases by buyer:", error);
+      throw wrapRpcLookupError(error, "Failed to fetch purchases by buyer");
     }
   }, []);
+
+  const getPurchasedSkillListingKeys = useCallback(
+    async (buyer: Address, skillListings: Address[]) => {
+      if (skillListings.length === 0) return new Set<string>();
+      try {
+        const purchaseAddresses = await Promise.all(
+          skillListings.map((skillListing) => getPurchasePDA(buyer, skillListing))
+        );
+        const maybePurchases = await fetchAllMaybePurchase(rpc, purchaseAddresses);
+
+        return new Set(
+          skillListings
+            .filter((_, index) => maybePurchases[index]?.exists)
+            .map((skillListing) => String(skillListing))
+        );
+      } catch (error) {
+        console.error("Error resolving purchased skill flags:", error);
+        throw wrapRpcLookupError(
+          error,
+          "Failed to resolve purchased skill flags"
+        );
+      }
+    },
+    []
+  );
 
   const openAuthorDispute = useCallback(
     async (
@@ -798,6 +912,48 @@ export function useReputationOracle() {
   const purchaseSkill = useCallback(
     async (skillListingKey: Address, authorKey: Address) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const purchasePda = await getPurchasePDA(walletAddress, skillListingKey);
+      const existingPurchase = await fetchMaybePurchase(rpc, purchasePda).catch(
+        () => null
+      );
+      if (existingPurchase?.exists) {
+        return {
+          tx: null,
+          alreadyPurchased: true,
+          purchase: purchasePda,
+        };
+      }
+      let purchaseEstimate: PurchasePreflightAssessment | null = null;
+      try {
+        purchaseEstimate = await estimatePurchasePreflight(
+          walletAddress,
+          skillListingKey,
+          authorKey
+        );
+        if (
+          purchaseEstimate.purchasePreflightStatus === "buyerInsufficientBalance"
+        ) {
+          throw new Error(buildPurchaseBalanceError(walletAddress, purchaseEstimate));
+        }
+        if (
+          purchaseEstimate.purchasePreflightStatus === "authorPayoutRentBlocked"
+        ) {
+          throw new Error(
+            purchaseEstimate.purchasePreflightMessage ??
+              "This listing is temporarily not purchasable."
+          );
+        }
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message.includes("Buying this skill needs about") ||
+            error.message.includes("cannot currently be purchased"))
+        ) {
+          throw error;
+        }
+        console.warn("Purchase preflight skipped:", error);
+      }
+
       const authorProfile = await getAgentPDA(authorKey);
       const ix = await getPurchaseSkillInstructionAsync({
         skillListing: skillListingKey,
@@ -805,43 +961,121 @@ export function useReputationOracle() {
         authorProfile,
         buyer: signer,
       });
-      return { tx: await sendIx(ix) };
+      try {
+        return { tx: await sendIx(ix) };
+      } catch (error: any) {
+        const existingPurchaseAfterFailure = await fetchMaybePurchase(
+          rpc,
+          purchasePda
+        ).catch(() => null);
+        if (existingPurchaseAfterFailure?.exists) {
+          return {
+            tx: null,
+            alreadyPurchased: true,
+            purchase: purchasePda,
+          };
+        }
+        const message = String(error?.message ?? error ?? "");
+        if (/insufficient|not enough sol/i.test(message)) {
+          const latestEstimate =
+            purchaseEstimate ??
+            (await estimatePurchasePreflight(
+              walletAddress,
+              skillListingKey,
+              authorKey
+            ).catch(() => null));
+          if (latestEstimate) {
+            if (
+              latestEstimate.purchasePreflightStatus ===
+              "buyerInsufficientBalance"
+            ) {
+              throw new Error(
+                buildPurchaseBalanceError(walletAddress, latestEstimate)
+              );
+            }
+            if (
+              latestEstimate.purchasePreflightStatus ===
+              "authorPayoutRentBlocked"
+            ) {
+              throw new Error(
+                latestEstimate.purchasePreflightMessage ??
+                  "This listing is temporarily not purchasable."
+              );
+            }
+            throw new Error(
+              buildPurchaseClusterMismatchError(walletAddress, latestEstimate)
+            );
+          }
+        }
+        throw error;
+      }
     },
     [signer, walletAddress, sendIx]
   );
 
-  return {
-    connected: !!connected,
-    walletAddress,
-    registerAgent,
-    vouch,
-    revokeVouch,
-    openDispute,
-    openAuthorDispute,
-    resolveAuthorDispute,
-    getConfig,
-    getAgentProfile,
-    getAgentProfileByAddress,
-    getAuthorDisputeByAddress,
-    getAuthorDisputesByAuthor,
-    getAuthorDisputeLinks,
-    getAllAuthorDisputes,
-    getAllVouchesForAgent,
-    getAllVouchesReceivedByAgent,
-    getAllAgents,
-    getAllSkillListings,
-    getSkillListingsByAuthor,
-    getAllPurchases,
-    getPurchasesByBuyer,
-    createSkillListing,
-    updateSkillListing,
-    purchaseSkill,
-    getAgentPDA,
-    getVouchPDA,
-    getConfigPDA,
-    getAuthorDisputePDA,
-    getAuthorDisputeVouchLinkPDA,
-    getSkillListingPDA,
-    getPurchasePDA,
-  };
+  return useMemo(
+    () => ({
+      connected: !!connected,
+      walletAddress,
+      registerAgent,
+      vouch,
+      revokeVouch,
+      openDispute,
+      openAuthorDispute,
+      resolveAuthorDispute,
+      getConfig,
+      getAgentProfile,
+      getAgentProfileByAddress,
+      getAuthorDisputeByAddress,
+      getAuthorDisputesByAuthor,
+      getAuthorDisputeLinks,
+      getAllAuthorDisputes,
+      getAllVouchesForAgent,
+      getAllVouchesReceivedByAgent,
+      getAllAgents,
+      getAllSkillListings,
+      getSkillListingsByAuthor,
+      getAllPurchases,
+      getPurchasesByBuyer,
+      getPurchasedSkillListingKeys,
+      createSkillListing,
+      updateSkillListing,
+      purchaseSkill,
+      getAgentPDA,
+      getVouchPDA,
+      getConfigPDA,
+      getAuthorDisputePDA,
+      getAuthorDisputeVouchLinkPDA,
+      getSkillListingPDA,
+      getPurchasePDA,
+    }),
+    [
+      connected,
+      walletAddress,
+      registerAgent,
+      vouch,
+      revokeVouch,
+      openDispute,
+      openAuthorDispute,
+      resolveAuthorDispute,
+      getConfig,
+      getAgentProfile,
+      getAgentProfileByAddress,
+      getAuthorDisputeByAddress,
+      getAuthorDisputesByAuthor,
+      getAuthorDisputeLinks,
+      getAllAuthorDisputes,
+      getAllVouchesForAgent,
+      getAllVouchesReceivedByAgent,
+      getAllAgents,
+      getAllSkillListings,
+      getSkillListingsByAuthor,
+      getAllPurchases,
+      getPurchasesByBuyer,
+      getPurchasedSkillListingKeys,
+      createSkillListing,
+      updateSkillListing,
+      purchaseSkill,
+    ]
+  );
 }

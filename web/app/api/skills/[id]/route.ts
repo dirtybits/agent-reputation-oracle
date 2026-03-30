@@ -8,7 +8,12 @@ import {
   getConfiguredSolanaChainContext,
   normalizePersistedChainContext,
 } from "@/lib/chains";
-import { createSolanaRpc } from "@solana/kit";
+import {
+  assessPurchasePreflight,
+  createPurchasePreflightContext,
+  serializePurchasePreflight,
+} from "@/lib/purchasePreflight";
+import { address, createSolanaRpc, isAddress } from "@solana/kit";
 import type { Base64EncodedBytes } from "@solana/rpc-types";
 import {
   getSkillListingDecoder,
@@ -58,6 +63,8 @@ export async function GET(
     const { id } = await params;
     const { searchParams } = request.nextUrl;
     const includeTrust = searchParams.get("include") !== "none";
+    const buyer = searchParams.get("buyer");
+    const buyerAddress = buyer && isAddress(buyer) ? address(buyer) : null;
 
     if (id.startsWith(CHAIN_PREFIX)) {
       const onChainAddr = id.slice(CHAIN_PREFIX.length);
@@ -65,6 +72,22 @@ export async function GET(
       if (!listing) {
         return NextResponse.json({ error: "Skill not found" }, { status: 404 });
       }
+      const preflightContext = await createPurchasePreflightContext({
+        rpc,
+        buyer: buyerAddress,
+        authors: isAddress(String(listing.data.author))
+          ? [address(String(listing.data.author))]
+          : [],
+      });
+      const preflight = serializePurchasePreflight(
+        assessPurchasePreflight({
+          context: preflightContext,
+          priceLamports: BigInt(listing.data.priceLamports),
+          author: isAddress(String(listing.data.author))
+            ? address(String(listing.data.author))
+            : null,
+        })
+      );
 
       let author_trust = null;
       if (includeTrust) {
@@ -123,6 +146,7 @@ export async function GET(
         author_trust,
         author_identity,
         content_verification: null,
+        ...preflight,
       });
     }
 
@@ -186,6 +210,20 @@ export async function GET(
     const versionsWithoutContent = versions.map(
       ({ content, ...rest }: any) => rest
     );
+    const preflightContext = await createPurchasePreflightContext({
+      rpc,
+      buyer: buyerAddress,
+      authors: isAddress(skill.author_pubkey) ? [address(skill.author_pubkey)] : [],
+    });
+    const preflight = serializePurchasePreflight(
+      assessPurchasePreflight({
+        context: preflightContext,
+        priceLamports: BigInt(skill.price_lamports ?? 0),
+        author: isAddress(skill.author_pubkey)
+          ? address(skill.author_pubkey)
+          : null,
+      })
+    );
 
     return NextResponse.json({
       ...skill,
@@ -194,6 +232,7 @@ export async function GET(
       author_trust,
       author_identity,
       content_verification,
+      ...preflight,
     });
   } catch (error: any) {
     console.error("GET /api/skills/[id] error:", error);

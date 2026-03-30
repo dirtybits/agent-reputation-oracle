@@ -1,5 +1,16 @@
 # AgentVouch TODO
 
+## Current Task
+- [x] Diagnose devnet skill purchase insufficient-SOL warning
+- [x] Add purchase preflight to estimate required SOL on the configured RPC
+- [x] Improve purchase error messaging for cluster/account mismatch cases
+- [x] Verify the edited web files lint clean and `web` builds successfully
+
+## Review
+- Traced the purchase flow to `purchase_skill`, which charges `price + purchase-account rent + fee`, and confirmed devnet listing prices range from `0.001` to `0.1 SOL`.
+- Added a same-RPC purchase preflight in `web/hooks/useReputationOracle.ts` so low-balance cases fail before the Phantom popup with an exact estimate.
+- If Phantom still reports insufficient SOL while the configured devnet RPC shows enough balance, the app now points the user at the likely root cause: Phantom is using a different wallet address or cluster than the app.
+
 ## UI / Branding
 - [x] Add AgentVouch to title of the project
 - [x] Keep current title as a scrolling-typing type intro

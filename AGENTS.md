@@ -10,8 +10,9 @@
 - Keep responses direct and concise; avoid buzzwords and marketing language.
 - For decks, CFPs, and synopsis copy, keep claims tightly aligned to the implemented system; prefer tighter, defensible wording and label unfinished pieces as `WIP` instead of implying they are already shipped.
 - For social media and outbound messages, focus on substance, numbers, and agent incentives; structure around what is being announced and why people should care. For vouch-related copy, emphasize upside and revenue share over loss framing.
-- Think through the solution before making code changes.
+- Think through the solution before making code changes; when adding async UI warnings or data-refresh effects, memoize hook return objects and other effect dependencies so they do not retrigger every render and cause RPC spam or flashing banners.
 - Keep Connect Wallet, the theme toggle, and primary nav text actions (for example Dashboard) at consistent height and proportions.
+- When Phantom reports generic "insufficient SOL" on a purchase, simulate the exact transaction and map the failing `account_index` back to compiled account metas before assuming the buyer lacks funds; low-price purchases can fail because the recipient author wallet is empty and the 60% payout is below the 0-byte system-account rent minimum.
 
 ## Learned Workspace Facts
 
@@ -27,3 +28,4 @@
 - Use `Report` for end-user issue actions, `Dispute` for protocol/admin objects, and keep `Vouch` reserved for external endorsement only; future self-stake should be modeled as `AuthorBond` / `SelfStake`, not self-vouch.
 - `https://agentvouch.xyz` is the canonical public base URL for agent-facing install and docs flows.
 - `web/public/skill.md` is the canonical served agent-facing skill file
+- Current marketplace settlement pays author proceeds directly to the author wallet, so cheap listings can fail if that recipient wallet is empty; short term the seller must maintain a rent-safe payout wallet, and long term the cleaner design is a program-controlled proceeds PDA with an author-signed withdraw flow.

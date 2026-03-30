@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { getOnChainPrice } from "@/lib/onchain";
+import { hasOnChainPurchase } from "@/lib/x402";
 
 const CHAIN_PREFIX = "chain-";
 
@@ -28,6 +29,12 @@ export async function POST(
         { status: 401 }
       );
     }
+    if (!verification.pubkey) {
+      return NextResponse.json(
+        { error: "Verified wallet pubkey is missing" },
+        { status: 401 }
+      );
+    }
 
     if (id.startsWith(CHAIN_PREFIX)) {
       const pubkey = id.slice(CHAIN_PREFIX.length);
@@ -39,6 +46,16 @@ export async function POST(
         );
       }
       if (listing.price > 0) {
+        const purchased = await hasOnChainPurchase(verification.pubkey, pubkey).catch(
+          () => false
+        );
+        if (purchased) {
+          return NextResponse.json({
+            success: true,
+            skill_id: pubkey,
+            installed_by: verification.pubkey,
+          });
+        }
         return NextResponse.json(
           { error: "Paid skills require an on-chain purchase" },
           { status: 402 }
@@ -65,6 +82,25 @@ export async function POST(
     if (skill.on_chain_address) {
       const listing = await getOnChainPrice(skill.on_chain_address);
       if (listing && listing.price > 0) {
+        const purchased = await hasOnChainPurchase(
+          verification.pubkey,
+          skill.on_chain_address
+        ).catch(() => false);
+        if (purchased) {
+          const [updated] = await sql()`
+            UPDATE skills
+            SET total_installs = total_installs + 1, updated_at = NOW()
+            WHERE id = ${id}::uuid
+            RETURNING id, total_installs
+          `;
+
+          return NextResponse.json({
+            success: true,
+            skill_id: updated.id,
+            total_installs: updated.total_installs,
+            installed_by: verification.pubkey,
+          });
+        }
         return NextResponse.json(
           { error: "Paid skills require an on-chain purchase" },
           { status: 402 }

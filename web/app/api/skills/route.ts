@@ -12,7 +12,12 @@ import {
   normalizeInputChainContext,
   normalizePersistedChainContext,
 } from "@/lib/chains";
-import { createSolanaRpc } from "@solana/kit";
+import {
+  assessPurchasePreflight,
+  createPurchasePreflightContext,
+  serializePurchasePreflight,
+} from "@/lib/purchasePreflight";
+import { address, createSolanaRpc, isAddress } from "@solana/kit";
 import type { Base64EncodedBytes } from "@solana/rpc-types";
 import {
   getSkillListingDecoder,
@@ -107,6 +112,7 @@ export async function GET(request: NextRequest) {
     const q = searchParams.get("q");
     const sort = searchParams.get("sort") || "newest";
     const author = searchParams.get("author");
+    const buyer = searchParams.get("buyer");
     const tags = searchParams.get("tags");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
 
@@ -218,9 +224,35 @@ export async function GET(request: NextRequest) {
     const total = enriched.length;
     const offset = (page - 1) * PAGE_SIZE;
     const paged = enriched.slice(offset, offset + PAGE_SIZE);
+    const buyerAddress = buyer && isAddress(buyer) ? address(buyer) : null;
+    const preflightContext = await createPurchasePreflightContext({
+      rpc,
+      buyer: buyerAddress,
+      authors: paged
+        .filter((skill) => (skill.price_lamports ?? 0) > 0)
+        .map((skill) => skill.author_pubkey)
+        .filter(isAddress)
+        .map((pubkey) => address(pubkey)),
+    });
+    const pagedWithPricing = paged.map((skill) => {
+      const creatorPriceLamports = BigInt(skill.price_lamports ?? 0);
+      const preflight = serializePurchasePreflight(
+        assessPurchasePreflight({
+          context: preflightContext,
+          priceLamports: creatorPriceLamports,
+          author: isAddress(skill.author_pubkey)
+            ? address(skill.author_pubkey)
+            : null,
+        })
+      );
+      return {
+        ...skill,
+        ...preflight,
+      };
+    });
 
     return NextResponse.json({
-      skills: paged,
+      skills: pagedWithPricing,
       pagination: {
         page,
         pageSize: PAGE_SIZE,

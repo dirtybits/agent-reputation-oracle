@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react";
 import { useWalletConnection } from "@solana/react-hooks";
 import { type Address } from "@solana/kit";
 import Link from "next/link";
@@ -12,7 +12,7 @@ import {
   navButtonPrimaryInlineClass,
   navButtonSizeClass,
 } from "@/lib/buttonStyles";
-import { formatSolAmount } from "@/lib/pricing";
+import { formatSolAmount, fromLamports } from "@/lib/pricing";
 import { SolAmount } from "@/components/SolAmount";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
 import type {
@@ -21,6 +21,7 @@ import type {
 } from "../../generated/reputation-oracle/src/generated";
 import {
   FiActivity,
+  FiAlertTriangle,
   FiAward,
   FiBookOpen,
   FiBox,
@@ -38,7 +39,9 @@ import {
   FiTrendingUp,
   FiXCircle,
 } from "react-icons/fi";
+import { isRpcRateLimitError } from "@/lib/rpcErrors";
 import { getCompetitionPhase } from "@/lib/competition";
+import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 
 type PageTab = "browse" | "my-purchases" | "my-listings";
 
@@ -53,12 +56,20 @@ interface SkillRow {
   ipfs_cid: string | null;
   total_installs: number;
   total_downloads?: number;
+  total_revenue?: number;
   price_lamports?: number;
   on_chain_address?: string;
   skill_uri?: string | null;
   source?: "repo" | "chain";
   created_at: string;
   author_trust: TrustData | null;
+  creatorPriceLamports?: number;
+  estimatedPurchaseRentLamports?: number;
+  feeBufferLamports?: number;
+  estimatedBuyerTotalLamports?: number;
+  purchasePreflightStatus?: PurchasePreflightStatus;
+  purchasePreflightMessage?: string | null;
+  priceDisclosure?: string | null;
 }
 
 interface ApiResponse {
@@ -107,6 +118,13 @@ function formatDate(ts: number): string {
   return new Date(ts * 1000).toLocaleDateString();
 }
 
+function isBlockingPurchaseStatus(status: PurchasePreflightStatus | null | undefined) {
+  return (
+    status === "buyerInsufficientBalance" ||
+    status === "authorPayoutRentBlocked"
+  );
+}
+
 function getCapabilityFallback(tags: string[]): string | null {
   if (!tags.length) return null;
   return `Capabilities: ${tags.slice(0, 3).join(", ")}`;
@@ -132,19 +150,35 @@ export default function MarketplacePage() {
   // Marketplace state
   const [listings, setListings] = useState<SkillListingData[]>([]);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [purchasedKeys, setPurchasedKeys] = useState<Set<Address>>(new Set());
+  const [purchasedKeys, setPurchasedKeys] = useState<Set<string>>(new Set());
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
+  const [purchaseStatusReady, setPurchaseStatusReady] = useState(false);
+  const [purchaseStatusWarning, setPurchaseStatusWarning] = useState<string | null>(
+    null
+  );
 
   // My data
   const [myPurchases, setMyPurchases] = useState<PurchaseData[]>([]);
   const [myListings, setMyListings] = useState<SkillListingData[]>([]);
+  const [myListingDetails, setMyListingDetails] = useState<Map<string, SkillRow>>(
+    new Map()
+  );
+  const purchaseStateWalletRef = useRef<string | null>(null);
 
   // Feed state
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [repoSkillMap, setRepoSkillMap] = useState<Map<string, string>>(
     new Map()
+  );
+  const purchasedSkillListingKeys = useMemo(
+    () =>
+      new Set([
+        ...purchasedKeys,
+        ...myPurchases.map((purchase) => String(purchase.account.skillListing)),
+      ]),
+    [myPurchases, purchasedKeys]
   );
 
   const fetchSkills = useCallback(async () => {
@@ -154,6 +188,7 @@ export default function MarketplacePage() {
       if (search) params.set("q", search);
       params.set("sort", sort);
       params.set("page", String(page));
+      if (publicKey) params.set("buyer", String(publicKey));
 
       const res = await fetch(`/api/skills?${params}`);
       if (!res.ok) throw new Error("Failed to fetch skills");
@@ -168,7 +203,7 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, sort, page]);
+  }, [page, publicKey, search, sort]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadFeed = useCallback(
@@ -241,19 +276,84 @@ export default function MarketplacePage() {
   }, []);
 
   const loadMyData = useCallback(async () => {
-    if (!publicKey) return;
+    if (!publicKey) {
+      setMyPurchases([]);
+      setMyListings([]);
+      setMyListingDetails(new Map());
+      setPurchasedKeys(new Set());
+      setPurchaseStatusReady(false);
+      setPurchaseStatusWarning(null);
+      purchaseStateWalletRef.current = null;
+      return;
+    }
     try {
-      const [purchases, authorListings] = await Promise.all([
+      const [purchases, authorListings, authoredSkillsResponse] = await Promise.all([
         oracle.getPurchasesByBuyer(publicKey),
         oracle.getSkillListingsByAuthor(publicKey),
+        fetch(
+          `/api/skills?author=${encodeURIComponent(String(publicKey))}&sort=newest`
+        ),
       ]);
+      const authoredSkillsData: ApiResponse | null = authoredSkillsResponse.ok
+        ? await authoredSkillsResponse.json()
+        : null;
       setMyPurchases(purchases);
       setMyListings(authorListings);
-      setPurchasedKeys(new Set(purchases.map((p) => p.account.skillListing)));
+      setMyListingDetails(
+        new Map(
+          (authoredSkillsData?.skills ?? [])
+            .filter((skill) => !!skill.on_chain_address)
+            .map((skill) => [String(skill.on_chain_address), skill])
+        )
+      );
+      setPurchasedKeys(
+        new Set(purchases.map((p) => String(p.account.skillListing)))
+      );
+      setPurchaseStatusReady(true);
+      setPurchaseStatusWarning(null);
+      purchaseStateWalletRef.current = String(publicKey);
     } catch (e) {
       console.error("Failed to load user data:", e);
+      if (purchaseStateWalletRef.current !== String(publicKey)) {
+        setMyPurchases([]);
+        setMyListings([]);
+        setMyListingDetails(new Map());
+        setPurchasedKeys(new Set());
+      }
+      setPurchaseStatusWarning(
+        isRpcRateLimitError(e)
+          ? "Purchase status is temporarily unavailable because the RPC is rate-limiting requests."
+          : "Purchase status could not be refreshed right now."
+      );
     }
-  }, [publicKey]);
+  }, [oracle, publicKey]);
+
+  const refreshPurchasedFlags = useCallback(async () => {
+    if (!publicKey || listings.length === 0) {
+      if (!publicKey) setPurchasedKeys(new Set());
+      return;
+    }
+
+    try {
+      const purchasedListingKeys = await oracle.getPurchasedSkillListingKeys(
+        publicKey,
+        listings.map((listing) => listing.publicKey)
+      );
+      setPurchasedKeys((prev) => new Set([...prev, ...purchasedListingKeys]));
+      setPurchaseStatusReady(true);
+      setPurchaseStatusWarning(null);
+      purchaseStateWalletRef.current = String(publicKey);
+    } catch (error) {
+      console.error("Failed to resolve purchased listing flags:", error);
+      if (!purchaseStatusReady && purchasedSkillListingKeys.size === 0) {
+        setPurchaseStatusWarning(
+          isRpcRateLimitError(error)
+            ? "Purchase status is temporarily unavailable because the RPC is rate-limiting requests."
+            : "Purchase status could not be refreshed right now."
+        );
+      }
+    }
+  }, [listings, oracle, publicKey, purchaseStatusReady, purchasedSkillListingKeys.size]);
 
   useEffect(() => {
     fetchSkills();
@@ -264,6 +364,9 @@ export default function MarketplacePage() {
   useEffect(() => {
     loadMyData();
   }, [loadMyData]);
+  useEffect(() => {
+    refreshPurchasedFlags();
+  }, [refreshPurchasedFlags]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,8 +380,21 @@ export default function MarketplacePage() {
     setTxError(null);
     setTxSuccess(null);
     try {
-      const { tx } = await oracle.purchaseSkill(listingPubkey, authorKey);
-      setTxSuccess(tx);
+      const { tx, alreadyPurchased } = await oracle.purchaseSkill(
+        listingPubkey,
+        authorKey
+      );
+      if (alreadyPurchased) {
+        setPurchasedKeys((prev) => new Set([...prev, String(listingPubkey)]));
+        setPurchaseStatusReady(true);
+        setPurchaseStatusWarning(null);
+        setTxSuccess("Already purchased with this wallet.");
+      } else if (tx) {
+        setPurchasedKeys((prev) => new Set([...prev, String(listingPubkey)]));
+        setPurchaseStatusReady(true);
+        setPurchaseStatusWarning(null);
+        setTxSuccess(tx);
+      }
       await Promise.all([loadListings(), loadMyData()]);
     } catch (e: any) {
       console.error("Purchase failed:", e);
@@ -429,6 +545,17 @@ export default function MarketplacePage() {
             </button>
           </div>
         )}
+        {purchaseStatusWarning && connected && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-2">
+            <span className="mt-0.5 text-amber-600 dark:text-amber-400">
+              <FiAlertTriangle />
+            </span>
+            <span className="text-amber-800 dark:text-amber-200 text-sm">
+              {purchaseStatusWarning} Purchased badges may be incomplete until the
+              status refresh succeeds.
+            </span>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 mb-8 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-800">
@@ -510,7 +637,7 @@ export default function MarketplacePage() {
                         (skill.total_downloads ?? 0);
                       const listing = getListingForSkill(skill);
                       const hasPurchased = listing
-                        ? purchasedKeys.has(listing.publicKey)
+                        ? purchasedSkillListingKeys.has(String(listing.publicKey))
                         : false;
                       const isOwn =
                         publicKey &&
@@ -518,8 +645,20 @@ export default function MarketplacePage() {
                       const isPurchasing = listing
                         ? purchasing === (listing.publicKey as string)
                         : false;
-                      const price = skill.price_lamports ?? 0;
-
+                      const creatorPrice =
+                        skill.creatorPriceLamports ??
+                        (listing
+                          ? Number(listing.account.priceLamports)
+                          : (skill.price_lamports ?? 0));
+                      const estimatedTotal =
+                        skill.estimatedBuyerTotalLamports ?? creatorPrice;
+                      const purchasePreflightStatus =
+                        skill.purchasePreflightStatus ??
+                        (creatorPrice > 0 ? "estimateUnavailable" : "ok");
+                      const purchaseBlocked =
+                        creatorPrice > 0 &&
+                        isBlockingPurchaseStatus(purchasePreflightStatus);
+                      const purchaseMessage = skill.purchasePreflightMessage;
                       return (
                         <div
                           key={skill.id}
@@ -534,13 +673,19 @@ export default function MarketplacePage() {
                                 {skill.name}
                               </Link>
                               <div className="flex items-center gap-2 shrink-0">
-                                {price > 0 ? (
-                                  <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
-                                    <SolAmount
-                                      amount={formatSol(price)}
-                                      iconClassName="w-3 h-3"
-                                    />
-                                  </span>
+                                {creatorPrice > 0 ? (
+                                  <div className="flex flex-col items-end">
+                                    <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
+                                      <SolAmount
+                                        amount={formatSol(estimatedTotal)}
+                                        iconClassName="w-3 h-3"
+                                      />
+                                    </span>
+                                    <span className="mt-1 text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                      Creator{" "}
+                                      {fromLamports(creatorPrice).toFixed(3)} SOL
+                                    </span>
+                                  </div>
                                 ) : (
                                   listing && (
                                     <span className="px-2 py-0.5 rounded-full bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs font-semibold">
@@ -565,6 +710,48 @@ export default function MarketplacePage() {
                                 {getCapabilityFallback(skill.tags ?? [])}
                               </p>
                             ) : null}
+
+                            {creatorPrice > 0 && (
+                              <div
+                                className={`mb-3 rounded-lg border p-3 ${
+                                  purchaseBlocked
+                                    ? "border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/10"
+                                    : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/40"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between text-xs font-medium text-gray-600 dark:text-gray-300">
+                                  <span>Estimated total</span>
+                                  <span className="font-mono text-gray-900 dark:text-white">
+                                    <SolAmount
+                                      amount={formatSol(estimatedTotal)}
+                                      iconClassName="w-3 h-3"
+                                    />
+                                  </span>
+                                </div>
+                                {estimatedTotal !== creatorPrice && (
+                                  <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                                    <span>Creator price</span>
+                                    <span className="font-mono">
+                                      <SolAmount
+                                        amount={formatSol(creatorPrice)}
+                                        iconClassName="w-3 h-3"
+                                      />
+                                    </span>
+                                  </div>
+                                )}
+                                {purchaseMessage && (
+                                  <p
+                                    className={`mt-2 text-[11px] leading-relaxed ${
+                                      purchaseBlocked
+                                        ? "text-amber-700 dark:text-amber-300"
+                                        : "text-gray-500 dark:text-gray-400"
+                                    }`}
+                                  >
+                                    {purchaseMessage}
+                                  </p>
+                                )}
+                              </div>
+                            )}
 
                             <div className="mb-3">
                               <TrustBadge trust={skill.author_trust} compact />
@@ -642,7 +829,7 @@ export default function MarketplacePage() {
                                 >
                                   Your Skill
                                 </div>
-                              ) : price === 0 ? (
+                              ) : creatorPrice === 0 ? (
                                 <Link
                                   href={`/skills/${skill.id}`}
                                   className={`w-full ${navButtonFlexClass} font-medium bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-center border border-[var(--sea-accent-border)] hover:bg-[var(--sea-accent-soft-hover)] transition`}
@@ -658,6 +845,15 @@ export default function MarketplacePage() {
                                     <FiCheckCircle className="w-3 h-3" />{" "}
                                     Purchased
                                   </span>
+                                </div>
+                              ) : purchaseBlocked ? (
+                                <div
+                                  className={`w-full ${navButtonSizeClass} bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-medium text-center border border-amber-200 dark:border-amber-800`}
+                                >
+                                  {purchasePreflightStatus ===
+                                  "authorPayoutRentBlocked"
+                                    ? "Seller Needs SOL"
+                                    : "Need More SOL"}
                                 </div>
                               ) : (
                                 <button
@@ -677,11 +873,12 @@ export default function MarketplacePage() {
                                     </span>
                                   ) : connected ? (
                                     <span className="inline-flex items-center gap-1 justify-center">
-                                      Buy for{" "}
+                                      Buy (~{" "}
                                       <SolAmount
-                                        amount={formatSol(price)}
+                                        amount={formatSol(estimatedTotal)}
                                         iconClassName="w-3 h-3"
                                       />
+                                      )
                                     </span>
                                   ) : (
                                     "Connect Wallet to Buy"
@@ -923,10 +1120,18 @@ export default function MarketplacePage() {
             ) : (
               <div className="space-y-4">
                 {myListings.map((listing) => {
+                  const listingDetail = myListingDetails.get(
+                    String(listing.publicKey)
+                  );
                   const price = Number(listing.account.priceLamports);
                   const downloads = Number(listing.account.totalDownloads);
                   const revenue = Number(listing.account.totalRevenue);
                   const authorEarnings = revenue * 0.6;
+                  const sellerRentBlocked =
+                    listingDetail?.purchasePreflightStatus ===
+                    "authorPayoutRentBlocked";
+                  const estimatedBuyerTotal =
+                    listingDetail?.estimatedBuyerTotalLamports ?? price;
 
                   return (
                     <div
@@ -947,6 +1152,26 @@ export default function MarketplacePage() {
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         {listing.account.description}
                       </p>
+                      {sellerRentBlocked && (
+                        <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                          <div className="flex items-start gap-2">
+                            <FiAlertTriangle className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                Low-priced sales are currently blocked
+                              </p>
+                              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                                {listingDetail?.purchasePreflightMessage}
+                              </p>
+                              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                                Buyers currently see an estimated total of{" "}
+                                {formatSol(estimatedBuyerTotal)} SOL, but purchases
+                                will fail until this payout wallet holds enough SOL.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex gap-4 text-sm">
                         <span className="text-gray-500 dark:text-gray-400">
                           <span className="inline-flex items-center gap-1">

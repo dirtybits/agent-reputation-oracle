@@ -13,14 +13,21 @@ vi.mock("@/lib/onchain", () => ({
   getOnChainPrice: vi.fn(),
 }));
 
+vi.mock("@/lib/x402", () => ({
+  hasOnChainPurchase: vi.fn(),
+}));
+
 import { POST } from "@/app/api/skills/[id]/install/route";
 import { sql } from "@/lib/db";
 import { verifyWalletSignature } from "@/lib/auth";
 import { getOnChainPrice } from "@/lib/onchain";
+import { hasOnChainPurchase } from "@/lib/x402";
 
 const mockSql = sql as unknown as ReturnType<typeof vi.fn>;
 const mockVerify = verifyWalletSignature as unknown as ReturnType<typeof vi.fn>;
 const mockOnChain = getOnChainPrice as unknown as ReturnType<typeof vi.fn>;
+const mockHasOnChainPurchase =
+  hasOnChainPurchase as unknown as ReturnType<typeof vi.fn>;
 
 function makeRequest(id: string, body: Record<string, any> = {}) {
   const req = new NextRequest(`http://localhost/api/skills/${id}/install`, {
@@ -35,6 +42,7 @@ function makeRequest(id: string, body: Record<string, any> = {}) {
 describe("POST /api/skills/[id]/install", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHasOnChainPurchase.mockResolvedValue(false);
   });
 
   it("returns 400 when auth payload is missing", async () => {
@@ -86,6 +94,20 @@ describe("POST /api/skills/[id]/install", () => {
     expect(res.status).toBe(402);
   });
 
+  it("returns 200 for paid chain-prefixed skill when the wallet already purchased it", async () => {
+    mockVerify.mockReturnValue({ valid: true, pubkey: "Wallet1" });
+    mockOnChain.mockResolvedValue({ price: 1_000_000, author: "Author1" });
+    mockHasOnChainPurchase.mockResolvedValue(true);
+
+    const { req, params } = makeRequest("chain-DEF456", {
+      auth: { pubkey: "Wallet1" },
+    });
+    const res = await POST(req, { params });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+  });
+
   it("returns 404 for missing chain-prefixed skill", async () => {
     mockVerify.mockReturnValue({ valid: true, pubkey: "Wallet1" });
     mockOnChain.mockResolvedValue(null);
@@ -128,6 +150,26 @@ describe("POST /api/skills/[id]/install", () => {
     });
     const res = await POST(req, { params });
     expect(res.status).toBe(402);
+  });
+
+  it("returns 200 for repo skill with paid on-chain listing when the wallet already purchased it", async () => {
+    mockVerify.mockReturnValue({ valid: true, pubkey: "Wallet1" });
+    mockOnChain.mockResolvedValue({ price: 50_000_000, author: "Author2" });
+    mockHasOnChainPurchase.mockResolvedValue(true);
+
+    const dbQuery = vi
+      .fn()
+      .mockResolvedValueOnce([{ id: "uuid-2", on_chain_address: "ChainAddr" }])
+      .mockResolvedValueOnce([{ id: "uuid-2", total_installs: 9 }]);
+    mockSql.mockReturnValue(dbQuery);
+
+    const { req, params } = makeRequest("uuid-2", {
+      auth: { pubkey: "Wallet1" },
+    });
+    const res = await POST(req, { params });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.total_installs).toBe(9);
   });
 
   it("returns 404 when repo skill not found", async () => {

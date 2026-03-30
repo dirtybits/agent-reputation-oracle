@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import Link from "next/link";
 import { AgentIdentityPanel } from "@/components/AgentIdentityPanel";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
@@ -17,13 +17,17 @@ import { useWalletConnection } from "@solana/react-hooks";
 import { useReputationOracle } from "@/hooks/useReputationOracle";
 import type { AgentIdentitySummary } from "@/lib/agentIdentity";
 import {
+  address,
+  type Address,
+} from "@solana/kit";
+import {
   PRICING,
   formatMinPrice,
   toLamports,
   fromLamports,
   isValidListingPriceLamports,
 } from "@/lib/pricing";
-import type { Address } from "@solana/kit";
+import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { SiSolana } from "react-icons/si";
 import {
   FiArrowLeft,
@@ -78,6 +82,13 @@ interface SkillDetail {
   author_trust: TrustData | null;
   author_identity: AgentIdentitySummary | null;
   content_verification: ContentVerification | null;
+  creatorPriceLamports?: number;
+  estimatedPurchaseRentLamports?: number;
+  feeBufferLamports?: number;
+  estimatedBuyerTotalLamports?: number;
+  purchasePreflightStatus?: PurchasePreflightStatus;
+  purchasePreflightMessage?: string | null;
+  priceDisclosure?: string | null;
 }
 
 function shortAddr(addr: string): string {
@@ -90,6 +101,13 @@ function formatDate(dateStr: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function isBlockingPurchaseStatus(status: PurchasePreflightStatus | null | undefined) {
+  return (
+    status === "buyerInsufficientBalance" ||
+    status === "authorPayoutRentBlocked"
+  );
 }
 
 function stripMarkdown(value: string): string {
@@ -201,24 +219,27 @@ export default function SkillDetailPage({
   );
   const capabilityBullets = extractCapabilityBullets(content);
 
-  useEffect(() => {
-    async function fetchSkill() {
-      try {
-        const detailRes = await fetch(`/api/skills/${id}?include=trust`);
-        if (!detailRes.ok) throw new Error("Skill not found");
-        const data = await detailRes.json();
-        setSkill(data);
-        if (data.content) {
-          setContent(data.content);
-        }
-      } catch (err) {
-        console.error("Error fetching skill:", err);
-      } finally {
-        setLoading(false);
+  const refreshSkill = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ include: "trust" });
+      if (walletAddress) params.set("buyer", String(walletAddress));
+      const detailRes = await fetch(`/api/skills/${id}?${params}`);
+      if (!detailRes.ok) throw new Error("Skill not found");
+      const data = await detailRes.json();
+      setSkill(data);
+      if (data.content) {
+        setContent(data.content);
       }
+    } catch (err) {
+      console.error("Error fetching skill:", err);
+    } finally {
+      setLoading(false);
     }
-    fetchSkill();
-  }, [id]);
+  }, [id, walletAddress]);
+
+  useEffect(() => {
+    void refreshSkill();
+  }, [refreshSkill]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -268,6 +289,7 @@ export default function SkillDetailPage({
         }),
       });
 
+      await refreshSkill();
       setSkill((s) => (s ? { ...s, on_chain_address: onChainAddress } : s));
       setListResult({
         success: true,
@@ -324,6 +346,67 @@ export default function SkillDetailPage({
     }
   };
 
+  const handlePaidInstall = async () => {
+    if (!connected || !walletAddress || !signMessage || !skill?.on_chain_address) {
+      return;
+    }
+    if (isBlockingPurchaseStatus(skill.purchasePreflightStatus)) {
+      setInstallResult({
+        success: false,
+        message:
+          skill.purchasePreflightMessage ??
+          "This listing is temporarily not purchasable.",
+      });
+      return;
+    }
+
+    setInstalling(true);
+    setInstallResult(null);
+    try {
+      const purchaseResult = await oracle.purchaseSkill(
+        address(skill.on_chain_address),
+        address(skill.author_pubkey)
+      );
+
+      const timestamp = Date.now();
+      const message = `AgentVouch Skill Repo\nAction: install-skill\nTimestamp: ${timestamp}`;
+      const msgBytes = new TextEncoder().encode(message);
+      const sigBytes = await signMessage(msgBytes);
+      const signature = encodeBase64(sigBytes);
+
+      const res = await fetch(`/api/skills/${id}/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auth: { pubkey: walletAddress, signature, message, timestamp },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInstallResult({
+          success: false,
+          message: data.error || "Install failed",
+        });
+        return;
+      }
+
+      setInstallResult({
+        success: true,
+        message: purchaseResult.alreadyPurchased
+          ? "Skill already purchased. Install unlocked."
+          : "Skill purchased and installed successfully!",
+      });
+      setSkill((s) => (s ? { ...s, total_installs: data.total_installs } : s));
+    } catch (err: any) {
+      setInstallResult({
+        success: false,
+        message: err.message || "Purchase failed",
+      });
+    } finally {
+      setInstalling(false);
+    }
+  };
+
   const startEditing = () => {
     if (!skill) return;
     setEditName(skill.name);
@@ -359,6 +442,7 @@ export default function SkillDetailPage({
         editDescription,
         priceLamports
       );
+      await refreshSkill();
       setSkill((s) =>
         s
           ? {
@@ -416,6 +500,19 @@ export default function SkillDetailPage({
       </main>
     );
   }
+
+  const creatorPriceLamports =
+    skill.creatorPriceLamports ?? skill.price_lamports ?? 0;
+  const estimatedPurchaseRentLamports =
+    skill.estimatedPurchaseRentLamports ?? 0;
+  const estimatedBuyerTotalLamports =
+    skill.estimatedBuyerTotalLamports ?? creatorPriceLamports;
+  const purchasePreflightStatus =
+    skill.purchasePreflightStatus ??
+    (creatorPriceLamports > 0 ? "estimateUnavailable" : "ok");
+  const purchaseBlocked =
+    creatorPriceLamports > 0 &&
+    isBlockingPurchaseStatus(purchasePreflightStatus);
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
@@ -536,19 +633,32 @@ export default function SkillDetailPage({
         {/* Meta Row */}
         <div
           className={`grid grid-cols-2 ${
-            isChainOnly ? "sm:grid-cols-4" : "sm:grid-cols-4"
+            creatorPriceLamports > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4"
           } gap-3 mb-6`}
         >
-          {skill.price_lamports != null && skill.price_lamports > 0 && (
+          {creatorPriceLamports > 0 && (
             <div className="rounded-lg border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-3 text-center">
               <div className="text-lg font-bold text-green-700 dark:text-green-400 font-mono flex items-center justify-center">
                 <SolAmount
-                  amount={fromLamports(skill.price_lamports).toFixed(4)}
+                  amount={fromLamports(creatorPriceLamports).toFixed(4)}
                   iconClassName="w-4 h-4"
                 />
               </div>
               <div className="text-xs text-green-600 dark:text-green-500">
-                Price
+                Creator Price
+              </div>
+            </div>
+          )}
+          {creatorPriceLamports > 0 && (
+            <div className="rounded-lg border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] p-3 text-center">
+              <div className="text-lg font-bold text-[var(--sea-accent-strong)] font-mono flex items-center justify-center">
+                <SolAmount
+                  amount={fromLamports(estimatedBuyerTotalLamports).toFixed(4)}
+                  iconClassName="w-4 h-4"
+                />
+              </div>
+              <div className="text-xs text-[var(--sea-accent)]">
+                Estimated Total
               </div>
             </div>
           )}
@@ -633,21 +743,30 @@ export default function SkillDetailPage({
         )}
 
         {/* Install / Buy action */}
-        {(skill.price_lamports == null || skill.price_lamports === 0) && (
+        {(creatorPriceLamports === 0 ||
+          (creatorPriceLamports > 0 && skill.source !== "chain")) && (
           <div className="rounded-xl border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] p-4 mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                  Free Skill
+                  {creatorPriceLamports > 0
+                    ? "Paid Skill"
+                    : "Free Skill"}
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Install with a wallet signature — no transaction fee.
+                  {creatorPriceLamports > 0
+                    ? "Complete the on-chain purchase, then install with a wallet signature."
+                    : "Install with a wallet signature — no transaction fee."}
                 </p>
               </div>
               {connected ? (
                 <button
-                  onClick={handleFreeInstall}
-                  disabled={installing}
+                  onClick={
+                    creatorPriceLamports > 0
+                      ? handlePaidInstall
+                      : handleFreeInstall
+                  }
+                  disabled={installing || purchaseBlocked}
                   className={navButtonPrimaryInlineClass}
                 >
                   {installing ? (
@@ -657,17 +776,88 @@ export default function SkillDetailPage({
                     </>
                   ) : (
                     <>
-                      <FiDownload className="w-4 h-4" />
-                      Install
+                      {creatorPriceLamports > 0 ? (
+                        <>
+                          <FiCheckCircle className="w-4 h-4" />
+                          {purchaseBlocked
+                            ? purchasePreflightStatus ===
+                              "authorPayoutRentBlocked"
+                              ? "Seller Needs SOL"
+                              : "Need More SOL"
+                            : "Buy & Install"}
+                        </>
+                      ) : (
+                        <>
+                          <FiDownload className="w-4 h-4" />
+                          Install
+                        </>
+                      )}
                     </>
                   )}
                 </button>
               ) : (
                 <span className="text-xs text-gray-400 dark:text-gray-500">
-                  Connect wallet to install
+                  {creatorPriceLamports > 0
+                    ? "Connect wallet to buy and install"
+                    : "Connect wallet to install"}
                 </span>
               )}
             </div>
+            {creatorPriceLamports > 0 && (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Creator Price
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
+                    <SolAmount
+                      amount={fromLamports(creatorPriceLamports).toFixed(4)}
+                      iconClassName="w-3.5 h-3.5"
+                    />
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Receipt Rent
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
+                    <SolAmount
+                      amount={fromLamports(estimatedPurchaseRentLamports).toFixed(4)}
+                      iconClassName="w-3.5 h-3.5"
+                    />
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--sea-accent-border)] bg-white/80 dark:bg-gray-950/40 p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-[var(--sea-accent)]">
+                    Estimated Total
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
+                    <SolAmount
+                      amount={fromLamports(estimatedBuyerTotalLamports).toFixed(4)}
+                      iconClassName="w-3.5 h-3.5"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            {skill.priceDisclosure && creatorPriceLamports > 0 && (
+              <p className="text-xs mt-3 text-gray-500 dark:text-gray-400">
+                {skill.priceDisclosure}
+              </p>
+            )}
+            {skill.purchasePreflightMessage && creatorPriceLamports > 0 && (
+              <p
+                className={`text-xs mt-2 ${
+                  purchaseBlocked
+                    ? "text-amber-700 dark:text-amber-300"
+                    : purchasePreflightStatus === "estimateUnavailable"
+                    ? "text-gray-500 dark:text-gray-400"
+                    : "text-gray-500 dark:text-gray-400"
+                }`}
+              >
+                {skill.purchasePreflightMessage}
+              </p>
+            )}
             {installResult && (
               <p
                 className={`text-xs mt-2 ${
@@ -681,6 +871,7 @@ export default function SkillDetailPage({
             )}
             {connected &&
               walletAddress === skill.author_pubkey &&
+              creatorPriceLamports === 0 &&
               skill.on_chain_address && (
                 <p className="text-xs mt-2 text-amber-600 dark:text-amber-400">
                   This skill is listed for free. You can set a price via Edit

@@ -97,6 +97,28 @@ async function derivePurchasePda(
   return pda;
 }
 
+async function getOnChainPurchaseStatus(
+  buyer: string,
+  skillListingAddress: string
+): Promise<"valid" | "missing" | "buyerMismatch"> {
+  const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+  const rpc = createSolanaRpc(rpcUrl);
+  const purchasePda = await derivePurchasePda(buyer, skillListingAddress);
+  const account = await fetchMaybePurchase(rpc, purchasePda);
+  if (!account.exists) return "missing";
+  if (account.data.buyer !== (buyer as Address)) return "buyerMismatch";
+  return "valid";
+}
+
+export async function hasOnChainPurchase(
+  buyer: string,
+  skillListingAddress: string
+): Promise<boolean> {
+  return (
+    (await getOnChainPurchaseStatus(buyer, skillListingAddress)) === "valid"
+  );
+}
+
 export async function verifyPaymentProof(proof: PaymentProof): Promise<{
   status: "valid" | "invalid" | "pending";
   paymentRef: string;
@@ -161,25 +183,19 @@ export async function verifyPaymentProof(proof: PaymentProof): Promise<{
   }
 
   try {
-    const purchasePda = await derivePurchasePda(
+    const purchaseStatus = await getOnChainPurchaseStatus(
       proof.buyer,
       requirement.skillListingAddress
     );
 
-    const rpcUrl =
-      process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
-    const rpc = createSolanaRpc(rpcUrl);
-    const account = await fetchMaybePurchase(rpc, purchasePda);
-
-    if (!account.exists) {
+    if (purchaseStatus === "missing") {
       return {
         status: "invalid",
         paymentRef,
         error: "Purchase not found on-chain. Call purchaseSkill first.",
       };
     }
-
-    if (account.data.buyer !== proof.buyer) {
+    if (purchaseStatus === "buyerMismatch") {
       return {
         status: "invalid",
         paymentRef,

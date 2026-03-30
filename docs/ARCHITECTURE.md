@@ -153,6 +153,33 @@ Dispute (SlashVoucher ruling)
 └── Dispute bond → Returned to Challenger
 ```
 
+### Marketplace Settlement Nuance
+
+Current purchase settlement has two hidden operational constraints:
+
+- Buyer-visible cost is higher than `price_lamports` because `purchase_skill` creates `Purchase` with `init, payer = buyer`, so the buyer funds receipt rent.
+- Very cheap listings can also fail even when the buyer has enough SOL if the author payout wallet is empty and the 60% author share is too small to leave that recipient account rent-exempt.
+
+This means the current low-price failure modes are:
+
+- buyer-side: listed price understates total wallet debit
+- seller-side: an empty payout wallet can make a cheap listing temporarily unpurchasable
+
+Short-term product rule:
+
+- buyers should not fund seller payout-wallet rent
+- sellers are responsible for maintaining a rent-safe payout destination
+- the app should preflight both conditions and explain the exact failure before wallet handoff
+
+Preferred long-term protocol design:
+
+- do not send author proceeds directly to the raw author wallet during `purchase_skill`
+- route author proceeds into a program-controlled proceeds PDA or escrow associated with the listing
+- let the author withdraw later via an explicit instruction to a destination wallet they choose
+- keep voucher-pool funds and author proceeds in distinct tracked balances so payout logic, slashing logic, and rent handling stay separated
+
+This design keeps seller wallet state from affecting buyer purchase success and removes the need to treat seller wallet rent as a buyer concern.
+
 ---
 
 ## x402 Payment Flow
@@ -206,6 +233,7 @@ Agent                          Server                         Solana
 | **Audit trail** | Medium | No record of what a skill accesses at runtime. Out of scope for on-chain, but could be an off-chain attestation layer. |
 | **Multi-asset staking (USDC)** | Low | Planned in [docs/multi-asset-staking-and-x402-plan.md](docs/multi-asset-staking-and-x402-plan.md). Deferred. |
 | **Oracle-based USD normalization** | Low | Needed if multi-asset staking ships. Deferred to v2.1. |
+| **Marketplace payout escrow** | High | Current purchases pay author proceeds directly to the author wallet, which can fail for cheap listings if the recipient wallet is empty and below rent minimum. Preferred redesign: route proceeds into a program-controlled listing proceeds PDA and add an author-signed withdraw flow. |
 
 ### Open Design Questions
 
