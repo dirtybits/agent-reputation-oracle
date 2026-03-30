@@ -15,6 +15,7 @@ import {
 } from "@/lib/buttonStyles";
 import { formatSolAmount } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
+import { getConfiguredSolanaFmTxUrl } from "@/lib/chains";
 import Link from "next/link";
 import { AuthorDisputeRuling } from "@/generated/reputation-oracle/src/generated";
 import {
@@ -45,10 +46,8 @@ type MarketplaceListingRow = {
   total_downloads?: number;
 };
 
-const SOLANA_FM_CLUSTER = "devnet-solana";
-
 function getSolanaFmTxUrl(tx: string): string {
-  return `https://solana.fm/tx/${tx}?cluster=${SOLANA_FM_CLUSTER}`;
+  return getConfiguredSolanaFmTxUrl(tx);
 }
 
 export default function DashboardPage() {

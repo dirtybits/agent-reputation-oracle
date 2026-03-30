@@ -3,7 +3,11 @@ import {
   BASE_CHAIN_CONTEXT,
   SOLANA_DEVNET_CHAIN_CONTEXT,
   SOLANA_MAINNET_CHAIN_CONTEXT,
+  getConfiguredSolanaChainDisplayLabel,
   getConfiguredSolanaChainContext,
+  getConfiguredSolanaExplorerTxUrl,
+  getConfiguredSolanaFmTxUrl,
+  getConfiguredSolanaRpcTargetLabel,
   normalizeInputChainContext,
   normalizePersistedChainContext,
 } from "@/lib/chains";
@@ -43,6 +47,32 @@ describe("chains", () => {
 
   it("defaults to devnet when no explicit cluster is configured", () => {
     expect(getConfiguredSolanaChainContext()).toBe(SOLANA_DEVNET_CHAIN_CONTEXT);
+  });
+
+  it("derives configured Solana labels and explorer URLs for devnet", () => {
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL = "https://api.devnet.solana.com";
+
+    expect(getConfiguredSolanaChainDisplayLabel()).toBe("Solana Devnet");
+    expect(getConfiguredSolanaRpcTargetLabel()).toBe("devnet");
+    expect(getConfiguredSolanaFmTxUrl("abc")).toBe(
+      "https://solana.fm/tx/abc?cluster=devnet-solana"
+    );
+    expect(getConfiguredSolanaExplorerTxUrl("abc")).toBe(
+      "https://explorer.solana.com/tx/abc?cluster=devnet"
+    );
+  });
+
+  it("derives configured Solana labels and explorer URLs for mainnet", () => {
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL = "https://api.mainnet-beta.solana.com";
+
+    expect(getConfiguredSolanaChainDisplayLabel()).toBe("Solana");
+    expect(getConfiguredSolanaRpcTargetLabel()).toBe("mainnet");
+    expect(getConfiguredSolanaFmTxUrl("abc")).toBe(
+      "https://solana.fm/tx/abc?cluster=mainnet-solana"
+    );
+    expect(getConfiguredSolanaExplorerTxUrl("abc")).toBe(
+      "https://explorer.solana.com/tx/abc"
+    );
   });
 
   it("preserves unknown stored values instead of guessing silently", () => {

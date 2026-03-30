@@ -30,6 +30,8 @@ const LEGACY_CHAIN_CONTEXTS: Record<string, string> = {
   polygon: POLYGON_CHAIN_CONTEXT,
 };
 
+type SolanaClusterName = "mainnet" | "devnet" | "testnet";
+
 function inferSolanaChainContextFromRpcUrl(
   rpcUrl?: string | null
 ): string | null {
@@ -41,6 +43,16 @@ function inferSolanaChainContextFromRpcUrl(
   if (lower.includes("testnet")) return SOLANA_TESTNET_CHAIN_CONTEXT;
   if (lower.includes("mainnet")) return SOLANA_MAINNET_CHAIN_CONTEXT;
 
+  return null;
+}
+
+function getSolanaClusterName(
+  chainContext: string | null | undefined
+): SolanaClusterName | null {
+  const normalized = normalizeInputChainContext(chainContext);
+  if (normalized === SOLANA_MAINNET_CHAIN_CONTEXT) return "mainnet";
+  if (normalized === SOLANA_DEVNET_CHAIN_CONTEXT) return "devnet";
+  if (normalized === SOLANA_TESTNET_CHAIN_CONTEXT) return "testnet";
   return null;
 }
 
@@ -110,4 +122,45 @@ export function getChainDisplayLabel(value: string | null | undefined): string {
   return (
     (normalized && CHAIN_ALIASES[normalized]) || value || "Unknown network"
   );
+}
+
+export function getConfiguredSolanaChainDisplayLabel(): string {
+  return getChainDisplayLabel(getConfiguredSolanaChainContext());
+}
+
+export function getConfiguredSolanaRpcTargetLabel(): string {
+  const rpcUrl =
+    process.env.SOLANA_RPC_URL ||
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+    null;
+  const inferred = inferSolanaChainContextFromRpcUrl(rpcUrl);
+  if (inferred === SOLANA_DEVNET_CHAIN_CONTEXT) return "devnet";
+  if (inferred === SOLANA_TESTNET_CHAIN_CONTEXT) return "testnet";
+  if (inferred === SOLANA_MAINNET_CHAIN_CONTEXT) return "mainnet";
+  return rpcUrl || "unknown";
+}
+
+export function getConfiguredSolanaFmCluster(): string {
+  const cluster = getSolanaClusterName(getConfiguredSolanaChainContext());
+  if (cluster === "devnet") return "devnet-solana";
+  if (cluster === "testnet") return "testnet-solana";
+  return "mainnet-solana";
+}
+
+export function getConfiguredSolanaExplorerClusterParam(): string | null {
+  const cluster = getSolanaClusterName(getConfiguredSolanaChainContext());
+  if (cluster === "devnet") return "devnet";
+  if (cluster === "testnet") return "testnet";
+  return null;
+}
+
+export function getConfiguredSolanaFmTxUrl(tx: string): string {
+  return `https://solana.fm/tx/${tx}?cluster=${getConfiguredSolanaFmCluster()}`;
+}
+
+export function getConfiguredSolanaExplorerTxUrl(tx: string): string {
+  const url = new URL(`https://explorer.solana.com/tx/${tx}`);
+  const cluster = getConfiguredSolanaExplorerClusterParam();
+  if (cluster) url.searchParams.set("cluster", cluster);
+  return url.toString();
 }

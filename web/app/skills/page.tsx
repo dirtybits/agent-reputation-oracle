@@ -5,6 +5,7 @@ import { useWalletConnection } from "@solana/react-hooks";
 import { type Address } from "@solana/kit";
 import Link from "next/link";
 import { useReputationOracle } from "@/hooks/useReputationOracle";
+import { getConfiguredSolanaExplorerTxUrl } from "@/lib/chains";
 import {
   navButtonFlexClass,
   navButtonInlineClass,
@@ -510,7 +511,7 @@ export default function MarketplacePage() {
               <span className="text-green-800 dark:text-green-200 text-sm">
                 Transaction confirmed:{" "}
                 <a
-                  href={`https://explorer.solana.com/tx/${txSuccess}?cluster=devnet`}
+                  href={getConfiguredSolanaExplorerTxUrl(txSuccess)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline font-mono"

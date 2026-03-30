@@ -17,6 +17,7 @@ import {
 import { useReputationOracle } from "@/hooks/useReputationOracle";
 import type { AgentIdentitySummary } from "@/lib/agentIdentity";
 import { encodeBase64 } from "@/lib/base64";
+import { getConfiguredSolanaFmTxUrl } from "@/lib/chains";
 import {
   countsTowardAuthorWideReportSnapshot,
   getVouchStatusLabel,
@@ -49,10 +50,8 @@ import {
   FiZap,
 } from "react-icons/fi";
 
-const SOLANA_FM_CLUSTER = "devnet-solana";
-
 function getSolanaFmTxUrl(tx: string): string {
-  return `https://solana.fm/tx/${tx}?cluster=${SOLANA_FM_CLUSTER}`;
+  return getConfiguredSolanaFmTxUrl(tx);
 }
 
 function shortAddr(addr: string): string {

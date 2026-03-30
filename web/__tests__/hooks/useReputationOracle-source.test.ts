@@ -35,4 +35,17 @@ describe("useReputationOracle source", () => {
     expect(source).toContain("purchasePreflightStatus === \"authorPayoutRentBlocked\"");
     expect(source).toContain("buildPurchaseBalanceError");
   });
+
+  it("preserves per-account signer metadata when sending instructions", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "hooks/useReputationOracle.ts"),
+      "utf8"
+    );
+
+    expect(source).toContain("export function normalizeInstructionForSend");
+    expect(source).toContain("export function buildTransactionSendRequest");
+    expect(source).toContain('signer?: TransactionSigner');
+    expect(source).toContain('"signer" in acc && acc.signer');
+    expect(source).toContain("authority: signer");
+  });
 });

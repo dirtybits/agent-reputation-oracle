@@ -9,10 +9,15 @@ import {
   isAddress,
   signature,
   type Address,
-  type Account,
+  type AccountMeta,
+  type Instruction,
+  type ReadonlyUint8Array,
   type TransactionSigner,
 } from "@solana/kit";
-import { createWalletTransactionSigner } from "@solana/client";
+import {
+  createWalletTransactionSigner,
+  type TransactionPrepareAndSendRequest,
+} from "@solana/client";
 import type { Base64EncodedBytes, Base58EncodedBytes } from "@solana/rpc-types";
 import { decodeBase64, encodeBase64 } from "@/lib/base64";
 
@@ -26,6 +31,7 @@ import {
   fetchMaybePurchase,
   fetchMaybeReputationConfig,
   fetchMaybeSkillListing,
+  fetchMaybeVouch,
   fetchVouch,
   getAuthorDisputeDecoder,
   getOpenAuthorDisputeInstructionAsync,
@@ -48,6 +54,7 @@ import {
   PURCHASE_DISCRIMINATOR,
   AuthorDisputeReason,
   AuthorDisputeRuling,
+  VouchStatus,
   type AuthorDispute,
   type AgentProfile,
   type ReputationConfig,
@@ -56,6 +63,10 @@ import {
   type Purchase,
 } from "../generated/reputation-oracle/src/generated";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
+import {
+  getConfiguredSolanaChainDisplayLabel,
+  getConfiguredSolanaRpcTargetLabel,
+} from "@/lib/chains";
 import {
   listAuthorDisputeLinks,
   listAuthorDisputesByAuthor,
@@ -78,6 +89,96 @@ const SIGNATURE_CONFIRMATION_POLL_MS = 1_000;
 
 const textEncoder = getUtf8Encoder();
 const addressEncoder = getAddressEncoder();
+
+type SendInstructionAccount = {
+  address: Address;
+  role: number;
+  signer?: TransactionSigner;
+};
+
+type SendInstruction = Instruction<string, readonly AccountMeta[]> & {
+  data?: ReadonlyUint8Array;
+  accounts: readonly SendInstructionAccount[];
+};
+
+export function normalizeInstructionForSend(ix: SendInstruction): SendInstruction {
+  return {
+    programAddress: ix.programAddress,
+    data: ix.data,
+    accounts: ix.accounts.map((acc) => ({
+      address: acc.address,
+      role: acc.role,
+      ...("signer" in acc && acc.signer ? { signer: acc.signer } : {}),
+    })),
+  } as SendInstruction;
+}
+
+export function buildTransactionSendRequest(
+  ix: SendInstruction,
+  authority: TransactionSigner
+): TransactionPrepareAndSendRequest {
+  return {
+    instructions: [normalizeInstructionForSend(ix)],
+    authority,
+  };
+}
+
+type StakeClusterGuardAssessment =
+  | {
+      action: "vouch";
+      walletAddress: Address;
+      voucheeProfileExists: boolean;
+      walletBalanceLamports: bigint | null;
+      requiredLamports: bigint;
+      configuredChainLabel?: string;
+      configuredRpcTarget?: string;
+    }
+  | {
+      action: "revoke";
+      walletAddress: Address;
+      voucheeProfileExists: boolean;
+      hasLiveVouch: boolean;
+      configuredChainLabel?: string;
+      configuredRpcTarget?: string;
+    };
+
+export function getStakeClusterGuardError(
+  assessment: StakeClusterGuardAssessment
+): string | null {
+  const configuredChainLabel =
+    assessment.configuredChainLabel ?? getConfiguredSolanaChainDisplayLabel();
+  const configuredRpcTarget =
+    assessment.configuredRpcTarget ?? getConfiguredSolanaRpcTargetLabel();
+  const configuredNetwork = `${configuredChainLabel} (${configuredRpcTarget} RPC)`;
+
+  if (!assessment.voucheeProfileExists) {
+    return `This author is not registered on the configured ${configuredNetwork}. If you expected to interact with them on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (assessment.action === "vouch") {
+    if (
+      assessment.walletBalanceLamports !== null &&
+      assessment.walletBalanceLamports < assessment.requiredLamports
+    ) {
+      return `Connected wallet ${shortAddress(
+        assessment.walletAddress
+      )} has ${formatLamportsAsSol(
+        assessment.walletBalanceLamports
+      )} SOL on the configured ${configuredNetwork}. This vouch needs about ${formatLamportsAsSol(
+        assessment.requiredLamports
+      )} SOL plus network fees. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+    }
+    return null;
+  }
+
+  if (!assessment.hasLiveVouch) {
+    return `No live vouch for this author was found on the configured ${configuredNetwork}. If you created the vouch on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  return null;
+}
+
+class StakeClusterGuardError extends Error {}
 
 function encodeU64LE(value: number | bigint): Uint8Array {
   const bytes = new Uint8Array(8);
@@ -181,14 +282,6 @@ function formatLamportsAsSol(lamports: bigint) {
   return sol.toFixed(decimals).replace(/\.?0+$/, "");
 }
 
-function describeRpcTarget(endpoint: string) {
-  const lower = endpoint.toLowerCase();
-  if (lower.includes("devnet")) return "devnet";
-  if (lower.includes("testnet")) return "testnet";
-  if (lower.includes("mainnet")) return "mainnet";
-  return endpoint;
-}
-
 function coerceLamports(value: unknown): bigint {
   if (typeof value === "bigint") return value;
   if (typeof value === "number") return BigInt(value);
@@ -226,13 +319,12 @@ function buildPurchaseBalanceError(
   walletAddress: Address,
   estimate: PurchasePreflightAssessment
 ) {
+  const configuredNetwork = `${getConfiguredSolanaChainDisplayLabel()} (${getConfiguredSolanaRpcTargetLabel()} RPC)`;
   return `Connected wallet ${shortAddress(
     walletAddress
   )} has ${formatLamportsAsSol(
     estimate.buyerBalanceLamports ?? 0n
-  )} SOL on the configured ${describeRpcTarget(
-    ENDPOINT
-  )} RPC. Buying this skill needs about ${formatLamportsAsSol(
+  )} SOL on the configured ${configuredNetwork}. Buying this skill needs about ${formatLamportsAsSol(
     estimate.estimatedBuyerTotalLamports
   )} SOL including rent for the purchase record.`;
 }
@@ -241,13 +333,79 @@ function buildPurchaseClusterMismatchError(
   walletAddress: Address,
   estimate: PurchasePreflightAssessment
 ) {
+  const configuredNetwork = `${getConfiguredSolanaChainDisplayLabel()} (${getConfiguredSolanaRpcTargetLabel()} RPC)`;
   return `Phantom reported insufficient SOL, but connected wallet ${shortAddress(
     walletAddress
   )} has ${formatLamportsAsSol(
     estimate.buyerBalanceLamports ?? 0n
-  )} SOL on the configured ${describeRpcTarget(
-    ENDPOINT
-  )} RPC. Check that Phantom is using the same wallet address and devnet network, then retry.`;
+  )} SOL on the configured ${configuredNetwork}. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+}
+
+function isLiveVouchStatus(status: VouchStatus): boolean {
+  return status === VouchStatus.Active || status === VouchStatus.Vindicated;
+}
+
+async function getWalletBalanceLamports(walletAddress: Address): Promise<bigint> {
+  const response = await rpc.getBalance(walletAddress).send();
+  return coerceLamports(response.value);
+}
+
+async function assertStakeActionClusterReady(
+  input:
+    | {
+        action: "vouch";
+        walletAddress: Address;
+        voucheeProfile: Address;
+        requiredLamports: bigint;
+      }
+    | {
+        action: "revoke";
+        walletAddress: Address;
+        voucheeProfile: Address;
+      }
+) {
+  try {
+    const voucheeProfileAccountPromise = fetchMaybeAgentProfile(
+      rpc,
+      input.voucheeProfile
+    ).catch(() => null);
+
+    if (input.action === "vouch") {
+      const [voucheeProfileAccount, walletBalanceLamports] = await Promise.all([
+        voucheeProfileAccountPromise,
+        getWalletBalanceLamports(input.walletAddress).catch(() => null),
+      ]);
+
+      const guardError = getStakeClusterGuardError({
+        action: "vouch",
+        walletAddress: input.walletAddress,
+        voucheeProfileExists: !!voucheeProfileAccount?.exists,
+        walletBalanceLamports,
+        requiredLamports: input.requiredLamports,
+      });
+      if (guardError) throw new StakeClusterGuardError(guardError);
+      return;
+    }
+
+    const voucherProfile = await getAgentPDA(input.walletAddress);
+    const vouchAddress = await getVouchPDA(voucherProfile, input.voucheeProfile);
+    const [voucheeProfileAccount, maybeVouch] = await Promise.all([
+      voucheeProfileAccountPromise,
+      fetchMaybeVouch(rpc, vouchAddress).catch(() => null),
+    ]);
+
+    const guardError = getStakeClusterGuardError({
+      action: "revoke",
+      walletAddress: input.walletAddress,
+      voucheeProfileExists: !!voucheeProfileAccount?.exists,
+      hasLiveVouch:
+        !!maybeVouch?.exists && isLiveVouchStatus(maybeVouch.data.status),
+    });
+    if (guardError) throw new StakeClusterGuardError(guardError);
+  } catch (error) {
+    if (error instanceof StakeClusterGuardError) throw error;
+    console.warn("Stake cluster guard skipped:", error);
+  }
 }
 
 async function waitForConfirmedSignature(
@@ -303,22 +461,10 @@ export function useReputationOracle() {
 
   const sendIx = useCallback(
     async (ix: any) => {
-      if (!walletAddress || !wallet) throw new Error("Wallet not connected");
-      const addressOnlyIx = {
-        programAddress: ix.programAddress,
-        data: ix.data,
-        accounts: ix.accounts.map(
-          (acc: { address: Address; role: number }) => ({
-            address: acc.address,
-            role: acc.role,
-          })
-        ),
-      };
+      if (!walletAddress || !signer) throw new Error("Wallet not connected");
+      const request = buildTransactionSendRequest(ix, signer);
       try {
-        const sig = await frameworkSend({
-          instructions: [addressOnlyIx],
-          authority: wallet,
-        });
+        const sig = await frameworkSend(request);
         const txSignature = signature(String(sig));
         await waitForConfirmedSignature(txSignature);
         return txSignature;
@@ -333,7 +479,7 @@ export function useReputationOracle() {
         throw err;
       }
     },
-    [walletAddress, wallet, frameworkSend]
+    [walletAddress, signer, frameworkSend]
   );
 
   const registerAgent = useCallback(
@@ -354,10 +500,17 @@ export function useReputationOracle() {
     async (voucheeKey: Address, amount: number) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
       const voucheeProfile = await getAgentPDA(voucheeKey);
+      const stakeAmount = BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL)));
+      await assertStakeActionClusterReady({
+        action: "vouch",
+        walletAddress,
+        voucheeProfile,
+        requiredLamports: stakeAmount,
+      });
       const ix = await getVouchInstructionAsync({
         voucheeProfile,
         voucher: signer,
-        stakeAmount: BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL))),
+        stakeAmount,
       });
       return { tx: await sendIx(ix) };
     },
@@ -368,6 +521,11 @@ export function useReputationOracle() {
     async (voucheeKey: Address) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
       const voucheeProfile = await getAgentPDA(voucheeKey);
+      await assertStakeActionClusterReady({
+        action: "revoke",
+        walletAddress,
+        voucheeProfile,
+      });
       const ix = await getRevokeVouchInstructionAsync({
         voucheeProfile,
         voucher: signer,
