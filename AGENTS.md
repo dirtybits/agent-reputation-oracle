@@ -8,8 +8,7 @@
 - Use `npm` as the preferred package manager; avoid introducing conflicting lockfiles.
 - Favor root-cause fixes and minimal-impact changes over temporary patches.
 - Keep responses direct and concise; avoid buzzwords and marketing language.
-- For decks, CFPs, and synopsis copy, keep claims tightly aligned to the implemented system; prefer tighter, defensible wording and label unfinished pieces as `WIP` instead of implying they are already shipped.
-- For social media and outbound messages, focus on substance, numbers, and agent incentives; structure around what is being announced and why people should care. For vouch-related copy, emphasize upside and revenue share over loss framing.
+- For decks, CFPs, synopsis copy, social media, and outbound messages, keep claims tightly aligned to the implemented system; prefer tighter, defensible wording, label unfinished pieces as `WIP` instead of implying they are already shipped, focus outbound copy on substance and numbers and agent incentives, and for vouch-related copy emphasize upside and revenue share over loss framing.
 - Think through the solution before making code changes; when adding async UI warnings or data-refresh effects, memoize hook return objects and other effect dependencies so they do not retrigger every render and cause RPC spam or flashing banners.
 - Keep Connect Wallet, the theme toggle, and primary nav text actions (for example Dashboard) at consistent height and proportions.
 - When Phantom reports generic "insufficient SOL" on a purchase, simulate the exact transaction and map the failing `account_index` back to compiled account metas before assuming the buyer lacks funds; low-price purchases can fail because the recipient author wallet is empty and the 60% payout is below the 0-byte system-account rent minimum.
@@ -18,14 +17,12 @@
 
 - `web/` is the Next.js app and `programs/reputation-oracle/` is the on-chain Solana program; if both the repo root and `web/` have a `package-lock.json`, set Next.js `turbopack.root` or consolidate lockfiles so Turbopack does not infer the wrong workspace root.
 - Use CAIP-2 as the canonical stored chain/network label format across docs and schema design; treat `solana`, `solana:mainnet`, and `solana:mainnet-beta` as legacy aliases only, and preserve non-CAIP upstream labels separately.
-- Trust signals are core to the product and should stay prominent across skill discovery and detail surfaces.
-- Prefer a tighter, sharper UI aesthetic with compact spacing and `rounded-md` corners over softer SaaS-style radii, especially on compact action cards.
-- Keep `/skills` and `/api/skills/*` as the canonical skill routes, use `Marketplace` as the user-facing label, and treat `/marketplace` as a legacy redirect.
-- The UI accent palette uses lobster-orange primary actions with muted sea-blue secondary accents; keep it tasteful and aligned with the lobster reference image and favicon.
+- Trust signals are core to the product and should stay prominent across skill discovery and detail surfaces; keep `/skills` and `/api/skills/*` as the canonical skill routes, use `Marketplace` as the user-facing label, and treat `/marketplace` as a legacy redirect.
+- Prefer a tighter, sharper UI aesthetic with compact spacing and `rounded-md` corners over softer SaaS-style radii, especially on compact action cards; primary actions use `#fd522e` (lobster-strong) with muted sea-blue secondary accents, kept aligned with the logo and favicon.
 - Recent purchase activity is important social proof on skill browsing surfaces and should stay visible when marketplace/repo views are consolidated.
-- The landing page uses a Moltbook-style inline Human/Agent toggle, while deeper flows live at `/dashboard` and `/docs`.
+- The landing page uses a Moltbook-style inline Human/Agent toggle, while deeper flows live at `/dashboard` and `/docs`; the hero subline copy is: “The on-chain marketplace for agent skills. Publish and earn. Vouch for quality and generate yield. Built on Solana.”
 - Public author pages live at `/author/[pubkey]`, and author identifiers on skill surfaces should link there. Author vouching should happen there too, with inline registration when needed so users stay in the flow.
 - Use `Report` for end-user issue actions, `Dispute` for protocol/admin objects, and keep `Vouch` reserved for external endorsement only; future self-stake should be modeled as `AuthorBond` / `SelfStake`, not self-vouch.
-- `https://agentvouch.xyz` is the canonical public base URL for agent-facing install and docs flows.
-- `web/public/skill.md` is the canonical served agent-facing skill file
-- Current marketplace settlement pays author proceeds directly to the author wallet, so cheap listings can fail if that recipient wallet is empty; short term the seller must maintain a rent-safe payout wallet, and long term the cleaner design is a program-controlled proceeds PDA with an author-signed withdraw flow.
+- `https://agentvouch.xyz` is the canonical public base URL for agent-facing install and docs flows; production deploys use the linked Vercel project named `agentvouch` (not the legacy `agent-reputation-oracle` project name).
+- `web/public/skill.md` is the canonical served agent-facing skill file; paid installs that fetch raw skill content over HTTP use `/api/skills/{id}/raw` with x402 payment proof after an on-chain `purchase_skill`, not x402 alone for the purchase.
+- Current marketplace settlement pays author proceeds directly to the author wallet; new listings use a **0.001 SOL** minimum price, but cheap listings can still fail if that recipient wallet is empty and the payout is below rent; short term the seller must maintain a rent-safe payout wallet, and long term the cleaner design is a program-controlled proceeds PDA with an author-signed withdraw flow.

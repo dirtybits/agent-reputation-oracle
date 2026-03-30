@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { getOnChainPrice } from "@/lib/onchain";
 import {
   generatePaymentRequirement,
+  hasOnChainPurchase,
   verifyPaymentProof,
   type PaymentProof,
 } from "@/lib/x402";
@@ -66,6 +67,25 @@ export async function GET(
           }
         }
 
+        const buyer = request.nextUrl.searchParams.get("buyer");
+        if (buyer && buyer.length >= 32) {
+          const purchased = await hasOnChainPurchase(
+            buyer,
+            skill.on_chain_address
+          ).catch(() => false);
+          if (purchased) {
+            await sql()`
+              UPDATE skills SET total_installs = total_installs + 1 WHERE id = ${id}::uuid
+            `;
+            return new NextResponse(skill.content, {
+              headers: {
+                "Content-Type": "text/markdown; charset=utf-8",
+                "Content-Disposition": 'attachment; filename="SKILL.md"',
+              },
+            });
+          }
+        }
+
         const requirement = generatePaymentRequirement({
           skillId: skill.skill_id,
           priceLamports: listing.price,
@@ -78,7 +98,7 @@ export async function GET(
             error: "Payment required",
             message: `This skill costs ${(listing.price / 1e9).toFixed(
               4
-            )} SOL. Call purchaseSkill on-chain, then retry with X-Payment-Proof.`,
+            )} SOL. Call purchaseSkill on-chain, then retry with ?buyer=YOUR_PUBKEY or X-Payment-Proof header.`,
             requirement,
           },
           {

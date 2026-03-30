@@ -11,26 +11,37 @@ vi.mock("@/lib/onchain", () => ({
 
 vi.mock("@/lib/x402", () => ({
   generatePaymentRequirement: vi.fn(),
+  hasOnChainPurchase: vi.fn(),
   verifyPaymentProof: vi.fn(),
 }));
 
 import { GET } from "@/app/api/skills/[id]/raw/route";
 import { sql } from "@/lib/db";
 import { getOnChainPrice } from "@/lib/onchain";
-import { generatePaymentRequirement, verifyPaymentProof } from "@/lib/x402";
+import {
+  generatePaymentRequirement,
+  hasOnChainPurchase,
+  verifyPaymentProof,
+} from "@/lib/x402";
 
 const mockSql = sql as unknown as ReturnType<typeof vi.fn>;
 const mockOnChain = getOnChainPrice as unknown as ReturnType<typeof vi.fn>;
 const mockGenerate = generatePaymentRequirement as unknown as ReturnType<
   typeof vi.fn
 >;
+const mockHasPurchase = hasOnChainPurchase as unknown as ReturnType<
+  typeof vi.fn
+>;
 const mockVerify = verifyPaymentProof as unknown as ReturnType<typeof vi.fn>;
 
-function makeRequest(id: string, headers: Record<string, string> = {}) {
-  const req = new NextRequest(`http://localhost/api/skills/${id}/raw`, {
-    method: "GET",
-    headers,
-  });
+function makeRequest(
+  id: string,
+  headers: Record<string, string> = {},
+  query: Record<string, string> = {}
+) {
+  const url = new URL(`http://localhost/api/skills/${id}/raw`);
+  for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
+  const req = new NextRequest(url, { method: "GET", headers });
   const params = Promise.resolve({ id });
   return { req, params };
 }
@@ -237,5 +248,52 @@ describe("GET /api/skills/[id]/raw", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("Invalid");
+  });
+
+  it("returns content when ?buyer= has a valid on-chain purchase", async () => {
+    const dbQuery = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: "uuid-7",
+          on_chain_address: "Chain6",
+          author_pubkey: "A",
+          skill_id: "s7",
+          content: SKILL_CONTENT,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    mockSql.mockReturnValue(dbQuery);
+    mockOnChain.mockResolvedValue({ price: 100_000_000, author: "Author7" });
+    mockHasPurchase.mockResolvedValue(true);
+
+    const buyer = "BuyerPubkeyThatIs32CharsOrMoreXX";
+    const { req, params } = makeRequest("uuid-7", {}, { buyer });
+    const res = await GET(req, { params });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toBe(SKILL_CONTENT);
+    expect(mockHasPurchase).toHaveBeenCalledWith(buyer, "Chain6");
+  });
+
+  it("returns 402 when ?buyer= has no on-chain purchase", async () => {
+    const dbQuery = vi.fn().mockResolvedValueOnce([
+      {
+        id: "uuid-8",
+        on_chain_address: "Chain7",
+        author_pubkey: "A",
+        skill_id: "s8",
+        content: SKILL_CONTENT,
+      },
+    ]);
+    mockSql.mockReturnValue(dbQuery);
+    mockOnChain.mockResolvedValue({ price: 100_000_000, author: "Author8" });
+    mockHasPurchase.mockResolvedValue(false);
+    mockGenerate.mockReturnValue({ scheme: "exact" });
+
+    const buyer = "BuyerPubkeyThatIs32CharsOrMoreXX";
+    const { req, params } = makeRequest("uuid-8", {}, { buyer });
+    const res = await GET(req, { params });
+    expect(res.status).toBe(402);
   });
 });

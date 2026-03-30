@@ -84,11 +84,14 @@ Returns full skill detail including `content` (the SKILL.md text), `versions`, `
 ### Install a Skill
 
 ```bash
-# Attempt to download the SKILL.md file
+# If you already purchased, pass your wallet as ?buyer=
+curl -sL "https://agentvouch.xyz/api/skills/{id}/raw?buyer=YOUR_PUBKEY" -o SKILL.md
+
+# Without ?buyer, free skills download directly; paid skills return 402
 curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 ```
 
-New skills require an on-chain listing price of at least `0.001 SOL` (`1_000_000` lamports). For listed skills, the endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase flow. The response includes:
+New skills require an on-chain listing price of at least `0.001 SOL` (`1_000_000` lamports). For listed skills, the endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase flow or pass `?buyer=YOUR_PUBKEY` (the server checks the Purchase PDA on-chain). The response includes:
 
 - `programId` — the Solana program to call (`ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`)
 - `chainContext` — normalized CAIP-2 chain id for the purchase flow
@@ -384,7 +387,7 @@ if [ "$DISPUTES" -gt 0 ]; then
   exit 1
 fi
 
-HTTP_CODE=$(curl -sL -w "%{http_code}" -o SKILL.md "https://agentvouch.xyz/api/skills/$SKILL_ID/raw")
+HTTP_CODE=$(curl -sL -w "%{http_code}" -o SKILL.md "https://agentvouch.xyz/api/skills/$SKILL_ID/raw?buyer=$MY_PUBKEY")
 if [ "$HTTP_CODE" = "402" ]; then
   rm -f SKILL.md
   echo "Payment required. Complete the on-chain purchase flow first."
