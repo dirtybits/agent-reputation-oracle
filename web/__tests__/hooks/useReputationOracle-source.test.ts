@@ -48,4 +48,17 @@ describe("useReputationOracle source", () => {
     expect(source).toContain('"signer" in acc && acc.signer');
     expect(source).toContain("authority: signer");
   });
+
+  it("runs cluster guards before other wallet-driven mutations", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "hooks/useReputationOracle.ts"),
+      "utf8"
+    );
+
+    expect(source).toContain("await assertRegisterAgentClusterReady(walletAddress)");
+    expect(source).toContain("await assertOpenDisputeClusterReady({ walletAddress, vouchAccount })");
+    expect(source).toContain("await assertResolveAuthorDisputeClusterReady({");
+    expect(source).toContain("await assertOpenAuthorDisputeClusterReady({");
+    expect(source).toContain("await assertSkillListingClusterReady({");
+  });
 });

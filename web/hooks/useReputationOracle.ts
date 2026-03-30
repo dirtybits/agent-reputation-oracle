@@ -26,6 +26,7 @@ const asBase64 = (bytes: Uint8Array) =>
 const asBase58 = (addr: string) => addr as unknown as Base58EncodedBytes;
 import {
   fetchAllMaybePurchase,
+  fetchMaybeDispute,
   fetchMaybeAgentProfile,
   fetchMaybeAuthorDispute,
   fetchMaybePurchase,
@@ -54,6 +55,7 @@ import {
   PURCHASE_DISCRIMINATOR,
   AuthorDisputeReason,
   AuthorDisputeRuling,
+  AuthorDisputeStatus,
   VouchStatus,
   type AuthorDispute,
   type AgentProfile,
@@ -142,14 +144,67 @@ type StakeClusterGuardAssessment =
       configuredRpcTarget?: string;
     };
 
+type ClusterGuardContext = {
+  configuredChainLabel?: string;
+  configuredRpcTarget?: string;
+};
+
+type RegisterAgentClusterGuardAssessment = ClusterGuardContext & {
+  profileExists: boolean;
+};
+
+type SkillListingClusterGuardAssessment = ClusterGuardContext & {
+  mode: "create" | "update";
+  authorProfileExists: boolean;
+  listingExists: boolean;
+  skillId: string;
+};
+
+type OpenDisputeClusterGuardAssessment = ClusterGuardContext & {
+  walletAddress: Address;
+  vouchExists: boolean;
+  vouchIsActive: boolean;
+  disputeExists: boolean;
+  walletBalanceLamports: bigint | null;
+  disputeBondLamports: bigint | null;
+};
+
+type OpenAuthorDisputeClusterGuardAssessment = ClusterGuardContext & {
+  walletAddress: Address;
+  authorProfileExists: boolean;
+  disputeId: number | bigint;
+  disputeExists: boolean;
+  skillListingProvided: boolean;
+  skillListingExists: boolean;
+  skillListingMatchesAuthor: boolean;
+  purchaseProvided: boolean;
+  purchaseExists: boolean;
+  purchaseMatchesSkillListing: boolean;
+  walletBalanceLamports: bigint | null;
+  disputeBondLamports: bigint | null;
+};
+
+type ResolveAuthorDisputeClusterGuardAssessment = ClusterGuardContext & {
+  walletAddress: Address;
+  authorProfileExists: boolean;
+  disputeId: number | bigint;
+  disputeExists: boolean;
+  disputeOpen: boolean;
+  resolverAuthorized: boolean;
+};
+
+function getConfiguredNetworkDescription(context: ClusterGuardContext = {}) {
+  const configuredChainLabel =
+    context.configuredChainLabel ?? getConfiguredSolanaChainDisplayLabel();
+  const configuredRpcTarget =
+    context.configuredRpcTarget ?? getConfiguredSolanaRpcTargetLabel();
+  return `${configuredChainLabel} (${configuredRpcTarget} RPC)`;
+}
+
 export function getStakeClusterGuardError(
   assessment: StakeClusterGuardAssessment
 ): string | null {
-  const configuredChainLabel =
-    assessment.configuredChainLabel ?? getConfiguredSolanaChainDisplayLabel();
-  const configuredRpcTarget =
-    assessment.configuredRpcTarget ?? getConfiguredSolanaRpcTargetLabel();
-  const configuredNetwork = `${configuredChainLabel} (${configuredRpcTarget} RPC)`;
+  const configuredNetwork = getConfiguredNetworkDescription(assessment);
 
   if (!assessment.voucheeProfileExists) {
     return `This author is not registered on the configured ${configuredNetwork}. If you expected to interact with them on another network, switch Phantom and the app to the same cluster and retry.`;
@@ -178,7 +233,147 @@ export function getStakeClusterGuardError(
   return null;
 }
 
-class StakeClusterGuardError extends Error {}
+export function getRegisterAgentClusterGuardError(
+  assessment: RegisterAgentClusterGuardAssessment
+): string | null {
+  if (!assessment.profileExists) return null;
+  const configuredNetwork = getConfiguredNetworkDescription(assessment);
+  return `Author profile already exists on the configured ${configuredNetwork}. If you meant to work on another network, switch Phantom and the app to the same cluster and retry.`;
+}
+
+export function getSkillListingClusterGuardError(
+  assessment: SkillListingClusterGuardAssessment
+): string | null {
+  const configuredNetwork = getConfiguredNetworkDescription(assessment);
+
+  if (!assessment.authorProfileExists) {
+    return `You are not registered on the configured ${configuredNetwork}. Register on this network first, or switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (assessment.mode === "create" && assessment.listingExists) {
+    return `Skill listing "${assessment.skillId}" already exists on the configured ${configuredNetwork}. If you meant to edit an existing listing on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (assessment.mode === "update" && !assessment.listingExists) {
+    return `Skill listing "${assessment.skillId}" was not found on the configured ${configuredNetwork}. If you created it on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  return null;
+}
+
+export function getOpenDisputeClusterGuardError(
+  assessment: OpenDisputeClusterGuardAssessment
+): string | null {
+  const configuredNetwork = getConfiguredNetworkDescription(assessment);
+
+  if (!assessment.vouchExists) {
+    return `This vouch was not found on the configured ${configuredNetwork}. If you created it on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (assessment.disputeExists) {
+    return `A dispute for this vouch already exists on the configured ${configuredNetwork}.`;
+  }
+
+  if (!assessment.vouchIsActive) {
+    return `This vouch is not active on the configured ${configuredNetwork}, so it cannot be disputed from this network.`;
+  }
+
+  if (
+    assessment.walletBalanceLamports !== null &&
+    assessment.disputeBondLamports !== null &&
+    assessment.walletBalanceLamports < assessment.disputeBondLamports
+  ) {
+    return `Connected wallet ${shortAddress(
+      assessment.walletAddress
+    )} has ${formatLamportsAsSol(
+      assessment.walletBalanceLamports
+    )} SOL on the configured ${configuredNetwork}. Opening this dispute needs about ${formatLamportsAsSol(
+      assessment.disputeBondLamports
+    )} SOL plus network fees. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+  }
+
+  return null;
+}
+
+export function getOpenAuthorDisputeClusterGuardError(
+  assessment: OpenAuthorDisputeClusterGuardAssessment
+): string | null {
+  const configuredNetwork = getConfiguredNetworkDescription(assessment);
+
+  if (!assessment.authorProfileExists) {
+    return `This author is not registered on the configured ${configuredNetwork}. If you expected to report them on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (assessment.disputeExists) {
+    return `Author dispute ${String(
+      assessment.disputeId
+    )} already exists on the configured ${configuredNetwork}.`;
+  }
+
+  if (assessment.skillListingProvided && !assessment.skillListingExists) {
+    return `The referenced skill listing was not found on the configured ${configuredNetwork}. If it exists on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (assessment.skillListingProvided && !assessment.skillListingMatchesAuthor) {
+    return `The referenced skill listing does not belong to this author on the configured ${configuredNetwork}.`;
+  }
+
+  if (assessment.purchaseProvided && !assessment.purchaseExists) {
+    return `The referenced purchase was not found on the configured ${configuredNetwork}. If it exists on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (assessment.purchaseProvided && !assessment.purchaseMatchesSkillListing) {
+    return `The referenced purchase does not belong to the referenced skill listing on the configured ${configuredNetwork}.`;
+  }
+
+  if (
+    assessment.walletBalanceLamports !== null &&
+    assessment.disputeBondLamports !== null &&
+    assessment.walletBalanceLamports < assessment.disputeBondLamports
+  ) {
+    return `Connected wallet ${shortAddress(
+      assessment.walletAddress
+    )} has ${formatLamportsAsSol(
+      assessment.walletBalanceLamports
+    )} SOL on the configured ${configuredNetwork}. Opening this author dispute needs about ${formatLamportsAsSol(
+      assessment.disputeBondLamports
+    )} SOL plus network fees. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+  }
+
+  return null;
+}
+
+export function getResolveAuthorDisputeClusterGuardError(
+  assessment: ResolveAuthorDisputeClusterGuardAssessment
+): string | null {
+  const configuredNetwork = getConfiguredNetworkDescription(assessment);
+
+  if (!assessment.authorProfileExists) {
+    return `This author is not registered on the configured ${configuredNetwork}. If you expected to resolve the dispute on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (!assessment.disputeExists) {
+    return `Author dispute ${String(
+      assessment.disputeId
+    )} was not found on the configured ${configuredNetwork}. If it exists on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  if (!assessment.disputeOpen) {
+    return `Author dispute ${String(
+      assessment.disputeId
+    )} is no longer open on the configured ${configuredNetwork}.`;
+  }
+
+  if (!assessment.resolverAuthorized) {
+    return `Connected wallet ${shortAddress(
+      assessment.walletAddress
+    )} is not the configured resolver on the configured ${configuredNetwork}. If you meant to resolve this dispute on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  return null;
+}
+
+class ClusterGuardError extends Error {}
 
 function encodeU64LE(value: number | bigint): Uint8Array {
   const bytes = new Uint8Array(8);
@@ -202,6 +397,10 @@ async function deriveAddress(
 
 async function getAgentPDA(agentKey: Address): Promise<Address> {
   return deriveAddress(["agent", agentKey]);
+}
+
+async function getDisputePDA(vouch: Address): Promise<Address> {
+  return deriveAddress(["dispute", vouch]);
 }
 
 async function getVouchPDA(
@@ -383,7 +582,7 @@ async function assertStakeActionClusterReady(
         walletBalanceLamports,
         requiredLamports: input.requiredLamports,
       });
-      if (guardError) throw new StakeClusterGuardError(guardError);
+      if (guardError) throw new ClusterGuardError(guardError);
       return;
     }
 
@@ -401,10 +600,173 @@ async function assertStakeActionClusterReady(
       hasLiveVouch:
         !!maybeVouch?.exists && isLiveVouchStatus(maybeVouch.data.status),
     });
-    if (guardError) throw new StakeClusterGuardError(guardError);
+    if (guardError) throw new ClusterGuardError(guardError);
   } catch (error) {
-    if (error instanceof StakeClusterGuardError) throw error;
+    if (error instanceof ClusterGuardError) throw error;
     console.warn("Stake cluster guard skipped:", error);
+  }
+}
+
+async function assertRegisterAgentClusterReady(walletAddress: Address) {
+  try {
+    const agentProfile = await fetchMaybeAgentProfile(
+      rpc,
+      await getAgentPDA(walletAddress)
+    ).catch(() => null);
+    const guardError = getRegisterAgentClusterGuardError({
+      profileExists: !!agentProfile?.exists,
+    });
+    if (guardError) throw new ClusterGuardError(guardError);
+  } catch (error) {
+    if (error instanceof ClusterGuardError) throw error;
+    console.warn("Register cluster guard skipped:", error);
+  }
+}
+
+async function assertSkillListingClusterReady(input: {
+  walletAddress: Address;
+  skillId: string;
+  mode: "create" | "update";
+}) {
+  try {
+    const authorProfile = await getAgentPDA(input.walletAddress);
+    const skillListing = await getSkillListingPDA(input.walletAddress, input.skillId);
+    const [authorProfileAccount, skillListingAccount] = await Promise.all([
+      fetchMaybeAgentProfile(rpc, authorProfile).catch(() => null),
+      fetchMaybeSkillListing(rpc, skillListing).catch(() => null),
+    ]);
+
+    const guardError = getSkillListingClusterGuardError({
+      mode: input.mode,
+      authorProfileExists: !!authorProfileAccount?.exists,
+      listingExists: !!skillListingAccount?.exists,
+      skillId: input.skillId,
+    });
+    if (guardError) throw new ClusterGuardError(guardError);
+  } catch (error) {
+    if (error instanceof ClusterGuardError) throw error;
+    console.warn("Skill listing cluster guard skipped:", error);
+  }
+}
+
+async function assertOpenDisputeClusterReady(input: {
+  walletAddress: Address;
+  vouchAccount: Address;
+}) {
+  try {
+    const disputeAddress = await getDisputePDA(input.vouchAccount);
+    const configPda = await getConfigPDA();
+    const [maybeVouch, maybeDispute, maybeConfig, walletBalanceLamports] =
+      await Promise.all([
+        fetchMaybeVouch(rpc, input.vouchAccount).catch(() => null),
+        fetchMaybeDispute(rpc, disputeAddress).catch(() => null),
+        fetchMaybeReputationConfig(rpc, configPda).catch(() => null),
+        getWalletBalanceLamports(input.walletAddress).catch(() => null),
+      ]);
+
+    const guardError = getOpenDisputeClusterGuardError({
+      walletAddress: input.walletAddress,
+      vouchExists: !!maybeVouch?.exists,
+      vouchIsActive: !!maybeVouch?.exists && maybeVouch.data.status === VouchStatus.Active,
+      disputeExists: !!maybeDispute?.exists,
+      walletBalanceLamports,
+      disputeBondLamports: maybeConfig?.exists ? BigInt(maybeConfig.data.disputeBond) : null,
+    });
+    if (guardError) throw new ClusterGuardError(guardError);
+  } catch (error) {
+    if (error instanceof ClusterGuardError) throw error;
+    console.warn("Open dispute cluster guard skipped:", error);
+  }
+}
+
+async function assertOpenAuthorDisputeClusterReady(input: {
+  walletAddress: Address;
+  authorKey: Address;
+  disputeId: number | bigint;
+  skillListing?: Address;
+  purchase?: Address;
+}) {
+  try {
+    const authorProfile = await getAgentPDA(input.authorKey);
+    const authorDispute = await getAuthorDisputePDA(input.authorKey, input.disputeId);
+    const configPda = await getConfigPDA();
+    const [
+      maybeAuthorProfile,
+      maybeAuthorDispute,
+      maybeSkillListing,
+      maybePurchase,
+      maybeConfig,
+      walletBalanceLamports,
+    ] = await Promise.all([
+      fetchMaybeAgentProfile(rpc, authorProfile).catch(() => null),
+      fetchMaybeAuthorDispute(rpc, authorDispute).catch(() => null),
+      input.skillListing
+        ? fetchMaybeSkillListing(rpc, input.skillListing).catch(() => null)
+        : Promise.resolve(null),
+      input.purchase
+        ? fetchMaybePurchase(rpc, input.purchase).catch(() => null)
+        : Promise.resolve(null),
+      fetchMaybeReputationConfig(rpc, configPda).catch(() => null),
+      getWalletBalanceLamports(input.walletAddress).catch(() => null),
+    ]);
+
+    const guardError = getOpenAuthorDisputeClusterGuardError({
+      walletAddress: input.walletAddress,
+      authorProfileExists: !!maybeAuthorProfile?.exists,
+      disputeId: input.disputeId,
+      disputeExists: !!maybeAuthorDispute?.exists,
+      skillListingProvided: !!input.skillListing,
+      skillListingExists: !!maybeSkillListing?.exists,
+      skillListingMatchesAuthor:
+        !input.skillListing ||
+        (!!maybeSkillListing?.exists && maybeSkillListing.data.author === input.authorKey),
+      purchaseProvided: !!input.purchase,
+      purchaseExists: !!maybePurchase?.exists,
+      purchaseMatchesSkillListing:
+        !input.purchase ||
+        !input.skillListing ||
+        (!!maybePurchase?.exists &&
+          maybePurchase.data.skillListing === input.skillListing),
+      walletBalanceLamports,
+      disputeBondLamports: maybeConfig?.exists ? BigInt(maybeConfig.data.disputeBond) : null,
+    });
+    if (guardError) throw new ClusterGuardError(guardError);
+  } catch (error) {
+    if (error instanceof ClusterGuardError) throw error;
+    console.warn("Open author dispute cluster guard skipped:", error);
+  }
+}
+
+async function assertResolveAuthorDisputeClusterReady(input: {
+  walletAddress: Address;
+  authorKey: Address;
+  disputeId: number | bigint;
+}) {
+  try {
+    const authorProfile = await getAgentPDA(input.authorKey);
+    const authorDispute = await getAuthorDisputePDA(input.authorKey, input.disputeId);
+    const configPda = await getConfigPDA();
+    const [maybeAuthorProfile, maybeAuthorDispute, maybeConfig] = await Promise.all([
+      fetchMaybeAgentProfile(rpc, authorProfile).catch(() => null),
+      fetchMaybeAuthorDispute(rpc, authorDispute).catch(() => null),
+      fetchMaybeReputationConfig(rpc, configPda).catch(() => null),
+    ]);
+
+    const guardError = getResolveAuthorDisputeClusterGuardError({
+      walletAddress: input.walletAddress,
+      authorProfileExists: !!maybeAuthorProfile?.exists,
+      disputeId: input.disputeId,
+      disputeExists: !!maybeAuthorDispute?.exists,
+      disputeOpen:
+        !!maybeAuthorDispute?.exists &&
+        maybeAuthorDispute.data.status === AuthorDisputeStatus.Open,
+      resolverAuthorized:
+        !!maybeConfig?.exists && maybeConfig.data.authority === input.walletAddress,
+    });
+    if (guardError) throw new ClusterGuardError(guardError);
+  } catch (error) {
+    if (error instanceof ClusterGuardError) throw error;
+    console.warn("Resolve author dispute cluster guard skipped:", error);
   }
 }
 
@@ -485,6 +847,7 @@ export function useReputationOracle() {
   const registerAgent = useCallback(
     async (metadataUri: string) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      await assertRegisterAgentClusterReady(walletAddress);
       const ix = await getRegisterAgentInstructionAsync({
         authority: signer,
         metadataUri,
@@ -538,6 +901,7 @@ export function useReputationOracle() {
   const openDispute = useCallback(
     async (vouchAccount: Address, evidence: string) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      await assertOpenDisputeClusterReady({ walletAddress, vouchAccount });
       const ix = await getOpenDisputeInstructionAsync({
         vouch: vouchAccount,
         challenger: signer,
@@ -654,6 +1018,11 @@ export function useReputationOracle() {
       challenger: Address
     ) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      await assertResolveAuthorDisputeClusterReady({
+        walletAddress,
+        authorKey,
+        disputeId,
+      });
       const authorProfile = await getAgentPDA(authorKey);
       const authorDispute = await getAuthorDisputePDA(authorKey, disputeId);
       const ix = await getResolveAuthorDisputeInstructionAsync({
@@ -975,8 +1344,15 @@ export function useReputationOracle() {
     ) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
 
-      const authorProfile = await getAgentPDA(authorKey);
       const disputeId = params.disputeId ?? BigInt(Date.now());
+      await assertOpenAuthorDisputeClusterReady({
+        walletAddress,
+        authorKey,
+        disputeId,
+        skillListing: params.skillListing,
+        purchase: params.purchase,
+      });
+      const authorProfile = await getAgentPDA(authorKey);
       const authorDispute = await getAuthorDisputePDA(authorKey, disputeId);
       const backingVouches = (
         await getAllVouchesReceivedByAgent(authorKey)
@@ -1032,6 +1408,11 @@ export function useReputationOracle() {
       priceLamports: number
     ) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      await assertSkillListingClusterReady({
+        walletAddress,
+        skillId,
+        mode: "create",
+      });
       const ix = await getCreateSkillListingInstructionAsync({
         author: signer,
         skillId,
@@ -1054,6 +1435,11 @@ export function useReputationOracle() {
       priceLamports: number
     ) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      await assertSkillListingClusterReady({
+        walletAddress,
+        skillId,
+        mode: "update",
+      });
       const ix = await getUpdateSkillListingInstructionAsync({
         author: signer,
         skillId,

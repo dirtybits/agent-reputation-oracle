@@ -30,6 +30,8 @@ describe("skill detail source", () => {
     expect(source).toContain("Buy & Unlock");
     expect(source).toContain("Sign & Download");
     expect(source).toContain("buildDownloadRawMessage");
+    expect(source).toContain("buildPaidSkillDownloadRequiredMessage");
+    expect(source).toContain("buildSignedDownloadErrorMessage");
     expect(source).not.toContain("Buy & Install");
   });
 });

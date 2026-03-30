@@ -9,6 +9,10 @@ import { SolAmount } from "@/components/SolAmount";
 import { buildDownloadRawMessage } from "@/lib/auth";
 import { encodeBase64 } from "@/lib/base64";
 import {
+  buildPaidSkillDownloadRequiredMessage,
+  buildSignedDownloadErrorMessage,
+} from "@/lib/skillFlowMessages";
+import {
   navButtonInlineClass,
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
@@ -427,6 +431,15 @@ export default function SkillDetailPage({
       return;
     }
 
+    const creatorPriceLamports = skill.creatorPriceLamports ?? skill.price_lamports ?? 0;
+    if (creatorPriceLamports > 0 && !skill.buyerHasPurchased) {
+      setDownloadResult({
+        success: false,
+        message: buildPaidSkillDownloadRequiredMessage(),
+      });
+      return;
+    }
+
     setDownloading(true);
     setDownloadResult(null);
     try {
@@ -457,7 +470,10 @@ export default function SkillDetailPage({
         let errorMessage = "Signed download failed";
         try {
           const data = await res.json();
-          errorMessage = data.error || data.message || errorMessage;
+          errorMessage = buildSignedDownloadErrorMessage(
+            data.error,
+            data.message ?? errorMessage
+          );
         } catch {
           // ignore non-json error bodies
         }

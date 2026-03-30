@@ -7,6 +7,11 @@ import {
 } from "@/generated/reputation-oracle/src/generated";
 import {
   buildTransactionSendRequest,
+  getOpenAuthorDisputeClusterGuardError,
+  getOpenDisputeClusterGuardError,
+  getRegisterAgentClusterGuardError,
+  getResolveAuthorDisputeClusterGuardError,
+  getSkillListingClusterGuardError,
   getStakeClusterGuardError,
   normalizeInstructionForSend,
 } from "@/hooks/useReputationOracle";
@@ -120,5 +125,98 @@ describe("useReputationOracle send helpers", () => {
     });
 
     expect(error).toBeNull();
+  });
+
+  it("reports when agent registration already exists on the configured network", () => {
+    const error = getRegisterAgentClusterGuardError({
+      profileExists: true,
+      configuredChainLabel: "Solana Devnet",
+      configuredRpcTarget: "devnet",
+    });
+
+    expect(error).toContain("already exists");
+    expect(error).toContain("configured Solana Devnet (devnet RPC)");
+  });
+
+  it("reports when creating a listing without a profile on the configured network", () => {
+    const error = getSkillListingClusterGuardError({
+      mode: "create",
+      authorProfileExists: false,
+      listingExists: false,
+      skillId: "frontenddesign",
+      configuredChainLabel: "Solana",
+      configuredRpcTarget: "mainnet",
+    });
+
+    expect(error).toContain("not registered");
+    expect(error).toContain("configured Solana (mainnet RPC)");
+  });
+
+  it("reports when updating a listing that does not exist on the configured network", () => {
+    const error = getSkillListingClusterGuardError({
+      mode: "update",
+      authorProfileExists: true,
+      listingExists: false,
+      skillId: "frontenddesign",
+      configuredChainLabel: "Solana Devnet",
+      configuredRpcTarget: "devnet",
+    });
+
+    expect(error).toContain('Skill listing "frontenddesign" was not found');
+    expect(error).toContain("configured Solana Devnet (devnet RPC)");
+  });
+
+  it("reports missing vouch state before opening a dispute", () => {
+    const error = getOpenDisputeClusterGuardError({
+      walletAddress: VOUCHER_ADDRESS,
+      vouchExists: false,
+      vouchIsActive: false,
+      disputeExists: false,
+      walletBalanceLamports: 2_000_000_000n,
+      disputeBondLamports: 500_000_000n,
+      configuredChainLabel: "Solana Devnet",
+      configuredRpcTarget: "devnet",
+    });
+
+    expect(error).toContain("vouch was not found");
+    expect(error).toContain("configured Solana Devnet (devnet RPC)");
+  });
+
+  it("reports author dispute references that only exist on another network", () => {
+    const error = getOpenAuthorDisputeClusterGuardError({
+      walletAddress: VOUCHER_ADDRESS,
+      authorProfileExists: true,
+      disputeId: 7n,
+      disputeExists: false,
+      skillListingProvided: true,
+      skillListingExists: false,
+      skillListingMatchesAuthor: true,
+      purchaseProvided: false,
+      purchaseExists: false,
+      purchaseMatchesSkillListing: true,
+      walletBalanceLamports: 2_000_000_000n,
+      disputeBondLamports: 500_000_000n,
+      configuredChainLabel: "Solana",
+      configuredRpcTarget: "mainnet",
+    });
+
+    expect(error).toContain("referenced skill listing was not found");
+    expect(error).toContain("configured Solana (mainnet RPC)");
+  });
+
+  it("reports resolver mismatch on the configured network", () => {
+    const error = getResolveAuthorDisputeClusterGuardError({
+      walletAddress: VOUCHER_ADDRESS,
+      authorProfileExists: true,
+      disputeId: 42n,
+      disputeExists: true,
+      disputeOpen: true,
+      resolverAuthorized: false,
+      configuredChainLabel: "Solana Devnet",
+      configuredRpcTarget: "devnet",
+    });
+
+    expect(error).toContain("not the configured resolver");
+    expect(error).toContain("configured Solana Devnet (devnet RPC)");
   });
 });
