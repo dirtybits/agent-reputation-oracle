@@ -15,4 +15,21 @@ describe("skill detail source", () => {
     expect(source).toContain("Seller Needs SOL");
     expect(source).toContain("purchasePreflightMessage");
   });
+
+  it("documents signed download instructions for paid skills", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "app/skills/[id]/page.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain("X-AgentVouch-Auth");
+    expect(source).toContain("AgentVouch Skill Download");
+    expect(source).toContain("/docs#paid-skill-download");
+    expect(source).toContain("Call purchaseSkill on-chain");
+    expect(source).toContain("buyerHasPurchased");
+    expect(source).toContain("Buy & Unlock");
+    expect(source).toContain("Sign & Download");
+    expect(source).toContain("buildDownloadRawMessage");
+    expect(source).not.toContain("Buy & Install");
+  });
 });

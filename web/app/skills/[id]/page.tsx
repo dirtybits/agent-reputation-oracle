@@ -6,6 +6,7 @@ import { AgentIdentityPanel } from "@/components/AgentIdentityPanel";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { SolAmount } from "@/components/SolAmount";
+import { buildDownloadRawMessage } from "@/lib/auth";
 import { encodeBase64 } from "@/lib/base64";
 import {
   navButtonInlineClass,
@@ -89,6 +90,7 @@ interface SkillDetail {
   purchasePreflightStatus?: PurchasePreflightStatus;
   purchasePreflightMessage?: string | null;
   priceDisclosure?: string | null;
+  buyerHasPurchased?: boolean;
 }
 
 function shortAddr(addr: string): string {
@@ -199,6 +201,11 @@ export default function SkillDetailPage({
   } | null>(null);
   const [installing, setInstalling] = useState(false);
   const [installResult, setInstallResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadResult, setDownloadResult] = useState<{
     success: boolean;
     message: string;
   } | null>(null);
@@ -393,10 +400,18 @@ export default function SkillDetailPage({
       setInstallResult({
         success: true,
         message: purchaseResult.alreadyPurchased
-          ? "Skill already purchased. Install unlocked."
-          : "Skill purchased and installed successfully!",
+          ? "Skill already purchased. Use Sign & Download below to fetch the skill file."
+          : "Skill purchased and installed successfully. Use Sign & Download below to fetch the skill file.",
       });
-      setSkill((s) => (s ? { ...s, total_installs: data.total_installs } : s));
+      setSkill((s) =>
+        s
+          ? {
+              ...s,
+              total_installs: data.total_installs,
+              buyerHasPurchased: true,
+            }
+          : s
+      );
     } catch (err: any) {
       setInstallResult({
         success: false,
@@ -404,6 +419,74 @@ export default function SkillDetailPage({
       });
     } finally {
       setInstalling(false);
+    }
+  };
+
+  const handleSignedDownload = async () => {
+    if (!connected || !walletAddress || !signMessage || !skill?.on_chain_address) {
+      return;
+    }
+
+    setDownloading(true);
+    setDownloadResult(null);
+    try {
+      const timestamp = Date.now();
+      const message = buildDownloadRawMessage(
+        skill.id,
+        skill.on_chain_address,
+        timestamp
+      );
+      const msgBytes = new TextEncoder().encode(message);
+      const sigBytes = await signMessage(msgBytes);
+      const signature = encodeBase64(sigBytes);
+
+      const authHeader = JSON.stringify({
+        pubkey: walletAddress,
+        signature,
+        message,
+        timestamp,
+      });
+
+      const res = await fetch(`/api/skills/${id}/raw`, {
+        headers: {
+          "X-AgentVouch-Auth": authHeader,
+        },
+      });
+
+      if (!res.ok) {
+        let errorMessage = "Signed download failed";
+        try {
+          const data = await res.json();
+          errorMessage = data.error || data.message || errorMessage;
+        } catch {
+          // ignore non-json error bodies
+        }
+        setDownloadResult({ success: false, message: errorMessage });
+        return;
+      }
+
+      const content = await res.text();
+      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = `${skill.skill_id || "SKILL"}.md`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(href);
+
+      setDownloadResult({
+        success: true,
+        message: "Signed download complete.",
+      });
+    } catch (err: any) {
+      setDownloadResult({
+        success: false,
+        message: err.message || "Signed download failed",
+      });
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -469,11 +552,7 @@ export default function SkillDetailPage({
   const isChainOnly = skill?.source === "chain";
   const CANONICAL_ORIGIN =
     process.env.NEXT_PUBLIC_APP_URL ?? "https://agentvouch.xyz";
-  const installUrl =
-    isChainOnly && skill?.skill_uri
-      ? skill.skill_uri
-      : `${CANONICAL_ORIGIN}/api/skills/${id}/raw`;
-  const installCommand = `curl -sL ${installUrl} -o SKILL.md`;
+  const paidSkillDocsHref = "/docs#paid-skill-download";
 
   if (loading) {
     return (
@@ -513,6 +592,25 @@ export default function SkillDetailPage({
   const purchaseBlocked =
     creatorPriceLamports > 0 &&
     isBlockingPurchaseStatus(purchasePreflightStatus);
+  const isPaidSkill = creatorPriceLamports > 0;
+  const buyerHasPurchased = Boolean(skill.buyerHasPurchased);
+  const apiPath = `/api/skills/${skill.id}/raw`;
+  const installUrl =
+    isChainOnly && skill?.skill_uri
+      ? skill.skill_uri
+      : `${CANONICAL_ORIGIN}${apiPath}`;
+  const signedDownloadMessage = `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skill.id}\nListing: ${
+    skill.on_chain_address ?? "{skillListingAddress}"
+  }\nTimestamp: {unix_ms}`;
+  const signedDownloadHeader = `{
+  "pubkey": "YOUR_PUBKEY",
+  "signature": "BASE64_ED25519_SIGNATURE",
+  "message": ${JSON.stringify(signedDownloadMessage)},
+  "timestamp": 1709234567890
+}`;
+  const installCommand = isPaidSkill
+    ? `# 1) GET ${installUrl} to receive 402 + X-Payment\n# 2) Call purchaseSkill on-chain\n# 3) Retry with X-AgentVouch-Auth\ncurl -sL -H "X-AgentVouch-Auth: $AUTH" ${installUrl} -o SKILL.md`
+    : `curl -sL ${installUrl} -o SKILL.md`;
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
@@ -755,36 +853,24 @@ export default function SkillDetailPage({
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {creatorPriceLamports > 0
-                    ? "Complete the on-chain purchase, then install with a wallet signature."
+                    ? buyerHasPurchased
+                      ? "This skill is already purchased for your connected wallet. Sign to download the file."
+                      : "Complete the on-chain purchase, then use Sign & Download with your wallet signature."
                     : "Install with a wallet signature — no transaction fee."}
                 </p>
               </div>
               {connected ? (
-                <button
-                  onClick={
-                    creatorPriceLamports > 0
-                      ? handlePaidInstall
-                      : handleFreeInstall
-                  }
-                  disabled={installing || purchaseBlocked}
-                  className={navButtonPrimaryInlineClass}
-                >
-                  {installing ? (
-                    <>
-                      <FiLoader className="w-4 h-4 animate-spin" />
-                      Installing…
-                    </>
-                  ) : (
-                    <>
-                      {creatorPriceLamports > 0 ? (
+                <div className="flex items-center gap-2">
+                  {!isPaidSkill ? (
+                    <button
+                      onClick={handleFreeInstall}
+                      disabled={installing}
+                      className={navButtonPrimaryInlineClass}
+                    >
+                      {installing ? (
                         <>
-                          <FiCheckCircle className="w-4 h-4" />
-                          {purchaseBlocked
-                            ? purchasePreflightStatus ===
-                              "authorPayoutRentBlocked"
-                              ? "Seller Needs SOL"
-                              : "Need More SOL"
-                            : "Buy & Install"}
+                          <FiLoader className="w-4 h-4 animate-spin" />
+                          Installing…
                         </>
                       ) : (
                         <>
@@ -792,13 +878,54 @@ export default function SkillDetailPage({
                           Install
                         </>
                       )}
-                    </>
+                    </button>
+                  ) : buyerHasPurchased ? (
+                    <button
+                      onClick={handleSignedDownload}
+                      disabled={downloading}
+                      className={navButtonPrimaryInlineClass}
+                    >
+                      {downloading ? (
+                        <>
+                          <FiLoader className="w-4 h-4 animate-spin" />
+                          Signing…
+                        </>
+                      ) : (
+                        <>
+                          <FiDownload className="w-4 h-4" />
+                          Sign & Download
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handlePaidInstall}
+                      disabled={installing || purchaseBlocked}
+                      className={navButtonPrimaryInlineClass}
+                    >
+                      {installing ? (
+                        <>
+                          <FiLoader className="w-4 h-4 animate-spin" />
+                          Installing…
+                        </>
+                      ) : (
+                        <>
+                          <FiCheckCircle className="w-4 h-4" />
+                          {purchaseBlocked
+                            ? purchasePreflightStatus ===
+                              "authorPayoutRentBlocked"
+                              ? "Seller Needs SOL"
+                              : "Need More SOL"
+                            : "Buy & Unlock"}
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
+                </div>
               ) : (
                 <span className="text-xs text-gray-400 dark:text-gray-500">
                   {creatorPriceLamports > 0
-                    ? "Connect wallet to buy and install"
+                    ? "Connect wallet to buy and unlock"
                     : "Connect wallet to install"}
                 </span>
               )}
@@ -869,6 +996,17 @@ export default function SkillDetailPage({
                 {installResult.message}
               </p>
             )}
+            {downloadResult && (
+              <p
+                className={`text-xs mt-2 ${
+                  downloadResult.success
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {downloadResult.message}
+              </p>
+            )}
             {connected &&
               walletAddress === skill.author_pubkey &&
               creatorPriceLamports === 0 &&
@@ -899,6 +1037,27 @@ export default function SkillDetailPage({
               {copied === "install" ? "Copied!" : "Copy"}
             </button>
           </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            {isPaidSkill ? (
+              <>
+                Paid skills require an on-chain purchase first, then a signed{" "}
+                <code className="text-amber-600 dark:text-amber-400">
+                  X-AgentVouch-Auth
+                </code>{" "}
+                header on the raw download request. Full instructions are below
+                and in{" "}
+                <Link
+                  href={paidSkillDocsHref}
+                  className="text-[var(--sea-accent)] hover:underline"
+                >
+                  docs
+                </Link>
+                .
+              </>
+            ) : (
+              <>Free skills can be downloaded directly with the command below.</>
+            )}
+          </p>
           <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
             <code>{installCommand}</code>
           </pre>
@@ -912,7 +1071,7 @@ export default function SkillDetailPage({
             </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            {skill.price_lamports != null && skill.price_lamports > 0 ? (
+            {isPaidSkill ? (
               <>
                 This is a paid skill. Requests return{" "}
                 <code className="text-amber-600 dark:text-amber-400">402</code>{" "}
@@ -921,12 +1080,12 @@ export default function SkillDetailPage({
                   X-AgentVouch-Auth
                 </code>{" "}
                 header. See{" "}
-                <a
-                  href="/docs"
+                <Link
+                  href={paidSkillDocsHref}
                   className="text-[var(--sea-accent)] hover:underline"
                 >
                   docs
-                </a>
+                </Link>
                 .
               </>
             ) : (
@@ -959,6 +1118,56 @@ export default function SkillDetailPage({
               {copied === "api" ? "Copied!" : "Copy URL"}
             </button>
           </div>
+          {isPaidSkill && (
+            <div className="mt-3 space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Signed Message
+                  </span>
+                  <button
+                    onClick={() =>
+                      copyToClipboard(signedDownloadMessage, "api-message")
+                    }
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-[var(--sea-accent)] transition"
+                  >
+                    {copied === "api-message" ? (
+                      <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" />
+                    ) : (
+                      <FiCopy className="w-3.5 h-3.5" />
+                    )}
+                    {copied === "api-message" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+                <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
+                  <code>{signedDownloadMessage}</code>
+                </pre>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    X-AgentVouch-Auth
+                  </span>
+                  <button
+                    onClick={() =>
+                      copyToClipboard(signedDownloadHeader, "api-auth")
+                    }
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-[var(--sea-accent)] transition"
+                  >
+                    {copied === "api-auth" ? (
+                      <FiCheck className="w-3.5 h-3.5 text-[var(--sea-accent)]" />
+                    ) : (
+                      <FiCopy className="w-3.5 h-3.5" />
+                    )}
+                    {copied === "api-auth" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+                <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
+                  <code>{signedDownloadHeader}</code>
+                </pre>
+              </div>
+            </div>
+          )}
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
             Auth:{" "}
             <code className="text-gray-500 dark:text-gray-400">

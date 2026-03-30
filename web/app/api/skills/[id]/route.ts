@@ -4,6 +4,7 @@ import { resolveAuthorTrust } from "@/lib/trust";
 import { getOnChainPrice } from "@/lib/onchain";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { resolveAgentIdentityByWallet } from "@/lib/agentIdentity";
+import { hasOnChainPurchase } from "@/lib/x402";
 import {
   getConfiguredSolanaChainContext,
   normalizePersistedChainContext,
@@ -117,6 +118,12 @@ export async function GET(
           /* best effort */
         }
       }
+      const buyerHasPurchased =
+        buyerAddress && BigInt(listing.data.priceLamports) > 0n
+          ? await hasOnChainPurchase(String(buyerAddress), listing.pubkey).catch(
+              () => false
+            )
+          : false;
 
       return NextResponse.json({
         id: `chain-${listing.pubkey}`,
@@ -145,6 +152,7 @@ export async function GET(
         versions: [],
         author_trust,
         author_identity,
+        buyerHasPurchased,
         content_verification: null,
         ...preflight,
       });
@@ -224,6 +232,13 @@ export async function GET(
           : null,
       })
     );
+    const buyerHasPurchased =
+      buyerAddress && skill.on_chain_address && (skill.price_lamports ?? 0) > 0
+        ? await hasOnChainPurchase(
+            String(buyerAddress),
+            String(skill.on_chain_address)
+          ).catch(() => false)
+        : false;
 
     return NextResponse.json({
       ...skill,
@@ -231,6 +246,7 @@ export async function GET(
       versions: versionsWithoutContent,
       author_trust,
       author_identity,
+      buyerHasPurchased,
       content_verification,
       ...preflight,
     });
