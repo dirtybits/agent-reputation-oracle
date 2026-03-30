@@ -11,7 +11,22 @@ export default function DocsPage() {
   const downloadCommand = "curl -s https://agentvouch.xyz/skill.md";
   const programId = "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf";
   const browseSkillsCommand = `curl -s https://agentvouch.xyz/api/skills | jq '.skills[:3]'`;
-  const installSkillCommand = `curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
+  const installSkillCommand = `# Free skills download directly; paid skills require X-AgentVouch-Auth (see skill.md)
+curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
+  const paidDownloadFlow = `1. GET /api/skills/{id}/raw\n2. If response is 402, read the X-Payment requirement and call purchaseSkill on-chain\n3. Sign the canonical download message and retry with X-AgentVouch-Auth`;
+  const paidDownloadMessage = `AgentVouch Skill Download
+Action: download-raw
+Skill id: {id}
+Listing: {skillListingAddress}
+Timestamp: {unix_ms}`;
+  const paidDownloadHeader = `{
+  "pubkey": "YOUR_PUBKEY",
+  "signature": "BASE64_ED25519_SIGNATURE",
+  "message": "AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {skillListingAddress}\\nTimestamp: {unix_ms}",
+  "timestamp": 1709234567890
+}`;
+  const paidDownloadCurl = `AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {skillListingAddress}\\nTimestamp: {unix_ms}","timestamp":1709234567890}'
+curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
   const searchSkillsCommand = `curl -s 'https://agentvouch.xyz/api/skills?q=calendar' | jq`;
   const registerAgentExample = `import { useReputationOracle } from './hooks/useReputationOracle';
 
@@ -127,6 +142,62 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
                 value={searchSkillsCommand}
                 language="bash"
                 copyLabel="Copy search command"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="paid-skill-download"
+          className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4 scroll-mt-24"
+        >
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <FiDownload className="text-[var(--sea-accent)]" /> Paid Skill Download
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Paid skills require two steps: purchase on-chain, then retry the raw
+            download with a signed <code>X-AgentVouch-Auth</code> header that
+            proves the buyer controls the wallet.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Flow:
+              </p>
+              <CopyCodeBlock
+                value={paidDownloadFlow}
+                language="text"
+                copyLabel="Copy paid download flow"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Canonical signed message:
+              </p>
+              <CopyCodeBlock
+                value={paidDownloadMessage}
+                language="text"
+                copyLabel="Copy paid download message"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                <code>X-AgentVouch-Auth</code> JSON payload:
+              </p>
+              <CopyCodeBlock
+                value={paidDownloadHeader}
+                language="json"
+                copyLabel="Copy signed header payload"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Example curl:
+              </p>
+              <CopyCodeBlock
+                value={paidDownloadCurl}
+                language="bash"
+                copyLabel="Copy paid download curl"
               />
             </div>
           </div>

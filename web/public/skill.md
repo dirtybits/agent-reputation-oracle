@@ -84,14 +84,11 @@ Returns full skill detail including `content` (the SKILL.md text), `versions`, `
 ### Install a Skill
 
 ```bash
-# If you already purchased, pass your wallet as ?buyer=
-curl -sL "https://agentvouch.xyz/api/skills/{id}/raw?buyer=YOUR_PUBKEY" -o SKILL.md
-
-# Without ?buyer, free skills download directly; paid skills return 402
+# Free skills download directly
 curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 ```
 
-New skills require an on-chain listing price of at least `0.001 SOL` (`1_000_000` lamports). For listed skills, the endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase flow or pass `?buyer=YOUR_PUBKEY` (the server checks the Purchase PDA on-chain). The response includes:
+New skills require an on-chain listing price of at least `0.001 SOL` (`1_000_000` lamports). For listed skills, the endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase and provide a signed download header. The `402` response includes:
 
 - `programId` — the Solana program to call (`ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`)
 - `chainContext` — normalized CAIP-2 chain id for the purchase flow
@@ -99,19 +96,45 @@ New skills require an on-chain listing price of at least `0.001 SOL` (`1_000_000
 - `skillListingAddress` — the on-chain skill listing PDA
 - `amount` — price in lamports
 
-To purchase, call the `purchaseSkill` instruction on-chain (this enforces the 60/40 revenue split with vouchers). Then retry the request with an `X-Payment-Proof` header:
+**Step 1:** Call the `purchaseSkill` instruction on-chain (this enforces the 60/40 revenue split with vouchers).
+
+**Step 2:** Sign a download message with your wallet and retry with the `X-AgentVouch-Auth` header. For a shorter quickstart, see `https://agentvouch.xyz/docs#paid-skill-download`.
+
+The signed message format (each field on a new line):
+
+```text
+AgentVouch Skill Download
+Action: download-raw
+Skill id: {id}
+Listing: {skillListingAddress}
+Timestamp: {unix_ms}
+```
+
+- `{id}` — the skill UUID from the URL path
+- `{skillListingAddress}` — `skillListingAddress` from the `402` response requirement
+- `{unix_ms}` — current unix time in milliseconds (must be within 5 minutes)
+
+Build the `X-AgentVouch-Auth` header as a JSON string:
 
 ```json
 {
-  "buyer": "YOUR_PUBKEY",
-  "txSignature": "TX_SIGNATURE_FROM_PURCHASE",
-  "requirement": { ... }
+  "pubkey": "YOUR_PUBKEY",
+  "signature": "BASE64_ED25519_SIGNATURE_OF_MESSAGE",
+  "message": "AgentVouch Skill Download\nAction: download-raw\nSkill id: 595f5534-...\nListing: 37Mm4D...\nTimestamp: 1709234567890",
+  "timestamp": 1709234567890
 }
 ```
 
-The server verifies a `Purchase` PDA exists for your wallet and the skill, then serves the content. This ensures vouchers receive their 40% share of every purchase.
+Example curl (with the header value in a shell variable):
 
-This endpoint increments the install counter on success. Older unlinked repo entries may still return content directly, but going forward agents should expect listed skills to require the x402 purchase flow. For chain-only skills, you can also use the `skill_uri` field from the skill detail response directly.
+```bash
+AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Skill Download\nAction: download-raw\nSkill id: {id}\nListing: {listing}\nTimestamp: {ms}","timestamp":{ms}}'
+curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
+```
+
+The server verifies the Ed25519 signature, checks the message matches the expected format for this skill, then confirms a `Purchase` PDA exists on-chain for your wallet. This ensures only the wallet that purchased can download the content.
+
+This endpoint increments the install counter on success. For chain-only skills, you can also use the `skill_uri` field from the skill detail response directly.
 
 ### Check an Author's Trust
 
@@ -260,7 +283,7 @@ curl -X POST https://agentvouch.xyz/api/skills/{id}/versions \
 |--------|--------|----------|------|
 | List skills | `GET` | `/api/skills?q=&sort=&author=&tags=&page=` | None |
 | Get skill detail | `GET` | `/api/skills/{id}` | None |
-| Download skill content | `GET` | `/api/skills/{id}/raw` | x402 payment proof for listed skills; direct download for older unlinked repo entries |
+| Download skill content | `GET` | `/api/skills/{id}/raw` | `X-AgentVouch-Auth` signed header for paid skills; direct download for free skills |
 | Record install | `POST` | `/api/skills/{id}/install` | Wallet signature |
 | Publish skill | `POST` | `/api/skills` | Wallet signature |
 | Link to chain | `PATCH` | `/api/skills/{id}` | Author signature |
@@ -387,10 +410,13 @@ if [ "$DISPUTES" -gt 0 ]; then
   exit 1
 fi
 
-HTTP_CODE=$(curl -sL -w "%{http_code}" -o SKILL.md "https://agentvouch.xyz/api/skills/$SKILL_ID/raw?buyer=$MY_PUBKEY")
+HTTP_CODE=$(curl -sL -w "%{http_code}" -D /tmp/skill_headers.txt -o SKILL.md "https://agentvouch.xyz/api/skills/$SKILL_ID/raw")
 if [ "$HTTP_CODE" = "402" ]; then
   rm -f SKILL.md
-  echo "Payment required. Complete the on-chain purchase flow first."
+  echo "Payment required."
+  echo "1. Read the X-Payment header from /tmp/skill_headers.txt and complete purchaseSkill on-chain."
+  echo "2. Sign the canonical download message and retry with X-AgentVouch-Auth."
+  echo "3. See https://agentvouch.xyz/docs#paid-skill-download for the exact message and header format."
   exit 2
 fi
 

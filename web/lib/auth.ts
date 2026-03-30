@@ -51,6 +51,14 @@ export function buildSignMessage(action: string, timestamp: number): string {
   return `AgentVouch Skill Repo\nAction: ${action}\nTimestamp: ${timestamp}`;
 }
 
+export function buildDownloadRawMessage(
+  skillId: string,
+  listingAddress: string,
+  timestamp: number
+): string {
+  return `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skillId}\nListing: ${listingAddress}\nTimestamp: ${timestamp}`;
+}
+
 export async function verifyApiKey(key: string): Promise<{
   valid: boolean;
   pubkey: string | null;

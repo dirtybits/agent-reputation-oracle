@@ -4,16 +4,16 @@ overview: Bind paid `/api/skills/[id]/raw` access to wallet possession by requir
 todos:
   - id: auth-helper
     content: Add buildDownloadRawMessage(id, listing, timestamp) in web/lib/auth.ts
-    status: pending
+    status: completed
   - id: raw-route
     content: Wire X-AgentVouch-Auth flow; remove ?buyer= and X-Payment-Proof paid paths; update 402 copy
-    status: pending
+    status: completed
   - id: tests
     content: Update skills-raw.test.ts mocks and cases for signed download + legacy removal
-    status: pending
+    status: completed
   - id: docs-ui
     content: Update skill.md, docs page, skills detail snippets for signed download
-    status: pending
+    status: completed
 isProject: false
 ---
 

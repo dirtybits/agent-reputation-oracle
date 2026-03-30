@@ -916,8 +916,18 @@ export default function SkillDetailPage({
               <>
                 This is a paid skill. Requests return{" "}
                 <code className="text-amber-600 dark:text-amber-400">402</code>{" "}
-                with payment requirements until a valid payment proof is
-                provided.
+                until you purchase on-chain and provide a signed{" "}
+                <code className="text-amber-600 dark:text-amber-400">
+                  X-AgentVouch-Auth
+                </code>{" "}
+                header. See{" "}
+                <a
+                  href="/docs"
+                  className="text-[var(--sea-accent)] hover:underline"
+                >
+                  docs
+                </a>
+                .
               </>
             ) : (
               <>
