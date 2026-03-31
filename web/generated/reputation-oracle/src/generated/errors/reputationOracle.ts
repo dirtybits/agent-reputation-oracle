@@ -14,38 +14,18 @@ import {
 } from "@solana/kit";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
-/** UriTooLong: URI too long */
-export const REPUTATION_ORACLE_ERROR__URI_TOO_LONG = 0x1770; // 6000
-/** NameTooLong: Name too long */
-export const REPUTATION_ORACLE_ERROR__NAME_TOO_LONG = 0x1771; // 6001
-/** DescriptionTooLong: Description too long */
-export const REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG = 0x1772; // 6002
-/** PriceBelowMinimum: Price is below the minimum listing price */
-export const REPUTATION_ORACLE_ERROR__PRICE_BELOW_MINIMUM = 0x1773; // 6003
-/** NotAuthor: Only the author can update this listing */
-export const REPUTATION_ORACLE_ERROR__NOT_AUTHOR = 0x1774; // 6004
-/** SkillRemoved: Cannot update a removed listing */
-export const REPUTATION_ORACLE_ERROR__SKILL_REMOVED = 0x1775; // 6005
+/** InsufficientFunds: Insufficient funds */
+export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS = 0x1770; // 6000
 
 export type ReputationOracleError =
-  | typeof REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG
-  | typeof REPUTATION_ORACLE_ERROR__NAME_TOO_LONG
-  | typeof REPUTATION_ORACLE_ERROR__NOT_AUTHOR
-  | typeof REPUTATION_ORACLE_ERROR__PRICE_BELOW_MINIMUM
-  | typeof REPUTATION_ORACLE_ERROR__SKILL_REMOVED
-  | typeof REPUTATION_ORACLE_ERROR__URI_TOO_LONG;
+  typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS;
 
 let reputationOracleErrorMessages:
   | Record<ReputationOracleError, string>
   | undefined;
 if (process.env.NODE_ENV !== "production") {
   reputationOracleErrorMessages = {
-    [REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG]: `Description too long`,
-    [REPUTATION_ORACLE_ERROR__NAME_TOO_LONG]: `Name too long`,
-    [REPUTATION_ORACLE_ERROR__NOT_AUTHOR]: `Only the author can update this listing`,
-    [REPUTATION_ORACLE_ERROR__PRICE_BELOW_MINIMUM]: `Price is below the minimum listing price`,
-    [REPUTATION_ORACLE_ERROR__SKILL_REMOVED]: `Cannot update a removed listing`,
-    [REPUTATION_ORACLE_ERROR__URI_TOO_LONG]: `URI too long`,
+    [REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS]: `Insufficient funds`,
   };
 }
 

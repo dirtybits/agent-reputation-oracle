@@ -1160,33 +1160,8 @@
   "errors": [
     {
       "code": 6000,
-      "name": "UriTooLong",
-      "msg": "URI too long"
-    },
-    {
-      "code": 6001,
-      "name": "NameTooLong",
-      "msg": "Name too long"
-    },
-    {
-      "code": 6002,
-      "name": "DescriptionTooLong",
-      "msg": "Description too long"
-    },
-    {
-      "code": 6003,
-      "name": "PriceBelowMinimum",
-      "msg": "Price is below the minimum listing price"
-    },
-    {
-      "code": 6004,
-      "name": "NotAuthor",
-      "msg": "Only the author can update this listing"
-    },
-    {
-      "code": 6005,
-      "name": "SkillRemoved",
-      "msg": "Cannot update a removed listing"
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds"
     }
   ],
   "types": [
