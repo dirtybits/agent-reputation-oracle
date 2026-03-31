@@ -4,7 +4,6 @@ import {
   FiShield,
   FiUsers,
   FiAlertTriangle,
-  FiCheckCircle,
 } from "react-icons/fi";
 import { LiaCoinsSolid } from "react-icons/lia";
 import { formatSolAmount } from "@/lib/pricing";
@@ -13,8 +12,6 @@ export interface TrustData {
   reputationScore: number;
   totalVouchesReceived: number;
   totalStakedFor: number;
-  disputesWon: number;
-  disputesLost: number;
   disputesAgainstAuthor: number;
   disputesUpheldAgainstAuthor: number;
   activeDisputesAgainstAuthor: number;
@@ -29,23 +26,6 @@ interface TrustBadgeProps {
 
 function formatSol(lamports: number): string {
   return formatSolAmount(lamports);
-}
-
-function getDisputeStatus(
-  won: number,
-  lost: number
-): { label: string; color: string } {
-  if (won === 0 && lost === 0)
-    return { label: "No losses", color: "text-green-600 dark:text-green-400" };
-  if (lost === 0)
-    return {
-      label: `${won} resolved`,
-      color: "text-green-600 dark:text-green-400",
-    };
-  return {
-    label: `${won}W / ${lost}L`,
-    color: "text-yellow-600 dark:text-yellow-400",
-  };
 }
 
 function getAuthorReportStatus(
@@ -81,7 +61,6 @@ export default function TrustBadge({
     );
   }
 
-  const dispute = getDisputeStatus(trust.disputesWon, trust.disputesLost);
   const authorReports = getAuthorReportStatus(
     trust.disputesAgainstAuthor,
     trust.disputesUpheldAgainstAuthor,
@@ -102,14 +81,6 @@ export default function TrustBadge({
         <span className="text-gray-500 dark:text-gray-400">
           {formatSol(trust.totalStakedFor)} SOL
         </span>
-        <span className={`flex items-center gap-1 ${dispute.color}`}>
-          {trust.disputesLost > 0 ? (
-            <FiAlertTriangle className="w-3.5 h-3.5" />
-          ) : (
-            <FiCheckCircle className="w-3.5 h-3.5" />
-          )}
-          {dispute.label}
-        </span>
         <span className={`flex items-center gap-1 ${authorReports.color}`}>
           <FiAlertTriangle className="w-3.5 h-3.5" />
           {authorReports.label}
@@ -119,7 +90,7 @@ export default function TrustBadge({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
         <div className="flex items-center justify-center gap-1 text-green-600 dark:text-green-400 mb-1">
           <FiShield className="w-4 h-4" />
@@ -147,22 +118,6 @@ export default function TrustBadge({
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
           SOL Staked
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
-        <div
-          className={`flex items-center justify-center gap-1 ${dispute.color} mb-1`}
-        >
-          {trust.disputesLost > 0 ? (
-            <FiAlertTriangle className="w-4 h-4" />
-          ) : (
-            <FiCheckCircle className="w-4 h-4" />
-          )}
-        </div>
-        <div className="text-sm font-bold">{dispute.label}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          As Voucher
         </div>
       </div>
 

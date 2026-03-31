@@ -18,9 +18,7 @@ import {
 export enum VouchStatus {
   Active,
   Revoked,
-  Disputed,
   Slashed,
-  Vindicated,
 }
 
 export type VouchStatusArgs = VouchStatus;

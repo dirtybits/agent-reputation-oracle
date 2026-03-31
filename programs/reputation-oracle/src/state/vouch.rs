@@ -6,7 +6,7 @@ pub struct Vouch {
     pub vouchee: Pubkey,         // Who is being vouched for
     pub stake_amount: u64,       // SOL staked (lamports)
     pub created_at: i64,         // Timestamp
-    pub status: VouchStatus,     // Active, Revoked, Disputed, Slashed, Vindicated
+    pub status: VouchStatus,     // Active, Revoked, Slashed
     pub cumulative_revenue: u64, // Total revenue earned from marketplace purchases
     pub last_payout_at: i64,     // Last time voucher claimed revenue
     pub bump: u8,                // PDA bump
@@ -16,9 +16,7 @@ pub struct Vouch {
 pub enum VouchStatus {
     Active,
     Revoked,
-    Disputed,
     Slashed,
-    Vindicated,
 }
 
 impl Vouch {
@@ -39,10 +37,10 @@ impl Vouch {
 
 impl VouchStatus {
     pub fn is_live(self) -> bool {
-        matches!(self, Self::Active | Self::Vindicated)
+        matches!(self, Self::Active)
     }
 
     pub fn counts_toward_author_wide_backing_snapshot(self) -> bool {
-        matches!(self, Self::Active | Self::Disputed | Self::Vindicated)
+        matches!(self, Self::Active)
     }
 }

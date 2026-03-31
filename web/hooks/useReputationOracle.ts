@@ -26,7 +26,6 @@ const asBase64 = (bytes: Uint8Array) =>
 const asBase58 = (addr: string) => addr as unknown as Base58EncodedBytes;
 import {
   fetchAllMaybePurchase,
-  fetchMaybeDispute,
   fetchMaybeAgentProfile,
   fetchMaybeAuthorDispute,
   fetchMaybePurchase,
@@ -41,7 +40,6 @@ import {
   getRegisterAgentInstructionAsync,
   getVouchInstructionAsync,
   getRevokeVouchInstructionAsync,
-  getOpenDisputeInstructionAsync,
   getCreateSkillListingInstructionAsync,
   getUpdateSkillListingInstructionAsync,
   getPurchaseSkillInstructionAsync,
@@ -160,15 +158,6 @@ type SkillListingClusterGuardAssessment = ClusterGuardContext & {
   skillId: string;
 };
 
-type OpenDisputeClusterGuardAssessment = ClusterGuardContext & {
-  walletAddress: Address;
-  vouchExists: boolean;
-  vouchIsActive: boolean;
-  disputeExists: boolean;
-  walletBalanceLamports: bigint | null;
-  disputeBondLamports: bigint | null;
-};
-
 type OpenAuthorDisputeClusterGuardAssessment = ClusterGuardContext & {
   walletAddress: Address;
   authorProfileExists: boolean;
@@ -256,40 +245,6 @@ export function getSkillListingClusterGuardError(
 
   if (assessment.mode === "update" && !assessment.listingExists) {
     return `Skill listing "${assessment.skillId}" was not found on the configured ${configuredNetwork}. If you created it on another network, switch Phantom and the app to the same cluster and retry.`;
-  }
-
-  return null;
-}
-
-export function getOpenDisputeClusterGuardError(
-  assessment: OpenDisputeClusterGuardAssessment
-): string | null {
-  const configuredNetwork = getConfiguredNetworkDescription(assessment);
-
-  if (!assessment.vouchExists) {
-    return `This vouch was not found on the configured ${configuredNetwork}. If you created it on another network, switch Phantom and the app to the same cluster and retry.`;
-  }
-
-  if (assessment.disputeExists) {
-    return `A dispute for this vouch already exists on the configured ${configuredNetwork}.`;
-  }
-
-  if (!assessment.vouchIsActive) {
-    return `This vouch is not active on the configured ${configuredNetwork}, so it cannot be disputed from this network.`;
-  }
-
-  if (
-    assessment.walletBalanceLamports !== null &&
-    assessment.disputeBondLamports !== null &&
-    assessment.walletBalanceLamports < assessment.disputeBondLamports
-  ) {
-    return `Connected wallet ${shortAddress(
-      assessment.walletAddress
-    )} has ${formatLamportsAsSol(
-      assessment.walletBalanceLamports
-    )} SOL on the configured ${configuredNetwork}. Opening this dispute needs about ${formatLamportsAsSol(
-      assessment.disputeBondLamports
-    )} SOL plus network fees. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
   }
 
   return null;
@@ -397,10 +352,6 @@ async function deriveAddress(
 
 async function getAgentPDA(agentKey: Address): Promise<Address> {
   return deriveAddress(["agent", agentKey]);
-}
-
-async function getDisputePDA(vouch: Address): Promise<Address> {
-  return deriveAddress(["dispute", vouch]);
 }
 
 async function getVouchPDA(
@@ -541,7 +492,7 @@ function buildPurchaseClusterMismatchError(
 }
 
 function isLiveVouchStatus(status: VouchStatus): boolean {
-  return status === VouchStatus.Active || status === VouchStatus.Vindicated;
+  return status === VouchStatus.Active;
 }
 
 async function getWalletBalanceLamports(walletAddress: Address): Promise<bigint> {
@@ -646,36 +597,6 @@ async function assertSkillListingClusterReady(input: {
   } catch (error) {
     if (error instanceof ClusterGuardError) throw error;
     console.warn("Skill listing cluster guard skipped:", error);
-  }
-}
-
-async function assertOpenDisputeClusterReady(input: {
-  walletAddress: Address;
-  vouchAccount: Address;
-}) {
-  try {
-    const disputeAddress = await getDisputePDA(input.vouchAccount);
-    const configPda = await getConfigPDA();
-    const [maybeVouch, maybeDispute, maybeConfig, walletBalanceLamports] =
-      await Promise.all([
-        fetchMaybeVouch(rpc, input.vouchAccount).catch(() => null),
-        fetchMaybeDispute(rpc, disputeAddress).catch(() => null),
-        fetchMaybeReputationConfig(rpc, configPda).catch(() => null),
-        getWalletBalanceLamports(input.walletAddress).catch(() => null),
-      ]);
-
-    const guardError = getOpenDisputeClusterGuardError({
-      walletAddress: input.walletAddress,
-      vouchExists: !!maybeVouch?.exists,
-      vouchIsActive: !!maybeVouch?.exists && maybeVouch.data.status === VouchStatus.Active,
-      disputeExists: !!maybeDispute?.exists,
-      walletBalanceLamports,
-      disputeBondLamports: maybeConfig?.exists ? BigInt(maybeConfig.data.disputeBond) : null,
-    });
-    if (guardError) throw new ClusterGuardError(guardError);
-  } catch (error) {
-    if (error instanceof ClusterGuardError) throw error;
-    console.warn("Open dispute cluster guard skipped:", error);
   }
 }
 
@@ -892,20 +813,6 @@ export function useReputationOracle() {
       const ix = await getRevokeVouchInstructionAsync({
         voucheeProfile,
         voucher: signer,
-      });
-      return { tx: await sendIx(ix) };
-    },
-    [signer, walletAddress, sendIx]
-  );
-
-  const openDispute = useCallback(
-    async (vouchAccount: Address, evidence: string) => {
-      if (!signer || !walletAddress) throw new Error("Wallet not connected");
-      await assertOpenDisputeClusterReady({ walletAddress, vouchAccount });
-      const ix = await getOpenDisputeInstructionAsync({
-        vouch: vouchAccount,
-        challenger: signer,
-        evidenceUri: evidence,
       });
       return { tx: await sendIx(ix) };
     },
@@ -1564,7 +1471,6 @@ export function useReputationOracle() {
       registerAgent,
       vouch,
       revokeVouch,
-      openDispute,
       openAuthorDispute,
       resolveAuthorDispute,
       getConfig,
@@ -1599,7 +1505,6 @@ export function useReputationOracle() {
       registerAgent,
       vouch,
       revokeVouch,
-      openDispute,
       openAuthorDispute,
       resolveAuthorDispute,
       getConfig,

@@ -36,8 +36,6 @@ pub fn handler(
     agent_profile.total_vouches_received = 0;
     agent_profile.total_vouches_given = 0;
     agent_profile.total_staked_for = 0;
-    agent_profile.disputes_won = 0;
-    agent_profile.disputes_lost = 0;
     agent_profile.registered_at = clock.unix_timestamp;
     agent_profile.bump = ctx.bumps.agent_profile;
     

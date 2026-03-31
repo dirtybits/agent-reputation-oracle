@@ -34,7 +34,6 @@ import {
 import {
   getAgentProfileCodec,
   getAuthorDisputeCodec,
-  getDisputeCodec,
   getPurchaseCodec,
   getReputationConfigCodec,
   getSkillListingCodec,
@@ -43,8 +42,6 @@ import {
   type AgentProfileArgs,
   type AuthorDispute,
   type AuthorDisputeArgs,
-  type Dispute,
-  type DisputeArgs,
   type Purchase,
   type PurchaseArgs,
   type ReputationConfig,
@@ -59,11 +56,9 @@ import {
   getCreateSkillListingInstructionAsync,
   getInitializeConfigInstructionAsync,
   getOpenAuthorDisputeInstructionAsync,
-  getOpenDisputeInstructionAsync,
   getPurchaseSkillInstructionAsync,
   getRegisterAgentInstructionAsync,
   getResolveAuthorDisputeInstructionAsync,
-  getResolveDisputeInstructionAsync,
   getRevokeVouchInstructionAsync,
   getUpdateSkillListingInstructionAsync,
   getVouchInstructionAsync,
@@ -71,11 +66,9 @@ import {
   parseCreateSkillListingInstruction,
   parseInitializeConfigInstruction,
   parseOpenAuthorDisputeInstruction,
-  parseOpenDisputeInstruction,
   parsePurchaseSkillInstruction,
   parseRegisterAgentInstruction,
   parseResolveAuthorDisputeInstruction,
-  parseResolveDisputeInstruction,
   parseRevokeVouchInstruction,
   parseUpdateSkillListingInstruction,
   parseVouchInstruction,
@@ -83,23 +76,19 @@ import {
   type CreateSkillListingAsyncInput,
   type InitializeConfigAsyncInput,
   type OpenAuthorDisputeAsyncInput,
-  type OpenDisputeAsyncInput,
   type ParsedClaimVoucherRevenueInstruction,
   type ParsedCreateSkillListingInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedOpenAuthorDisputeInstruction,
-  type ParsedOpenDisputeInstruction,
   type ParsedPurchaseSkillInstruction,
   type ParsedRegisterAgentInstruction,
   type ParsedResolveAuthorDisputeInstruction,
-  type ParsedResolveDisputeInstruction,
   type ParsedRevokeVouchInstruction,
   type ParsedUpdateSkillListingInstruction,
   type ParsedVouchInstruction,
   type PurchaseSkillAsyncInput,
   type RegisterAgentAsyncInput,
   type ResolveAuthorDisputeAsyncInput,
-  type ResolveDisputeAsyncInput,
   type RevokeVouchAsyncInput,
   type UpdateSkillListingAsyncInput,
   type VouchAsyncInput,
@@ -111,7 +100,6 @@ export const REPUTATION_ORACLE_PROGRAM_ADDRESS =
 export enum ReputationOracleAccount {
   AgentProfile,
   AuthorDispute,
-  Dispute,
   Purchase,
   ReputationConfig,
   SkillListing,
@@ -143,17 +131,6 @@ export function identifyReputationOracleAccount(
     )
   ) {
     return ReputationOracleAccount.AuthorDispute;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([36, 49, 241, 67, 40, 36, 241, 74]),
-      ),
-      0,
-    )
-  ) {
-    return ReputationOracleAccount.Dispute;
   }
   if (
     containsBytes(
@@ -210,11 +187,9 @@ export enum ReputationOracleInstruction {
   CreateSkillListing,
   InitializeConfig,
   OpenAuthorDispute,
-  OpenDispute,
   PurchaseSkill,
   RegisterAgent,
   ResolveAuthorDispute,
-  ResolveDispute,
   RevokeVouch,
   UpdateSkillListing,
   Vouch,
@@ -272,17 +247,6 @@ export function identifyReputationOracleInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([137, 25, 99, 119, 23, 223, 161, 42]),
-      ),
-      0,
-    )
-  ) {
-    return ReputationOracleInstruction.OpenDispute;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([70, 41, 105, 156, 159, 169, 215, 188]),
       ),
       0,
@@ -311,17 +275,6 @@ export function identifyReputationOracleInstruction(
     )
   ) {
     return ReputationOracleInstruction.ResolveAuthorDispute;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([231, 6, 202, 6, 96, 103, 12, 230]),
-      ),
-      0,
-    )
-  ) {
-    return ReputationOracleInstruction.ResolveDispute;
   }
   if (
     containsBytes(
@@ -378,9 +331,6 @@ export type ParsedReputationOracleInstruction<
       instructionType: ReputationOracleInstruction.OpenAuthorDispute;
     } & ParsedOpenAuthorDisputeInstruction<TProgram>)
   | ({
-      instructionType: ReputationOracleInstruction.OpenDispute;
-    } & ParsedOpenDisputeInstruction<TProgram>)
-  | ({
       instructionType: ReputationOracleInstruction.PurchaseSkill;
     } & ParsedPurchaseSkillInstruction<TProgram>)
   | ({
@@ -389,9 +339,6 @@ export type ParsedReputationOracleInstruction<
   | ({
       instructionType: ReputationOracleInstruction.ResolveAuthorDispute;
     } & ParsedResolveAuthorDisputeInstruction<TProgram>)
-  | ({
-      instructionType: ReputationOracleInstruction.ResolveDispute;
-    } & ParsedResolveDisputeInstruction<TProgram>)
   | ({
       instructionType: ReputationOracleInstruction.RevokeVouch;
     } & ParsedRevokeVouchInstruction<TProgram>)
@@ -435,13 +382,6 @@ export function parseReputationOracleInstruction<TProgram extends string>(
         ...parseOpenAuthorDisputeInstruction(instruction),
       };
     }
-    case ReputationOracleInstruction.OpenDispute: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ReputationOracleInstruction.OpenDispute,
-        ...parseOpenDisputeInstruction(instruction),
-      };
-    }
     case ReputationOracleInstruction.PurchaseSkill: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -461,13 +401,6 @@ export function parseReputationOracleInstruction<TProgram extends string>(
       return {
         instructionType: ReputationOracleInstruction.ResolveAuthorDispute,
         ...parseResolveAuthorDisputeInstruction(instruction),
-      };
-    }
-    case ReputationOracleInstruction.ResolveDispute: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: ReputationOracleInstruction.ResolveDispute,
-        ...parseResolveDisputeInstruction(instruction),
       };
     }
     case ReputationOracleInstruction.RevokeVouch: {
@@ -512,8 +445,6 @@ export type ReputationOraclePluginAccounts = {
     SelfFetchFunctions<AgentProfileArgs, AgentProfile>;
   authorDispute: ReturnType<typeof getAuthorDisputeCodec> &
     SelfFetchFunctions<AuthorDisputeArgs, AuthorDispute>;
-  dispute: ReturnType<typeof getDisputeCodec> &
-    SelfFetchFunctions<DisputeArgs, Dispute>;
   purchase: ReturnType<typeof getPurchaseCodec> &
     SelfFetchFunctions<PurchaseArgs, Purchase>;
   reputationConfig: ReturnType<typeof getReputationConfigCodec> &
@@ -541,10 +472,6 @@ export type ReputationOraclePluginInstructions = {
     input: OpenAuthorDisputeAsyncInput,
   ) => ReturnType<typeof getOpenAuthorDisputeInstructionAsync> &
     SelfPlanAndSendFunctions;
-  openDispute: (
-    input: OpenDisputeAsyncInput,
-  ) => ReturnType<typeof getOpenDisputeInstructionAsync> &
-    SelfPlanAndSendFunctions;
   purchaseSkill: (
     input: PurchaseSkillAsyncInput,
   ) => ReturnType<typeof getPurchaseSkillInstructionAsync> &
@@ -556,10 +483,6 @@ export type ReputationOraclePluginInstructions = {
   resolveAuthorDispute: (
     input: ResolveAuthorDisputeAsyncInput,
   ) => ReturnType<typeof getResolveAuthorDisputeInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  resolveDispute: (
-    input: ResolveDisputeAsyncInput,
-  ) => ReturnType<typeof getResolveDisputeInstructionAsync> &
     SelfPlanAndSendFunctions;
   revokeVouch: (
     input: RevokeVouchAsyncInput,
@@ -588,7 +511,6 @@ export function reputationOracleProgram() {
         accounts: {
           agentProfile: addSelfFetchFunctions(client, getAgentProfileCodec()),
           authorDispute: addSelfFetchFunctions(client, getAuthorDisputeCodec()),
-          dispute: addSelfFetchFunctions(client, getDisputeCodec()),
           purchase: addSelfFetchFunctions(client, getPurchaseCodec()),
           reputationConfig: addSelfFetchFunctions(
             client,
@@ -618,11 +540,6 @@ export function reputationOracleProgram() {
               client,
               getOpenAuthorDisputeInstructionAsync(input),
             ),
-          openDispute: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getOpenDisputeInstructionAsync(input),
-            ),
           purchaseSkill: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -637,11 +554,6 @@ export function reputationOracleProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getResolveAuthorDisputeInstructionAsync(input),
-            ),
-          resolveDispute: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getResolveDisputeInstructionAsync(input),
             ),
           revokeVouch: (input) =>
             addSelfPlanAndSendFunctions(

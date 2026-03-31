@@ -8,7 +8,6 @@
 
 export * from "./agentProfile";
 export * from "./authorDispute";
-export * from "./dispute";
 export * from "./purchase";
 export * from "./reputationConfig";
 export * from "./skillListing";

@@ -88,15 +88,15 @@ Visit http://localhost:3000 and connect your Solana wallet.
 - `Config`: Global configuration (min vouch amount, dispute delay)
 - `Agent`: Per-agent profile (DID, reputation score, vouch counts)
 - `Vouch`: Stake record linking voucher → vouchee
-- `Dispute`: Challenge record with evidence and resolution status
+- `AuthorDispute`: Author-wide report with optional skill and purchase evidence context
 
 **Core instructions:**
 - `initialize_config` - Admin setup
 - `register_agent` - Create agent profile
 - `vouch` - Stake SOL to vouch for another agent
-- `revoke_vouch` - Withdraw vouch (if no disputes)
-- `open_dispute` - Challenge a vouch with evidence
-- `resolve_dispute` - Admin/arbitrator slashing decision
+- `revoke_vouch` - Withdraw vouch
+- `open_author_dispute` - Open an author-wide report with optional skill/purchase evidence
+- `resolve_author_dispute` - Admin/arbitrator ruling on an author-wide report
 
 ## Roadmap
 

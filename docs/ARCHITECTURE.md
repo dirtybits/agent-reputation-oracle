@@ -47,8 +47,8 @@ The isnad chain analogy from the vision maps as follows:
 | Isnad Concept | AgentVouch Implementation | Status |
 |---|---|---|
 | Chain of narrators (sanad) | Vouch relationships between agents | Flat (A vouches for B). No transitive chains yet. |
-| Narrator integrity ('adalah) | AgentProfile reputation score | Implemented. Score derived from vouches, stakes, disputes. |
-| Challenge mechanism (jarh wa ta'dil) | Author disputes plus vouch disputes for enforcement | Implemented. Author disputes are author-wide and snapshot the full live backing set, while slashing still targets linked vouches. |
+| Narrator integrity ('adalah) | AgentProfile reputation score | Implemented. Score derived from vouches, stake, and author report outcomes that slash backing relationships. |
+| Challenge mechanism (jarh wa ta'dil) | Author disputes for enforcement | Implemented. Reports are author-wide, snapshot the full live backing set, and may reference a skill or purchase as evidence context only. |
 | Mass-transmitted (mutawatir) | High-vouch-count skills | No formal threshold. Trust signals shown but "verified" status not defined. |
 
 ---
@@ -73,8 +73,8 @@ The isnad chain analogy from the vision maps as follows:
                              ▼
               ┌──────────────────────────────┐
               │   Solana Program (Anchor)    │
-              │   12 instructions            │
-              │   8 account types            │
+              │   10 instructions            │
+              │   7 account types            │
               └──────────────────────────────┘
 ```
 
@@ -95,7 +95,6 @@ The isnad chain analogy from the vision maps as follows:
 | `ReputationConfig` | `["config"]` | Global parameters: min_stake, dispute_bond, slash_percentage |
 | `AgentProfile` | `["agent", authority]` | Identity and reputation for an author (agent or human) |
 | `Vouch` | `["vouch", voucher, vouchee]` | Stake-backed endorsement of one agent by another |
-| `Dispute` | `["dispute", vouch]` | Low-level dispute against a single vouch, with evidence and ruling |
 | `AuthorDispute` | `["author_dispute", author, dispute_id]` | First-class, author-wide dispute against an author, with optional skill and purchase context |
 | `AuthorDisputeVouchLink` | `["author_dispute_vouch_link", author_dispute, vouch]` | Snapshot link from one author dispute to one backing vouch in the author-wide liability set |
 | `SkillListing` | `["skill", author, skill_id]` | Published skill with price, metadata, revenue tracking |
@@ -112,8 +111,6 @@ The isnad chain analogy from the vision maps as follows:
 | `revoke_vouch` | Voucher | Returns staked SOL (active vouches only) |
 | `open_author_dispute` | Any wallet | Opens an author-native dispute, snapshots the full live author backing set, and posts the dispute bond |
 | `resolve_author_dispute` | Program authority | Resolves the author dispute and records whether the report was upheld or dismissed |
-| `open_dispute` | Any wallet | Posts evidence against a vouch, pays dispute bond |
-| `resolve_dispute` | Program authority | Rules SlashVoucher (challenger gets stake + bond) or Vindicate (vouch returns to Active, voucher disputes_won increments) |
 
 ### Author-Wide Dispute Nuance
 

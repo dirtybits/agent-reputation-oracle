@@ -19,23 +19,6 @@ pub struct VouchRevoked {
 }
 
 #[event]
-pub struct DisputeOpened {
-    pub dispute: Pubkey,
-    pub vouch: Pubkey,
-    pub challenger: Pubkey,
-    pub bond_amount: u64,
-    pub timestamp: i64,
-}
-
-#[event]
-pub struct DisputeResolved {
-    pub dispute: Pubkey,
-    pub vouch: Pubkey,
-    pub ruling: String,
-    pub timestamp: i64,
-}
-
-#[event]
 pub struct AuthorDisputeOpened {
     pub author_dispute: Pubkey,
     pub author: Pubkey,

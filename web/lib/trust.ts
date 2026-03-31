@@ -20,8 +20,6 @@ export interface AuthorTrust {
   reputationScore: number;
   totalVouchesReceived: number;
   totalStakedFor: number;
-  disputesWon: number;
-  disputesLost: number;
   disputesAgainstAuthor: number;
   disputesUpheldAgainstAuthor: number;
   activeDisputesAgainstAuthor: number;
@@ -61,8 +59,6 @@ export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
     reputationScore: 0,
     totalVouchesReceived: 0,
     totalStakedFor: 0,
-    disputesWon: 0,
-    disputesLost: 0,
     disputesAgainstAuthor: 0,
     disputesUpheldAgainstAuthor: 0,
     activeDisputesAgainstAuthor: 0,
@@ -86,8 +82,6 @@ export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
       reputationScore: Number(d.reputationScore),
       totalVouchesReceived: d.totalVouchesReceived,
       totalStakedFor: Number(d.totalStakedFor),
-      disputesWon: d.disputesWon,
-      disputesLost: d.disputesLost,
       disputesAgainstAuthor: disputeMetrics.disputesAgainstAuthor,
       disputesUpheldAgainstAuthor: disputeMetrics.disputesUpheldAgainstAuthor,
       activeDisputesAgainstAuthor: disputeMetrics.activeDisputesAgainstAuthor,
@@ -108,8 +102,6 @@ export async function verifyAuthorTrust(pubkey: string): Promise<AuthorTrust> {
     reputationScore: 0,
     totalVouchesReceived: 0,
     totalStakedFor: 0,
-    disputesWon: 0,
-    disputesLost: 0,
     disputesAgainstAuthor: 0,
     disputesUpheldAgainstAuthor: 0,
     activeDisputesAgainstAuthor: 0,
@@ -131,8 +123,6 @@ export async function verifyAuthorTrust(pubkey: string): Promise<AuthorTrust> {
       reputationScore: Number(d.reputationScore),
       totalVouchesReceived: d.totalVouchesReceived,
       totalStakedFor: Number(d.totalStakedFor),
-      disputesWon: d.disputesWon,
-      disputesLost: d.disputesLost,
       disputesAgainstAuthor: disputeMetrics.disputesAgainstAuthor,
       disputesUpheldAgainstAuthor: disputeMetrics.disputesUpheldAgainstAuthor,
       activeDisputesAgainstAuthor: disputeMetrics.activeDisputesAgainstAuthor,

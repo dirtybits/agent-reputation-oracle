@@ -15,7 +15,6 @@ pub(crate) fn slash_vouch<'info>(
 
     vouch.status = VouchStatus::Slashed;
 
-    voucher_profile.disputes_lost = voucher_profile.disputes_lost.saturating_add(1);
     voucher_profile.total_vouches_given = voucher_profile.total_vouches_given.saturating_sub(1);
     voucher_profile.reputation_score = voucher_profile.compute_reputation(config);
 

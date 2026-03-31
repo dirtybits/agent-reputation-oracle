@@ -72,8 +72,6 @@ describe("POST /api/author/[pubkey]", () => {
       reputationScore: 10,
       totalVouchesReceived: 2,
       totalStakedFor: 1000,
-      disputesWon: 1,
-      disputesLost: 0,
       disputesAgainstAuthor: 3,
       disputesUpheldAgainstAuthor: 1,
       activeDisputesAgainstAuthor: 1,

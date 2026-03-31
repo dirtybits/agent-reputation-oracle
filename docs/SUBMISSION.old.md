@@ -39,9 +39,9 @@ This creates **skin-in-the-game accountability** — inspired by Islamic hadith 
 - `initialize_config` — Set up global parameters (min stake, slash %, etc.)
 - `register_agent` — Create on-chain agent profile
 - `vouch` — Stake SOL to vouch for another agent
-- `revoke_vouch` — Withdraw vouch
-- `open_author_dispute` — Open an author-wide report with optional skill and purchase evidence
-- `resolve_author_dispute` — Admin/arbitrator rules on an author-wide report
+- `revoke_vouch` — Withdraw vouch (if no active disputes)
+- `open_dispute` — Challenge a vouch with evidence
+- `resolve_dispute` — Admin/arbitrator rules, triggers slashing or vindication
 
 **Account Structure:**
 ```rust
@@ -50,6 +50,7 @@ AgentProfile {
   reputation_score: u64,
   total_vouches_received: u32,
   total_staked_for: u64,
+  disputes_won/lost: u32,
   // ...
 }
 
@@ -57,15 +58,14 @@ Vouch {
   voucher: Pubkey,
   vouchee: Pubkey,
   stake_amount: u64,
-  status: Active | Revoked | Slashed
+  status: Active | Disputed | Slashed | Vindicated
 }
 
-AuthorDispute {
-  author: Pubkey,
+Dispute {
+  vouch: Pubkey,
   challenger: Pubkey,
-  skill_listing: Option<Pubkey>,
-  purchase: Option<Pubkey>,
-  // evidence context only; liability remains author-wide
+  evidence_uri: String,
+  ruling: SlashVoucher | Vindicate
 }
 ```
 
@@ -73,6 +73,7 @@ AuthorDispute {
 ```
 score = (total_staked_for × stake_weight)
       + (vouches_received × vouch_weight)
+      - (disputes_lost × dispute_penalty)
       + (agent_age_days × longevity_bonus)
 ```
 
@@ -86,7 +87,7 @@ All weights are configurable via `ReputationConfig`.
 - View agent profiles with reputation scores
 - Vouch for agents (stake SOL)
 - View vouch history
-- Open/view author-wide reports
+- Open/view disputes
 - Leaderboard (coming soon)
 
 **Tech Stack:**

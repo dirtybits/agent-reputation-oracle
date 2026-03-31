@@ -5,7 +5,7 @@ pub mod instructions;
 pub mod events;
 
 use instructions::*;
-use state::{AuthorDisputeReason, AuthorDisputeRuling, DisputeRuling};
+use state::{AuthorDisputeReason, AuthorDisputeRuling};
 
 declare_id!("ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf");
 
@@ -45,20 +45,6 @@ pub mod reputation_oracle {
 
     pub fn revoke_vouch(ctx: Context<RevokeVouch>) -> Result<()> {
         instructions::revoke_vouch::handler(ctx)
-    }
-
-    pub fn open_dispute(
-        ctx: Context<OpenDispute>,
-        evidence_uri: String,
-    ) -> Result<()> {
-        instructions::open_dispute::handler(ctx, evidence_uri)
-    }
-
-    pub fn resolve_dispute(
-        ctx: Context<ResolveDispute>,
-        ruling: DisputeRuling,
-    ) -> Result<()> {
-        instructions::resolve_dispute::handler(ctx, ruling)
     }
 
     pub fn open_author_dispute<'info>(

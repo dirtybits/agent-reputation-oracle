@@ -523,9 +523,7 @@ describe("author-disputes", () => {
     const authorProfileAccount = await program.account.agentProfile.fetch(
       authorProfile
     );
-    assert.equal(voucherOneProfileAccount.disputesLost, 1);
     assert.equal(voucherOneProfileAccount.totalVouchesGiven, 1);
-    assert.equal(voucherTwoProfileAccount.disputesLost, 1);
     assert.equal(voucherTwoProfileAccount.totalVouchesGiven, 0);
     assert.equal(authorProfileAccount.totalVouchesReceived, 0);
     assert.equal(Number(authorProfileAccount.totalStakedFor), 0);
@@ -543,6 +541,24 @@ describe("author-disputes", () => {
         challengerBalanceBefore +
           stakeAmount.toNumber() -
           0.02 * anchor.web3.LAMPORTS_PER_SOL
+    );
+  });
+
+  it("rejects restaking a relationship after author-wide slashing", async () => {
+    await expectFailure(
+      program.methods
+        .vouch(stakeAmount)
+        .accounts({
+          vouch: vouchOne,
+          voucherProfile: voucherOneProfile,
+          voucheeProfile: authorProfile,
+          config: configPda,
+          voucher: voucherOne.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([voucherOne])
+        .rpc(),
+      "cannot accept new stake in its current state"
     );
   });
 });

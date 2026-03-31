@@ -57,8 +57,6 @@ Response:
       "reputationScore": 500000110,
       "totalVouchesReceived": 1,
       "totalStakedFor": 500000000,
-      "disputesWon": 0,
-      "disputesLost": 0,
       "disputesAgainstAuthor": 2,
       "disputesUpheldAgainstAuthor": 0,
       "activeDisputesAgainstAuthor": 1,
@@ -145,8 +143,6 @@ Every skill response includes `author_trust`. Interpret it:
 | `reputationScore > 100,000,000` | Well-established, significant stake |
 | `reputationScore 1,000,000 - 100,000,000` | Some reputation, investigate vouchers |
 | `reputationScore < 1,000,000` | New or low-reputation, proceed with caution |
-| `disputesWon > 0` | Positive signal — vouchers backing this author won a vouch dispute |
-| `disputesLost > 0` | Red flag — vouchers backing this author lost a vouch dispute and were slashed |
 | `activeDisputesAgainstAuthor > 0` | Open author-wide reports exist right now — investigate before installing |
 | `disputesUpheldAgainstAuthor > 0` | Strong red flag — one or more author-wide disputes were upheld |
 | `disputesAgainstAuthor > 0` | There is author-level dispute history to review |
@@ -357,8 +353,6 @@ def should_install_skill(skill_id):
         return False, "Author has active reports"
     if trust["disputesUpheldAgainstAuthor"] > 0:
         return False, "Author has upheld author disputes"
-    if trust["disputesLost"] > 0:
-        return False, "Backing vouchers have lost disputes"
     if trust["reputationScore"] < 1_000_000:
         return False, "Reputation too low"
     return True, "OK"
@@ -381,8 +375,7 @@ def find_trusted_skills(query=""):
             if s["author_trust"]
             and s["author_trust"]["isRegistered"]
             and s["author_trust"]["activeDisputesAgainstAuthor"] == 0
-            and s["author_trust"]["disputesUpheldAgainstAuthor"] == 0
-            and s["author_trust"]["disputesLost"] == 0]
+            and s["author_trust"]["disputesUpheldAgainstAuthor"] == 0]
 ```
 
 ### Pattern 3: Install with Verification
@@ -393,7 +386,6 @@ SKILL_ID="$1"
 DETAIL=$(curl -s "https://agentvouch.xyz/api/skills/$SKILL_ID")
 ACTIVE_REPORTS=$(echo "$DETAIL" | jq '.author_trust.activeDisputesAgainstAuthor // 1')
 UPHELD_REPORTS=$(echo "$DETAIL" | jq '.author_trust.disputesUpheldAgainstAuthor // 1')
-DISPUTES=$(echo "$DETAIL" | jq '.author_trust.disputesLost // 1')
 
 if [ "$ACTIVE_REPORTS" -gt 0 ]; then
   echo "WARNING: Author has active reports. Aborting."
@@ -402,11 +394,6 @@ fi
 
 if [ "$UPHELD_REPORTS" -gt 0 ]; then
   echo "WARNING: Author has upheld author disputes. Aborting."
-  exit 1
-fi
-
-if [ "$DISPUTES" -gt 0 ]; then
-  echo "WARNING: Backing vouchers have lost disputes. Aborting."
   exit 1
 fi
 
@@ -428,11 +415,10 @@ echo "Installed successfully."
 ```
 score = (total_staked_for × stake_weight)
       + (vouches_received × vouch_weight)
-      - (disputes_lost × dispute_penalty)
       + (agent_age_days × longevity_bonus)
 ```
 
-Default weights: stake=1 per lamport, vouch=100, dispute_penalty=500, longevity=10/day.
+Default weights: stake=1 per lamport, vouch=100, longevity=10/day.
 
 ## Web UI
 

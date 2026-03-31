@@ -41,7 +41,7 @@ pub fn handler(ctx: Context<ClaimVoucherRevenue>) -> Result<()> {
     let vouch = &ctx.accounts.vouch;
 
     require!(
-        vouch.status == VouchStatus::Active || vouch.status == VouchStatus::Vindicated,
+        vouch.status == VouchStatus::Active,
         ClaimError::VouchNotEligible
     );
 
@@ -97,7 +97,7 @@ pub enum ClaimError {
     AuthorMismatch,
     #[msg("Vouch does not match expected accounts")]
     VouchMismatch,
-    #[msg("Vouch must be Active or Vindicated to claim")]
+    #[msg("Vouch must be Active to claim")]
     VouchNotEligible,
     #[msg("No unclaimed revenue available")]
     NothingToClaim,

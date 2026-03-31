@@ -62,8 +62,6 @@ export default function DashboardPage() {
   const [vouchAmount, setVouchAmount] = useState("0.1");
   const [searchAddress, setSearchAddress] = useState("");
   const [searchedAgent, setSearchedAgent] = useState<any>(null);
-  const [disputeVouchAddress, setDisputeVouchAddress] = useState("");
-  const [disputeEvidence, setDisputeEvidence] = useState("");
   const [agentProfile, setAgentProfile] = useState<any>(null);
   const [vouches, setVouches] = useState<any[]>([]);
   const [vouchesReceived, setVouchesReceived] = useState<any[]>([]);
@@ -264,30 +262,6 @@ export default function DashboardPage() {
       setStatus(`Error: ${error.message}`);
       setStatusTx(null);
       setSearchedAgent(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDispute = async () => {
-    if (!disputeVouchAddress || !disputeEvidence) {
-      setStatus("Please enter vouch address and evidence");
-      setStatusTx(null);
-      return;
-    }
-    setLoading(true);
-    setStatus("Opening dispute...");
-    setStatusTx(null);
-    try {
-      const vouchKey = address(disputeVouchAddress);
-      const { tx } = await oracle.openDispute(vouchKey, disputeEvidence);
-      setStatus("Dispute opened!");
-      setStatusTx(tx);
-      setDisputeVouchAddress("");
-      setDisputeEvidence("");
-    } catch (error: any) {
-      setStatus(`Error: ${error.message}`);
-      setStatusTx(null);
     } finally {
       setLoading(false);
     }
@@ -507,10 +481,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex justify-between py-3">
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        Disputes Lost
+                        Open Author Reports
                       </span>
-                      <span className="text-sm font-mono text-red-600 dark:text-red-400">
-                        {String(agentProfile.disputesLost)}
+                      <span className="text-sm font-mono text-amber-600 dark:text-amber-400">
+                        {String(authorDisputes.filter((d) => d.statusLabel === "Open").length)}
                       </span>
                     </div>
                     <div className="flex justify-between py-3">
@@ -1101,10 +1075,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex justify-between py-3">
                         <span className="text-sm text-gray-500 dark:text-gray-400">
-                          Disputes Lost
+                          Open Author Reports
                         </span>
-                        <span className="text-sm font-mono text-red-600 dark:text-red-400">
-                          {String(searchedAgent.disputesLost)}
+                        <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
+                          N/A
                         </span>
                       </div>
                       <div className="flex justify-between py-3">
@@ -1354,82 +1328,35 @@ export default function DashboardPage() {
 
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <FiShield className="text-[var(--lobster-accent)]" /> Vouch
-                  Disputes
+                  <FiShield className="text-[var(--lobster-accent)]" /> Your
+                  Vouches
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Use this lower-level flow to challenge a backing vouch
-                  directly. Author disputes are separate and now snapshot the
-                  full author-wide backing set at open time.
+                  Singular vouch disputes were removed. Use author-wide reports
+                  from public author pages when you need to challenge a
+                  publisher, and use this list to inspect your current backing
+                  relationships.
                 </p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Vouch Account Address
-                    </label>
-                    <input
-                      type="text"
-                      value={disputeVouchAddress}
-                      onChange={(e) => setDisputeVouchAddress(e.target.value)}
-                      placeholder="Public key of the vouch account to dispute"
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
-                    />
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Find vouch account addresses by exploring an agent&apos;s
-                      vouches
-                    </p>
+                {vouches.length > 0 ? (
+                  <div className="space-y-2">
+                    {vouches.map((vouch, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
+                      >
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
+                          Vouch Account
+                        </p>
+                        <p className="font-mono text-xs text-gray-900 dark:text-white break-all">
+                          {vouch.publicKey}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Evidence (URI)
-                    </label>
-                    <textarea
-                      value={disputeEvidence}
-                      onChange={(e) => setDisputeEvidence(e.target.value)}
-                      placeholder="URL to evidence (IPFS, GitHub, etc.) showing why this vouch is fraudulent"
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm h-24 resize-none"
-                    />
-                  </div>
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                    <p className="text-amber-800 dark:text-amber-300 text-sm">
-                      <span className="inline-flex items-center gap-1">
-                        <FiAlertTriangle />
-                      </span>{" "}
-                      <strong>Warning:</strong> Opening a dispute requires a
-                      bond. If rejected, you may lose your bond. Only dispute
-                      with strong evidence.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleDispute}
-                    disabled={loading}
-                    className={`w-full ${navButtonFlexClass} font-semibold bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white disabled:text-gray-500 transition`}
-                  >
-                    {loading ? "Opening Dispute..." : "Open Vouch Dispute"}
-                  </button>
-                </div>
-
-                {vouches.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
-                    <h3 className="text-base font-heading font-bold text-gray-900 dark:text-white mb-4">
-                      Your Vouches
-                    </h3>
-                    <div className="space-y-2">
-                      {vouches.map((vouch, idx) => (
-                        <div
-                          key={idx}
-                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
-                        >
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
-                            Vouch Account
-                          </p>
-                          <p className="font-mono text-xs text-gray-900 dark:text-white break-all">
-                            {vouch.publicKey}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No backing vouches found for this wallet yet.
+                  </p>
                 )}
               </div>
             </div>

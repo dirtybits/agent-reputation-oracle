@@ -8,7 +8,6 @@ import {
 import {
   buildTransactionSendRequest,
   getOpenAuthorDisputeClusterGuardError,
-  getOpenDisputeClusterGuardError,
   getRegisterAgentClusterGuardError,
   getResolveAuthorDisputeClusterGuardError,
   getSkillListingClusterGuardError,
@@ -163,22 +162,6 @@ describe("useReputationOracle send helpers", () => {
     });
 
     expect(error).toContain('Skill listing "frontenddesign" was not found');
-    expect(error).toContain("configured Solana Devnet (devnet RPC)");
-  });
-
-  it("reports missing vouch state before opening a dispute", () => {
-    const error = getOpenDisputeClusterGuardError({
-      walletAddress: VOUCHER_ADDRESS,
-      vouchExists: false,
-      vouchIsActive: false,
-      disputeExists: false,
-      walletBalanceLamports: 2_000_000_000n,
-      disputeBondLamports: 500_000_000n,
-      configuredChainLabel: "Solana Devnet",
-      configuredRpcTarget: "devnet",
-    });
-
-    expect(error).toContain("vouch was not found");
     expect(error).toContain("configured Solana Devnet (devnet RPC)");
   });
 

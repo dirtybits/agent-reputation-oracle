@@ -62,7 +62,6 @@ export type ReputationConfig = {
   cooldownPeriod: bigint;
   stakeWeight: number;
   vouchWeight: number;
-  disputePenalty: number;
   longevityBonus: number;
   bump: number;
 };
@@ -75,7 +74,6 @@ export type ReputationConfigArgs = {
   cooldownPeriod: number | bigint;
   stakeWeight: number;
   vouchWeight: number;
-  disputePenalty: number;
   longevityBonus: number;
   bump: number;
 };
@@ -92,7 +90,6 @@ export function getReputationConfigEncoder(): FixedSizeEncoder<ReputationConfigA
       ["cooldownPeriod", getI64Encoder()],
       ["stakeWeight", getU32Encoder()],
       ["vouchWeight", getU32Encoder()],
-      ["disputePenalty", getU32Encoder()],
       ["longevityBonus", getU32Encoder()],
       ["bump", getU8Encoder()],
     ]),
@@ -111,7 +108,6 @@ export function getReputationConfigDecoder(): FixedSizeDecoder<ReputationConfig>
     ["cooldownPeriod", getI64Decoder()],
     ["stakeWeight", getU32Decoder()],
     ["vouchWeight", getU32Decoder()],
-    ["disputePenalty", getU32Decoder()],
     ["longevityBonus", getU32Decoder()],
     ["bump", getU8Decoder()],
   ]);
@@ -192,5 +188,5 @@ export async function fetchAllMaybeReputationConfig(
 }
 
 export function getReputationConfigSize(): number {
-  return 82;
+  return 78;
 }

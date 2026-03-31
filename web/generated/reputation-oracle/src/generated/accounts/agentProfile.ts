@@ -65,8 +65,6 @@ export type AgentProfile = {
   totalVouchesReceived: number;
   totalVouchesGiven: number;
   totalStakedFor: bigint;
-  disputesWon: number;
-  disputesLost: number;
   registeredAt: bigint;
   bump: number;
 };
@@ -78,8 +76,6 @@ export type AgentProfileArgs = {
   totalVouchesReceived: number;
   totalVouchesGiven: number;
   totalStakedFor: number | bigint;
-  disputesWon: number;
-  disputesLost: number;
   registeredAt: number | bigint;
   bump: number;
 };
@@ -95,8 +91,6 @@ export function getAgentProfileEncoder(): Encoder<AgentProfileArgs> {
       ["totalVouchesReceived", getU32Encoder()],
       ["totalVouchesGiven", getU32Encoder()],
       ["totalStakedFor", getU64Encoder()],
-      ["disputesWon", getU32Encoder()],
-      ["disputesLost", getU32Encoder()],
       ["registeredAt", getI64Encoder()],
       ["bump", getU8Encoder()],
     ]),
@@ -114,8 +108,6 @@ export function getAgentProfileDecoder(): Decoder<AgentProfile> {
     ["totalVouchesReceived", getU32Decoder()],
     ["totalVouchesGiven", getU32Decoder()],
     ["totalStakedFor", getU64Decoder()],
-    ["disputesWon", getU32Decoder()],
-    ["disputesLost", getU32Decoder()],
     ["registeredAt", getI64Decoder()],
     ["bump", getU8Decoder()],
   ]);

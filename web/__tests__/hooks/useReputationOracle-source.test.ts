@@ -56,7 +56,6 @@ describe("useReputationOracle source", () => {
     );
 
     expect(source).toContain("await assertRegisterAgentClusterReady(walletAddress)");
-    expect(source).toContain("await assertOpenDisputeClusterReady({ walletAddress, vouchAccount })");
     expect(source).toContain("await assertResolveAuthorDisputeClusterReady({");
     expect(source).toContain("await assertOpenAuthorDisputeClusterReady({");
     expect(source).toContain("await assertSkillListingClusterReady({");
