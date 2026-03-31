@@ -592,6 +592,7 @@ export default function AuthorProfilePage() {
   const selectedClaimSkillLabel = claimSkillOptions.find(
     (skill) => skill.value === claimSkillContext
   )?.label;
+  const registeredAt = Number(profile?.registeredAt ?? 0);
 
   const openClaimModal = () => {
     setClaimStatus(null);
@@ -926,10 +927,10 @@ export default function AuthorProfilePage() {
         ) : (
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <TrustBadge trust={trustData} />
-            {profile.registeredAt && (
+            {registeredAt > 0 && (
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 flex items-center gap-1">
                 <FiCalendar className="w-3 h-3" />
-                Member since {formatDate(Number(profile.registeredAt))}
+                Member since {formatDate(registeredAt)}
               </p>
             )}
           </div>
