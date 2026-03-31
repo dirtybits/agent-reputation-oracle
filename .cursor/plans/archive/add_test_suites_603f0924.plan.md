@@ -73,7 +73,7 @@ Use Vitest with mocked dependencies. Each route handler can be imported directly
 - Paid skill with valid proof -> returns content
 - Paid skill with invalid proof -> 402
 
-`**landing.test.ts**` -- [web/app/api/landing/route.ts](web/app/api/landing/route.ts)
+`**landing.test.ts`** -- [web/app/api/landing/route.ts](web/app/api/landing/route.ts)
 
 - Returns metrics and featuredSkills
 - Handles RPC failure gracefully (returns 500)
