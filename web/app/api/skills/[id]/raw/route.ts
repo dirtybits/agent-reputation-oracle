@@ -7,6 +7,15 @@ import {
   type AuthPayload,
 } from "@/lib/auth";
 import { generatePaymentRequirement, hasOnChainPurchase } from "@/lib/x402";
+import { getErrorMessage } from "@/lib/errors";
+
+type RawSkillContentRow = {
+  id: string;
+  on_chain_address: string | null;
+  author_pubkey: string;
+  skill_id: string;
+  content: string;
+};
 
 function serveContent(content: string) {
   return new NextResponse(content, {
@@ -28,7 +37,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const rows = await sql()`
+    const rows = await sql()<RawSkillContentRow>`
       SELECT s.id, s.on_chain_address, s.author_pubkey, s.skill_id, sv.content
       FROM skill_versions sv
       JOIN skills s ON s.id = sv.skill_id
@@ -141,8 +150,10 @@ export async function GET(
     `;
 
     return serveContent(skill.content);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET /api/skills/[id]/raw error:", error);
-    return new NextResponse("Internal server error", { status: 500 });
+    return new NextResponse(getErrorMessage(error, "Internal server error"), {
+      status: 500,
+    });
   }
 }

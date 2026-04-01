@@ -1,15 +1,13 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import { IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
+import { useMounted } from "@/hooks/useMounted";
 import { navButtonInlineClass } from "@/lib/buttonStyles";
 
 export function ThemeToggle() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const { theme, setTheme } = useTheme();
-
-  useEffect(() => setMounted(true), []);
 
   if (!mounted) return null;
 

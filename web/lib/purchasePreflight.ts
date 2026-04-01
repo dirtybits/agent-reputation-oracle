@@ -46,6 +46,8 @@ export type PurchasePreflightContext = {
   authorBalanceLamportsByAddress: Map<string, bigint | null>;
 };
 
+type PurchasePreflightRpc = ReturnType<typeof createSolanaRpc>;
+
 function coerceLamports(value: unknown): bigint {
   if (typeof value === "bigint") return value;
   if (typeof value === "number") return BigInt(value);
@@ -112,7 +114,7 @@ export async function createPurchasePreflightContext({
   buyer = null,
   authors = [],
 }: {
-  rpc?: any;
+  rpc?: PurchasePreflightRpc;
   buyer?: Address | null;
   authors?: Address[];
 }): Promise<PurchasePreflightContext> {
@@ -124,19 +126,15 @@ export async function createPurchasePreflightContext({
     systemAccountRentExemptLamports,
   ] = await Promise.all([
     buyer
-      ? (rpc as any)
-          .getBalance(buyer)
-          .send()
-          .then(coerceLamports)
-          .catch(() => null)
+      ? rpc.getBalance(buyer).send().then(coerceLamports).catch(() => null)
       : Promise.resolve(null),
-    (rpc as any)
-      .getMinimumBalanceForRentExemption(PURCHASE_ACCOUNT_SPACE)
+    rpc
+      .getMinimumBalanceForRentExemption(BigInt(PURCHASE_ACCOUNT_SPACE))
       .send()
       .then(coerceLamports)
       .catch(() => null),
-    (rpc as any)
-      .getMinimumBalanceForRentExemption(0)
+    rpc
+      .getMinimumBalanceForRentExemption(0n)
       .send()
       .then(coerceLamports)
       .catch(() => null),
@@ -146,7 +144,7 @@ export async function createPurchasePreflightContext({
 
   await Promise.all(
     uniqueAuthors.map(async (author) => {
-      const balance = await (rpc as any)
+      const balance = await rpc
         .getBalance(author)
         .send()
         .then(coerceLamports)

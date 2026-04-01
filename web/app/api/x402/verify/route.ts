@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { verifyPaymentProof, type PaymentProof } from "@/lib/x402";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,10 +31,10 @@ export async function POST(request: NextRequest) {
       payment_ref: result.paymentRef,
       error: result.error,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/x402/verify error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: getErrorMessage(error, "Internal server error") },
       { status: 500 }
     );
   }

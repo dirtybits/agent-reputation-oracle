@@ -7,6 +7,7 @@ import {
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { discoverSolanaRegistryCandidatesByWallet } from "@/lib/solanaAgentRegistry";
 import { listAuthorDisputesByAuthor } from "@/lib/authorDisputes";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function GET(
   _request: NextRequest,
@@ -34,9 +35,9 @@ export async function GET(
       author_identity: authorIdentity,
       author_disputes: authorDisputes,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET /api/author/[pubkey] error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -169,8 +170,8 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/author/[pubkey] error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

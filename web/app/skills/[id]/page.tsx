@@ -30,6 +30,7 @@ import {
   isValidListingPriceLamports,
 } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
+import { getErrorMessage } from "@/lib/errors";
 import { SiSolana } from "react-icons/si";
 import {
   FiArrowLeft,
@@ -305,10 +306,10 @@ export default function SkillDetailPage({
         success: true,
         message: "Listed on marketplace successfully!",
       });
-    } catch (err: any) {
+    } catch (error: unknown) {
       setListResult({
         success: false,
-        message: err.message || "Failed to create listing",
+        message: getErrorMessage(error, "Failed to create listing"),
       });
     } finally {
       setListing(false);
@@ -346,10 +347,10 @@ export default function SkillDetailPage({
         message: "Skill installed successfully!",
       });
       setSkill((s) => (s ? { ...s, total_installs: data.total_installs } : s));
-    } catch (err: any) {
+    } catch (error: unknown) {
       setInstallResult({
         success: false,
-        message: err.message || "Install failed",
+        message: getErrorMessage(error, "Install failed"),
       });
     } finally {
       setInstalling(false);
@@ -420,10 +421,10 @@ export default function SkillDetailPage({
             }
           : s
       );
-    } catch (err: any) {
+    } catch (error: unknown) {
       setInstallResult({
         success: false,
-        message: err.message || "Purchase failed",
+        message: getErrorMessage(error, "Purchase failed"),
       });
     } finally {
       setInstalling(false);
@@ -506,10 +507,10 @@ export default function SkillDetailPage({
         success: true,
         message: "Signed download complete.",
       });
-    } catch (err: any) {
+    } catch (error: unknown) {
       setDownloadResult({
         success: false,
-        message: err.message || "Signed download failed",
+        message: getErrorMessage(error, "Signed download failed"),
       });
     } finally {
       setDownloading(false);
@@ -565,10 +566,10 @@ export default function SkillDetailPage({
       );
       setUpdateResult({ success: true, message: "Listing updated on-chain!" });
       setEditing(false);
-    } catch (err: any) {
+    } catch (error: unknown) {
       setUpdateResult({
         success: false,
-        message: err.message || "Failed to update listing",
+        message: getErrorMessage(error, "Failed to update listing"),
       });
     } finally {
       setUpdating(false);

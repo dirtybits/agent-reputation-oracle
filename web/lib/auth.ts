@@ -1,7 +1,12 @@
 import { getAddressCodec, type Address } from "@solana/kit";
 import nacl from "tweetnacl";
+import { getErrorMessage } from "@/lib/errors";
 
 const NONCE_WINDOW_MS = 5 * 60_000; // 5 minutes
+type ApiKeyLookupRow = {
+  owner_pubkey: string;
+  permissions: string[] | null;
+};
 
 export interface AuthPayload {
   pubkey: string;
@@ -42,8 +47,8 @@ export function verifyWalletSignature(payload: AuthPayload): {
     }
 
     return { valid: true, pubkey };
-  } catch (err: any) {
-    return { valid: false, pubkey: null, error: err.message };
+  } catch (error: unknown) {
+    return { valid: false, pubkey: null, error: getErrorMessage(error) };
   }
 }
 
@@ -79,7 +84,7 @@ export async function verifyApiKey(key: string): Promise<{
     const keyHash = createHash("sha256").update(key).digest("hex");
 
     const { sql } = await import("@/lib/db");
-    const rows = await sql()`
+    const rows = await sql()<ApiKeyLookupRow>`
       SELECT owner_pubkey, permissions FROM api_keys
       WHERE key_hash = ${keyHash} AND revoked_at IS NULL
     `;
@@ -102,8 +107,13 @@ export async function verifyApiKey(key: string): Promise<{
       pubkey: rows[0].owner_pubkey,
       permissions: rows[0].permissions ?? [],
     };
-  } catch (err: any) {
-    return { valid: false, pubkey: null, permissions: [], error: err.message };
+  } catch (error: unknown) {
+    return {
+      valid: false,
+      pubkey: null,
+      permissions: [],
+      error: getErrorMessage(error),
+    };
   }
 }
 

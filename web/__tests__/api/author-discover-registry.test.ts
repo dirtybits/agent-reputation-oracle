@@ -27,7 +27,7 @@ const mockDiscover =
     typeof vi.fn
   >;
 
-function makeRequest(pubkey: string, body: Record<string, any> = {}) {
+function makeRequest(pubkey: string, body: Record<string, unknown> = {}) {
   const req = new NextRequest(
     `http://localhost/api/author/${pubkey}/discover-registry`,
     {

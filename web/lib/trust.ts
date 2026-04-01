@@ -12,6 +12,7 @@ import {
   resolveMultipleAuthorDisputeMetrics,
   type AuthorDisputeMetrics,
 } from "./authorDisputes";
+import { getErrorMessage } from "./errors";
 
 const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const rpc = createSolanaRpc(RPC_URL);
@@ -129,9 +130,9 @@ export async function verifyAuthorTrust(pubkey: string): Promise<AuthorTrust> {
       registeredAt: Number(d.registeredAt),
       isRegistered: true,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     throw new AuthorTrustVerificationError(
-      error?.message || "Unable to verify on-chain author profile"
+      getErrorMessage(error, "Unable to verify on-chain author profile")
     );
   }
 }

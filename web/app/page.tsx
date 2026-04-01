@@ -28,8 +28,33 @@ import {
   FiZap,
 } from "react-icons/fi";
 import { getCompetitionPhase, formatDateRange } from "@/lib/competition";
+import { getErrorMessage } from "@/lib/errors";
 
 type ToggleMode = "none" | "human" | "agent";
+type FeaturedSkill = {
+  publicKey: string;
+  account: {
+    name?: string;
+    description?: string | null;
+    priceLamports?: number | bigint;
+    totalDownloads?: number | bigint;
+    totalRevenue?: number | bigint;
+  };
+};
+type SkillsIndexResponse = {
+  skills?: Array<{ total_installs?: number }>;
+};
+type LandingResponse = {
+  metrics: {
+    agents: number;
+    authors: number;
+    skills: number;
+    revenue: number;
+    staked: number;
+    onChainDownloads: number;
+  };
+  featuredSkills?: FeaturedSkill[];
+};
 
 export default function Home() {
   const [toggle, setToggle] = useState<ToggleMode>("none");
@@ -48,23 +73,25 @@ export default function Home() {
     staked: number;
     downloads: number;
   } | null>(null);
-  const [featuredSkills, setFeaturedSkills] = useState<any[]>([]);
+  const [featuredSkills, setFeaturedSkills] = useState<FeaturedSkill[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
         const [landingRes, repoRes] = await Promise.all([
           fetch("/api/landing")
-            .then((r) => (r.ok ? r.json() : null))
+            .then((r) => (r.ok ? (r.json() as Promise<LandingResponse>) : null))
             .catch(() => null),
           fetch("/api/skills?page=1")
-            .then((r) => (r.ok ? r.json() : null))
+            .then((r) =>
+              r.ok ? (r.json() as Promise<SkillsIndexResponse>) : null
+            )
             .catch(() => null),
         ]);
         if (landingRes) {
           const repoInstalls =
             repoRes?.skills?.reduce(
-              (sum: number, s: any) => sum + (s.total_installs ?? 0),
+              (sum, skill) => sum + (skill.total_installs ?? 0),
               0
             ) ?? 0;
           setLandingMetrics({
@@ -73,8 +100,8 @@ export default function Home() {
           });
           setFeaturedSkills(landingRes.featuredSkills ?? []);
         }
-      } catch (e) {
-        console.error("Failed to load landing metrics:", e);
+      } catch (error: unknown) {
+        console.error("Failed to load landing metrics:", error);
       }
     })();
   }, []);
@@ -270,7 +297,7 @@ export default function Home() {
                 </Link>
               </div>
               <div className="grid md:grid-cols-3 gap-3">
-                {featuredSkills.map((skill: any) => {
+                {featuredSkills.map((skill) => {
                   const price = Number(skill.account.priceLamports ?? 0);
                   const downloads = Number(skill.account.totalDownloads ?? 0);
                   const revenue = Number(skill.account.totalRevenue ?? 0);

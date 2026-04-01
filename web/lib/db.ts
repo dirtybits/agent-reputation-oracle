@@ -6,12 +6,15 @@ import {
   getConfiguredSolanaChainContext,
 } from "@/lib/chains";
 
+type SqlRow = Record<string, unknown>;
+type SqlQuery = <TRow extends SqlRow = SqlRow>(
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+) => Promise<TRow[]>;
+
 let _sql: ReturnType<typeof neon> | null = null;
 
-export function sql(): (
-  strings: TemplateStringsArray,
-  ...values: any[]
-) => Promise<any[]> {
+export function sql(): SqlQuery {
   if (!_sql) {
     if (!process.env.DATABASE_URL) {
       throw new Error(
@@ -20,7 +23,7 @@ export function sql(): (
     }
     _sql = neon(process.env.DATABASE_URL);
   }
-  return _sql as any;
+  return _sql as unknown as SqlQuery;
 }
 
 export async function initializeDatabase() {

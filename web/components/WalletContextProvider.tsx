@@ -5,13 +5,12 @@ import {
   FC,
   ReactNode,
   useContext,
-  useEffect,
   useMemo,
-  useState,
 } from "react";
 import { SolanaProvider } from "@solana/react-hooks";
 import { autoDiscover, createClient } from "@solana/client";
 import { PhantomProvider, type PhantomSDKConfig } from "@phantom/react-sdk";
+import { useMounted } from "@/hooks/useMounted";
 
 const PhantomConfiguredContext = createContext(false);
 export const usePhantomConfigured = () => useContext(PhantomConfiguredContext);
@@ -23,12 +22,8 @@ const PHANTOM_APP_ID = process.env.NEXT_PUBLIC_PHANTOM_APP_ID ?? "";
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [mounted, setMounted] = useState(false);
-  const [phantomReady, setPhantomReady] = useState(false);
-  useEffect(() => setMounted(true), []);
-  useEffect(() => {
-    if (mounted && PHANTOM_APP_ID) setPhantomReady(true);
-  }, [mounted]);
+  const mounted = useMounted();
+  const phantomReady = mounted && !!PHANTOM_APP_ID;
 
   const client = useMemo(
     () =>
@@ -43,7 +38,7 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
     () => ({
       appId: PHANTOM_APP_ID,
       providers: ["google", "apple"],
-      addressTypes: ["Solana" as any],
+      addressTypes: ["Solana"] as PhantomSDKConfig["addressTypes"],
     }),
     []
   );

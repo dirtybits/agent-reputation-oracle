@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getConfiguredSolanaChainContext } from "@/lib/chains";
+import { getErrorMessage } from "@/lib/errors";
+
+type CountRow = { count: string };
+type SkillIdRow = { id: string };
 
 export async function POST() {
   try {
     const chainContext = getConfiguredSolanaChainContext();
-    const existingRows = (await sql()`
+    const existingRows = (await sql()<CountRow>`
       SELECT COUNT(*) as count FROM skills
-    `) as any[];
+    `);
 
     if (parseInt(existingRows[0]?.count) > 0) {
       return NextResponse.json({
@@ -16,7 +20,7 @@ export async function POST() {
       });
     }
 
-    const skillRows = (await sql()`
+    const skillRows = (await sql()<SkillIdRow>`
       INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, chain_context)
       VALUES (
         'solana-dev-skill',
@@ -28,7 +32,7 @@ export async function POST() {
         ${chainContext}
       )
       RETURNING id
-    `) as any[];
+    `);
     const skill = skillRows[0];
 
     await sql()`
@@ -42,8 +46,8 @@ export async function POST() {
     `;
 
     return NextResponse.json({ success: true, skill_id: skill.id });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 

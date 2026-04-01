@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { initializeDatabase } from "@/lib/db";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST() {
   try {
@@ -8,9 +9,9 @@ export async function POST() {
       success: true,
       message: "Database tables created",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getErrorMessage(error) },
       { status: 500 }
     );
   }

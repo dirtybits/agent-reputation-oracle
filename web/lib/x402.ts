@@ -10,6 +10,7 @@ import {
   getConfiguredSolanaChainContext,
   normalizeInputChainContext,
 } from "./chains";
+import { getErrorMessage } from "./errors";
 import { fetchMaybePurchase } from "../generated/reputation-oracle/src/generated";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
 
@@ -208,11 +209,11 @@ export async function verifyPaymentProof(proof: PaymentProof): Promise<{
       verifiedAt: Date.now(),
     });
     return { status: "valid", paymentRef };
-  } catch (err: any) {
+  } catch (error: unknown) {
     return {
       status: "pending",
       paymentRef,
-      error: `Verification pending: ${err.message}`,
+      error: `Verification pending: ${getErrorMessage(error)}`,
     };
   }
 }

@@ -13,7 +13,7 @@ vi.mock("@solana/kit", () => ({
 
 const mockFetchMaybePurchase = vi.fn();
 vi.mock("../../generated/reputation-oracle/src/generated", () => ({
-  fetchMaybePurchase: (...args: any[]) => mockFetchMaybePurchase(...args),
+  fetchMaybePurchase: (...args: unknown[]) => mockFetchMaybePurchase(...args),
 }));
 
 vi.mock("../../generated/reputation-oracle/src/generated/programs", () => ({
@@ -117,7 +117,7 @@ describe("generatePaymentRequirement", () => {
       skillListingAddress: "x",
       resourcePath: "/x",
     });
-    expect((req as any).recipient).toBeUndefined();
+    expect("recipient" in req).toBe(false);
   });
 });
 
@@ -174,18 +174,16 @@ describe("verifyPaymentProof", () => {
   });
 
   it("rejects unsupported scheme", async () => {
-    const proof = makeProof({
-      requirement: makeRequirement({ scheme: "other" as any }),
-    });
+    const proof = makeProof();
+    Object.assign(proof.requirement, { scheme: "other" as never });
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe("invalid");
     expect(result.error).toContain("scheme");
   });
 
   it("rejects unsupported network", async () => {
-    const proof = makeProof({
-      requirement: makeRequirement({ network: "ethereum" as any }),
-    });
+    const proof = makeProof();
+    Object.assign(proof.requirement, { network: "ethereum" as never });
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe("invalid");
     expect(result.error).toContain("network");

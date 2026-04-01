@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql, initializeDatabase } from "@/lib/db";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { randomBytes, createHash } from "crypto";
+import { getErrorMessage } from "@/lib/errors";
+
+type ApiKeyIdRow = { id: string };
+type ApiKeyOwnerRow = { owner_pubkey: string };
+type ApiKeyInsertRow = {
+  id: string;
+  key_prefix: string;
+  name: string;
+  permissions: string[];
+  created_at: string;
+};
+type ApiKeyListRow = {
+  id: string;
+  key_prefix: string;
+  name: string;
+  permissions: string[];
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+};
 
 function hashKey(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
@@ -33,7 +53,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = await sql()`
+    const existing = await sql()<ApiKeyIdRow>`
       SELECT id FROM api_keys
       WHERE owner_pubkey = ${verification.pubkey} AND revoked_at IS NULL
     `;
@@ -52,7 +72,7 @@ export async function POST(request: NextRequest) {
     const keyPrefix = rawKey.slice(0, 12);
     const keyName = name?.trim() || "default";
 
-    const [row] = await sql()`
+    const [row] = await sql()<ApiKeyInsertRow>`
       INSERT INTO api_keys (owner_pubkey, key_hash, key_prefix, name)
       VALUES (${verification.pubkey}, ${keyHash}, ${keyPrefix}, ${keyName})
       RETURNING id, key_prefix, name, permissions, created_at
@@ -63,9 +83,9 @@ export async function POST(request: NextRequest) {
       key: rawKey,
       warning: "Store this key securely — it will not be shown again.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/keys error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -89,7 +109,7 @@ export async function GET(request: NextRequest) {
     } else if (authHeader?.startsWith("Bearer sk_")) {
       const key = authHeader.slice(7);
       const keyHash = hashKey(key);
-      const rows = await sql()`
+      const rows = await sql()<ApiKeyOwnerRow>`
         SELECT owner_pubkey FROM api_keys
         WHERE key_hash = ${keyHash} AND revoked_at IS NULL
       `;
@@ -106,7 +126,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const keys = await sql()`
+    const keys = await sql()<ApiKeyListRow>`
       SELECT id, key_prefix, name, permissions, created_at, last_used_at, revoked_at
       FROM api_keys
       WHERE owner_pubkey = ${pubkey}
@@ -114,9 +134,9 @@ export async function GET(request: NextRequest) {
     `;
 
     return NextResponse.json({ keys });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET /api/keys error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -141,7 +161,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const rows = await sql()`
+    const rows = await sql()<ApiKeyIdRow & ApiKeyOwnerRow>`
       SELECT id, owner_pubkey FROM api_keys
       WHERE id = ${key_id}::uuid AND revoked_at IS NULL
     `;
@@ -160,8 +180,8 @@ export async function DELETE(request: NextRequest) {
     `;
 
     return NextResponse.json({ success: true, revoked: key_id });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("DELETE /api/keys error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

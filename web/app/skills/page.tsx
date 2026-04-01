@@ -50,6 +50,7 @@ import {
 import { isRpcRateLimitError } from "@/lib/rpcErrors";
 import { getCompetitionPhase } from "@/lib/competition";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
+import { getErrorMessage } from "@/lib/errors";
 
 type PageTab = "browse" | "my-purchases" | "my-listings";
 
@@ -415,9 +416,9 @@ export default function MarketplacePage() {
         setTxSuccess(tx);
       }
       await Promise.all([loadListings(), loadMyData()]);
-    } catch (e: any) {
-      console.error("Purchase failed:", e);
-      setTxError(e.message || "Transaction failed");
+    } catch (error: unknown) {
+      console.error("Purchase failed:", error);
+      setTxError(getErrorMessage(error, "Transaction failed"));
     } finally {
       setPurchasing(null);
     }

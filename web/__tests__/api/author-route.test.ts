@@ -52,7 +52,7 @@ const mockLink = linkSolanaRegistryIdentity as unknown as ReturnType<
 const mockResolveIdentity =
   resolveAgentIdentityByWallet as unknown as ReturnType<typeof vi.fn>;
 
-function makeRequest(pubkey: string, body: Record<string, any> = {}) {
+function makeRequest(pubkey: string, body: Record<string, unknown> = {}) {
   const req = new NextRequest(`http://localhost/api/author/${pubkey}`, {
     method: "POST",
     body: JSON.stringify(body),

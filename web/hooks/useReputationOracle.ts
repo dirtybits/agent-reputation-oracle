@@ -78,6 +78,7 @@ import {
   createPurchasePreflightContext,
   type PurchasePreflightAssessment,
 } from "@/lib/purchasePreflight";
+import { getErrorMessage } from "@/lib/errors";
 import { wrapRpcLookupError } from "@/lib/rpcErrors";
 
 const LAMPORTS_PER_SOL = 1_000_000_000n;
@@ -767,7 +768,7 @@ export function useReputationOracle() {
   }, [connected, wallet]);
 
   const sendIx = useCallback(
-    async (ix: any) => {
+    async (ix: SendInstruction) => {
       if (!walletAddress || !signer) throw new Error("Wallet not connected");
       const request = buildTransactionSendRequest(ix, signer);
       try {
@@ -775,15 +776,31 @@ export function useReputationOracle() {
         const txSignature = signature(String(sig));
         await waitForConfirmedSignature(txSignature);
         return txSignature;
-      } catch (err: any) {
-        const cause = err?.cause ?? err;
-        const logs = cause?.logs ?? cause?.context?.logs;
+      } catch (error: unknown) {
+        const cause =
+          error && typeof error === "object" && "cause" in error
+            ? (error as { cause?: unknown }).cause ?? error
+            : error;
+        const logs =
+          cause &&
+          typeof cause === "object" &&
+          "logs" in cause &&
+          Array.isArray((cause as { logs?: unknown }).logs)
+            ? (cause as { logs: unknown[] }).logs
+            : cause &&
+                typeof cause === "object" &&
+                "context" in cause &&
+                (cause as { context?: unknown }).context &&
+                typeof (cause as { context?: unknown }).context === "object" &&
+                "logs" in ((cause as { context: { logs?: unknown } }).context ?? {})
+              ? ((cause as { context: { logs?: unknown[] } }).context.logs ?? null)
+              : null;
         if (logs?.length) console.error("Simulation logs:", logs);
         if (cause) {
           console.error("Transaction failed (cause):", cause);
           throw cause;
         }
-        throw err;
+        throw new Error(getErrorMessage(error));
       }
     },
     [walletAddress, signer, frameworkSend]
@@ -1446,7 +1463,7 @@ export function useReputationOracle() {
       });
       try {
         return { tx: await sendIx(ix) };
-      } catch (error: any) {
+      } catch (error: unknown) {
         const existingPurchaseAfterFailure = await fetchMaybePurchase(
           rpc,
           purchasePda
@@ -1458,7 +1475,7 @@ export function useReputationOracle() {
             purchase: purchasePda,
           };
         }
-        const message = String(error?.message ?? error ?? "");
+        const message = getErrorMessage(error, "");
         if (/insufficient|not enough sol/i.test(message)) {
           const latestEstimate =
             purchaseEstimate ??

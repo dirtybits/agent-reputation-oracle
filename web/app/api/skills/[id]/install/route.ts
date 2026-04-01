@@ -3,8 +3,15 @@ import { sql } from "@/lib/db";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { getOnChainPrice } from "@/lib/onchain";
 import { hasOnChainPurchase } from "@/lib/x402";
+import { getErrorMessage } from "@/lib/errors";
 
 const CHAIN_PREFIX = "chain-";
+
+type InstallSkillRow = {
+  id: string;
+  on_chain_address: string | null;
+  total_installs?: number;
+};
 
 export async function POST(
   request: NextRequest,
@@ -69,7 +76,7 @@ export async function POST(
       });
     }
 
-    const rows = await sql()`
+    const rows = await sql()<InstallSkillRow>`
       SELECT id, on_chain_address FROM skills
       WHERE id = ${id}::uuid
     `;
@@ -88,7 +95,7 @@ export async function POST(
           skill.on_chain_address
         ).catch(() => false);
         if (purchased) {
-          const [updated] = await sql()`
+          const [updated] = await sql()<Required<Pick<InstallSkillRow, "id" | "total_installs">>>`
             UPDATE skills
             SET total_installs = total_installs + 1, updated_at = NOW()
             WHERE id = ${id}::uuid
@@ -109,7 +116,7 @@ export async function POST(
       }
     }
 
-    const [updated] = await sql()`
+    const [updated] = await sql()<Required<Pick<InstallSkillRow, "id" | "total_installs">>>`
       UPDATE skills
       SET total_installs = total_installs + 1, updated_at = NOW()
       WHERE id = ${id}::uuid
@@ -122,8 +129,8 @@ export async function POST(
       total_installs: updated.total_installs,
       installed_by: verification.pubkey,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/skills/[id]/install error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

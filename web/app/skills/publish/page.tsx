@@ -21,6 +21,7 @@ import {
   isValidListingPriceLamports,
   toLamports,
 } from "@/lib/pricing";
+import { getErrorMessage } from "@/lib/errors";
 import {
   FiUpload,
   FiEye,
@@ -33,6 +34,11 @@ import {
   FiDollarSign,
 } from "react-icons/fi";
 import type { Address } from "@solana/kit";
+
+type ReputationOracle = ReturnType<typeof useReputationOracle>;
+type AgentProfileData = NonNullable<
+  Awaited<ReturnType<ReputationOracle["getAgentProfile"]>>
+>;
 
 function parseFrontmatter(content: string): {
   name: string;
@@ -178,7 +184,9 @@ function PublishSkillPageInner() {
     id?: string;
   } | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [agentProfile, setAgentProfile] = useState<any>(null);
+  const [agentProfile, setAgentProfile] = useState<AgentProfileData | null>(
+    null
+  );
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileChecked, setProfileChecked] = useState(false);
   const [registering, setRegistering] = useState(false);
@@ -355,10 +363,12 @@ function PublishSkillPageInner() {
               "Skill saved, but failed to link the on-chain listing"
           );
         }
-      } catch (chainErr: any) {
+      } catch (error: unknown) {
         setResult({
           success: true,
-          message: `Skill saved to repo — on-chain listing failed: ${chainErr.message}. Visit the skill page to retry.`,
+          message: `Skill saved to repo — on-chain listing failed: ${getErrorMessage(
+            error
+          )}. Visit the skill page to retry.`,
           id: skillDbId,
         });
         setTimeout(() => router.push(`/skills/${skillDbId}`), 3000);
@@ -372,8 +382,8 @@ function PublishSkillPageInner() {
       });
 
       setTimeout(() => router.push(`/skills/${skillDbId}`), 1500);
-    } catch (err: any) {
-      setResult({ success: false, message: err.message });
+    } catch (error: unknown) {
+      setResult({ success: false, message: getErrorMessage(error) });
     } finally {
       setPublishing(false);
       setPublishStep("idle");
@@ -420,9 +430,8 @@ function PublishSkillPageInner() {
       } else if (profile) {
         setResult({ success: true, message: "Author profile created." });
       }
-    } catch (err: any) {
-      const cause = err?.cause?.message ?? err?.context?.message ?? "";
-      const msg = cause || err.message || String(err);
+    } catch (error: unknown) {
+      const msg = getErrorMessage(error);
       const alreadyExists =
         /already in use|already exists|0x0|account already initialized/i.test(
           msg

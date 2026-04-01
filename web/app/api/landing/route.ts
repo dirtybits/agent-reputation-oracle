@@ -6,9 +6,11 @@ import {
   SKILL_LISTING_DISCRIMINATOR,
   getAgentProfileDecoder,
   AGENT_PROFILE_DISCRIMINATOR,
+  SkillStatus,
 } from "../../../generated/reputation-oracle/src/generated";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../../../generated/reputation-oracle/src/generated/programs";
 import { resolveManyAgentIdentitiesByWallet } from "@/lib/agentIdentity";
+import { getErrorMessage } from "@/lib/errors";
 
 const rpc = createSolanaRpc(
   process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com"
@@ -121,10 +123,7 @@ export async function GET() {
     );
 
     const featuredSkills = [...skills]
-      .filter((s) => {
-        const st = s.account.status as any;
-        return st?.active !== undefined || st?.Active !== undefined || !st;
-      })
+      .filter((skill) => skill.account.status === SkillStatus.Active)
       .sort((a, b) => b.account.totalDownloads - a.account.totalDownloads)
       .slice(0, 3)
       .map((skill) => ({
@@ -150,8 +149,8 @@ export async function GET() {
         },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET /api/landing error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

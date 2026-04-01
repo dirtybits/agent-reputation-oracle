@@ -30,6 +30,7 @@ import {
   FiZap,
 } from "react-icons/fi";
 import { isRpcRateLimitError } from "@/lib/rpcErrors";
+import { getErrorMessage } from "@/lib/errors";
 
 type Tab = "profile" | "vouch" | "explorer" | "disputes";
 
@@ -46,6 +47,26 @@ type MarketplaceListingRow = {
   total_downloads?: number;
 };
 
+type ReputationOracle = ReturnType<typeof useReputationOracle>;
+type AgentProfileData = NonNullable<
+  Awaited<ReturnType<ReputationOracle["getAgentProfile"]>>
+>;
+type VouchRecord = Awaited<
+  ReturnType<ReputationOracle["getAllVouchesForAgent"]>
+>[number];
+type PurchaseRecord = Awaited<
+  ReturnType<ReputationOracle["getPurchasesByBuyer"]>
+>[number];
+type SkillListingRecord = Awaited<
+  ReturnType<ReputationOracle["getAllSkillListings"]>
+>[number];
+type AgentListingRecord = Awaited<
+  ReturnType<ReputationOracle["getAllAgents"]>
+>[number];
+type OracleAuthorDisputeRow = Awaited<
+  ReturnType<ReputationOracle["getAllAuthorDisputes"]>
+>[number];
+
 function getSolanaFmTxUrl(tx: string): string {
   return getConfiguredSolanaFmTxUrl(tx);
 }
@@ -61,14 +82,18 @@ export default function DashboardPage() {
   const [voucheeAddress, setVoucheeAddress] = useState("");
   const [vouchAmount, setVouchAmount] = useState("0.1");
   const [searchAddress, setSearchAddress] = useState("");
-  const [searchedAgent, setSearchedAgent] = useState<any>(null);
-  const [agentProfile, setAgentProfile] = useState<any>(null);
-  const [vouches, setVouches] = useState<any[]>([]);
-  const [vouchesReceived, setVouchesReceived] = useState<any[]>([]);
-  const [purchases, setPurchases] = useState<any[]>([]);
-  const [purchaseListings, setPurchaseListings] = useState<Map<string, any>>(
-    new Map()
+  const [searchedAgent, setSearchedAgent] = useState<AgentProfileData | null>(
+    null
   );
+  const [agentProfile, setAgentProfile] = useState<AgentProfileData | null>(
+    null
+  );
+  const [vouches, setVouches] = useState<VouchRecord[]>([]);
+  const [vouchesReceived, setVouchesReceived] = useState<VouchRecord[]>([]);
+  const [purchases, setPurchases] = useState<PurchaseRecord[]>([]);
+  const [purchaseListings, setPurchaseListings] = useState<
+    Map<string, SkillListingRecord>
+  >(new Map());
   const [purchaseWarning, setPurchaseWarning] = useState<string | null>(null);
   const [marketplaceListings, setMarketplaceListings] = useState<
     MarketplaceListingRow[]
@@ -76,8 +101,10 @@ export default function DashboardPage() {
   const [marketplaceListingWarning, setMarketplaceListingWarning] = useState<
     string | null
   >(null);
-  const [allAgents, setAllAgents] = useState<any[]>([]);
-  const [authorDisputes, setAuthorDisputes] = useState<any[]>([]);
+  const [allAgents, setAllAgents] = useState<AgentListingRecord[]>([]);
+  const [authorDisputes, setAuthorDisputes] = useState<OracleAuthorDisputeRow[]>(
+    []
+  );
   const [configAuthority, setConfigAuthority] = useState<string | null>(null);
   const [resolvingAuthorDispute, setResolvingAuthorDispute] = useState<
     string | null
@@ -162,13 +189,12 @@ export default function DashboardPage() {
       }
       setPurchases(
         [...purchaseList].sort(
-          (a: any, b: any) =>
-            Number(b.account.purchasedAt) - Number(a.account.purchasedAt)
+          (a, b) => Number(b.account.purchasedAt) - Number(a.account.purchasedAt)
         )
       );
       setPurchaseListings(
-        new Map(
-          listings.map((listing: any) => [String(listing.publicKey), listing])
+        new Map<string, SkillListingRecord>(
+          listings.map((listing) => [String(listing.publicKey), listing])
         )
       );
       setMarketplaceListings(authoredMarketplaceSkills);
@@ -193,7 +219,7 @@ export default function DashboardPage() {
     setLoadingAgents(true);
     try {
       const agents = await oracle.getAllAgents();
-      const sorted = agents.sort((a: any, b: any) => {
+      const sorted = agents.sort((a, b) => {
         const scoreA = Number(a.account.reputationScore ?? 0);
         const scoreB = Number(b.account.reputationScore ?? 0);
         return scoreB - scoreA;
@@ -221,7 +247,7 @@ export default function DashboardPage() {
         resolverWallet === publicKey
           ? disputes
           : disputes.filter(
-              (dispute: any) => String(dispute.account.author) === publicKey
+              (dispute) => String(dispute.account.author) === publicKey
             )
       );
     } catch (error) {
@@ -260,8 +286,8 @@ export default function DashboardPage() {
         setStatus("Agent not found - they may not be registered yet");
       }
       setStatusTx(null);
-    } catch (error: any) {
-      setStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      setStatus(`Error: ${getErrorMessage(error)}`);
       setStatusTx(null);
       setSearchedAgent(null);
     } finally {
@@ -270,7 +296,7 @@ export default function DashboardPage() {
   };
 
   const handleResolveAuthorDispute = async (
-    dispute: any,
+    dispute: OracleAuthorDisputeRow,
     ruling: AuthorDisputeRuling
   ) => {
     setResolvingAuthorDispute(dispute.publicKey);
@@ -290,8 +316,8 @@ export default function DashboardPage() {
       );
       setStatusTx(tx);
       await loadAuthorDisputes();
-    } catch (error: any) {
-      setStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      setStatus(`Error: ${getErrorMessage(error)}`);
     } finally {
       setResolvingAuthorDispute(null);
     }
@@ -306,8 +332,8 @@ export default function DashboardPage() {
       setStatus("Agent registered!");
       setStatusTx(tx);
       setTimeout(loadAgentProfile, 2000);
-    } catch (error: any) {
-      setStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      setStatus(`Error: ${getErrorMessage(error)}`);
       setStatusTx(null);
     } finally {
       setLoading(false);
@@ -338,20 +364,20 @@ export default function DashboardPage() {
       setStatus("Vouch created!");
       setStatusTx(tx);
       setTimeout(loadAgentProfile, 2000);
-    } catch (error: any) {
-      setStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      setStatus(`Error: ${getErrorMessage(error)}`);
       setStatusTx(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatScore = (score: any) => {
+  const formatScore = (score: number | string | bigint | null | undefined) => {
     if (!score) return "0";
     return Number(score).toLocaleString();
   };
 
-  const formatTimestamp = (ts: any) => {
+  const formatTimestamp = (ts: number | string | bigint | null | undefined) => {
     const timestamp = Number(ts);
     return new Date(timestamp * 1000).toLocaleString();
   };
@@ -568,7 +594,7 @@ export default function DashboardPage() {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {purchases.map((purchase: any) => {
+                    {purchases.map((purchase) => {
                       const listing = purchaseListings.get(
                         String(purchase.account.skillListing)
                       );
@@ -742,12 +768,10 @@ export default function DashboardPage() {
                     staking SOL to vouch for you.
                   </p>
                   <div className="space-y-3">
-                    {vouchesReceived.map((vouch: any, idx: number) => {
+                    {vouchesReceived.map((vouch, idx: number) => {
                       const voucher = vouch.account.voucher;
-                      const stakeAmount =
-                        vouch.account.stakeAmount || vouch.account.stake_amount;
-                      const createdAt =
-                        vouch.account.createdAt || vouch.account.created_at;
+                      const stakeAmount = vouch.account.stakeAmount;
+                      const createdAt = vouch.account.createdAt;
                       return (
                         <div
                           key={idx}
@@ -801,12 +825,10 @@ export default function DashboardPage() {
                     .
                   </p>
                   <div className="space-y-3">
-                    {vouches.map((vouch: any, idx: number) => {
+                    {vouches.map((vouch, idx: number) => {
                       const vouchee = vouch.account.vouchee;
-                      const stakeAmount =
-                        vouch.account.stakeAmount || vouch.account.stake_amount;
-                      const createdAt =
-                        vouch.account.createdAt || vouch.account.created_at;
+                      const stakeAmount = vouch.account.stakeAmount;
+                      const createdAt = vouch.account.createdAt;
                       return (
                         <div
                           key={idx}
@@ -936,7 +958,7 @@ export default function DashboardPage() {
                   </p>
                 ) : (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {allAgents.map((agent: any, idx: number) => {
+                    {allAgents.map((agent, idx: number) => {
                       const agentKey = agent.publicKey;
                       const isCurrentUser = agentKey === publicKey;
                       return (
@@ -1155,7 +1177,7 @@ export default function DashboardPage() {
                   </p>
                 ) : (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {allAgents.map((agent: any, idx: number) => {
+                    {allAgents.map((agent, idx: number) => {
                       const agentKey = agent.publicKey;
                       const isCurrentUser = agentKey === publicKey;
                       return (

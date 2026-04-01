@@ -9,6 +9,7 @@ import { AgentIdentityPanel } from "@/components/AgentIdentityPanel";
 import { AgentProfileSetupCard } from "@/components/AgentProfileSetupCard";
 import { ClientWalletButton } from "@/components/ClientWalletButton";
 import type { AuthPayload } from "@/lib/auth";
+import type { AuthorDisputeRecord } from "@/lib/authorDisputes";
 import {
   navButtonPrimaryFlexClass,
   navButtonPrimaryInlineClass,
@@ -18,14 +19,12 @@ import { useReputationOracle } from "@/hooks/useReputationOracle";
 import type { AgentIdentitySummary } from "@/lib/agentIdentity";
 import { encodeBase64 } from "@/lib/base64";
 import { getConfiguredSolanaFmTxUrl } from "@/lib/chains";
+import { getErrorMessage } from "@/lib/errors";
 import {
   countsTowardAuthorWideReportSnapshot,
   getVouchStatusLabel,
 } from "@/lib/disputes";
-import {
-  AuthorDisputeReason,
-  AuthorDisputeRuling,
-} from "@/generated/reputation-oracle/src/generated";
+import { AuthorDisputeReason } from "@/generated/reputation-oracle/src/generated";
 import type { SolanaRegistryCandidate } from "@/lib/solanaAgentRegistry";
 import { SolAmount } from "@/components/SolAmount";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
@@ -34,7 +33,6 @@ import {
   FiAlertTriangle,
   FiArrowLeft,
   FiCalendar,
-  FiCheckCircle,
   FiCopy,
   FiCheck,
   FiDownload,
@@ -96,6 +94,17 @@ interface RepoSkill {
   author_trust: TrustData | null;
 }
 
+type ReputationOracle = ReturnType<typeof useReputationOracle>;
+type AgentProfileData = NonNullable<
+  Awaited<ReturnType<ReputationOracle["getAgentProfile"]>>
+>;
+type VouchRecord = Awaited<
+  ReturnType<ReputationOracle["getAllVouchesForAgent"]>
+>[number];
+type SkillListingRecord = Awaited<
+  ReturnType<ReputationOracle["getSkillListingsByAuthor"]>
+>[number];
+
 export default function AuthorProfilePage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -107,22 +116,24 @@ export default function AuthorProfilePage() {
   const signMessage = wallet?.signMessage ?? null;
   const oracle = useReputationOracle();
 
-  const [profile, setProfile] = useState<any>(null);
-  const [vouchesReceived, setVouchesReceived] = useState<any[]>([]);
-  const [vouchesGiven, setVouchesGiven] = useState<any[]>([]);
+  const [profile, setProfile] = useState<AgentProfileData | null>(null);
+  const [vouchesReceived, setVouchesReceived] = useState<VouchRecord[]>([]);
+  const [vouchesGiven, setVouchesGiven] = useState<VouchRecord[]>([]);
   const [repoSkills, setRepoSkills] = useState<RepoSkill[]>([]);
-  const [chainSkills, setChainSkills] = useState<any[]>([]);
+  const [chainSkills, setChainSkills] = useState<SkillListingRecord[]>([]);
   const [authorTrust, setAuthorTrust] = useState<TrustData | null>(null);
   const [authorIdentity, setAuthorIdentity] =
     useState<AgentIdentitySummary | null>(null);
-  const [authorDisputes, setAuthorDisputes] = useState<any[]>([]);
+  const [authorDisputes, setAuthorDisputes] = useState<AuthorDisputeRecord[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [vouchAmount, setVouchAmount] = useState("0.1");
   const [vouching, setVouching] = useState(false);
   const [vouchStatus, setVouchStatus] = useState("");
   const [vouchTx, setVouchTx] = useState<string | null>(null);
-  const [myProfile, setMyProfile] = useState<any>(null);
+  const [myProfile, setMyProfile] = useState<AgentProfileData | null>(null);
   const [myProfileLoading, setMyProfileLoading] = useState(false);
   const [myProfileChecked, setMyProfileChecked] = useState(false);
   const [registering, setRegistering] = useState(false);
@@ -187,10 +198,8 @@ export default function AuthorProfilePage() {
       const relatedProfileKeys = Array.from(
         new Set(
           [
-            ...received.map((vouch: any) =>
-              String(vouch.account.voucher ?? "")
-            ),
-            ...given.map((vouch: any) => String(vouch.account.vouchee ?? "")),
+            ...received.map((vouch) => String(vouch.account.voucher ?? "")),
+            ...given.map((vouch) => String(vouch.account.vouchee ?? "")),
           ].filter(Boolean)
         )
       );
@@ -296,8 +305,8 @@ export default function AuthorProfilePage() {
       setVouchStatus("Vouch created!");
       setVouchTx(tx);
       setTimeout(loadData, 2000);
-    } catch (error: any) {
-      setVouchStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      setVouchStatus(`Error: ${getErrorMessage(error)}`);
       setVouchTx(null);
     } finally {
       setVouching(false);
@@ -363,9 +372,8 @@ export default function AuthorProfilePage() {
       } else {
         setVouchStatus("Profile created. You can now vouch for this author.");
       }
-    } catch (err: any) {
-      const cause = err?.cause?.message ?? err?.context?.message ?? "";
-      const msg = cause || err.message || String(err);
+    } catch (error: unknown) {
+      const msg = getErrorMessage(error);
       const alreadyExists =
         /already in use|already exists|0x0|account already initialized/i.test(
           msg
@@ -458,12 +466,15 @@ export default function AuthorProfilePage() {
             }
           : null
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       setRegistryCandidates([]);
       setRegistryCandidatesLoaded(true);
       setLinkIdentityStatus({
         success: false,
-        message: error.message || "Failed to discover registry identities",
+        message: getErrorMessage(
+          error,
+          "Failed to discover registry identities"
+        ),
       });
     } finally {
       setDiscoveringRegistryCandidates(false);
@@ -520,10 +531,10 @@ export default function AuthorProfilePage() {
         message: "Registry identity linked.",
       });
       setShowManualRegistryLink(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setLinkIdentityStatus({
         success: false,
-        message: error.message || "Failed to link registry identity",
+        message: getErrorMessage(error, "Failed to link registry identity"),
       });
     } finally {
       setLinkingIdentity(false);
@@ -566,7 +577,7 @@ export default function AuthorProfilePage() {
         }
       : null);
 
-  const authorWideBackingVouches = vouchesReceived.filter((vouch: any) =>
+  const authorWideBackingVouches = vouchesReceived.filter((vouch) =>
     countsTowardAuthorWideReportSnapshot(vouch.account.status)
   );
   const claimSkillOptions = [
@@ -594,14 +605,14 @@ export default function AuthorProfilePage() {
   )?.label;
   const registeredAt = Number(profile?.registeredAt ?? 0);
 
-  const openClaimModal = () => {
+  const openClaimModal = useCallback(() => {
     setClaimStatus(null);
     setClaimTx(null);
     setClaimReason("malicious-skill");
     setClaimSkillContext(searchParams.get("skill") ?? "");
     setClaimEvidenceUri("");
     setShowClaimModal(true);
-  };
+  }, [searchParams]);
 
   const closeClaimModal = () => {
     if (claiming) return;
@@ -671,10 +682,10 @@ export default function AuthorProfilePage() {
       setClaimSkillContext("");
       setClaimEvidenceUri("");
       setTimeout(loadData, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setClaimStatus({
         success: false,
-        message: error.message || "Failed to open report.",
+        message: getErrorMessage(error, "Failed to open report."),
       });
       setClaimTx(null);
     } finally {
@@ -943,7 +954,7 @@ export default function AuthorProfilePage() {
               Author Disputes
             </h2>
             <div className="space-y-3">
-              {authorDisputes.map((dispute: any) => (
+              {authorDisputes.map((dispute) => (
                 <div
                   key={dispute.publicKey}
                   className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
@@ -1438,11 +1449,10 @@ export default function AuthorProfilePage() {
               currently recorded for this author.
             </p>
             <div className="space-y-2">
-              {vouchesReceived.map((vouch: any) => {
+              {vouchesReceived.map((vouch) => {
                 const voucherProfile = String(vouch.account.voucher);
                 const voucherAuthority = profileAuthorityByPda[voucherProfile];
-                const stakeAmount =
-                  vouch.account.stakeAmount || vouch.account.stake_amount;
+                const stakeAmount = vouch.account.stakeAmount;
                 const statusLabel = getVouchStatusLabel(vouch.account.status);
                 const includedInAuthorWideReports =
                   countsTowardAuthorWideReportSnapshot(vouch.account.status);
@@ -1507,11 +1517,10 @@ export default function AuthorProfilePage() {
               <FiZap className="text-[var(--lobster-accent)]" /> Vouching For
             </h2>
             <div className="space-y-2">
-              {vouchesGiven.map((vouch: any) => {
+              {vouchesGiven.map((vouch) => {
                 const voucheeProfile = String(vouch.account.vouchee);
                 const voucheeAuthority = profileAuthorityByPda[voucheeProfile];
-                const stakeAmount =
-                  vouch.account.stakeAmount || vouch.account.stake_amount;
+                const stakeAmount = vouch.account.stakeAmount;
                 const statusLabel = getVouchStatusLabel(vouch.account.status);
                 return (
                   <div

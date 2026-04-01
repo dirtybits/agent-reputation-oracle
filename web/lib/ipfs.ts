@@ -1,4 +1,5 @@
 import { PinataSDK } from "pinata";
+import { getErrorMessage } from "@/lib/errors";
 
 let pinataClient: PinataSDK | null = null;
 
@@ -49,8 +50,8 @@ export async function pinSkillContent(
       .keyvalues({ skillId, version: String(version) });
 
     return { cid: upload.cid, success: true };
-  } catch (err: any) {
-    console.error("Pinata pin error:", err);
-    return { cid: "", success: false, error: err.message };
+  } catch (error: unknown) {
+    console.error("Pinata pin error:", error);
+    return { cid: "", success: false, error: getErrorMessage(error) };
   }
 }

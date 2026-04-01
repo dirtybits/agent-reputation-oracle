@@ -180,7 +180,7 @@ async function fetchGraphql<T>(
       }
 
       return payload.data as T;
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error instanceof Error ? error : new Error(String(error));
     }
   }

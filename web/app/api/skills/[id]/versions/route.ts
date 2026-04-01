@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { pinSkillContent } from "@/lib/ipfs";
+import { getErrorMessage } from "@/lib/errors";
+
+type VersionedSkillRow = {
+  id: string;
+  skill_id: string;
+  author_pubkey: string;
+  current_version: number;
+  ipfs_cid: string | null;
+};
 
 export async function POST(
   request: NextRequest,
@@ -31,7 +40,7 @@ export async function POST(
       );
     }
 
-    const rows = await sql()`
+    const rows = await sql()<VersionedSkillRow>`
       SELECT * FROM skills WHERE id = ${id}::uuid
     `;
 
@@ -82,8 +91,8 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/skills/[id]/versions error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

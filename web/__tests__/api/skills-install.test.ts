@@ -30,7 +30,7 @@ const mockHasOnChainPurchase = hasOnChainPurchase as unknown as ReturnType<
   typeof vi.fn
 >;
 
-function makeRequest(id: string, body: Record<string, any> = {}) {
+function makeRequest(id: string, body: Record<string, unknown> = {}) {
   const req = new NextRequest(`http://localhost/api/skills/${id}/install`, {
     method: "POST",
     body: JSON.stringify(body),

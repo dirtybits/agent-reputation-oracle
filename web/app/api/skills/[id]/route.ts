@@ -14,6 +14,7 @@ import {
   createPurchasePreflightContext,
   serializePurchasePreflight,
 } from "@/lib/purchasePreflight";
+import { getErrorMessage } from "@/lib/errors";
 import { address, createSolanaRpc, isAddress } from "@solana/kit";
 import type { Base64EncodedBytes } from "@solana/rpc-types";
 import {
@@ -29,6 +30,34 @@ const rpc = createSolanaRpc(
 const configuredSolanaChainContext = getConfiguredSolanaChainContext();
 const asBase64 = (bytes: Uint8Array) =>
   Buffer.from(bytes).toString("base64") as Base64EncodedBytes;
+
+type SkillRow = {
+  id: string;
+  author_pubkey: string;
+  skill_id: string;
+  name: string;
+  description: string | null;
+  tags: string[];
+  current_version: number;
+  ipfs_cid: string | null;
+  on_chain_address: string | null;
+  chain_context: string | null;
+  total_installs: number;
+  total_downloads?: number;
+  price_lamports?: number;
+  contact?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type SkillVersionRow = {
+  id: string;
+  version: number;
+  content: string;
+  ipfs_cid: string | null;
+  changelog: string | null;
+  created_at: string;
+};
 
 async function fetchChainSkill(pubkey: string) {
   const accounts = await rpc
@@ -159,7 +188,7 @@ export async function GET(
       });
     }
 
-    const rows = await sql()`
+    const rows = await sql()<SkillRow>`
       SELECT * FROM skills WHERE id = ${id}::uuid
     `;
 
@@ -177,7 +206,7 @@ export async function GET(
       }
     }
 
-    const versions = await sql()`
+    const versions = await sql()<SkillVersionRow>`
       SELECT id, version, content, ipfs_cid, changelog, created_at
       FROM skill_versions
       WHERE skill_id = ${id}::uuid
@@ -203,7 +232,7 @@ export async function GET(
     }
 
     const latestVersion = versions[0];
-    const allPinned = versions.every((v: any) => !!v.ipfs_cid);
+    const allPinned = versions.every((version) => !!version.ipfs_cid);
     const currentCidMatch = latestVersion?.ipfs_cid === skill.ipfs_cid;
     const content_verification = {
       has_ipfs: !!skill.ipfs_cid,
@@ -216,9 +245,7 @@ export async function GET(
         : "drift_detected",
     };
 
-    const versionsWithoutContent = versions.map(
-      ({ content, ...rest }: any) => rest
-    );
+    const versionsWithoutContent = versions.map(({ content: _content, ...rest }) => rest);
     const preflightContext = await createPurchasePreflightContext({
       rpc,
       buyer: buyerAddress,
@@ -253,9 +280,9 @@ export async function GET(
       content_verification,
       ...preflight,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET /api/skills/[id] error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -286,7 +313,7 @@ export async function PATCH(
       );
     }
 
-    const rows = await sql()`
+    const rows = await sql()<Pick<SkillRow, "id" | "author_pubkey">>`
       SELECT id, author_pubkey FROM skills WHERE id = ${id}::uuid
     `;
     if (rows.length === 0) {
@@ -299,7 +326,7 @@ export async function PATCH(
       );
     }
 
-    const [updated] = await sql()`
+    const [updated] = await sql()<SkillRow>`
       UPDATE skills
       SET on_chain_address = ${on_chain_address}, updated_at = NOW()
       WHERE id = ${id}::uuid
@@ -310,8 +337,8 @@ export async function PATCH(
       ...updated,
       chain_context: normalizePersistedChainContext(updated.chain_context),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("PATCH /api/skills/[id] error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

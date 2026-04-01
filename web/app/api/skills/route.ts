@@ -17,6 +17,7 @@ import {
   createPurchasePreflightContext,
   serializePurchasePreflight,
 } from "@/lib/purchasePreflight";
+import { getErrorMessage } from "@/lib/errors";
 import { address, createSolanaRpc, isAddress } from "@solana/kit";
 import type { Base64EncodedBytes } from "@solana/rpc-types";
 import {
@@ -33,7 +34,44 @@ const configuredSolanaChainContext = getConfiguredSolanaChainContext();
 const asBase64 = (bytes: Uint8Array) =>
   Buffer.from(bytes).toString("base64") as Base64EncodedBytes;
 
-async function fetchOnChainListings(): Promise<any[]> {
+type RepoSkillRow = {
+  id: string;
+  skill_id: string;
+  author_pubkey: string;
+  name: string;
+  description: string | null;
+  tags: string[];
+  current_version: number;
+  ipfs_cid: string | null;
+  on_chain_address: string | null;
+  skill_uri?: string | null;
+  chain_context: string | null;
+  total_installs: number;
+  total_downloads?: number | null;
+  total_revenue?: number | null;
+  price_lamports?: number | null;
+  contact?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ChainSkillRow = Omit<
+  RepoSkillRow,
+  "on_chain_address" | "chain_context" | "total_downloads" | "total_revenue" | "price_lamports" | "skill_uri"
+> & {
+  on_chain_address: string;
+  chain_context: string;
+  total_downloads: number;
+  total_revenue: number;
+  price_lamports: number;
+  skill_uri: string | null;
+  source: "chain";
+};
+
+type RepoMergedSkillRow = RepoSkillRow & { source: "repo" };
+type MergedSkillRow = RepoMergedSkillRow | ChainSkillRow;
+
+async function fetchOnChainListings(): Promise<ChainSkillRow[]> {
   try {
     const accounts = await rpc
       .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
@@ -77,14 +115,17 @@ async function fetchOnChainListings(): Promise<any[]> {
         updated_at: new Date(Number(l.data.updatedAt) * 1000).toISOString(),
         source: "chain" as const,
       }));
-  } catch (err) {
-    console.error("Failed to fetch on-chain listings:", err);
+  } catch (error) {
+    console.error("Failed to fetch on-chain listings:", error);
     return [];
   }
 }
 
-function mergeSkills(pgSkills: any[], chainSkills: any[]): any[] {
-  const merged = pgSkills.map((s) => ({ ...s, source: "repo" }));
+function mergeSkills(
+  pgSkills: RepoMergedSkillRow[],
+  chainSkills: ChainSkillRow[]
+): MergedSkillRow[] {
+  const merged: MergedSkillRow[] = [...pgSkills];
 
   for (const chain of chainSkills) {
     // Only merge into a PG skill if the on_chain_address already recorded there matches.
@@ -116,10 +157,10 @@ export async function GET(request: NextRequest) {
     const tags = searchParams.get("tags");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
 
-    let pgSkills: any[] = [];
+    let pgSkills: RepoSkillRow[] = [];
     try {
       if (q) {
-        pgSkills = await sql()`
+        pgSkills = await sql()<RepoSkillRow>`
           SELECT *
           FROM skills
           WHERE to_tsvector('english', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('english', ${q})
@@ -131,7 +172,7 @@ export async function GET(request: NextRequest) {
           }
         `;
       } else {
-        pgSkills = await sql()`
+        pgSkills = await sql()<RepoSkillRow>`
           SELECT *
           FROM skills
           WHERE 1=1
@@ -147,14 +188,15 @@ export async function GET(request: NextRequest) {
       pgSkills = [];
     }
 
-    pgSkills = pgSkills.map((skill) => ({
+    const normalizedPgSkills: RepoMergedSkillRow[] = pgSkills.map((skill) => ({
       ...skill,
       chain_context: normalizePersistedChainContext(skill.chain_context),
+      source: "repo",
     }));
 
     const chainSkills = tags ? [] : await fetchOnChainListings();
 
-    let allSkills = mergeSkills(pgSkills, chainSkills);
+    let allSkills = mergeSkills(normalizedPgSkills, chainSkills);
 
     if (author) {
       allSkills = allSkills.filter((s) => s.author_pubkey === author);
@@ -260,9 +302,9 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / PAGE_SIZE),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET /api/skills error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -345,7 +387,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [skill] = await sql()`
+    const [skill] = await sql()<RepoSkillRow>`
       INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, ipfs_cid, contact, chain_context)
       VALUES (
         ${skill_id},
@@ -379,14 +421,15 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/skills error:", error);
-    if (error.message?.includes("unique")) {
+    const message = getErrorMessage(error);
+    if (message.includes("unique")) {
       return NextResponse.json(
         { error: "A skill with this ID already exists for your account" },
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

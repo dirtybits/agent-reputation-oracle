@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAuthorTrust } from "@/lib/trust";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { discoverSolanaRegistryCandidatesByWallet } from "@/lib/solanaAgentRegistry";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(
   request: NextRequest,
@@ -53,8 +54,8 @@ export async function POST(
       pubkey,
       candidates,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/author/[pubkey]/discover-registry error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

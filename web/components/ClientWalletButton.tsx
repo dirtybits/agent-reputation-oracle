@@ -9,6 +9,7 @@ import {
   useDisconnect,
 } from "@phantom/react-sdk";
 import { usePhantomConfigured } from "./WalletContextProvider";
+import { useMounted } from "@/hooks/useMounted";
 import {
   navButtonInlineClass,
   navButtonPrimaryInlineClass,
@@ -18,6 +19,8 @@ import {
 const PHANTOM_ICON = "https://phantom.com/_web_platform_assets/favicon.svg";
 const walletTriggerClass = navButtonPrimaryInlineClass;
 const walletMenuButtonClass = `w-full ${navButtonSecondaryInlineClass} justify-start`;
+type WalletConnector = (ReturnType<typeof useWalletConnection>["connectors"])[number];
+type PhantomAccount = NonNullable<ReturnType<typeof useAccounts>>[number];
 
 function isMobile(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -35,7 +38,7 @@ function WalletDropdown({
   menuRef,
   socialSection,
 }: {
-  connectors: readonly any[];
+  connectors: readonly WalletConnector[];
   connect: (id: string) => void;
   showMenu: boolean;
   setShowMenu: (v: boolean) => void;
@@ -170,16 +173,14 @@ function WalletDropdown({
 }
 
 function ClientWalletButtonWithPhantom() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { connectors, connect, disconnect, wallet, status } =
     useWalletConnection();
   const phantom = usePhantom();
-  const phantomAccounts: any[] | null = useAccounts();
+  const phantomAccounts = useAccounts();
   const phantomDisconnect = useDisconnect();
-
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node))
@@ -229,7 +230,9 @@ function ClientWalletButtonWithPhantom() {
   }
 
   // Phantom embedded wallet connected
-  const solanaAccount = phantomAccounts?.find((a: any) => a.chain === "solana");
+  const solanaAccount = phantomAccounts?.find(
+    (account: PhantomAccount) => account.addressType === "Solana"
+  );
   if (phantom.isConnected && solanaAccount) {
     const addr = solanaAccount.address as string;
     const short = `${addr.slice(0, 4)}...${addr.slice(-4)}`;
@@ -286,13 +289,12 @@ function ClientWalletButtonWithPhantom() {
 
 // Version without Phantom SDK hooks — used when PhantomProvider is not mounted
 function ClientWalletButtonBasic() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { connectors, connect, disconnect, wallet, status } =
     useWalletConnection();
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node))

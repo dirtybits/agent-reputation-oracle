@@ -19,6 +19,7 @@ import {
   FiArrowLeft,
   FiAlertTriangle,
 } from "react-icons/fi";
+import { getErrorMessage } from "@/lib/errors";
 
 interface ApiKeyRow {
   id: string;
@@ -77,8 +78,8 @@ export default function SettingsPage() {
 
       const data = await res.json();
       setKeys(data.keys || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -107,8 +108,8 @@ export default function SettingsPage() {
       setNewKey(data.key);
       setNewKeyName("");
       await loadKeys();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setCreating(false);
     }
@@ -128,8 +129,8 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to revoke key");
       await loadKeys();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setRevoking(null);
     }
