@@ -141,7 +141,9 @@ export default function DashboardPage() {
       let authoredMarketplaceSkills: MarketplaceListingRow[] = [];
       try {
         const response = await fetch(
-          `/api/skills?author=${encodeURIComponent(String(publicKey))}&sort=newest`
+          `/api/skills?author=${encodeURIComponent(
+            String(publicKey)
+          )}&sort=newest`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch marketplace listings");
@@ -484,7 +486,10 @@ export default function DashboardPage() {
                         Open Author Reports
                       </span>
                       <span className="text-sm font-mono text-amber-600 dark:text-amber-400">
-                        {String(authorDisputes.filter((d) => d.statusLabel === "Open").length)}
+                        {String(
+                          authorDisputes.filter((d) => d.statusLabel === "Open")
+                            .length
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between py-3">
@@ -543,8 +548,8 @@ export default function DashboardPage() {
 
               <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-                  <FiDollarSign className="text-[var(--sea-accent)]" /> Purchased
-                  Skills
+                  <FiDollarSign className="text-[var(--sea-accent)]" />{" "}
+                  Purchased Skills
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Skills this wallet has already bought on-chain.
@@ -596,13 +601,16 @@ export default function DashboardPage() {
                                 </a>
                               ) : (
                                 <p className="font-mono text-xs text-gray-500 dark:text-gray-400 mb-2 break-all">
-                                  Listing: {String(purchase.account.skillListing)}
+                                  Listing:{" "}
+                                  {String(purchase.account.skillListing)}
                                 </p>
                               )}
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
                                 <span className="inline-flex items-center gap-1">
                                   <FiCalendar />{" "}
-                                  {formatTimestamp(purchase.account.purchasedAt)}
+                                  {formatTimestamp(
+                                    purchase.account.purchasedAt
+                                  )}
                                 </span>
                               </div>
                             </div>
@@ -649,7 +657,8 @@ export default function DashboardPage() {
                       const estimatedBuyerTotal =
                         listing.estimatedBuyerTotalLamports ?? creatorPrice;
                       const downloads =
-                        (listing.total_installs ?? 0) + (listing.total_downloads ?? 0);
+                        (listing.total_installs ?? 0) +
+                        (listing.total_downloads ?? 0);
                       return (
                         <div
                           key={listing.id}
@@ -665,7 +674,8 @@ export default function DashboardPage() {
                                   {listing.name}
                                 </Link>
                                 <span className="text-xs text-green-600 dark:text-green-400 font-mono">
-                                  {formatSolAmount(creatorPrice)} SOL creator price
+                                  {formatSolAmount(creatorPrice)} SOL creator
+                                  price
                                 </span>
                               </div>
                               {listing.description && (
@@ -685,10 +695,11 @@ export default function DashboardPage() {
                                         {listing.purchasePreflightMessage}
                                       </p>
                                       <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                                        Buyers currently see an estimated total of{" "}
-                                        {formatSolAmount(estimatedBuyerTotal)} SOL,
-                                        but purchases will fail until this payout
-                                        wallet holds enough SOL.
+                                        Buyers currently see an estimated total
+                                        of{" "}
+                                        {formatSolAmount(estimatedBuyerTotal)}{" "}
+                                        SOL, but purchases will fail until this
+                                        payout wallet holds enough SOL.
                                       </p>
                                     </div>
                                   </div>
@@ -699,8 +710,9 @@ export default function DashboardPage() {
                                   <FiZap /> {downloads} downloads
                                 </span>
                                 <span className="inline-flex items-center gap-1">
-                                  <FiDollarSign /> {formatSolAmount(estimatedBuyerTotal)}{" "}
-                                  SOL estimated total
+                                  <FiDollarSign />{" "}
+                                  {formatSolAmount(estimatedBuyerTotal)} SOL
+                                  estimated total
                                 </span>
                               </div>
                             </div>

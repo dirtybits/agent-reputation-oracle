@@ -26,8 +26,9 @@ import { hasOnChainPurchase } from "@/lib/x402";
 const mockSql = sql as unknown as ReturnType<typeof vi.fn>;
 const mockVerify = verifyWalletSignature as unknown as ReturnType<typeof vi.fn>;
 const mockOnChain = getOnChainPrice as unknown as ReturnType<typeof vi.fn>;
-const mockHasOnChainPurchase =
-  hasOnChainPurchase as unknown as ReturnType<typeof vi.fn>;
+const mockHasOnChainPurchase = hasOnChainPurchase as unknown as ReturnType<
+  typeof vi.fn
+>;
 
 function makeRequest(id: string, body: Record<string, any> = {}) {
   const req = new NextRequest(`http://localhost/api/skills/${id}/install`, {

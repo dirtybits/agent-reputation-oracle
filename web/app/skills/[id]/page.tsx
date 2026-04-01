@@ -21,10 +21,7 @@ import {
 import { useWalletConnection } from "@solana/react-hooks";
 import { useReputationOracle } from "@/hooks/useReputationOracle";
 import type { AgentIdentitySummary } from "@/lib/agentIdentity";
-import {
-  address,
-  type Address,
-} from "@solana/kit";
+import { address, type Address } from "@solana/kit";
 import {
   PRICING,
   formatMinPrice,
@@ -109,7 +106,9 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function isBlockingPurchaseStatus(status: PurchasePreflightStatus | null | undefined) {
+function isBlockingPurchaseStatus(
+  status: PurchasePreflightStatus | null | undefined
+) {
   return (
     status === "buyerInsufficientBalance" ||
     status === "authorPayoutRentBlocked"
@@ -358,7 +357,12 @@ export default function SkillDetailPage({
   };
 
   const handlePaidInstall = async () => {
-    if (!connected || !walletAddress || !signMessage || !skill?.on_chain_address) {
+    if (
+      !connected ||
+      !walletAddress ||
+      !signMessage ||
+      !skill?.on_chain_address
+    ) {
       return;
     }
     if (isBlockingPurchaseStatus(skill.purchasePreflightStatus)) {
@@ -427,11 +431,17 @@ export default function SkillDetailPage({
   };
 
   const handleSignedDownload = async () => {
-    if (!connected || !walletAddress || !signMessage || !skill?.on_chain_address) {
+    if (
+      !connected ||
+      !walletAddress ||
+      !signMessage ||
+      !skill?.on_chain_address
+    ) {
       return;
     }
 
-    const creatorPriceLamports = skill.creatorPriceLamports ?? skill.price_lamports ?? 0;
+    const creatorPriceLamports =
+      skill.creatorPriceLamports ?? skill.price_lamports ?? 0;
     if (creatorPriceLamports > 0 && !skill.buyerHasPurchased) {
       setDownloadResult({
         success: false,
@@ -615,7 +625,9 @@ export default function SkillDetailPage({
     isChainOnly && skill?.skill_uri
       ? skill.skill_uri
       : `${CANONICAL_ORIGIN}${apiPath}`;
-  const signedDownloadMessage = `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skill.id}\nListing: ${
+  const signedDownloadMessage = `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${
+    skill.id
+  }\nListing: ${
     skill.on_chain_address ?? "{skillListingAddress}"
   }\nTimestamp: {unix_ms}`;
   const signedDownloadHeader = `{
@@ -863,9 +875,7 @@ export default function SkillDetailPage({
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                  {creatorPriceLamports > 0
-                    ? "Paid Skill"
-                    : "Free Skill"}
+                  {creatorPriceLamports > 0 ? "Paid Skill" : "Free Skill"}
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {creatorPriceLamports > 0
@@ -965,7 +975,9 @@ export default function SkillDetailPage({
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
                     <SolAmount
-                      amount={fromLamports(estimatedPurchaseRentLamports).toFixed(4)}
+                      amount={fromLamports(
+                        estimatedPurchaseRentLamports
+                      ).toFixed(4)}
                       iconClassName="w-3.5 h-3.5"
                     />
                   </div>
@@ -976,7 +988,9 @@ export default function SkillDetailPage({
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
                     <SolAmount
-                      amount={fromLamports(estimatedBuyerTotalLamports).toFixed(4)}
+                      amount={fromLamports(estimatedBuyerTotalLamports).toFixed(
+                        4
+                      )}
                       iconClassName="w-3.5 h-3.5"
                     />
                   </div>
@@ -1071,7 +1085,9 @@ export default function SkillDetailPage({
                 .
               </>
             ) : (
-              <>Free skills can be downloaded directly with the command below.</>
+              <>
+                Free skills can be downloaded directly with the command below.
+              </>
             )}
           </p>
           <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">

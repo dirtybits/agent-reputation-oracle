@@ -452,8 +452,12 @@ describe("author-disputes", () => {
     const challengerBalanceBefore = await provider.connection.getBalance(
       challenger.publicKey
     );
-    const vouchOneLamportsBefore = await provider.connection.getBalance(vouchOne);
-    const vouchTwoLamportsBefore = await provider.connection.getBalance(vouchTwo);
+    const vouchOneLamportsBefore = await provider.connection.getBalance(
+      vouchOne
+    );
+    const vouchTwoLamportsBefore = await provider.connection.getBalance(
+      vouchTwo
+    );
 
     await program.methods
       .openAuthorDispute(
@@ -528,8 +532,12 @@ describe("author-disputes", () => {
     assert.equal(authorProfileAccount.totalVouchesReceived, 0);
     assert.equal(Number(authorProfileAccount.totalStakedFor), 0);
 
-    const vouchOneLamportsAfter = await provider.connection.getBalance(vouchOne);
-    const vouchTwoLamportsAfter = await provider.connection.getBalance(vouchTwo);
+    const vouchOneLamportsAfter = await provider.connection.getBalance(
+      vouchOne
+    );
+    const vouchTwoLamportsAfter = await provider.connection.getBalance(
+      vouchTwo
+    );
     assert.equal(vouchOneLamportsBefore - vouchOneLamportsAfter, slashPerVouch);
     assert.equal(vouchTwoLamportsBefore - vouchTwoLamportsAfter, slashPerVouch);
 

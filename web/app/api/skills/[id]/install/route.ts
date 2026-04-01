@@ -46,9 +46,10 @@ export async function POST(
         );
       }
       if (listing.price > 0) {
-        const purchased = await hasOnChainPurchase(verification.pubkey, pubkey).catch(
-          () => false
-        );
+        const purchased = await hasOnChainPurchase(
+          verification.pubkey,
+          pubkey
+        ).catch(() => false);
         if (purchased) {
           return NextResponse.json({
             success: true,

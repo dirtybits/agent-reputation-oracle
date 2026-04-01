@@ -152,7 +152,8 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4 scroll-mt-24"
         >
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <FiDownload className="text-[var(--sea-accent)]" /> Paid Skill Download
+            <FiDownload className="text-[var(--sea-accent)]" /> Paid Skill
+            Download
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Paid skills require two steps: purchase on-chain, then retry the raw

@@ -101,7 +101,9 @@ type SendInstruction = Instruction<string, readonly AccountMeta[]> & {
   accounts: readonly SendInstructionAccount[];
 };
 
-export function normalizeInstructionForSend(ix: SendInstruction): SendInstruction {
+export function normalizeInstructionForSend(
+  ix: SendInstruction
+): SendInstruction {
   return {
     programAddress: ix.programAddress,
     data: ix.data,
@@ -269,7 +271,10 @@ export function getOpenAuthorDisputeClusterGuardError(
     return `The referenced skill listing was not found on the configured ${configuredNetwork}. If it exists on another network, switch Phantom and the app to the same cluster and retry.`;
   }
 
-  if (assessment.skillListingProvided && !assessment.skillListingMatchesAuthor) {
+  if (
+    assessment.skillListingProvided &&
+    !assessment.skillListingMatchesAuthor
+  ) {
     return `The referenced skill listing does not belong to this author on the configured ${configuredNetwork}.`;
   }
 
@@ -495,7 +500,9 @@ function isLiveVouchStatus(status: VouchStatus): boolean {
   return status === VouchStatus.Active;
 }
 
-async function getWalletBalanceLamports(walletAddress: Address): Promise<bigint> {
+async function getWalletBalanceLamports(
+  walletAddress: Address
+): Promise<bigint> {
   const response = await rpc.getBalance(walletAddress).send();
   return coerceLamports(response.value);
 }
@@ -538,7 +545,10 @@ async function assertStakeActionClusterReady(
     }
 
     const voucherProfile = await getAgentPDA(input.walletAddress);
-    const vouchAddress = await getVouchPDA(voucherProfile, input.voucheeProfile);
+    const vouchAddress = await getVouchPDA(
+      voucherProfile,
+      input.voucheeProfile
+    );
     const [voucheeProfileAccount, maybeVouch] = await Promise.all([
       voucheeProfileAccountPromise,
       fetchMaybeVouch(rpc, vouchAddress).catch(() => null),
@@ -581,7 +591,10 @@ async function assertSkillListingClusterReady(input: {
 }) {
   try {
     const authorProfile = await getAgentPDA(input.walletAddress);
-    const skillListing = await getSkillListingPDA(input.walletAddress, input.skillId);
+    const skillListing = await getSkillListingPDA(
+      input.walletAddress,
+      input.skillId
+    );
     const [authorProfileAccount, skillListingAccount] = await Promise.all([
       fetchMaybeAgentProfile(rpc, authorProfile).catch(() => null),
       fetchMaybeSkillListing(rpc, skillListing).catch(() => null),
@@ -609,7 +622,10 @@ async function assertOpenAuthorDisputeClusterReady(input: {
 }) {
   try {
     const authorProfile = await getAgentPDA(input.authorKey);
-    const authorDispute = await getAuthorDisputePDA(input.authorKey, input.disputeId);
+    const authorDispute = await getAuthorDisputePDA(
+      input.authorKey,
+      input.disputeId
+    );
     const configPda = await getConfigPDA();
     const [
       maybeAuthorProfile,
@@ -640,7 +656,8 @@ async function assertOpenAuthorDisputeClusterReady(input: {
       skillListingExists: !!maybeSkillListing?.exists,
       skillListingMatchesAuthor:
         !input.skillListing ||
-        (!!maybeSkillListing?.exists && maybeSkillListing.data.author === input.authorKey),
+        (!!maybeSkillListing?.exists &&
+          maybeSkillListing.data.author === input.authorKey),
       purchaseProvided: !!input.purchase,
       purchaseExists: !!maybePurchase?.exists,
       purchaseMatchesSkillListing:
@@ -649,7 +666,9 @@ async function assertOpenAuthorDisputeClusterReady(input: {
         (!!maybePurchase?.exists &&
           maybePurchase.data.skillListing === input.skillListing),
       walletBalanceLamports,
-      disputeBondLamports: maybeConfig?.exists ? BigInt(maybeConfig.data.disputeBond) : null,
+      disputeBondLamports: maybeConfig?.exists
+        ? BigInt(maybeConfig.data.disputeBond)
+        : null,
     });
     if (guardError) throw new ClusterGuardError(guardError);
   } catch (error) {
@@ -665,13 +684,17 @@ async function assertResolveAuthorDisputeClusterReady(input: {
 }) {
   try {
     const authorProfile = await getAgentPDA(input.authorKey);
-    const authorDispute = await getAuthorDisputePDA(input.authorKey, input.disputeId);
+    const authorDispute = await getAuthorDisputePDA(
+      input.authorKey,
+      input.disputeId
+    );
     const configPda = await getConfigPDA();
-    const [maybeAuthorProfile, maybeAuthorDispute, maybeConfig] = await Promise.all([
-      fetchMaybeAgentProfile(rpc, authorProfile).catch(() => null),
-      fetchMaybeAuthorDispute(rpc, authorDispute).catch(() => null),
-      fetchMaybeReputationConfig(rpc, configPda).catch(() => null),
-    ]);
+    const [maybeAuthorProfile, maybeAuthorDispute, maybeConfig] =
+      await Promise.all([
+        fetchMaybeAgentProfile(rpc, authorProfile).catch(() => null),
+        fetchMaybeAuthorDispute(rpc, authorDispute).catch(() => null),
+        fetchMaybeReputationConfig(rpc, configPda).catch(() => null),
+      ]);
 
     const guardError = getResolveAuthorDisputeClusterGuardError({
       walletAddress: input.walletAddress,
@@ -682,7 +705,8 @@ async function assertResolveAuthorDisputeClusterReady(input: {
         !!maybeAuthorDispute?.exists &&
         maybeAuthorDispute.data.status === AuthorDisputeStatus.Open,
       resolverAuthorized:
-        !!maybeConfig?.exists && maybeConfig.data.authority === input.walletAddress,
+        !!maybeConfig?.exists &&
+        maybeConfig.data.authority === input.walletAddress,
     });
     if (guardError) throw new ClusterGuardError(guardError);
   } catch (error) {
@@ -1218,9 +1242,14 @@ export function useReputationOracle() {
       if (skillListings.length === 0) return new Set<string>();
       try {
         const purchaseAddresses = await Promise.all(
-          skillListings.map((skillListing) => getPurchasePDA(buyer, skillListing))
+          skillListings.map((skillListing) =>
+            getPurchasePDA(buyer, skillListing)
+          )
         );
-        const maybePurchases = await fetchAllMaybePurchase(rpc, purchaseAddresses);
+        const maybePurchases = await fetchAllMaybePurchase(
+          rpc,
+          purchaseAddresses
+        );
 
         return new Set(
           skillListings
@@ -1382,9 +1411,12 @@ export function useReputationOracle() {
           authorKey
         );
         if (
-          purchaseEstimate.purchasePreflightStatus === "buyerInsufficientBalance"
+          purchaseEstimate.purchasePreflightStatus ===
+          "buyerInsufficientBalance"
         ) {
-          throw new Error(buildPurchaseBalanceError(walletAddress, purchaseEstimate));
+          throw new Error(
+            buildPurchaseBalanceError(walletAddress, purchaseEstimate)
+          );
         }
         if (
           purchaseEstimate.purchasePreflightStatus === "authorPayoutRentBlocked"

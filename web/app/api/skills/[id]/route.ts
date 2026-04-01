@@ -120,9 +120,10 @@ export async function GET(
       }
       const buyerHasPurchased =
         buyerAddress && BigInt(listing.data.priceLamports) > 0n
-          ? await hasOnChainPurchase(String(buyerAddress), listing.pubkey).catch(
-              () => false
-            )
+          ? await hasOnChainPurchase(
+              String(buyerAddress),
+              listing.pubkey
+            ).catch(() => false)
           : false;
 
       return NextResponse.json({
@@ -221,7 +222,9 @@ export async function GET(
     const preflightContext = await createPurchasePreflightContext({
       rpc,
       buyer: buyerAddress,
-      authors: isAddress(skill.author_pubkey) ? [address(skill.author_pubkey)] : [],
+      authors: isAddress(skill.author_pubkey)
+        ? [address(skill.author_pubkey)]
+        : [],
     });
     const preflight = serializePurchasePreflight(
       assessPurchasePreflight({

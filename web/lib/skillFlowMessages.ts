@@ -19,7 +19,10 @@ export function buildSignedDownloadErrorMessage(
   const normalizedMessage = message?.trim() || null;
   const combined = `${normalizedError ?? ""} ${normalizedMessage ?? ""}`.trim();
 
-  if (/payment required/i.test(combined) || /purchaseskill on-chain/i.test(combined)) {
+  if (
+    /payment required/i.test(combined) ||
+    /purchaseskill on-chain/i.test(combined)
+  ) {
     return buildPaidSkillDownloadRequiredMessage();
   }
 

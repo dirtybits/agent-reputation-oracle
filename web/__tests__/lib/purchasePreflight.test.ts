@@ -23,7 +23,9 @@ function createContext({
     buyerBalanceLamports,
     purchaseRentLamports: PURCHASE_RENT_LAMPORTS,
     systemAccountRentExemptLamports: SYSTEM_RENT_LAMPORTS,
-    authorBalanceLamportsByAddress: new Map([[String(AUTHOR), authorBalanceLamports]]),
+    authorBalanceLamportsByAddress: new Map([
+      [String(AUTHOR), authorBalanceLamports],
+    ]),
   };
 }
 

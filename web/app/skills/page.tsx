@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from "react";
 import { useWalletConnection } from "@solana/react-hooks";
 import { type Address } from "@solana/kit";
 import Link from "next/link";
@@ -119,7 +126,9 @@ function formatDate(ts: number): string {
   return new Date(ts * 1000).toLocaleDateString();
 }
 
-function isBlockingPurchaseStatus(status: PurchasePreflightStatus | null | undefined) {
+function isBlockingPurchaseStatus(
+  status: PurchasePreflightStatus | null | undefined
+) {
   return (
     status === "buyerInsufficientBalance" ||
     status === "authorPayoutRentBlocked"
@@ -155,16 +164,16 @@ export default function MarketplacePage() {
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
   const [purchaseStatusReady, setPurchaseStatusReady] = useState(false);
-  const [purchaseStatusWarning, setPurchaseStatusWarning] = useState<string | null>(
-    null
-  );
+  const [purchaseStatusWarning, setPurchaseStatusWarning] = useState<
+    string | null
+  >(null);
 
   // My data
   const [myPurchases, setMyPurchases] = useState<PurchaseData[]>([]);
   const [myListings, setMyListings] = useState<SkillListingData[]>([]);
-  const [myListingDetails, setMyListingDetails] = useState<Map<string, SkillRow>>(
-    new Map()
-  );
+  const [myListingDetails, setMyListingDetails] = useState<
+    Map<string, SkillRow>
+  >(new Map());
   const purchaseStateWalletRef = useRef<string | null>(null);
 
   // Feed state
@@ -288,13 +297,16 @@ export default function MarketplacePage() {
       return;
     }
     try {
-      const [purchases, authorListings, authoredSkillsResponse] = await Promise.all([
-        oracle.getPurchasesByBuyer(publicKey),
-        oracle.getSkillListingsByAuthor(publicKey),
-        fetch(
-          `/api/skills?author=${encodeURIComponent(String(publicKey))}&sort=newest`
-        ),
-      ]);
+      const [purchases, authorListings, authoredSkillsResponse] =
+        await Promise.all([
+          oracle.getPurchasesByBuyer(publicKey),
+          oracle.getSkillListingsByAuthor(publicKey),
+          fetch(
+            `/api/skills?author=${encodeURIComponent(
+              String(publicKey)
+            )}&sort=newest`
+          ),
+        ]);
       const authoredSkillsData: ApiResponse | null = authoredSkillsResponse.ok
         ? await authoredSkillsResponse.json()
         : null;
@@ -354,7 +366,13 @@ export default function MarketplacePage() {
         );
       }
     }
-  }, [listings, oracle, publicKey, purchaseStatusReady, purchasedSkillListingKeys.size]);
+  }, [
+    listings,
+    oracle,
+    publicKey,
+    purchaseStatusReady,
+    purchasedSkillListingKeys.size,
+  ]);
 
   useEffect(() => {
     fetchSkills();
@@ -552,8 +570,8 @@ export default function MarketplacePage() {
               <FiAlertTriangle />
             </span>
             <span className="text-amber-800 dark:text-amber-200 text-sm">
-              {purchaseStatusWarning} Purchased badges may be incomplete until the
-              status refresh succeeds.
+              {purchaseStatusWarning} Purchased badges may be incomplete until
+              the status refresh succeeds.
             </span>
           </div>
         )}
@@ -638,7 +656,9 @@ export default function MarketplacePage() {
                         (skill.total_downloads ?? 0);
                       const listing = getListingForSkill(skill);
                       const hasPurchased = listing
-                        ? purchasedSkillListingKeys.has(String(listing.publicKey))
+                        ? purchasedSkillListingKeys.has(
+                            String(listing.publicKey)
+                          )
                         : false;
                       const isOwn =
                         publicKey &&
@@ -650,7 +670,7 @@ export default function MarketplacePage() {
                         skill.creatorPriceLamports ??
                         (listing
                           ? Number(listing.account.priceLamports)
-                          : (skill.price_lamports ?? 0));
+                          : skill.price_lamports ?? 0);
                       const estimatedTotal =
                         skill.estimatedBuyerTotalLamports ?? creatorPrice;
                       const purchasePreflightStatus =
@@ -684,7 +704,8 @@ export default function MarketplacePage() {
                                     </span>
                                     <span className="mt-1 text-[10px] text-gray-400 dark:text-gray-500 font-medium">
                                       Creator{" "}
-                                      {fromLamports(creatorPrice).toFixed(3)} SOL
+                                      {fromLamports(creatorPrice).toFixed(3)}{" "}
+                                      SOL
                                     </span>
                                   </div>
                                 ) : (
@@ -1166,8 +1187,9 @@ export default function MarketplacePage() {
                               </p>
                               <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                                 Buyers currently see an estimated total of{" "}
-                                {formatSol(estimatedBuyerTotal)} SOL, but purchases
-                                will fail until this payout wallet holds enough SOL.
+                                {formatSol(estimatedBuyerTotal)} SOL, but
+                                purchases will fail until this payout wallet
+                                holds enough SOL.
                               </p>
                             </div>
                           </div>

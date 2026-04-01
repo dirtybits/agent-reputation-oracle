@@ -100,7 +100,10 @@ export async function GET(
                 error: "Purchase not found on-chain for this wallet",
                 requirement,
               },
-              { status: 402, headers: { "X-Payment": JSON.stringify(requirement) } }
+              {
+                status: 402,
+                headers: { "X-Payment": JSON.stringify(requirement) },
+              }
             );
           }
 

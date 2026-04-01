@@ -751,8 +751,8 @@ export default function AuthorProfilePage() {
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   Open a first-class author dispute. The protocol will snapshot
-                  this author&apos;s full current backing set automatically, and an
-                  upheld report will slash that snapshotted backing.
+                  this author&apos;s full current backing set automatically, and
+                  an upheld report will slash that snapshotted backing.
                 </p>
               </div>
 

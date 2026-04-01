@@ -25,7 +25,9 @@ function createMockSigner(): TransactionSigner {
   } as TransactionSigner;
 }
 
-function collectSignerRefs(request: ReturnType<typeof buildTransactionSendRequest>) {
+function collectSignerRefs(
+  request: ReturnType<typeof buildTransactionSendRequest>
+) {
   const instructionSigners = request.instructions[0].accounts
     .map((account) => ("signer" in account ? account.signer : undefined))
     .filter(Boolean);

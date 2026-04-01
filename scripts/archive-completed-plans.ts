@@ -30,7 +30,9 @@ function getTodoStatuses(frontmatter: string): string[] {
   });
 }
 
-function getPlanStatus(filePath: string): Pick<PlanRecord, "status" | "todoCount"> {
+function getPlanStatus(
+  filePath: string
+): Pick<PlanRecord, "status" | "todoCount"> {
   const text = fs.readFileSync(filePath, "utf8");
   const frontmatter = extractFrontmatter(text);
 
@@ -98,14 +100,18 @@ function main() {
     }
 
     if (dryRun) {
-      console.log(`dry-run ${plan.fileName} -> .cursor/plans/archive/${plan.fileName}`);
+      console.log(
+        `dry-run ${plan.fileName} -> .cursor/plans/archive/${plan.fileName}`
+      );
       movedCount += 1;
       continue;
     }
 
     fs.renameSync(plan.sourcePath, plan.destinationPath);
     movedCount += 1;
-    console.log(`moved ${plan.fileName} -> .cursor/plans/archive/${plan.fileName}`);
+    console.log(
+      `moved ${plan.fileName} -> .cursor/plans/archive/${plan.fileName}`
+    );
   }
 
   if (dryRun) {
@@ -115,7 +121,9 @@ function main() {
     return;
   }
 
-  console.log(`Archive complete. ${movedCount} plan(s) moved, ${skippedCount} skipped.`);
+  console.log(
+    `Archive complete. ${movedCount} plan(s) moved, ${skippedCount} skipped.`
+  );
 }
 
 main();

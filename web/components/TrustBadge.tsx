@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  FiShield,
-  FiUsers,
-  FiAlertTriangle,
-} from "react-icons/fi";
+import { FiShield, FiUsers, FiAlertTriangle } from "react-icons/fi";
 import { LiaCoinsSolid } from "react-icons/lia";
 import { formatSolAmount } from "@/lib/pricing";
 

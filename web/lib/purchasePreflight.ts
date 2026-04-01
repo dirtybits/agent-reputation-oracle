@@ -118,26 +118,29 @@ export async function createPurchasePreflightContext({
 }): Promise<PurchasePreflightContext> {
   const uniqueAuthors = [...new Set(authors.map(String))] as Address[];
 
-  const [buyerBalanceLamports, purchaseRentLamports, systemAccountRentExemptLamports] =
-    await Promise.all([
-      buyer
-        ? (rpc as any)
-            .getBalance(buyer)
-            .send()
-            .then(coerceLamports)
-            .catch(() => null)
-        : Promise.resolve(null),
-      (rpc as any)
-        .getMinimumBalanceForRentExemption(PURCHASE_ACCOUNT_SPACE)
-        .send()
-        .then(coerceLamports)
-        .catch(() => null),
-      (rpc as any)
-        .getMinimumBalanceForRentExemption(0)
-        .send()
-        .then(coerceLamports)
-        .catch(() => null),
-    ]);
+  const [
+    buyerBalanceLamports,
+    purchaseRentLamports,
+    systemAccountRentExemptLamports,
+  ] = await Promise.all([
+    buyer
+      ? (rpc as any)
+          .getBalance(buyer)
+          .send()
+          .then(coerceLamports)
+          .catch(() => null)
+      : Promise.resolve(null),
+    (rpc as any)
+      .getMinimumBalanceForRentExemption(PURCHASE_ACCOUNT_SPACE)
+      .send()
+      .then(coerceLamports)
+      .catch(() => null),
+    (rpc as any)
+      .getMinimumBalanceForRentExemption(0)
+      .send()
+      .then(coerceLamports)
+      .catch(() => null),
+  ]);
 
   const authorBalanceLamportsByAddress = new Map<string, bigint | null>();
 

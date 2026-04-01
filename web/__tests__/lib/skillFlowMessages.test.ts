@@ -31,7 +31,8 @@ describe("skillFlowMessages", () => {
   });
 
   it("builds a paid download message with the configured network", () => {
-    process.env.NEXT_PUBLIC_SOLANA_RPC_URL = "https://api.mainnet-beta.solana.com";
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL =
+      "https://api.mainnet-beta.solana.com";
 
     expect(buildPaidSkillDownloadRequiredMessage()).toContain(
       "configured Solana (mainnet RPC)"
@@ -51,7 +52,10 @@ describe("skillFlowMessages", () => {
 
   it("preserves non-payment download errors", () => {
     expect(
-      buildSignedDownloadErrorMessage("Malformed X-AgentVouch-Auth header", null)
+      buildSignedDownloadErrorMessage(
+        "Malformed X-AgentVouch-Auth header",
+        null
+      )
     ).toBe("Malformed X-AgentVouch-Auth header");
   });
 });

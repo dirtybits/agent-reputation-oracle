@@ -32,7 +32,9 @@ describe("useReputationOracle source", () => {
     );
 
     expect(source).toContain("estimatePurchasePreflight");
-    expect(source).toContain("purchasePreflightStatus === \"authorPayoutRentBlocked\"");
+    expect(source).toContain(
+      'purchasePreflightStatus === "authorPayoutRentBlocked"'
+    );
     expect(source).toContain("buildPurchaseBalanceError");
   });
 
@@ -44,7 +46,7 @@ describe("useReputationOracle source", () => {
 
     expect(source).toContain("export function normalizeInstructionForSend");
     expect(source).toContain("export function buildTransactionSendRequest");
-    expect(source).toContain('signer?: TransactionSigner');
+    expect(source).toContain("signer?: TransactionSigner");
     expect(source).toContain('"signer" in acc && acc.signer');
     expect(source).toContain("authority: signer");
   });
@@ -55,7 +57,9 @@ describe("useReputationOracle source", () => {
       "utf8"
     );
 
-    expect(source).toContain("await assertRegisterAgentClusterReady(walletAddress)");
+    expect(source).toContain(
+      "await assertRegisterAgentClusterReady(walletAddress)"
+    );
     expect(source).toContain("await assertResolveAuthorDisputeClusterReady({");
     expect(source).toContain("await assertOpenAuthorDisputeClusterReady({");
     expect(source).toContain("await assertSkillListingClusterReady({");

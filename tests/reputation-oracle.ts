@@ -319,5 +319,4 @@ describe("reputation-oracle", () => {
       expectedTotalStaked.toString()
     );
   });
-
 });

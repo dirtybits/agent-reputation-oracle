@@ -63,7 +63,8 @@ describe("chains", () => {
   });
 
   it("derives configured Solana labels and explorer URLs for mainnet", () => {
-    process.env.NEXT_PUBLIC_SOLANA_RPC_URL = "https://api.mainnet-beta.solana.com";
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL =
+      "https://api.mainnet-beta.solana.com";
 
     expect(getConfiguredSolanaChainDisplayLabel()).toBe("Solana");
     expect(getConfiguredSolanaRpcTargetLabel()).toBe("mainnet");
