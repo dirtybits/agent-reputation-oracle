@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Image, { type ImageLoader } from "next/image";
 import { useWalletConnection } from "@solana/react-hooks";
 import {
   ConnectButton,
@@ -11,7 +12,6 @@ import {
 import { usePhantomConfigured } from "./WalletContextProvider";
 import { useMounted } from "@/hooks/useMounted";
 import {
-  navButtonInlineClass,
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
 } from "@/lib/buttonStyles";
@@ -21,6 +21,39 @@ const walletTriggerClass = navButtonPrimaryInlineClass;
 const walletMenuButtonClass = `w-full ${navButtonSecondaryInlineClass} justify-start`;
 type WalletConnector = (ReturnType<typeof useWalletConnection>["connectors"])[number];
 type PhantomAccount = NonNullable<ReturnType<typeof useAccounts>>[number];
+
+const passthroughImageLoader: ImageLoader = ({ src }) => src;
+
+function WalletIconImage({
+  src,
+  alt,
+  size,
+  className,
+  hideOnError = false,
+}: {
+  src: string;
+  alt: string;
+  size: number;
+  className?: string;
+  hideOnError?: boolean;
+}) {
+  const [hidden, setHidden] = useState(false);
+
+  if (!src || hidden) return null;
+
+  return (
+    <Image
+      loader={passthroughImageLoader}
+      unoptimized
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      className={className}
+      onError={hideOnError ? () => setHidden(true) : undefined}
+    />
+  );
+}
 
 function isMobile(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -79,9 +112,10 @@ function WalletDropdown({
                   className={`${walletMenuButtonClass} flex items-center gap-3`}
                 >
                   {connector.icon && (
-                    <img
+                    <WalletIconImage
                       src={connector.icon}
                       alt=""
+                      size={20}
                       className="w-5 h-5 rounded"
                     />
                   )}
@@ -107,9 +141,10 @@ function WalletDropdown({
                     onClick={() => setShowMenu(false)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition text-sm font-semibold text-purple-700 dark:text-purple-300"
                   >
-                    <img
+                    <WalletIconImage
                       src={PHANTOM_ICON}
                       alt="Phantom"
+                      size={16}
                       className="w-4 h-4 rounded"
                     />
                     Open in Phantom
@@ -122,9 +157,10 @@ function WalletDropdown({
                   onClick={() => setShowMenu(false)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  <img
+                  <WalletIconImage
                     src={PHANTOM_ICON}
                     alt="Phantom"
+                    size={16}
                     className="w-4 h-4 rounded"
                   />
                   Get Phantom
@@ -136,13 +172,12 @@ function WalletDropdown({
                   onClick={() => setShowMenu(false)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  <img
+                  <WalletIconImage
                     src="https://www.backpack.app/favicon.ico"
                     alt="Backpack"
+                    size={16}
                     className="w-4 h-4 rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
+                    hideOnError
                   />
                   Get Backpack
                 </a>
@@ -153,13 +188,12 @@ function WalletDropdown({
                   onClick={() => setShowMenu(false)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  <img
+                  <WalletIconImage
                     src="https://solflare.com/favicon.ico"
                     alt="Solflare"
+                    size={16}
                     className="w-4 h-4 rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
+                    hideOnError
                   />
                   Get Solflare
                 </a>
