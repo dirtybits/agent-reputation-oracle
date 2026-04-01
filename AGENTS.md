@@ -15,7 +15,7 @@
 
 ## Learned Workspace Facts
 
-- `web/` is the Next.js app and `programs/reputation-oracle/` is the on-chain Solana program; if both the repo root and `web/` have a `package-lock.json`, set Next.js `turbopack.root` or consolidate lockfiles so Turbopack does not infer the wrong workspace root.
+- `web/` is the Next.js app and `programs/reputation-oracle/` is the on-chain Solana program; if both the repo root and `web/` have a `package-lock.json`, set Next.js `turbopack.root` or consolidate lockfiles so Turbopack does not infer the wrong workspace root. Release and CI checks should run `npm ci` at the repo root and separately under `web/` when both have lockfiles, because root `package.json` / `package-lock.json` drift can make root `npm ci` fail while `web/npm ci` still passes.
 - Use CAIP-2 as the canonical stored chain/network label format across docs and schema design; treat `solana`, `solana:mainnet`, and `solana:mainnet-beta` as legacy aliases only, and preserve non-CAIP upstream labels separately.
 - Trust signals are core to the product and should stay prominent across skill discovery and detail surfaces; keep `/skills` and `/api/skills/*` as the canonical skill routes, use `Marketplace` as the user-facing label, and treat `/marketplace` as a legacy redirect. On author and skill trust surfaces, separate voucher-side dispute outcomes from author-wide report outcomes with plain labels (for example Backing Record), not protocol jargon like As Voucher.
 - Prefer a tighter, sharper UI aesthetic with compact spacing and `rounded-md` corners over softer SaaS-style radii, especially on compact action cards; primary actions use `#fd522e` (lobster-strong) with muted sea-blue secondary accents, kept aligned with the logo and favicon.
