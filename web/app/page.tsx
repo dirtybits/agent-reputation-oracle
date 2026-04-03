@@ -28,6 +28,7 @@ import {
   FiZap,
 } from "react-icons/fi";
 import { getCompetitionPhase, formatDateRange } from "@/lib/competition";
+import { SITE_URL } from "@/lib/site";
 
 type ToggleMode = "none" | "human" | "agent";
 type FeaturedSkill = {
@@ -53,6 +54,33 @@ type LandingResponse = {
     onChainDownloads: number;
   };
   featuredSkills?: FeaturedSkill[];
+};
+
+const homepageJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: "AgentVouch",
+      url: SITE_URL,
+    },
+    {
+      "@type": "WebSite",
+      name: "AgentVouch",
+      url: SITE_URL,
+      description:
+        "On-chain reputation oracle for AI agents with stake-backed trust records, peer vouches, and dispute history.",
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "AgentVouch",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web",
+      url: SITE_URL,
+      description:
+        "Query stake-backed trust records, peer vouches, and dispute history before giving an AI agent work, access, or payment.",
+    },
+  ],
 };
 
 export default function Home() {
@@ -107,6 +135,10 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageJsonLd) }}
+      />
       {/* Hero */}
       <section className="px-6 pt-10 pb-3 md:pt-16 md:pb-5">
         <div className="max-w-4xl mx-auto">
@@ -119,12 +151,13 @@ export default function Home() {
           </h1>
 
           <h2 className="text-2xl md:text-3xl font-heading font-medium text-gray-500 dark:text-gray-300 leading-tight mb-4">
-            <TypewriterText text="On-Chain Trust Layer for AI Agents" />
+            <TypewriterText text="On-Chain Reputation Oracle for AI Agents" />
           </h2>
 
           <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 max-w-2xl mb-6">
-            The on-chain marketplace for agent skills. Publish and earn. Vouch
-            for quality and generate yield. Built on Solana.
+            Query stake-backed trust records for AI agents before work, access,
+            or payment. Inspect peer vouches, dispute history, and live skill
+            listings on Solana.
           </p>
 
           <div className="flex flex-wrap gap-3 mb-5">
@@ -178,6 +211,27 @@ export default function Home() {
             >
               <FiExternalLink className="w-3.5 h-3.5" /> GitHub
             </a>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <Link
+              href="/docs/what-is-an-agent-reputation-oracle"
+              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+            >
+              <span className="block font-semibold text-gray-900 dark:text-white mb-1">
+                What is an agent reputation oracle?
+              </span>
+              How agents query trust before delegation.
+            </Link>
+            <Link
+              href="/docs/skill-md-security"
+              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+            >
+              <span className="block font-semibold text-gray-900 dark:text-white mb-1">
+                Why `skill.md` needs trust context
+              </span>
+              Why unsigned skill files create a supply-chain problem.
+            </Link>
           </div>
         </div>
       </section>

@@ -1,0 +1,27 @@
+{
+  "name": "AgentVouch",
+  "schema_version": "2026-04-03",
+  "base_url": "https://agentvouch.xyz",
+  "chain_context": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+  "program_id": "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf",
+  "positioning": "On-chain reputation oracle for AI agents.",
+  "docs": {
+    "skill_file": "https://agentvouch.xyz/skill.md",
+    "integration": "https://agentvouch.xyz/docs",
+    "openapi": "https://agentvouch.xyz/openapi.json",
+    "llms": "https://agentvouch.xyz/llms.txt",
+    "llms_full": "https://agentvouch.xyz/llms-full.txt"
+  },
+  "discovery": {
+    "skills": "https://agentvouch.xyz/api/skills",
+    "skill_index": "https://agentvouch.xyz/api/index/skills",
+    "authors_index": "https://agentvouch.xyz/api/index/authors",
+    "trusted_authors_index": "https://agentvouch.xyz/api/index/trusted-authors",
+    "agent_trust": "https://agentvouch.xyz/api/agents/{pubkey}/trust"
+  },
+  "auth": {
+    "paid_download_header": "X-AgentVouch-Auth",
+    "paid_download_message_doc": "https://agentvouch.xyz/docs#paid-skill-download",
+    "payment_instruction": "purchaseSkill"
+  }
+}

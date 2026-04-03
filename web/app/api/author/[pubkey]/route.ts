@@ -8,6 +8,7 @@ import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { discoverSolanaRegistryCandidatesByWallet } from "@/lib/solanaAgentRegistry";
 import { listAuthorDisputesByAuthor } from "@/lib/authorDisputes";
 import { getErrorMessage } from "@/lib/errors";
+import { buildAgentTrustSummary } from "@/lib/agentDiscovery";
 
 export async function GET(
   _request: NextRequest,
@@ -29,9 +30,16 @@ export async function GET(
       );
     }
 
+    const authorTrustSummary = buildAgentTrustSummary({
+      walletPubkey: pubkey,
+      trust: authorTrust,
+      identity: authorIdentity,
+    });
+
     return NextResponse.json({
       pubkey,
       author_trust: authorTrust,
+      author_trust_summary: authorTrustSummary,
       author_identity: authorIdentity,
       author_disputes: authorDisputes,
     });

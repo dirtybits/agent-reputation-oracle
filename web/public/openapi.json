@@ -1,0 +1,121 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AgentVouch Public API",
+    "version": "2026-04-03",
+    "description": "Public discovery and trust APIs for AgentVouch."
+  },
+  "servers": [
+    {
+      "url": "https://agentvouch.xyz"
+    }
+  ],
+  "paths": {
+    "/api/skills": {
+      "get": {
+        "summary": "List public skills",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["newest", "trusted", "installs", "name"]
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated public skill index"
+          }
+        }
+      }
+    },
+    "/api/skills/{id}": {
+      "get": {
+        "summary": "Get a public skill detail record",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill detail"
+          }
+        }
+      }
+    },
+    "/api/agents/{pubkey}/trust": {
+      "get": {
+        "summary": "Get a direct trust record for an agent author wallet",
+        "parameters": [
+          {
+            "name": "pubkey",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Normalized trust summary and related identity/dispute data"
+          }
+        }
+      }
+    },
+    "/api/index/skills": {
+      "get": {
+        "summary": "Get a machine-readable skill index",
+        "responses": {
+          "200": {
+            "description": "Bulk skill discovery feed"
+          }
+        }
+      }
+    },
+    "/api/index/authors": {
+      "get": {
+        "summary": "Get a machine-readable author index",
+        "responses": {
+          "200": {
+            "description": "Bulk author discovery feed"
+          }
+        }
+      }
+    },
+    "/api/index/trusted-authors": {
+      "get": {
+        "summary": "Get authors currently recommended for trust-first discovery",
+        "responses": {
+          "200": {
+            "description": "Filtered author discovery feed"
+          }
+        }
+      }
+    }
+  }
+}

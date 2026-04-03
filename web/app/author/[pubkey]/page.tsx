@@ -910,7 +910,7 @@ export default function AuthorProfilePage() {
             </Link>
             <div>
               <h1 className="text-2xl md:text-3xl font-heading font-bold text-gray-900 dark:text-white">
-                Author Profile
+                Author Trust Record
               </h1>
               <button
                 onClick={copyPubkey}
@@ -923,6 +923,18 @@ export default function AuthorProfilePage() {
                   <FiCopy className="w-3.5 h-3.5" />
                 )}
               </button>
+              <p className="mt-3 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+                Review this author&apos;s on-chain trust record, backing stake,
+                disputes, and published skills before giving them work, access,
+                or payment. Need context? Read{" "}
+                <Link
+                  href="/docs/verify-ai-agents"
+                  className="text-[var(--lobster-accent)] hover:underline"
+                >
+                  how to verify an AI agent
+                </Link>
+                .
+              </p>
             </div>
           </div>
         </div>

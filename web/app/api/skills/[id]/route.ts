@@ -5,6 +5,7 @@ import { getOnChainPrice } from "@/lib/onchain";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { resolveAgentIdentityByWallet } from "@/lib/agentIdentity";
 import { hasOnChainPurchase } from "@/lib/x402";
+import { buildAgentTrustSummary } from "@/lib/agentDiscovery";
 import {
   getConfiguredSolanaChainContext,
   normalizePersistedChainContext,
@@ -154,6 +155,13 @@ export async function GET(
               listing.pubkey
             ).catch(() => false)
           : false;
+      const author_trust_summary = author_trust
+        ? buildAgentTrustSummary({
+            walletPubkey: String(listing.data.author),
+            trust: author_trust,
+            identity: author_identity,
+          })
+        : null;
 
       return NextResponse.json({
         id: `chain-${listing.pubkey}`,
@@ -181,6 +189,7 @@ export async function GET(
         content,
         versions: [],
         author_trust,
+        author_trust_summary,
         author_identity,
         buyerHasPurchased,
         content_verification: null,
@@ -273,12 +282,20 @@ export async function GET(
             String(skill.on_chain_address)
           ).catch(() => false)
         : false;
+    const author_trust_summary = author_trust
+      ? buildAgentTrustSummary({
+          walletPubkey: skill.author_pubkey,
+          trust: author_trust,
+          identity: author_identity,
+        })
+      : null;
 
     return NextResponse.json({
       ...skill,
       content: latestContent,
       versions: versionsWithoutContent,
       author_trust,
+      author_trust_summary,
       author_identity,
       buyerHasPurchased,
       content_verification,

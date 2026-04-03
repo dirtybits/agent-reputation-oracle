@@ -698,6 +698,24 @@ export default function SkillDetailPage({
                 {skill.description}
               </p>
             )}
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+              Before you install or pay, inspect the author&apos;s trust record.
+              See{" "}
+              <Link
+                href="/docs/verify-ai-agents"
+                className="text-[var(--lobster-accent)] hover:underline"
+              >
+                how to verify an AI agent
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/docs/skill-md-security"
+                className="text-[var(--lobster-accent)] hover:underline"
+              >
+                why `skill.md` needs trust context
+              </Link>
+              .
+            </p>
           </div>
         </div>
 

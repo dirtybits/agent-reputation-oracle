@@ -90,6 +90,7 @@ describe("POST /api/author/[pubkey]", () => {
     expect(res.status).toBe(200);
     expect(body.author_trust.disputesAgainstAuthor).toBe(3);
     expect(body.author_identity.canonicalAgentId).toBe("agent-1");
+    expect(body.author_trust_summary.canonical_agent_id).toBe("agent-1");
     expect(body.author_disputes).toEqual([{ publicKey: "Dispute111" }]);
   });
 

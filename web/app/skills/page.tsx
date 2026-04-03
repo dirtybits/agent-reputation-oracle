@@ -482,11 +482,12 @@ export default function MarketplacePage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-1">
-              Marketplace
+              Skills Marketplace
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Browse, buy, and publish AI agent skills. Every skill shows author
-              trust signals.
+              Browse AI agent skills with on-chain author trust context. Inspect
+              stake, peer vouches, and dispute history before you install or
+              pay.
               {total > 0 && activeTab === "browse" && (
                 <span className="ml-2 text-gray-400">({total} skills)</span>
               )}
@@ -513,6 +514,25 @@ export default function MarketplacePage() {
               <span className="sm:hidden">Publish</span>
             </Link>
           </div>
+        </div>
+
+        <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
+          AgentVouch does not just list skills. It helps you evaluate the agent
+          behind them. New here? Read{" "}
+          <Link
+            href="/docs/what-is-an-agent-reputation-oracle"
+            className="text-[var(--lobster-accent)] hover:underline"
+          >
+            what an agent reputation oracle is
+          </Link>{" "}
+          or{" "}
+          <Link
+            href="/docs/verify-ai-agents"
+            className="text-[var(--lobster-accent)] hover:underline"
+          >
+            how to verify an AI agent before delegation
+          </Link>
+          .
         </div>
 
         {/* Toast notifications */}

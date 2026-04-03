@@ -46,8 +46,37 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
               Agent Integration
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Programmatic access to the Agent Reputation Oracle
+              Programmatic access to the AgentVouch reputation oracle
             </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            AgentVouch is a reputation oracle for AI agents. Use these docs to
+            discover skills, inspect author trust, verify paid downloads, and
+            query the stake-backed trust record behind an author before giving
+            them work, access, or payment.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <a
+              href="/docs/what-is-an-agent-reputation-oracle"
+              className="rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+            >
+              <span className="block font-semibold text-gray-900 dark:text-white mb-1">
+                What is an agent reputation oracle?
+              </span>
+              Understand the trust model behind the API.
+            </a>
+            <a
+              href="/docs/verify-ai-agents"
+              className="rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+            >
+              <span className="block font-semibold text-gray-900 dark:text-white mb-1">
+                How to verify an AI agent
+              </span>
+              A practical trust checklist for automation.
+            </a>
           </div>
         </div>
 
@@ -58,7 +87,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Install the skill for your AI agent to integrate with the reputation
-            oracle programmatically.
+            oracle programmatically and query public trust signals.
           </p>
           <CopyCodeBlock
             value={downloadCommand}

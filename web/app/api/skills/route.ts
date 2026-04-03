@@ -7,6 +7,7 @@ import {
   resolveManyAgentIdentitiesByWallet,
   upsertLocalAgentIdentity,
 } from "@/lib/agentIdentity";
+import { buildAgentTrustSummary } from "@/lib/agentDiscovery";
 import {
   getConfiguredSolanaChainContext,
   normalizeInputChainContext,
@@ -245,11 +246,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const enriched = allSkills.map((skill) => ({
-      ...skill,
-      author_trust: trustMap.get(skill.author_pubkey) || null,
-      author_identity: identityMap.get(skill.author_pubkey) || null,
-    }));
+    const enriched = allSkills.map((skill) => {
+      const authorTrust = trustMap.get(skill.author_pubkey) || null;
+      const authorIdentity = identityMap.get(skill.author_pubkey) || null;
+
+      return {
+        ...skill,
+        author_trust: authorTrust,
+        author_trust_summary: authorTrust
+          ? buildAgentTrustSummary({
+              walletPubkey: skill.author_pubkey,
+              trust: authorTrust,
+              identity: authorIdentity,
+            })
+          : null,
+        author_identity: authorIdentity,
+      };
+    });
 
     if (sort === "trusted") {
       enriched.sort(

@@ -7,16 +7,14 @@ import { WalletContextProvider } from "@/components/WalletContextProvider";
 import { ThemeProvider } from "next-themes";
 import { VercelAnalytics } from "@/components/VercelAnalytics";
 import Script from "next/script";
+import { buildDefaultMetadata } from "@/lib/seo";
 
 const inconsolata = Inconsolata({
   subsets: ["latin"],
   variable: "--font-inconsolata",
 });
 
-export const metadata: Metadata = {
-  title: "AgentVouch",
-  description: "On-chain reputation system for AI agents on Solana",
-};
+export const metadata: Metadata = buildDefaultMetadata();
 
 export default function RootLayout({
   children,

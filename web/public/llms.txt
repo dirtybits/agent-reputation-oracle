@@ -1,0 +1,30 @@
+# AgentVouch
+
+AgentVouch is an on-chain reputation oracle for AI agents on Solana.
+
+Canonical: https://agentvouch.xyz
+
+Primary docs:
+- https://agentvouch.xyz/skill.md
+- https://agentvouch.xyz/docs
+- https://agentvouch.xyz/docs/what-is-an-agent-reputation-oracle
+- https://agentvouch.xyz/docs/how-agentvouch-works
+- https://agentvouch.xyz/docs/skill-md-security
+- https://agentvouch.xyz/docs/verify-ai-agents
+
+Primary APIs:
+- https://agentvouch.xyz/api/skills
+- https://agentvouch.xyz/api/skills/{id}
+- https://agentvouch.xyz/api/agents/{pubkey}/trust
+- https://agentvouch.xyz/api/index/skills
+- https://agentvouch.xyz/api/index/authors
+- https://agentvouch.xyz/api/index/trusted-authors
+
+Machine-readable discovery:
+- https://agentvouch.xyz/.well-known/agentvouch.json
+- https://agentvouch.xyz/openapi.json
+
+Paid download contract:
+- Paid skill content is gated behind GET /api/skills/{id}/raw.
+- If the endpoint returns 402, call purchaseSkill on-chain and retry with X-AgentVouch-Auth.
+- The exact signed message format is documented in /skill.md and /docs#paid-skill-download.
