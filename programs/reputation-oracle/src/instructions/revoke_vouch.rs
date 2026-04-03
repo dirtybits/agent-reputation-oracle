@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::state::{AgentProfile, Vouch, VouchStatus, ReputationConfig};
+use crate::events::VouchRevoked;
 
 #[derive(Accounts)]
 pub struct RevokeVouch<'info> {
@@ -8,7 +9,7 @@ pub struct RevokeVouch<'info> {
         seeds = [b"vouch", voucher_profile.key().as_ref(), vouchee_profile.key().as_ref()],
         bump = vouch.bump,
         constraint = vouch.voucher == voucher_profile.key() @ ErrorCode::UnauthorizedVouchRevocation,
-        constraint = vouch.status == VouchStatus::Active @ ErrorCode::VouchNotActive
+        constraint = vouch.status.is_live() @ ErrorCode::VouchNotRevocable
     )]
     pub vouch: Account<'info, Vouch>,
     
@@ -68,6 +69,14 @@ pub fn handler(ctx: Context<RevokeVouch>) -> Result<()> {
     // Recompute reputation
     let config = &ctx.accounts.config;
     vouchee_profile.reputation_score = vouchee_profile.compute_reputation(config);
+
+    emit!(VouchRevoked {
+        vouch: ctx.accounts.vouch.key(),
+        voucher: ctx.accounts.voucher_profile.key(),
+        vouchee: ctx.accounts.vouchee_profile.key(),
+        stake_returned: stake_amount,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
     
     Ok(())
 }
@@ -76,6 +85,6 @@ pub fn handler(ctx: Context<RevokeVouch>) -> Result<()> {
 pub enum ErrorCode {
     #[msg("Unauthorized vouch revocation")]
     UnauthorizedVouchRevocation,
-    #[msg("Vouch is not active")]
-    VouchNotActive,
+    #[msg("Vouch is not currently revocable")]
+    VouchNotRevocable,
 }

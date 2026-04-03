@@ -36,7 +36,6 @@ pub fn handler(
     // Default reputation weights
     config.stake_weight = 1;
     config.vouch_weight = 100;
-    config.dispute_penalty = 500;
     config.longevity_bonus = 10;
     
     config.bump = ctx.bumps.config;

@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inconsolata } from "next/font/google";
 import "./globals.css";
+import { AppFooter } from "@/components/AppFooter";
+import { AppNavbar } from "@/components/AppNavbar";
 import { WalletContextProvider } from "@/components/WalletContextProvider";
+import { ThemeProvider } from "next-themes";
+import { VercelAnalytics } from "@/components/VercelAnalytics";
+import Script from "next/script";
 
-const inter = Inter({ subsets: ["latin"] });
+const inconsolata = Inconsolata({
+  subsets: ["latin"],
+  variable: "--font-inconsolata",
+});
 
 export const metadata: Metadata = {
-  title: "Agent Reputation Oracle",
+  title: "AgentVouch",
   description: "On-chain reputation system for AI agents on Solana",
 };
 
@@ -16,11 +24,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <WalletContextProvider>
-          {children}
-        </WalletContextProvider>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-EKFE31B4TJ"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-EKFE31B4TJ');
+          `}
+        </Script>
+      </head>
+      <body className={`${inconsolata.variable} font-mono`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+        >
+          <WalletContextProvider>
+            <AppNavbar />
+            {children}
+            <AppFooter />
+          </WalletContextProvider>
+        </ThemeProvider>
+        <VercelAnalytics />
       </body>
     </html>
   );

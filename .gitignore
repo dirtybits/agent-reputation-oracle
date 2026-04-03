@@ -1,27 +1,54 @@
+# dependencies
+node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# anchor / solana
 .anchor
-.DS_Store
 target
 **/*.rs.bk
-node_modules
 test-ledger
-.yarn
-.vercel
 
-# OpenClaw workspace configuration (local only)
-AGENTS.md
-SOUL.md
-USER.md
-IDENTITY.md
-MEMORY.md
-HEARTBEAT.md
-BOOTSTRAP.md
-TOOLS.md
-memory/
-config/
+# next.js
+.next/
+out/
 
-# SECURITY: Never commit keypairs or secrets
-.agent-keys/
-**/keypair*.json
-*.secret
+# build / testing
+build
+coverage
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# env / secrets
 .env
 .env.local
+.env*.local
+*.secret
+.agent-keys/
+**/keypair*.json
+
+# tooling
+.vercel
+
+# Cursor
+.cursor/hooks/
+
+# claude code — worktrees are ephemeral
+.claude/worktrees/

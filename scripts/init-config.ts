@@ -6,7 +6,8 @@ async function main() {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.ReputationOracle as Program<ReputationOracle>;
+  const program = anchor.workspace
+    .ReputationOracle as Program<ReputationOracle>;
 
   const [configPda] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
@@ -40,8 +41,16 @@ async function main() {
 
   console.log("✅ Config initialized!");
   console.log("Transaction:", tx);
-  console.log("Min stake:", minStake.toNumber() / anchor.web3.LAMPORTS_PER_SOL, "SOL");
-  console.log("Dispute bond:", disputeBond.toNumber() / anchor.web3.LAMPORTS_PER_SOL, "SOL");
+  console.log(
+    "Min stake:",
+    minStake.toNumber() / anchor.web3.LAMPORTS_PER_SOL,
+    "SOL"
+  );
+  console.log(
+    "Dispute bond:",
+    disputeBond.toNumber() / anchor.web3.LAMPORTS_PER_SOL,
+    "SOL"
+  );
   console.log("Slash percentage:", slashPercentage, "%");
 }
 

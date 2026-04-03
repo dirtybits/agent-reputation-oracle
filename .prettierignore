@@ -4,4 +4,11 @@ target
 node_modules
 dist
 build
+coverage
+out
 test-ledger
+.vercel
+.claude/worktrees
+.next
+**/.next
+web/generated

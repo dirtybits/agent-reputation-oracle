@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
-use crate::state::{SkillListing, SkillStatus, AgentProfile};
+use crate::state::{SkillListing, SkillStatus, AgentProfile, MIN_SKILL_PRICE_LAMPORTS};
+use crate::events::SkillListingCreated;
 
 #[derive(Accounts)]
 #[instruction(skill_id: String)]
@@ -45,7 +46,10 @@ pub fn handler(
         description.len() <= SkillListing::MAX_DESCRIPTION_LEN,
         CreateSkillError::DescriptionTooLong
     );
-    require!(price_lamports > 0, CreateSkillError::PriceMustBePositive);
+    require!(
+        price_lamports >= MIN_SKILL_PRICE_LAMPORTS,
+        CreateSkillError::PriceBelowMinimum
+    );
     
     let skill_listing = &mut ctx.accounts.skill_listing;
     let clock = Clock::get()?;
@@ -57,12 +61,19 @@ pub fn handler(
     skill_listing.price_lamports = price_lamports;
     skill_listing.total_downloads = 0;
     skill_listing.total_revenue = 0;
+    skill_listing.unclaimed_voucher_revenue = 0;
     skill_listing.created_at = clock.unix_timestamp;
     skill_listing.updated_at = clock.unix_timestamp;
     skill_listing.status = SkillStatus::Active;
     skill_listing.bump = ctx.bumps.skill_listing;
     
-    msg!("Skill listing created: {} by {}", name, ctx.accounts.author.key());
+    emit!(SkillListingCreated {
+        skill_listing: ctx.accounts.skill_listing.key(),
+        author: ctx.accounts.author.key(),
+        name,
+        price_lamports,
+        timestamp: clock.unix_timestamp,
+    });
     
     Ok(())
 }
@@ -75,6 +86,6 @@ pub enum CreateSkillError {
     NameTooLong,
     #[msg("Description too long")]
     DescriptionTooLong,
-    #[msg("Price must be greater than zero")]
-    PriceMustBePositive,
+    #[msg("Price is below the minimum listing price")]
+    PriceBelowMinimum,
 }

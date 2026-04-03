@@ -1,5 +1,6 @@
 [toolchain]
 package_manager = "yarn"
+anchor_version = "0.32.1"
 
 [features]
 resolution = true
@@ -15,8 +16,8 @@ reputation_oracle = "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
-wallet = "/Users/andy/dev-keypair.json"
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

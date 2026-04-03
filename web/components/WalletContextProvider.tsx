@@ -1,33 +1,57 @@
-'use client';
+"use client";
 
-import { FC, ReactNode, useMemo } from 'react';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl } from '@solana/web3.js';
+import { createContext, FC, ReactNode, useContext, useMemo } from "react";
+import { SolanaProvider } from "@solana/react-hooks";
+import { autoDiscover, createClient } from "@solana/client";
+import { PhantomProvider, type PhantomSDKConfig } from "@phantom/react-sdk";
+import { useMounted } from "@/hooks/useMounted";
 
-// Import wallet adapter CSS
-import '@solana/wallet-adapter-react-ui/styles.css';
+const PhantomConfiguredContext = createContext(false);
+export const usePhantomConfigured = () => useContext(PhantomConfiguredContext);
 
-export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  // Use devnet for hackathon
-  const endpoint = useMemo(() => clusterApiUrl('devnet'), []);
+const ENDPOINT =
+  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
+const PHANTOM_APP_ID = process.env.NEXT_PUBLIC_PHANTOM_APP_ID ?? "";
 
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
+export const WalletContextProvider: FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const mounted = useMounted();
+  const phantomReady = mounted && !!PHANTOM_APP_ID;
+
+  const client = useMemo(
+    () =>
+      createClient({
+        endpoint: ENDPOINT,
+        walletConnectors: autoDiscover(),
+      }),
     []
   );
 
+  const phantomConfig = useMemo<PhantomSDKConfig>(
+    () => ({
+      appId: PHANTOM_APP_ID,
+      providers: ["google", "apple"],
+      addressTypes: ["Solana"] as PhantomSDKConfig["addressTypes"],
+    }),
+    []
+  );
+
+  const wantsPhantom = mounted && !!PHANTOM_APP_ID;
+
+  const solanaProvider = (
+    <SolanaProvider client={client}>{children}</SolanaProvider>
+  );
+
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          {children}
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <PhantomConfiguredContext.Provider value={phantomReady}>
+      {wantsPhantom ? (
+        <PhantomProvider config={phantomConfig}>
+          {solanaProvider}
+        </PhantomProvider>
+      ) : (
+        solanaProvider
+      )}
+    </PhantomConfiguredContext.Provider>
   );
 };

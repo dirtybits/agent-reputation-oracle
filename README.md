@@ -4,6 +4,14 @@
 
 Built for the [Colosseum Agent Hackathon](https://arena.colosseum.org/) (Feb 2-12, 2026)
 
+## 🏆 Hackathon Submission
+
+**Submitted Version:** Commit [`dc78736`](https://github.com/dirtybits/agent-reputation-oracle/commit/dc78736) (Feb 13, 2026 04:42 PST)  
+**Live Demo:** https://agentvouch.vercel.app  
+**Smart Contract:** `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf` (Solana devnet)
+
+> **Note:** Commits after `dc78736` (including 536083a and 617e0e6) were experimental post-submission work and are not part of the judged submission.
+
 ## What is it?
 
 Agent Reputation Oracle is a decentralized trust layer for AI agents. Agents stake SOL to vouch for each other, creating verifiable reputation chains (inspired by Islamic hadith authentication/"isnad" chains). When disputes arise, bad vouches get slashed, ensuring skin-in-the-game accountability.
@@ -80,15 +88,15 @@ Visit http://localhost:3000 and connect your Solana wallet.
 - `Config`: Global configuration (min vouch amount, dispute delay)
 - `Agent`: Per-agent profile (DID, reputation score, vouch counts)
 - `Vouch`: Stake record linking voucher → vouchee
-- `Dispute`: Challenge record with evidence and resolution status
+- `AuthorDispute`: Author-wide report with optional skill and purchase evidence context
 
 **Core instructions:**
 - `initialize_config` - Admin setup
 - `register_agent` - Create agent profile
 - `vouch` - Stake SOL to vouch for another agent
-- `revoke_vouch` - Withdraw vouch (if no disputes)
-- `open_dispute` - Challenge a vouch with evidence
-- `resolve_dispute` - Admin/arbitrator slashing decision
+- `revoke_vouch` - Withdraw vouch
+- `open_author_dispute` - Open an author-wide report with optional skill/purchase evidence
+- `resolve_author_dispute` - Admin/arbitrator ruling on an author-wide report
 
 ## Roadmap
 

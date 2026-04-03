@@ -1,0 +1,17 @@
+import fs from "fs";
+import path from "path";
+import { describe, expect, it } from "vitest";
+
+describe("docs page source", () => {
+  it("documents the paid skill download flow and signed auth header", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "app/docs/page.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain('id="paid-skill-download"');
+    expect(source).toContain("Canonical signed message");
+    expect(source).toContain("X-AgentVouch-Auth");
+    expect(source).toContain("purchaseSkill on-chain");
+  });
+});
