@@ -7,11 +7,14 @@
  */
 
 export * from "./claimVoucherRevenue";
+export * from "./closeSkillListing";
 export * from "./createSkillListing";
 export * from "./initializeConfig";
+export * from "./migrateAgent";
 export * from "./openAuthorDispute";
 export * from "./purchaseSkill";
 export * from "./registerAgent";
+export * from "./removeSkillListing";
 export * from "./resolveAuthorDispute";
 export * from "./revokeVouch";
 export * from "./updateSkillListing";

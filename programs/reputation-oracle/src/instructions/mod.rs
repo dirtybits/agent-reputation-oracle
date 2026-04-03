@@ -1,5 +1,6 @@
 pub mod initialize_config;
 pub mod register_agent;
+pub mod migrate_agent;
 pub mod vouch;
 pub mod revoke_vouch;
 pub mod open_author_dispute;
@@ -7,16 +8,21 @@ pub mod resolve_author_dispute;
 pub(crate) mod vouch_settlement;
 pub mod create_skill_listing;
 pub mod update_skill_listing;
+pub mod remove_skill_listing;
+pub mod close_skill_listing;
 pub mod purchase_skill;
 pub mod claim_voucher_revenue;
 
 pub use initialize_config::*;
 pub use register_agent::*;
+pub use migrate_agent::*;
 pub use vouch::*;
 pub use revoke_vouch::*;
 pub use open_author_dispute::*;
 pub use resolve_author_dispute::*;
 pub use create_skill_listing::*;
 pub use update_skill_listing::*;
+pub use remove_skill_listing::*;
+pub use close_skill_listing::*;
 pub use purchase_skill::*;
 pub use claim_voucher_revenue::*;

@@ -2,17 +2,20 @@ import { address, type TransactionSigner } from "@solana/kit";
 import { describe, expect, it } from "vitest";
 
 import {
+  getCreateSkillListingInstructionAsync,
   getRevokeVouchInstructionAsync,
   getVouchInstructionAsync,
 } from "@/generated/reputation-oracle/src/generated";
 import {
   buildTransactionSendRequest,
+  getConnectedAuthorAddress,
   getOpenAuthorDisputeClusterGuardError,
   getRegisterAgentClusterGuardError,
   getResolveAuthorDisputeClusterGuardError,
   getSkillListingClusterGuardError,
   getStakeClusterGuardError,
   normalizeInstructionForSend,
+  resolveSkillListingAccounts,
 } from "@/hooks/useReputationOracle";
 
 const VOUCHER_ADDRESS = address("asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw");
@@ -81,6 +84,38 @@ describe("useReputationOracle send helpers", () => {
     expect(signers).toHaveLength(2);
     expect(new Set(signers).size).toBe(1);
     expect(request.authority).toBe(signer);
+  });
+
+  it("derives create skill listing accounts from the signer address", async () => {
+    const signer = createMockSigner();
+    const authorAddress = getConnectedAuthorAddress(VOUCHER_ADDRESS, signer);
+    const { authorProfile, skillListing } = await resolveSkillListingAccounts(
+      authorAddress,
+      "frontenddesign"
+    );
+    const ix = await getCreateSkillListingInstructionAsync({
+      skillListing,
+      authorProfile,
+      author: signer,
+      skillId: "frontenddesign",
+      skillUri: "https://agentvouch.xyz/api/skills/test/raw",
+      name: "Frontend Design",
+      description: "A test skill listing",
+      priceLamports: 1_000_000n,
+    });
+    const normalizedIx = normalizeInstructionForSend(ix);
+
+    expect(normalizedIx.accounts[0].address).toBe(skillListing);
+    expect(normalizedIx.accounts[1].address).toBe(authorProfile);
+    expect(normalizedIx.accounts[2].address).toBe(VOUCHER_ADDRESS);
+  });
+
+  it("rejects mismatched wallet and signer addresses before listing creation", () => {
+    const signer = createMockSigner();
+
+    expect(() =>
+      getConnectedAuthorAddress(VOUCHEE_PROFILE, signer)
+    ).toThrow(/does not match transaction signer/i);
   });
 
   it("reports a configured-network balance mismatch before sending a vouch", () => {

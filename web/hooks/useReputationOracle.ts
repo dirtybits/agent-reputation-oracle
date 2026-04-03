@@ -38,10 +38,13 @@ import {
   getResolveAuthorDisputeInstructionAsync,
   getAgentProfileDecoder,
   getRegisterAgentInstructionAsync,
+  getMigrateAgentInstructionAsync,
   getVouchInstructionAsync,
   getRevokeVouchInstructionAsync,
   getCreateSkillListingInstructionAsync,
   getUpdateSkillListingInstructionAsync,
+  getRemoveSkillListingInstructionAsync,
+  getCloseSkillListingInstructionAsync,
   getPurchaseSkillInstructionAsync,
   getSkillListingDecoder,
   getVouchDecoder,
@@ -426,6 +429,34 @@ function shortAddress(value: string) {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
+export function getConnectedAuthorAddress(
+  walletAddress: Address | null,
+  signer: Pick<TransactionSigner, "address"> | null
+): Address {
+  if (!signer || !walletAddress) throw new Error("Wallet not connected");
+  if (signer.address !== walletAddress) {
+    throw new Error(
+      `Connected wallet ${shortAddress(
+        walletAddress
+      )} does not match transaction signer ${shortAddress(
+        signer.address
+      )}. Reconnect your wallet and retry.`
+    );
+  }
+  return signer.address;
+}
+
+export async function resolveSkillListingAccounts(
+  authorAddress: Address,
+  skillId: string
+) {
+  const [authorProfile, skillListing] = await Promise.all([
+    getAgentPDA(authorAddress),
+    getSkillListingPDA(authorAddress, skillId),
+  ]);
+  return { authorProfile, skillListing };
+}
+
 function formatLamportsAsSol(lamports: bigint) {
   const sol = Number(lamports) / Number(LAMPORTS_PER_SOL);
   const decimals = sol >= 1 ? 4 : 6;
@@ -804,14 +835,33 @@ export function useReputationOracle() {
   const registerAgent = useCallback(
     async (metadataUri: string) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
-      await assertRegisterAgentClusterReady(walletAddress);
+      const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
+      await assertRegisterAgentClusterReady(authorAddress);
       const ix = await getRegisterAgentInstructionAsync({
         authority: signer,
         metadataUri,
       });
       const tx = await sendIx(ix);
-      const agentProfile = await getAgentPDA(walletAddress);
+      const agentProfile = await getAgentPDA(authorAddress);
       return { tx, agentProfile };
+    },
+    [signer, walletAddress, sendIx]
+  );
+
+  /**
+   * Migrate an existing AgentProfile PDA to the current struct layout.
+   * Required when the on-chain struct changed and the stored bump is stale,
+   * which causes ConstraintSeeds failures in createSkillListing and other
+   * instructions that read author_profile.bump.
+   */
+  const migrateAgent = useCallback(
+    async (metadataUri = "") => {
+      if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const ix = await getMigrateAgentInstructionAsync({
+        authority: signer,
+        metadataUri,
+      });
+      return { tx: await sendIx(ix) };
     },
     [signer, walletAddress, sendIx]
   );
@@ -1356,12 +1406,19 @@ export function useReputationOracle() {
       priceLamports: number
     ) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
       await assertSkillListingClusterReady({
-        walletAddress,
+        walletAddress: authorAddress,
         skillId,
         mode: "create",
       });
+      const { authorProfile, skillListing } = await resolveSkillListingAccounts(
+        authorAddress,
+        skillId
+      );
       const ix = await getCreateSkillListingInstructionAsync({
+        skillListing,
+        authorProfile,
         author: signer,
         skillId,
         skillUri,
@@ -1383,18 +1440,63 @@ export function useReputationOracle() {
       priceLamports: number
     ) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
       await assertSkillListingClusterReady({
-        walletAddress,
+        walletAddress: authorAddress,
         skillId,
         mode: "update",
       });
+      const { authorProfile, skillListing } = await resolveSkillListingAccounts(
+        authorAddress,
+        skillId
+      );
       const ix = await getUpdateSkillListingInstructionAsync({
+        skillListing,
+        authorProfile,
         author: signer,
         skillId,
         skillUri,
         name,
         description,
         priceLamports: BigInt(priceLamports),
+      });
+      return { tx: await sendIx(ix) };
+    },
+    [signer, walletAddress, sendIx]
+  );
+
+  const removeSkillListing = useCallback(
+    async (skillId: string) => {
+      if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
+      const { authorProfile, skillListing } = await resolveSkillListingAccounts(
+        authorAddress,
+        skillId
+      );
+      const ix = await getRemoveSkillListingInstructionAsync({
+        skillListing,
+        authorProfile,
+        author: signer,
+        skillId,
+      });
+      return { tx: await sendIx(ix) };
+    },
+    [signer, walletAddress, sendIx]
+  );
+
+  const closeSkillListing = useCallback(
+    async (skillId: string) => {
+      if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
+      const { authorProfile, skillListing } = await resolveSkillListingAccounts(
+        authorAddress,
+        skillId
+      );
+      const ix = await getCloseSkillListingInstructionAsync({
+        skillListing,
+        authorProfile,
+        author: signer,
+        skillId,
       });
       return { tx: await sendIx(ix) };
     },
@@ -1513,6 +1615,7 @@ export function useReputationOracle() {
       connected: !!connected,
       walletAddress,
       registerAgent,
+      migrateAgent,
       vouch,
       revokeVouch,
       openAuthorDispute,
@@ -1534,6 +1637,8 @@ export function useReputationOracle() {
       getPurchasedSkillListingKeys,
       createSkillListing,
       updateSkillListing,
+      removeSkillListing,
+      closeSkillListing,
       purchaseSkill,
       getAgentPDA,
       getVouchPDA,
@@ -1547,6 +1652,7 @@ export function useReputationOracle() {
       connected,
       walletAddress,
       registerAgent,
+      migrateAgent,
       vouch,
       revokeVouch,
       openAuthorDispute,
@@ -1568,6 +1674,8 @@ export function useReputationOracle() {
       getPurchasedSkillListingKeys,
       createSkillListing,
       updateSkillListing,
+      removeSkillListing,
+      closeSkillListing,
       purchaseSkill,
     ]
   );

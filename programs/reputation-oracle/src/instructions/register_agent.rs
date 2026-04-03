@@ -4,7 +4,7 @@ use crate::state::AgentProfile;
 #[derive(Accounts)]
 pub struct RegisterAgent<'info> {
     #[account(
-        init,
+        init_if_needed,
         payer = authority,
         space = AgentProfile::LEN,
         seeds = [b"agent", authority.key().as_ref()],
@@ -30,13 +30,17 @@ pub fn handler(
     let agent_profile = &mut ctx.accounts.agent_profile;
     let clock = Clock::get()?;
     
+    // Preserve existing on-chain stats when re-registering (only update mutable fields)
+    let is_new = agent_profile.registered_at == 0;
     agent_profile.authority = ctx.accounts.authority.key();
     agent_profile.metadata_uri = metadata_uri;
-    agent_profile.reputation_score = 0;
-    agent_profile.total_vouches_received = 0;
-    agent_profile.total_vouches_given = 0;
-    agent_profile.total_staked_for = 0;
-    agent_profile.registered_at = clock.unix_timestamp;
+    if is_new {
+        agent_profile.reputation_score = 0;
+        agent_profile.total_vouches_received = 0;
+        agent_profile.total_vouches_given = 0;
+        agent_profile.total_staked_for = 0;
+        agent_profile.registered_at = clock.unix_timestamp;
+    }
     agent_profile.bump = ctx.bumps.agent_profile;
     
     Ok(())

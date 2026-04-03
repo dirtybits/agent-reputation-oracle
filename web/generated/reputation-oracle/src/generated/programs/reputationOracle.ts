@@ -53,41 +53,53 @@ import {
 } from "../accounts";
 import {
   getClaimVoucherRevenueInstructionAsync,
+  getCloseSkillListingInstructionAsync,
   getCreateSkillListingInstructionAsync,
   getInitializeConfigInstructionAsync,
+  getMigrateAgentInstructionAsync,
   getOpenAuthorDisputeInstructionAsync,
   getPurchaseSkillInstructionAsync,
   getRegisterAgentInstructionAsync,
+  getRemoveSkillListingInstructionAsync,
   getResolveAuthorDisputeInstructionAsync,
   getRevokeVouchInstructionAsync,
   getUpdateSkillListingInstructionAsync,
   getVouchInstructionAsync,
   parseClaimVoucherRevenueInstruction,
+  parseCloseSkillListingInstruction,
   parseCreateSkillListingInstruction,
   parseInitializeConfigInstruction,
+  parseMigrateAgentInstruction,
   parseOpenAuthorDisputeInstruction,
   parsePurchaseSkillInstruction,
   parseRegisterAgentInstruction,
+  parseRemoveSkillListingInstruction,
   parseResolveAuthorDisputeInstruction,
   parseRevokeVouchInstruction,
   parseUpdateSkillListingInstruction,
   parseVouchInstruction,
   type ClaimVoucherRevenueAsyncInput,
+  type CloseSkillListingAsyncInput,
   type CreateSkillListingAsyncInput,
   type InitializeConfigAsyncInput,
+  type MigrateAgentAsyncInput,
   type OpenAuthorDisputeAsyncInput,
   type ParsedClaimVoucherRevenueInstruction,
+  type ParsedCloseSkillListingInstruction,
   type ParsedCreateSkillListingInstruction,
   type ParsedInitializeConfigInstruction,
+  type ParsedMigrateAgentInstruction,
   type ParsedOpenAuthorDisputeInstruction,
   type ParsedPurchaseSkillInstruction,
   type ParsedRegisterAgentInstruction,
+  type ParsedRemoveSkillListingInstruction,
   type ParsedResolveAuthorDisputeInstruction,
   type ParsedRevokeVouchInstruction,
   type ParsedUpdateSkillListingInstruction,
   type ParsedVouchInstruction,
   type PurchaseSkillAsyncInput,
   type RegisterAgentAsyncInput,
+  type RemoveSkillListingAsyncInput,
   type ResolveAuthorDisputeAsyncInput,
   type RevokeVouchAsyncInput,
   type UpdateSkillListingAsyncInput,
@@ -184,11 +196,14 @@ export function identifyReputationOracleAccount(
 
 export enum ReputationOracleInstruction {
   ClaimVoucherRevenue,
+  CloseSkillListing,
   CreateSkillListing,
   InitializeConfig,
+  MigrateAgent,
   OpenAuthorDispute,
   PurchaseSkill,
   RegisterAgent,
+  RemoveSkillListing,
   ResolveAuthorDispute,
   RevokeVouch,
   UpdateSkillListing,
@@ -214,6 +229,17 @@ export function identifyReputationOracleInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([81, 95, 50, 47, 45, 66, 132, 124]),
+      ),
+      0,
+    )
+  ) {
+    return ReputationOracleInstruction.CloseSkillListing;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([101, 61, 26, 213, 47, 75, 13, 122]),
       ),
       0,
@@ -231,6 +257,17 @@ export function identifyReputationOracleInstruction(
     )
   ) {
     return ReputationOracleInstruction.InitializeConfig;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([102, 150, 249, 223, 92, 169, 131, 39]),
+      ),
+      0,
+    )
+  ) {
+    return ReputationOracleInstruction.MigrateAgent;
   }
   if (
     containsBytes(
@@ -264,6 +301,17 @@ export function identifyReputationOracleInstruction(
     )
   ) {
     return ReputationOracleInstruction.RegisterAgent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([196, 216, 174, 251, 211, 35, 48, 33]),
+      ),
+      0,
+    )
+  ) {
+    return ReputationOracleInstruction.RemoveSkillListing;
   }
   if (
     containsBytes(
@@ -322,11 +370,17 @@ export type ParsedReputationOracleInstruction<
       instructionType: ReputationOracleInstruction.ClaimVoucherRevenue;
     } & ParsedClaimVoucherRevenueInstruction<TProgram>)
   | ({
+      instructionType: ReputationOracleInstruction.CloseSkillListing;
+    } & ParsedCloseSkillListingInstruction<TProgram>)
+  | ({
       instructionType: ReputationOracleInstruction.CreateSkillListing;
     } & ParsedCreateSkillListingInstruction<TProgram>)
   | ({
       instructionType: ReputationOracleInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
+  | ({
+      instructionType: ReputationOracleInstruction.MigrateAgent;
+    } & ParsedMigrateAgentInstruction<TProgram>)
   | ({
       instructionType: ReputationOracleInstruction.OpenAuthorDispute;
     } & ParsedOpenAuthorDisputeInstruction<TProgram>)
@@ -336,6 +390,9 @@ export type ParsedReputationOracleInstruction<
   | ({
       instructionType: ReputationOracleInstruction.RegisterAgent;
     } & ParsedRegisterAgentInstruction<TProgram>)
+  | ({
+      instructionType: ReputationOracleInstruction.RemoveSkillListing;
+    } & ParsedRemoveSkillListingInstruction<TProgram>)
   | ({
       instructionType: ReputationOracleInstruction.ResolveAuthorDispute;
     } & ParsedResolveAuthorDisputeInstruction<TProgram>)
@@ -361,6 +418,13 @@ export function parseReputationOracleInstruction<TProgram extends string>(
         ...parseClaimVoucherRevenueInstruction(instruction),
       };
     }
+    case ReputationOracleInstruction.CloseSkillListing: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ReputationOracleInstruction.CloseSkillListing,
+        ...parseCloseSkillListingInstruction(instruction),
+      };
+    }
     case ReputationOracleInstruction.CreateSkillListing: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -373,6 +437,13 @@ export function parseReputationOracleInstruction<TProgram extends string>(
       return {
         instructionType: ReputationOracleInstruction.InitializeConfig,
         ...parseInitializeConfigInstruction(instruction),
+      };
+    }
+    case ReputationOracleInstruction.MigrateAgent: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ReputationOracleInstruction.MigrateAgent,
+        ...parseMigrateAgentInstruction(instruction),
       };
     }
     case ReputationOracleInstruction.OpenAuthorDispute: {
@@ -394,6 +465,13 @@ export function parseReputationOracleInstruction<TProgram extends string>(
       return {
         instructionType: ReputationOracleInstruction.RegisterAgent,
         ...parseRegisterAgentInstruction(instruction),
+      };
+    }
+    case ReputationOracleInstruction.RemoveSkillListing: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ReputationOracleInstruction.RemoveSkillListing,
+        ...parseRemoveSkillListingInstruction(instruction),
       };
     }
     case ReputationOracleInstruction.ResolveAuthorDispute: {
@@ -460,6 +538,10 @@ export type ReputationOraclePluginInstructions = {
     input: ClaimVoucherRevenueAsyncInput,
   ) => ReturnType<typeof getClaimVoucherRevenueInstructionAsync> &
     SelfPlanAndSendFunctions;
+  closeSkillListing: (
+    input: CloseSkillListingAsyncInput,
+  ) => ReturnType<typeof getCloseSkillListingInstructionAsync> &
+    SelfPlanAndSendFunctions;
   createSkillListing: (
     input: CreateSkillListingAsyncInput,
   ) => ReturnType<typeof getCreateSkillListingInstructionAsync> &
@@ -467,6 +549,10 @@ export type ReputationOraclePluginInstructions = {
   initializeConfig: (
     input: InitializeConfigAsyncInput,
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  migrateAgent: (
+    input: MigrateAgentAsyncInput,
+  ) => ReturnType<typeof getMigrateAgentInstructionAsync> &
     SelfPlanAndSendFunctions;
   openAuthorDispute: (
     input: OpenAuthorDisputeAsyncInput,
@@ -479,6 +565,10 @@ export type ReputationOraclePluginInstructions = {
   registerAgent: (
     input: RegisterAgentAsyncInput,
   ) => ReturnType<typeof getRegisterAgentInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  removeSkillListing: (
+    input: RemoveSkillListingAsyncInput,
+  ) => ReturnType<typeof getRemoveSkillListingInstructionAsync> &
     SelfPlanAndSendFunctions;
   resolveAuthorDispute: (
     input: ResolveAuthorDisputeAsyncInput,
@@ -525,6 +615,11 @@ export function reputationOracleProgram() {
               client,
               getClaimVoucherRevenueInstructionAsync(input),
             ),
+          closeSkillListing: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCloseSkillListingInstructionAsync(input),
+            ),
           createSkillListing: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -534,6 +629,11 @@ export function reputationOracleProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getInitializeConfigInstructionAsync(input),
+            ),
+          migrateAgent: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMigrateAgentInstructionAsync(input),
             ),
           openAuthorDispute: (input) =>
             addSelfPlanAndSendFunctions(
@@ -549,6 +649,11 @@ export function reputationOracleProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getRegisterAgentInstructionAsync(input),
+            ),
+          removeSkillListing: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRemoveSkillListingInstructionAsync(input),
             ),
           resolveAuthorDispute: (input) =>
             addSelfPlanAndSendFunctions(

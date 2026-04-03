@@ -36,6 +36,13 @@ pub mod reputation_oracle {
         instructions::register_agent::handler(ctx, metadata_uri)
     }
 
+    pub fn migrate_agent(
+        ctx: Context<MigrateAgent>,
+        metadata_uri: String,
+    ) -> Result<()> {
+        instructions::migrate_agent::handler(ctx, metadata_uri)
+    }
+
     pub fn vouch(
         ctx: Context<CreateVouch>,
         stake_amount: u64,
@@ -98,6 +105,20 @@ pub mod reputation_oracle {
             description,
             price_lamports,
         )
+    }
+
+    pub fn remove_skill_listing(
+        ctx: Context<RemoveSkillListing>,
+        skill_id: String,
+    ) -> Result<()> {
+        instructions::remove_skill_listing::handler(ctx, skill_id)
+    }
+
+    pub fn close_skill_listing(
+        ctx: Context<CloseSkillListing>,
+        skill_id: String,
+    ) -> Result<()> {
+        instructions::close_skill_listing::handler(ctx, skill_id)
     }
 
     pub fn purchase_skill(ctx: Context<PurchaseSkill>) -> Result<()> {

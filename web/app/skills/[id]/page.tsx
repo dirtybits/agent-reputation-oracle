@@ -45,6 +45,7 @@ import {
   FiFileText,
   FiGitCommit,
   FiEdit2,
+  FiTrash2,
 } from "react-icons/fi";
 
 interface SkillVersion {
@@ -202,6 +203,11 @@ export default function SkillDetailPage({
     success: boolean;
     message: string;
   } | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeResult, setRemoveResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
   const [installing, setInstalling] = useState(false);
   const [installResult, setInstallResult] = useState<{
     success: boolean;
@@ -312,6 +318,31 @@ export default function SkillDetailPage({
       });
     } finally {
       setListing(false);
+    }
+  };
+
+  const handleRemoveListing = async () => {
+    if (!connected || !walletAddress || !skill?.skill_id) return;
+    if (
+      !window.confirm(
+        "Remove this skill from the marketplace? Existing purchases are unaffected but no new purchases will be possible."
+      )
+    )
+      return;
+    setRemoving(true);
+    setRemoveResult(null);
+    try {
+      await oracle.removeSkillListing(skill.skill_id);
+      await refreshSkill();
+      setSkill((s) => (s ? { ...s, on_chain_address: null } : s));
+      setRemoveResult({ success: true, message: "Listing removed." });
+    } catch (error: unknown) {
+      setRemoveResult({
+        success: false,
+        message: getErrorMessage(error, "Failed to remove listing"),
+      });
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -1303,13 +1334,23 @@ export default function SkillDetailPage({
               {connected &&
                 walletAddress === skill.author_pubkey &&
                 !editing && (
-                  <button
-                    onClick={startEditing}
-                    className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
-                  >
-                    <FiEdit2 className="w-3.5 h-3.5" />
-                    Edit Listing
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={startEditing}
+                      className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
+                    >
+                      <FiEdit2 className="w-3.5 h-3.5" />
+                      Edit Listing
+                    </button>
+                    <button
+                      onClick={handleRemoveListing}
+                      disabled={removing}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/60 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                    >
+                      <FiTrash2 className="w-3.5 h-3.5" />
+                      {removing ? "Removing…" : "Remove"}
+                    </button>
+                  </div>
                 )}
             </div>
             {updateResult && !editing && (
@@ -1321,6 +1362,17 @@ export default function SkillDetailPage({
                 }`}
               >
                 {updateResult.message}
+              </p>
+            )}
+            {removeResult && (
+              <p
+                className={`text-xs mt-2 ${
+                  removeResult.success
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {removeResult.message}
               </p>
             )}
             {editing && (

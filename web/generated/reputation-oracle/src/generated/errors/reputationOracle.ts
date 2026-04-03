@@ -14,18 +14,74 @@ import {
 } from "@solana/kit";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
+/** AuthorDisputeNotOpen: Author dispute is not open */
+export const REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_NOT_OPEN = 0x1770; // 6000
+/** AuthorMismatch: The disputed author does not match this author dispute */
+export const REPUTATION_ORACLE_ERROR__AUTHOR_MISMATCH = 0x1771; // 6001
+/** UnauthorizedResolver: Only the configured authority can resolve author disputes */
+export const REPUTATION_ORACLE_ERROR__UNAUTHORIZED_RESOLVER = 0x1772; // 6002
+/** ChallengerMismatch: Challenger account mismatch */
+export const REPUTATION_ORACLE_ERROR__CHALLENGER_MISMATCH = 0x1773; // 6003
 /** InsufficientFunds: Insufficient funds */
-export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS = 0x1770; // 6000
+export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS = 0x1774; // 6004
+/** IncompleteBackingSnapshot: Author dispute cannot resolve without its full author-wide backing snapshot */
+export const REPUTATION_ORACLE_ERROR__INCOMPLETE_BACKING_SNAPSHOT = 0x1775; // 6005
+/** InvalidSettlementAccounts: Author dispute uphold must include every snapshotted backing vouch account triple */
+export const REPUTATION_ORACLE_ERROR__INVALID_SETTLEMENT_ACCOUNTS = 0x1776; // 6006
+/** DuplicateSettlementBackingVouch: Duplicate backing vouches are not allowed during settlement */
+export const REPUTATION_ORACLE_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH = 0x1777; // 6007
+/** AuthorDisputeVouchLinkMismatch: Settlement link does not match this author dispute */
+export const REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH = 0x1778; // 6008
+/** AuthorDisputeSettlementVouchMismatch: Settlement vouch does not match the recorded author dispute link */
+export const REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH = 0x1779; // 6009
+/** BackingVouchAuthorMismatch: Backing vouch does not belong to the disputed author */
+export const REPUTATION_ORACLE_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH = 0x177a; // 6010
+/** BackingVouchVoucherMismatch: Backing vouch voucher profile does not match the recorded voucher */
+export const REPUTATION_ORACLE_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH = 0x177b; // 6011
+/** BackingVouchNotSlashable: Backing vouch can no longer be slashed through this author dispute */
+export const REPUTATION_ORACLE_ERROR__BACKING_VOUCH_NOT_SLASHABLE = 0x177c; // 6012
+/** BackingVouchCountOverflow: Backing vouch count overflow */
+export const REPUTATION_ORACLE_ERROR__BACKING_VOUCH_COUNT_OVERFLOW = 0x177d; // 6013
+/** SlashAmountOverflow: Slash amount overflow */
+export const REPUTATION_ORACLE_ERROR__SLASH_AMOUNT_OVERFLOW = 0x177e; // 6014
 
 export type ReputationOracleError =
-  typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS;
+  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_NOT_OPEN
+  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__BACKING_VOUCH_COUNT_OVERFLOW
+  | typeof REPUTATION_ORACLE_ERROR__BACKING_VOUCH_NOT_SLASHABLE
+  | typeof REPUTATION_ORACLE_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__CHALLENGER_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH
+  | typeof REPUTATION_ORACLE_ERROR__INCOMPLETE_BACKING_SNAPSHOT
+  | typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS
+  | typeof REPUTATION_ORACLE_ERROR__INVALID_SETTLEMENT_ACCOUNTS
+  | typeof REPUTATION_ORACLE_ERROR__SLASH_AMOUNT_OVERFLOW
+  | typeof REPUTATION_ORACLE_ERROR__UNAUTHORIZED_RESOLVER;
 
 let reputationOracleErrorMessages:
   | Record<ReputationOracleError, string>
   | undefined;
 if (process.env.NODE_ENV !== "production") {
   reputationOracleErrorMessages = {
+    [REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_NOT_OPEN]: `Author dispute is not open`,
+    [REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH]: `Settlement vouch does not match the recorded author dispute link`,
+    [REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH]: `Settlement link does not match this author dispute`,
+    [REPUTATION_ORACLE_ERROR__AUTHOR_MISMATCH]: `The disputed author does not match this author dispute`,
+    [REPUTATION_ORACLE_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH]: `Backing vouch does not belong to the disputed author`,
+    [REPUTATION_ORACLE_ERROR__BACKING_VOUCH_COUNT_OVERFLOW]: `Backing vouch count overflow`,
+    [REPUTATION_ORACLE_ERROR__BACKING_VOUCH_NOT_SLASHABLE]: `Backing vouch can no longer be slashed through this author dispute`,
+    [REPUTATION_ORACLE_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH]: `Backing vouch voucher profile does not match the recorded voucher`,
+    [REPUTATION_ORACLE_ERROR__CHALLENGER_MISMATCH]: `Challenger account mismatch`,
+    [REPUTATION_ORACLE_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH]: `Duplicate backing vouches are not allowed during settlement`,
+    [REPUTATION_ORACLE_ERROR__INCOMPLETE_BACKING_SNAPSHOT]: `Author dispute cannot resolve without its full author-wide backing snapshot`,
     [REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS]: `Insufficient funds`,
+    [REPUTATION_ORACLE_ERROR__INVALID_SETTLEMENT_ACCOUNTS]: `Author dispute uphold must include every snapshotted backing vouch account triple`,
+    [REPUTATION_ORACLE_ERROR__SLASH_AMOUNT_OVERFLOW]: `Slash amount overflow`,
+    [REPUTATION_ORACLE_ERROR__UNAUTHORIZED_RESOLVER]: `Only the configured authority can resolve author disputes`,
   };
 }
 

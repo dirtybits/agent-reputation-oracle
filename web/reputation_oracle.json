@@ -106,6 +106,79 @@
       "args": []
     },
     {
+      "name": "close_skill_listing",
+      "discriminator": [
+        81,
+        95,
+        50,
+        47,
+        45,
+        66,
+        132,
+        124
+      ],
+      "accounts": [
+        {
+          "name": "skill_listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  107,
+                  105,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              },
+              {
+                "kind": "arg",
+                "path": "skill_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "skill_id",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "create_skill_listing",
       "discriminator": [
         101,
@@ -256,6 +329,62 @@
         {
           "name": "cooldown_period",
           "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "migrate_agent",
+      "discriminator": [
+        102,
+        150,
+        249,
+        223,
+        92,
+        169,
+        131,
+        39
+      ],
+      "accounts": [
+        {
+          "name": "agent_profile",
+          "docs": [
+            "because the stored bump may be at a stale offset after a struct layout change.",
+            "Seeds and owner are validated; we rewrite the account data manually."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "metadata_uri",
+          "type": "string"
         }
       ]
     },
@@ -517,6 +646,79 @@
       "args": [
         {
           "name": "metadata_uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "remove_skill_listing",
+      "discriminator": [
+        196,
+        216,
+        174,
+        251,
+        211,
+        35,
+        48,
+        33
+      ],
+      "accounts": [
+        {
+          "name": "skill_listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  107,
+                  105,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              },
+              {
+                "kind": "arg",
+                "path": "skill_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "skill_id",
           "type": "string"
         }
       ]
@@ -1160,8 +1362,78 @@
   "errors": [
     {
       "code": 6000,
+      "name": "AuthorDisputeNotOpen",
+      "msg": "Author dispute is not open"
+    },
+    {
+      "code": 6001,
+      "name": "AuthorMismatch",
+      "msg": "The disputed author does not match this author dispute"
+    },
+    {
+      "code": 6002,
+      "name": "UnauthorizedResolver",
+      "msg": "Only the configured authority can resolve author disputes"
+    },
+    {
+      "code": 6003,
+      "name": "ChallengerMismatch",
+      "msg": "Challenger account mismatch"
+    },
+    {
+      "code": 6004,
       "name": "InsufficientFunds",
       "msg": "Insufficient funds"
+    },
+    {
+      "code": 6005,
+      "name": "IncompleteBackingSnapshot",
+      "msg": "Author dispute cannot resolve without its full author-wide backing snapshot"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidSettlementAccounts",
+      "msg": "Author dispute uphold must include every snapshotted backing vouch account triple"
+    },
+    {
+      "code": 6007,
+      "name": "DuplicateSettlementBackingVouch",
+      "msg": "Duplicate backing vouches are not allowed during settlement"
+    },
+    {
+      "code": 6008,
+      "name": "AuthorDisputeVouchLinkMismatch",
+      "msg": "Settlement link does not match this author dispute"
+    },
+    {
+      "code": 6009,
+      "name": "AuthorDisputeSettlementVouchMismatch",
+      "msg": "Settlement vouch does not match the recorded author dispute link"
+    },
+    {
+      "code": 6010,
+      "name": "BackingVouchAuthorMismatch",
+      "msg": "Backing vouch does not belong to the disputed author"
+    },
+    {
+      "code": 6011,
+      "name": "BackingVouchVoucherMismatch",
+      "msg": "Backing vouch voucher profile does not match the recorded voucher"
+    },
+    {
+      "code": 6012,
+      "name": "BackingVouchNotSlashable",
+      "msg": "Backing vouch can no longer be slashed through this author dispute"
+    },
+    {
+      "code": 6013,
+      "name": "BackingVouchCountOverflow",
+      "msg": "Backing vouch count overflow"
+    },
+    {
+      "code": 6014,
+      "name": "SlashAmountOverflow",
+      "msg": "Slash amount overflow"
     }
   ],
   "types": [
