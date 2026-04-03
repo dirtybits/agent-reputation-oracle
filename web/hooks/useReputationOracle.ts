@@ -55,12 +55,7 @@ import {
   AuthorDisputeRuling,
   AuthorDisputeStatus,
   VouchStatus,
-  type AuthorDispute,
-  type AgentProfile,
   type ReputationConfig,
-  type SkillListing,
-  type Vouch as VouchAccount,
-  type Purchase,
 } from "../generated/reputation-oracle/src/generated";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
 import {
@@ -70,7 +65,6 @@ import {
 import {
   listAuthorDisputeLinks,
   listAuthorDisputesByAuthor,
-  type AuthorDisputeRecord,
 } from "@/lib/authorDisputes";
 import { countsTowardAuthorWideReportSnapshot } from "@/lib/disputes";
 import {
@@ -788,13 +782,14 @@ export function useReputationOracle() {
           Array.isArray((cause as { logs?: unknown }).logs)
             ? (cause as { logs: unknown[] }).logs
             : cause &&
-                typeof cause === "object" &&
-                "context" in cause &&
-                (cause as { context?: unknown }).context &&
-                typeof (cause as { context?: unknown }).context === "object" &&
-                "logs" in ((cause as { context: { logs?: unknown } }).context ?? {})
-              ? ((cause as { context: { logs?: unknown[] } }).context.logs ?? null)
-              : null;
+              typeof cause === "object" &&
+              "context" in cause &&
+              (cause as { context?: unknown }).context &&
+              typeof (cause as { context?: unknown }).context === "object" &&
+              "logs" in
+                ((cause as { context: { logs?: unknown } }).context ?? {})
+            ? (cause as { context: { logs?: unknown[] } }).context.logs ?? null
+            : null;
         if (logs?.length) console.error("Simulation logs:", logs);
         if (cause) {
           console.error("Transaction failed (cause):", cause);

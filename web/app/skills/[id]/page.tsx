@@ -13,7 +13,6 @@ import {
   buildSignedDownloadErrorMessage,
 } from "@/lib/skillFlowMessages";
 import {
-  navButtonInlineClass,
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
   navButtonSizeClass,

@@ -151,6 +151,9 @@ export async function GET() {
     );
   } catch (error: unknown) {
     console.error("GET /api/landing error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }

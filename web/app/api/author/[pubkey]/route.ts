@@ -37,7 +37,10 @@ export async function GET(
     });
   } catch (error: unknown) {
     console.error("GET /api/author/[pubkey] error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -172,6 +175,9 @@ export async function POST(
     );
   } catch (error: unknown) {
     console.error("POST /api/author/[pubkey] error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }

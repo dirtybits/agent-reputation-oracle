@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  FC,
-  ReactNode,
-  useContext,
-  useMemo,
-} from "react";
+import { createContext, FC, ReactNode, useContext, useMemo } from "react";
 import { SolanaProvider } from "@solana/react-hooks";
 import { autoDiscover, createClient } from "@solana/client";
 import { PhantomProvider, type PhantomSDKConfig } from "@phantom/react-sdk";

@@ -28,7 +28,6 @@ import {
   FiZap,
 } from "react-icons/fi";
 import { getCompetitionPhase, formatDateRange } from "@/lib/competition";
-import { getErrorMessage } from "@/lib/errors";
 
 type ToggleMode = "none" | "human" | "agent";
 type FeaturedSkill = {
@@ -105,10 +104,6 @@ export default function Home() {
       }
     })();
   }, []);
-
-  const handleToggle = (mode: ToggleMode) => {
-    setToggle((prev) => (prev === mode ? "none" : mode));
-  };
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">

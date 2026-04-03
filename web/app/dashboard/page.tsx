@@ -6,7 +6,6 @@ import { address } from "@solana/kit";
 import { useReputationOracle } from "@/hooks/useReputationOracle";
 import { ClientWalletButton } from "@/components/ClientWalletButton";
 import {
-  navButtonFlexClass,
   navButtonInlineClass,
   navButtonPrimaryFlexClass,
   navButtonPrimaryInlineClass,
@@ -102,9 +101,9 @@ export default function DashboardPage() {
     string | null
   >(null);
   const [allAgents, setAllAgents] = useState<AgentListingRecord[]>([]);
-  const [authorDisputes, setAuthorDisputes] = useState<OracleAuthorDisputeRow[]>(
-    []
-  );
+  const [authorDisputes, setAuthorDisputes] = useState<
+    OracleAuthorDisputeRow[]
+  >([]);
   const [configAuthority, setConfigAuthority] = useState<string | null>(null);
   const [resolvingAuthorDispute, setResolvingAuthorDispute] = useState<
     string | null
@@ -189,7 +188,8 @@ export default function DashboardPage() {
       }
       setPurchases(
         [...purchaseList].sort(
-          (a, b) => Number(b.account.purchasedAt) - Number(a.account.purchasedAt)
+          (a, b) =>
+            Number(b.account.purchasedAt) - Number(a.account.purchasedAt)
         )
       );
       setPurchaseListings(

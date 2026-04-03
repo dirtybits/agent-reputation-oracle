@@ -180,9 +180,6 @@ export default function MarketplacePage() {
   // Feed state
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
-  const [repoSkillMap, setRepoSkillMap] = useState<Map<string, string>>(
-    new Map()
-  );
   const purchasedSkillListingKeys = useMemo(
     () =>
       new Set([
@@ -216,7 +213,6 @@ export default function MarketplacePage() {
     }
   }, [page, publicKey, search, sort]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadFeed = useCallback(
     async (
       resolvedListings: SkillListingData[],
@@ -263,7 +259,7 @@ export default function MarketplacePage() {
         setFeedLoading(false);
       }
     },
-    []
+    [oracle]
   );
 
   const loadListings = useCallback(async () => {
@@ -278,13 +274,12 @@ export default function MarketplacePage() {
           })
           .filter((entry): entry is [string, string] => entry !== null)
       );
-      setRepoSkillMap(repoMap);
       setListings(all);
       void loadFeed(all, repoMap);
     } catch (e) {
       console.error("Failed to load listings:", e);
     }
-  }, []);
+  }, [loadFeed, oracle]);
 
   const loadMyData = useCallback(async () => {
     if (!publicKey) {

@@ -245,7 +245,11 @@ export async function GET(
         : "drift_detected",
     };
 
-    const versionsWithoutContent = versions.map(({ content: _content, ...rest }) => rest);
+    const versionsWithoutContent = versions.map((version) => {
+      const rest = { ...version };
+      delete (rest as { content?: unknown }).content;
+      return rest;
+    });
     const preflightContext = await createPurchasePreflightContext({
       rpc,
       buyer: buyerAddress,
@@ -282,7 +286,10 @@ export async function GET(
     });
   } catch (error: unknown) {
     console.error("GET /api/skills/[id] error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -339,6 +346,9 @@ export async function PATCH(
     });
   } catch (error: unknown) {
     console.error("PATCH /api/skills/[id] error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }

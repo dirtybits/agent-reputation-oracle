@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockSend = vi.fn();
 
-vi.mock("@solana/kit", async (importOriginal) => {
+vi.mock("@solana/kit", () => {
   return {
     createSolanaRpc: () => ({
       getProgramAccounts: () => ({
@@ -16,7 +16,7 @@ vi.mock("@solana/rpc-types", () => ({}));
 
 vi.mock("@/generated/reputation-oracle/src/generated", () => ({
   getSkillListingDecoder: () => ({
-    decode: (bytes: Uint8Array) => ({
+    decode: () => ({
       author: "Author1",
       name: "Test Skill",
       description: "A skill",
@@ -28,7 +28,7 @@ vi.mock("@/generated/reputation-oracle/src/generated", () => ({
   }),
   SKILL_LISTING_DISCRIMINATOR: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
   getAgentProfileDecoder: () => ({
-    decode: (bytes: Uint8Array) => ({
+    decode: () => ({
       authority: "Agent1",
       totalStakedFor: 500000n,
     }),

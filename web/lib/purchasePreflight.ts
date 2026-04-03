@@ -126,7 +126,11 @@ export async function createPurchasePreflightContext({
     systemAccountRentExemptLamports,
   ] = await Promise.all([
     buyer
-      ? rpc.getBalance(buyer).send().then(coerceLamports).catch(() => null)
+      ? rpc
+          .getBalance(buyer)
+          .send()
+          .then(coerceLamports)
+          .catch(() => null)
       : Promise.resolve(null),
     rpc
       .getMinimumBalanceForRentExemption(BigInt(PURCHASE_ACCOUNT_SPACE))

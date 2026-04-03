@@ -291,8 +291,9 @@ export async function getAuthorDisputePublicKeysByAuthor(
 
 export async function listAuthorDisputeLinks(
   authorDisputePubkey: string,
-  _useCache = true
+  useCache = true
 ): Promise<string[]> {
+  void useCache;
   const accounts = await rpc
     .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
       encoding: "base64",

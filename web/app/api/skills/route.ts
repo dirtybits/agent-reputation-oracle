@@ -57,7 +57,12 @@ type RepoSkillRow = {
 
 type ChainSkillRow = Omit<
   RepoSkillRow,
-  "on_chain_address" | "chain_context" | "total_downloads" | "total_revenue" | "price_lamports" | "skill_uri"
+  | "on_chain_address"
+  | "chain_context"
+  | "total_downloads"
+  | "total_revenue"
+  | "price_lamports"
+  | "skill_uri"
 > & {
   on_chain_address: string;
   chain_context: string;
@@ -304,7 +309,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("GET /api/skills error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }
 

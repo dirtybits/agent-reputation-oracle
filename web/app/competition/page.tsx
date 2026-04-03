@@ -5,7 +5,6 @@ import Link from "next/link";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
 import {
   navButtonFlexClass,
-  navButtonInlineClass,
   navButtonPrimaryFlexClass,
   navButtonPrimaryInlineClass,
   navButtonSecondaryFlexClass,

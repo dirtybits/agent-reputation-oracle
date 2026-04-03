@@ -56,6 +56,9 @@ export async function POST(
     });
   } catch (error: unknown) {
     console.error("POST /api/author/[pubkey]/discover-registry error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }

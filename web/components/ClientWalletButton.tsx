@@ -19,7 +19,9 @@ import {
 const PHANTOM_ICON = "https://phantom.com/_web_platform_assets/favicon.svg";
 const walletTriggerClass = navButtonPrimaryInlineClass;
 const walletMenuButtonClass = `w-full ${navButtonSecondaryInlineClass} justify-start`;
-type WalletConnector = (ReturnType<typeof useWalletConnection>["connectors"])[number];
+type WalletConnector = ReturnType<
+  typeof useWalletConnection
+>["connectors"][number];
 type PhantomAccount = NonNullable<ReturnType<typeof useAccounts>>[number];
 
 const passthroughImageLoader: ImageLoader = ({ src }) => src;

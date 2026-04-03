@@ -95,7 +95,9 @@ export async function POST(
           skill.on_chain_address
         ).catch(() => false);
         if (purchased) {
-          const [updated] = await sql()<Required<Pick<InstallSkillRow, "id" | "total_installs">>>`
+          const [updated] = await sql()<
+            Required<Pick<InstallSkillRow, "id" | "total_installs">>
+          >`
             UPDATE skills
             SET total_installs = total_installs + 1, updated_at = NOW()
             WHERE id = ${id}::uuid
@@ -116,7 +118,9 @@ export async function POST(
       }
     }
 
-    const [updated] = await sql()<Required<Pick<InstallSkillRow, "id" | "total_installs">>>`
+    const [updated] = await sql()<
+      Required<Pick<InstallSkillRow, "id" | "total_installs">>
+    >`
       UPDATE skills
       SET total_installs = total_installs + 1, updated_at = NOW()
       WHERE id = ${id}::uuid
@@ -131,6 +135,9 @@ export async function POST(
     });
   } catch (error: unknown) {
     console.error("POST /api/skills/[id]/install error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }

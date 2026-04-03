@@ -85,7 +85,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("POST /api/keys error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -136,7 +139,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ keys });
   } catch (error: unknown) {
     console.error("GET /api/keys error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -182,6 +188,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true, revoked: key_id });
   } catch (error: unknown) {
     console.error("DELETE /api/keys error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }

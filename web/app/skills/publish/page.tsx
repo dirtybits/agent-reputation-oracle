@@ -8,15 +8,12 @@ import { AgentProfileSetupCard } from "@/components/AgentProfileSetupCard";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { encodeBase64 } from "@/lib/base64";
 import {
-  navButtonFlexClass,
-  navButtonInlineClass,
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
 } from "@/lib/buttonStyles";
 import { useReputationOracle } from "@/hooks/useReputationOracle";
 import {
   PRICING,
-  DEFAULT_CURRENCY,
   formatMinPrice,
   isValidListingPriceLamports,
   toLamports,
@@ -50,15 +47,12 @@ function parseFrontmatter(content: string): {
   // Try to extract name from first H1
   let name = "";
   let description = "";
-  let bodyStart = 0;
-
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     if (!trimmed) continue;
 
     if (trimmed.startsWith("# ") && !name) {
       name = trimmed.slice(2).trim();
-      bodyStart = i;
       continue;
     }
 
@@ -236,7 +230,7 @@ function PublishSkillPageInner() {
           );
         }
       });
-  }, [connected, publicKey]);
+  }, [connected, oracle, publicKey]);
 
   async function publishSkill(skipProfileCheck = false) {
     const cleanId = finalizeSlug(skillId);
