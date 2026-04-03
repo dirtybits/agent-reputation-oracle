@@ -27,8 +27,8 @@ describe("skills page source", () => {
     expect(source).toContain("Seller Needs SOL");
     expect(source).toContain("purchasePreflightStatus");
     expect(source).toContain("Low-priced sales are currently blocked");
-    expect(source).toContain(
-      "will fail until this payout wallet holds enough SOL"
+    expect(source).toMatch(
+      /will fail until this payout wallet\s+holds enough SOL/
     );
   });
 });
