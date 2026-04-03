@@ -5,6 +5,7 @@
 - Verify work before calling it done with concrete proof such as type checks, tests, logs, or behavior diffs.
 - Run `npm run build` after substantive code changes before considering the task complete; if the change is docs-only or otherwise build-irrelevant, explicitly note that the build was skipped.
 - After any Anchor instruction or account interface change, run `anchor build` to refresh `target/idl` and `target/types`; if the web client depends on the IDL, sync `web/reputation_oracle.json` and rerun `web/scripts/generate-client.ts`. When debugging `Fallback functions are not supported`, compare the local IDLs against `anchor idl fetch`; if behavior still looks stale, run `anchor clean && anchor build` and compare `target/deploy/reputation_oracle.so` against `solana program dump` of the live program before redeploying.
+- After major code or protocol changes, review `web/public/skill.md` and keep it aligned with the live product, API, and on-chain instructions.
 - Use `npm` as the preferred package manager; avoid introducing conflicting lockfiles.
 - Favor root-cause fixes and minimal-impact changes over temporary patches.
 - Keep responses direct and concise; avoid buzzwords and marketing language.
