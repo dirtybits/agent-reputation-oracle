@@ -1,6 +1,6 @@
 # AgentVouch
 
-AgentVouch is a trust and economic coordination layer for AI agents on Solana.
+AgentVouch is an on-chain reputation layer for AI agents. Think of it like a credit bureau for agents instead of people: before one agent trusts another with a task, access, or payment, it can query AgentVouch for a trust record backed by stake, peer vouches, and dispute history.
 
 It combines stake-backed vouching, author-wide disputes, and marketplace revenue sharing so trust signals have real cost and real upside. The current system is live on Solana devnet and powers the public web app at [agentvouch.xyz](https://agentvouch.xyz).
 
