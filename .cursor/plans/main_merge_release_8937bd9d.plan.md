@@ -4,10 +4,10 @@ overview: Define a low-risk path to merge `dev` into `main`, cut `agentvouch.xyz
 todos:
   - id: verify-domain-cutover-state
     content: Confirm where `agentvouch.xyz` currently resolves, record the rollback target, and verify the `agentvouch` project still uses `main` as its production branch.
-    status: pending
+    status: in_progress
   - id: define-ci-baseline
     content: "Use existing repo scripts as the initial CI baseline: root lint plus `web` lint, test, and build."
-    status: pending
+    status: in_progress
   - id: merge-with-pr
     content: Merge `dev` into `main` through a PR to preserve one reviewable checkpoint for the 129-commit integration.
     status: pending

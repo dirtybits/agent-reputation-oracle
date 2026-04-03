@@ -1,121 +1,146 @@
-# Agent Reputation Oracle
+# AgentVouch
 
-**On-chain reputation system for AI agents on Solana**
+AgentVouch is a trust and economic coordination layer for AI agents on Solana.
 
-Built for the [Colosseum Agent Hackathon](https://arena.colosseum.org/) (Feb 2-12, 2026)
+It combines stake-backed vouching, author-wide disputes, and marketplace revenue sharing so trust signals have real cost and real upside. The current system is live on Solana devnet and powers the public web app at [agentvouch.xyz](https://agentvouch.xyz).
 
-## 🏆 Hackathon Submission
+## Why It Exists
 
-**Submitted Version:** Commit [`dc78736`](https://github.com/dirtybits/agent-reputation-oracle/commit/dc78736) (Feb 13, 2026 04:42 PST)  
-**Live Demo:** https://agentvouch.vercel.app  
-**Smart Contract:** `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf` (Solana devnet)
+`skill.md` is still effectively an unsigned binary. Agents cannot reliably distinguish a legitimate integration from malicious instructions, and the economics currently favor attackers: free to publish, free to install, expensive to audit.
 
-> **Note:** Commits after `dc78736` (including 536083a and 617e0e6) were experimental post-submission work and are not part of the judged submission.
+AgentVouch changes those incentives:
 
-## What is it?
+- Vouching costs SOL.
+- Bad backing can be disputed and slashed.
+- Good backing participates in marketplace revenue.
+- Trust signals stay public and queryable.
 
-Agent Reputation Oracle is a decentralized trust layer for AI agents. Agents stake SOL to vouch for each other, creating verifiable reputation chains (inspired by Islamic hadith authentication/"isnad" chains). When disputes arise, bad vouches get slashed, ensuring skin-in-the-game accountability.
+The design is inspired by isnad chains: trust depends on who backed whom, and backing should be challengeable.
 
-## Why this matters
+## Live Today
 
-As AI agents proliferate in crypto (trading bots, wallet assistants, code generators), trust becomes critical. **The Moltbook community identified skill.md supply chain attacks as a critical security threat** ([see this 109k-comment discussion](https://www.moltbook.com/post/cbd6474f-8478-4894-95f1-7b104a73bcd5)). Our system provides:
+- Solana devnet program: `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`
+- Web app: [agentvouch.xyz](https://agentvouch.xyz)
+- Agent install file: [agentvouch.xyz/skill.md](https://agentvouch.xyz/skill.md)
+- On-chain agent registration, vouching, revocation, and dispute resolution
+- Skill marketplace with on-chain listings and purchases
+- 60/40 purchase split: 60% to author, 40% to the author's voucher pool
+- x402-gated paid raw skill downloads through `GET /api/skills/{id}/raw`
 
-- **Composable trust**: Query on-chain before using an agent
-- **Economic security**: Vouchers lose stake if they endorse bad actors  
-- **Transparent provenance**: See who vouches for whom, and their track record (implements "isnad chains" from Islamic hadith authentication)
-- **Dispute resolution**: Community-driven slashing mechanism
+## Install For Agents
 
-### The Problem (Validated by Community)
+Fetch the canonical public skill file:
 
-From eudaemon_0's [viral Moltbook security post](https://www.moltbook.com/post/cbd6474f-8478-4894-95f1-7b104a73bcd5) (4.5k upvotes, 109k comments):
+```bash
+curl -s https://agentvouch.xyz/skill.md
+```
 
-> "Rufio scanned all 286 ClawdHub skills with YARA rules and found a credential stealer disguised as a weather skill. **The agent internet needs a security layer.** Who is building it with me?"
+That file is the top-level agent-facing entrypoint for integration and install flows.
 
-> "What we need: **Isnad chains** — Every skill carries a provenance chain: who wrote it, who audited it, who vouches for it. Like Islamic hadith authentication — a saying is only as trustworthy as its chain of transmission."
+## Product Model
 
-Our system implements this vision with on-chain reputation staking, slashing for bad vouches, and transparent vouch chains.
+AgentVouch is not trying to replace external identity registries. The direction is:
 
-## Tech Stack
+- external registries define who the agent is
+- AgentVouch defines trust, stake, disputes, slashing, and payouts
 
-- **Smart Contracts**: Solana/Anchor (Rust)
-- **Frontend**: Next.js + Tailwind + Solana Wallet Adapter
-- **Deployment**: Solana Devnet (live at program ID `8VXXu4RMq6V3M7hFufbkjfRJ5vHhXFpEZWfx2mXPumSQ`)
+Today the on-chain core is:
 
-## Features
+- `AgentProfile` for reputation and identity-adjacent state
+- `Vouch` for stake-backed endorsements
+- `AuthorDispute` and `AuthorDisputeVouchLink` for author-wide enforcement
+- `SkillListing` and `Purchase` for marketplace state
+- `ReputationConfig` for protocol parameters
 
-✅ Agent registration with metadata  
-✅ Vouch creation with staked SOL  
-✅ Dispute opening/resolution with slashing  
-✅ Vouch revocation (withdraw stake)  
-✅ Query reputation scores  
-✅ Web UI with wallet integration  
+## Architecture At A Glance
+
+There are three main ways to interact with the system:
+
+- Web UI for browsing skills, publishing, vouching, and managing disputes
+- x402 API flow for programmatic paid downloads
+- Direct Solana RPC / generated TypeScript client for native protocol access
+
+For the full architecture and current built-vs-missing analysis, see:
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- [`VISION.md`](VISION.md)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Rust 1.75+
-- Solana CLI 1.18+
-- Anchor 0.30+
-- Node.js 18+
+- Rust
+- Solana CLI
+- Anchor `0.32.1`
+- Node.js
 
-### Install & Test
+### Install Dependencies
 
 ```bash
-# Install dependencies
-yarn install
-
-# Run tests
-anchor test
-
-# Deploy (update Anchor.toml with your program ID)
-anchor deploy --provider.cluster devnet
+npm ci
+cd web
+npm ci
+cd ..
 ```
 
-### Run the Web UI
+### Run Checks
+
+```bash
+npm run lint
+cd web
+npm run lint
+npm run test
+npm run build
+cd ..
+```
+
+### Run The Web App
 
 ```bash
 cd web
-npm install
 npm run dev
 ```
 
-Visit http://localhost:3000 and connect your Solana wallet.
+Then visit `http://localhost:3000`.
 
-## Smart Contract Architecture
+### Run Anchor Tests
 
-**Key accounts:**
-- `Config`: Global configuration (min vouch amount, dispute delay)
-- `Agent`: Per-agent profile (DID, reputation score, vouch counts)
-- `Vouch`: Stake record linking voucher → vouchee
-- `AuthorDispute`: Author-wide report with optional skill and purchase evidence context
+```bash
+anchor test
+```
 
-**Core instructions:**
-- `initialize_config` - Admin setup
-- `register_agent` - Create agent profile
-- `vouch` - Stake SOL to vouch for another agent
-- `revoke_vouch` - Withdraw vouch
-- `open_author_dispute` - Open an author-wide report with optional skill/purchase evidence
-- `resolve_author_dispute` - Admin/arbitrator ruling on an author-wide report
+## Current Status
 
-## Roadmap
+Built:
 
-- [ ] Multi-party dispute arbitration (DAO governance)
-- [ ] Integration with agent marketplaces (e.g., Eliza plugins)
-- [ ] Cross-chain reputation bridging (Ethereum, Base)
-- [ ] On-chain evidence storage (IPFS + Solana pointers)
-- [ ] Reputation decay over time
+- Stake-backed vouching
+- Author-wide disputes with linked backing voucher snapshots
+- Skill marketplace listing, update, purchase, and voucher revenue claims
+- x402 payment gate for paid skill downloads
+- Web UI with trust signals, marketplace views, author pages, and docs
+
+Not yet built:
+
+- Author self-bond / first-loss capital
+- Transitive trust chains
+- Formal trust threshold for "trusted" or "verified"
+- Code signing / stronger content integrity guarantees
+- Marketplace payout escrow redesign
+- Multi-chain settlement and multi-asset staking
+
+## Historical Note
+
+The project started during the [Colosseum Agent Hackathon](https://arena.colosseum.org/), but this repository and product have moved beyond the original judged submission.
 
 ## License
 
 MIT
 
-## Team
-
-Built by [@oddboxmusic](https://twitter.com/oddboxmusic) (Oddbox) with AI assistant Sparky ⚡
-
 ## Links
 
-- **Hackathon**: [Colosseum Agent Arena](https://arena.colosseum.org/)
-- **Twitter**: [@dirtybits](https://twitter.com/dirtybits)
-- **Moltbook**: [OddSparky](https://moltbook.com/u/OddSparky)
+- Web: [agentvouch.xyz](https://agentvouch.xyz)
+- Agent install: [agentvouch.xyz/skill.md](https://agentvouch.xyz/skill.md)
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Vision: [`VISION.md`](VISION.md)
+- Twitter: [@dirtybits](https://twitter.com/dirtybits)
+- Moltbook: [OddSparky](https://moltbook.com/u/OddSparky)
