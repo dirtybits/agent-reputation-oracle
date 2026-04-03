@@ -11,6 +11,14 @@ import {
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
 } from "@/lib/buttonStyles";
+import {
+  deriveDraftMetadataFromContent,
+  finalizeSlug,
+  normalizeSkillContact,
+  normalizeSkillDescription,
+  normalizeSkillName,
+  slugify,
+} from "@/lib/skillDraft";
 import { useReputationOracle } from "@/hooks/useReputationOracle";
 import {
   PRICING,
@@ -36,48 +44,6 @@ type ReputationOracle = ReturnType<typeof useReputationOracle>;
 type AgentProfileData = NonNullable<
   Awaited<ReturnType<ReputationOracle["getAgentProfile"]>>
 >;
-
-function parseFrontmatter(content: string): {
-  name: string;
-  description: string;
-  body: string;
-} {
-  const lines = content.split("\n");
-
-  // Try to extract name from first H1
-  let name = "";
-  let description = "";
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-    if (!trimmed) continue;
-
-    if (trimmed.startsWith("# ") && !name) {
-      name = trimmed.slice(2).trim();
-      continue;
-    }
-
-    if (name && !description && !trimmed.startsWith("#")) {
-      description = trimmed;
-      break;
-    }
-  }
-
-  return { name, description, body: content };
-}
-
-function slugify(text: string, trimEdges = true): string {
-  let slug = text
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .slice(0, 64);
-  if (trimEdges) slug = slug.replace(/^-|-$/g, "");
-  return slug;
-}
-
-function finalizeSlug(text: string): string {
-  return slugify(text, true);
-}
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -189,6 +155,10 @@ function PublishSkillPageInner() {
   const [showProfileGate, setShowProfileGate] = useState(false);
   const [pendingPublishAfterRegister, setPendingPublishAfterRegister] =
     useState(false);
+  const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
+  const [skillIdManuallyEdited, setSkillIdManuallyEdited] = useState(false);
+  const [descriptionManuallyEdited, setDescriptionManuallyEdited] =
+    useState(false);
   const profileFetchId = useRef(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -234,8 +204,14 @@ function PublishSkillPageInner() {
 
   async function publishSkill(skipProfileCheck = false) {
     const cleanId = finalizeSlug(skillId);
+    const cleanName = normalizeSkillName(name);
+    const cleanDescription = normalizeSkillDescription(description);
+    const cleanContact = normalizeSkillContact(contact);
     setSkillId(cleanId);
-    if (!cleanId || !name || !content) {
+    setName(cleanName);
+    setDescription(cleanDescription);
+    setContact(cleanContact);
+    if (!cleanId || !cleanName || !content) {
       setResult({
         success: false,
         message: "Skill ID, name, and content are required",
@@ -291,11 +267,11 @@ function PublishSkillPageInner() {
         body: JSON.stringify({
           auth,
           skill_id: cleanId,
-          name,
-          description,
+          name: cleanName,
+          description: cleanDescription,
           tags,
           content,
-          contact: contact || undefined,
+          contact: cleanContact || undefined,
         }),
       });
 
@@ -318,16 +294,16 @@ function PublishSkillPageInner() {
       setPublishStep("chain");
       try {
         await oracle.createSkillListing(
-          skillId,
+          cleanId,
           skillUri,
-          name,
-          description,
+          cleanName,
+          cleanDescription,
           priceLamports
         );
 
         const onChainAddress = await oracle.getSkillListingPDA(
           publicKey as Address,
-          skillId
+          cleanId
         );
 
         const patchTimestamp = Date.now();
@@ -460,16 +436,28 @@ function PublishSkillPageInner() {
   const handleContentChange = useCallback(
     (text: string) => {
       setContent(text);
-      const parsed = parseFrontmatter(text);
-      if (parsed.name && !name) {
-        setName(parsed.name);
-        setSkillId(slugify(parsed.name));
-      }
-      if (parsed.description && !description) {
-        setDescription(parsed.description);
-      }
+      const derived = deriveDraftMetadataFromContent({
+        content: text,
+        currentName: name,
+        currentSkillId: skillId,
+        currentDescription: description,
+        nameManuallyEdited,
+        skillIdManuallyEdited,
+        descriptionManuallyEdited,
+      });
+
+      setName(derived.name);
+      setSkillId(derived.skillId);
+      setDescription(derived.description);
     },
-    [name, description]
+    [
+      description,
+      descriptionManuallyEdited,
+      name,
+      nameManuallyEdited,
+      skillId,
+      skillIdManuallyEdited,
+    ]
   );
 
   const handleFileDrop = useCallback(
@@ -649,6 +637,9 @@ function PublishSkillPageInner() {
                     setName("");
                     setSkillId("");
                     setDescription("");
+                    setNameManuallyEdited(false);
+                    setSkillIdManuallyEdited(false);
+                    setDescriptionManuallyEdited(false);
                   }}
                   className="ml-2 text-gray-400 hover:text-red-500 transition"
                 >
@@ -729,8 +720,12 @@ function PublishSkillPageInner() {
                   type="text"
                   value={name}
                   onChange={(e) => {
-                    setName(e.target.value);
-                    if (!skillId) setSkillId(slugify(e.target.value));
+                    const nextName = normalizeSkillName(e.target.value);
+                    setNameManuallyEdited(true);
+                    setName(nextName);
+                    if (!skillIdManuallyEdited) {
+                      setSkillId(slugify(nextName));
+                    }
                   }}
                   placeholder="Solana Developer Skill"
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
@@ -743,7 +738,10 @@ function PublishSkillPageInner() {
                 <input
                   type="text"
                   value={skillId}
-                  onChange={(e) => setSkillId(slugify(e.target.value, false))}
+                  onChange={(e) => {
+                    setSkillIdManuallyEdited(true);
+                    setSkillId(slugify(e.target.value, false));
+                  }}
                   onBlur={() => setSkillId(finalizeSlug(skillId))}
                   placeholder="solana-dev-skill"
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
@@ -758,7 +756,10 @@ function PublishSkillPageInner() {
               <input
                 type="text"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescriptionManuallyEdited(true);
+                    setDescription(normalizeSkillDescription(e.target.value));
+                  }}
                 placeholder="Brief description of what this skill teaches agents..."
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 maxLength={256}
@@ -817,7 +818,9 @@ function PublishSkillPageInner() {
               <input
                 type="text"
                 value={contact}
-                onChange={(e) => setContact(e.target.value)}
+                  onChange={(e) =>
+                    setContact(normalizeSkillContact(e.target.value))
+                  }
                 placeholder="@twitter, discord#1234, t.me/handle, etc."
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 maxLength={128}

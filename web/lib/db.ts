@@ -7,10 +7,13 @@ import {
 } from "@/lib/chains";
 
 type SqlRow = Record<string, unknown>;
-type SqlQuery = <TRow extends SqlRow = SqlRow>(
-  strings: TemplateStringsArray,
-  ...values: unknown[]
-) => Promise<TRow[]>;
+type SqlQuery = {
+  <TRow extends SqlRow = SqlRow>(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ): Promise<TRow[]>;
+  unsafe(rawSQL: string): unknown;
+};
 
 let _sql: ReturnType<typeof neon> | null = null;
 
@@ -26,9 +29,14 @@ export function sql(): SqlQuery {
   return _sql as unknown as SqlQuery;
 }
 
+function sqlStringLiteral(db: SqlQuery, value: string) {
+  return db.unsafe(`'${value.replace(/'/g, "''")}'`);
+}
+
 export async function initializeDatabase() {
   const db = sql();
   const configuredSolanaChainContext = getConfiguredSolanaChainContext();
+  const chainContextDefault = sqlStringLiteral(db, configuredSolanaChainContext);
 
   await db`
     CREATE TABLE IF NOT EXISTS skills (
@@ -41,7 +49,7 @@ export async function initializeDatabase() {
       current_version INTEGER DEFAULT 1,
       ipfs_cid VARCHAR(128),
       on_chain_address VARCHAR(44),
-      chain_context VARCHAR(64) DEFAULT ${configuredSolanaChainContext},
+      chain_context VARCHAR(64) DEFAULT ${chainContextDefault},
       total_installs INTEGER DEFAULT 0,
       contact VARCHAR(128),
       created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -57,7 +65,7 @@ export async function initializeDatabase() {
 
   await db`
     ALTER TABLE skills
-    ALTER COLUMN chain_context SET DEFAULT ${configuredSolanaChainContext}
+    ALTER COLUMN chain_context SET DEFAULT ${chainContextDefault}
   `;
 
   await db`

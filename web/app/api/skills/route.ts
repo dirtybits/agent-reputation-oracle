@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { initializeDatabase, sql } from "@/lib/db";
 import { verifyAuthorTrust, resolveMultipleAuthorTrust } from "@/lib/trust";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { pinSkillContent } from "@/lib/ipfs";
@@ -12,6 +12,11 @@ import {
   normalizeInputChainContext,
   normalizePersistedChainContext,
 } from "@/lib/chains";
+import {
+  normalizeSkillContact,
+  normalizeSkillDescription,
+  normalizeSkillName,
+} from "@/lib/skillDraft";
 import {
   assessPurchasePreflight,
   createPurchasePreflightContext,
@@ -347,9 +352,21 @@ export async function POST(request: NextRequest) {
     }
 
     const authorPubkey = verification.pubkey!;
+    const normalizedName = normalizeSkillName(name);
+    const normalizedDescription = description
+      ? normalizeSkillDescription(description)
+      : "";
+    const normalizedContact = contact ? normalizeSkillContact(contact) : "";
     const normalizedChainContext = body.chain_context
       ? normalizeInputChainContext(body.chain_context)
       : configuredSolanaChainContext;
+
+    if (!normalizedName) {
+      return NextResponse.json(
+        { error: "Skill name is required" },
+        { status: 400 }
+      );
+    }
 
     if (body.chain_context && !normalizedChainContext) {
       return NextResponse.json(
@@ -381,6 +398,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await initializeDatabase();
+
     const pinResult = await pinSkillContent(content, skill_id, 1);
     try {
       await upsertLocalAgentIdentity({
@@ -400,12 +419,12 @@ export async function POST(request: NextRequest) {
       VALUES (
         ${skill_id},
         ${authorPubkey},
-        ${name},
-        ${description || null},
+        ${normalizedName},
+        ${normalizedDescription || null},
         ${tags || []}::text[],
         1,
         ${pinResult.success ? pinResult.cid : null},
-        ${contact || null},
+        ${normalizedContact || null},
         ${normalizedChainContext}
       )
       RETURNING *
