@@ -34,7 +34,6 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
-  type ReadonlyAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
@@ -72,7 +71,7 @@ export type RemoveSkillListingInstruction<
         ? WritableAccount<TAccountSkillListing>
         : TAccountSkillListing,
       TAccountAuthorProfile extends string
-        ? ReadonlyAccount<TAccountAuthorProfile>
+        ? WritableAccount<TAccountAuthorProfile>
         : TAccountAuthorProfile,
       TAccountAuthor extends string
         ? WritableSignerAccount<TAccountAuthor> &
@@ -157,7 +156,7 @@ export async function getRemoveSkillListingInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     skillListing: { value: input.skillListing ?? null, isWritable: true },
-    authorProfile: { value: input.authorProfile ?? null, isWritable: false },
+    authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     author: { value: input.author ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
@@ -256,7 +255,7 @@ export function getRemoveSkillListingInstruction<
   // Original accounts.
   const originalAccounts = {
     skillListing: { value: input.skillListing ?? null, isWritable: true },
-    authorProfile: { value: input.authorProfile ?? null, isWritable: false },
+    authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     author: { value: input.author ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<

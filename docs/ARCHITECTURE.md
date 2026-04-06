@@ -73,8 +73,8 @@ The isnad chain analogy from the vision maps as follows:
                              ▼
               ┌──────────────────────────────┐
               │   Solana Program (Anchor)    │
-              │   10 instructions            │
-              │   7 account types            │
+              │   15 instructions            │
+              │   8 account types            │
               └──────────────────────────────┘
 ```
 
@@ -92,8 +92,9 @@ The isnad chain analogy from the vision maps as follows:
 
 | Account | Seeds | Purpose |
 |---|---|---|
-| `ReputationConfig` | `["config"]` | Global parameters: min_stake, dispute_bond, slash_percentage |
-| `AgentProfile` | `["agent", authority]` | Identity and reputation for an author (agent or human) |
+| `ReputationConfig` | `["config"]` | Global parameters: min_stake, dispute_bond, slash_percentage, min_author_bond_for_free_listing |
+| `AgentProfile` | `["agent", authority]` | Identity, reputation, external backing, author bond balance, and author-wide dispute counters |
+| `AuthorBond` | `["author_bond", author]` | Author self-stake that takes first loss in upheld author disputes and gates free listings |
 | `Vouch` | `["vouch", voucher, vouchee]` | Stake-backed endorsement of one agent by another |
 | `AuthorDispute` | `["author_dispute", author, dispute_id]` | First-class, author-wide dispute against an author, with optional skill and purchase context |
 | `AuthorDisputeVouchLink` | `["author_dispute_vouch_link", author_dispute, vouch]` | Snapshot link from one author dispute to one backing vouch in the author-wide liability set |
@@ -107,10 +108,13 @@ The isnad chain analogy from the vision maps as follows:
 | Instruction | Who Calls It | What Happens |
 |---|---|---|
 | `register_agent` | Any wallet | Creates AgentProfile PDA |
+| `migrate_agent` | Agent owner | Rewrites older AgentProfile accounts to the current layout |
+| `deposit_author_bond` | Registered agent | Deposits SOL into the author's AuthorBond PDA |
+| `withdraw_author_bond` | Registered agent | Withdraws unlocked SOL from AuthorBond while respecting listing/dispute locks |
 | `vouch` | Registered agent | Stakes SOL on another agent's profile |
 | `revoke_vouch` | Voucher | Returns staked SOL (active vouches only) |
 | `open_author_dispute` | Any wallet | Opens an author-native dispute, snapshots the full live author backing set, and posts the dispute bond |
-| `resolve_author_dispute` | Program authority | Resolves the author dispute and records whether the report was upheld or dismissed |
+| `resolve_author_dispute` | Program authority | Resolves the author dispute and slashes AuthorBond first, then backing vouchers if needed |
 
 ### Author-Wide Dispute Nuance
 
@@ -118,14 +122,18 @@ The isnad chain analogy from the vision maps as follows:
 - A malicious or fraudulent skill is treated as evidence that the author is unsafe, so the dispute surface stays at the author boundary.
 - `open_author_dispute` derives the full live backing set from protocol state at open time and rejects partial snapshots, so challengers cannot cherry-pick only some backers.
 - Skill and purchase references narrow the evidence context, but they do not narrow liability scope.
-- This is intentionally harsher until Phase 3 introduces `AuthorBond`, first-loss ordering, or more granular per-skill underwriting.
+- `AuthorBond` now acts as first-loss capital for author-wide disputes.
+- If an upheld author dispute exceeds the available AuthorBond, the remainder is slashed proportionally from the snapshotted backing vouchers.
+- Free listings stay author-wide under this model, but they now require self-stake before exposing voucher capital to zero-price listings.
 
 **Marketplace subsystem:**
 
 | Instruction | Who Calls It | What Happens |
 |---|---|---|
-| `create_skill_listing` | Registered agent | Lists a skill with name, description, URI, price |
-| `update_skill_listing` | Skill author | Updates price, name, description, URI |
+| `create_skill_listing` | Registered agent | Lists a skill with name, description, URI, price; free listings require AuthorBond at the configured floor |
+| `update_skill_listing` | Skill author | Updates price, name, description, URI; moving to free re-checks the AuthorBond floor |
+| `remove_skill_listing` | Skill author | Marks a listing removed and decrements the author's free-listing count when applicable |
+| `close_skill_listing` | Skill author | Closes a removed listing after voucher revenue is drained |
 | `purchase_skill` | Any wallet | Pays price: 60% to author, 40% to skill's voucher pool |
 | `claim_voucher_revenue` | Voucher of skill author | Claims proportional share of unclaimed voucher revenue |
 
@@ -145,8 +153,9 @@ Skill Purchase (0.05 SOL)
                     ├── Voucher A (0.5 SOL staked, 50%) → 0.01 SOL
                     └── Voucher B (0.5 SOL staked, 50%) → 0.01 SOL
 
-Dispute (SlashVoucher ruling)
-├── Slashed stake (slash_percentage% of vouch) → 100% to Challenger
+Author Dispute (Upheld)
+├── Slash AuthorBond first → Challenger
+├── Remaining liability → slashed proportionally from linked backing vouchers
 └── Dispute bond → Returned to Challenger
 ```
 
@@ -181,7 +190,7 @@ This design keeps seller wallet state from affecting buyer purchase success and 
 
 ## x402 Payment Flow
 
-The x402 protocol gates skill content behind on-chain purchases. This ensures every paid download goes through `purchaseSkill` and respects the 60/40 revenue split.
+The x402 protocol gates paid skill content behind on-chain purchases. Free skills can download directly. Paid downloads must go through `purchaseSkill`, then attach a signed `X-AgentVouch-Auth` header.
 
 ```
 Agent                          Server                         Solana
@@ -198,7 +207,8 @@ Agent                          Server                         Solana
   │                              │           40% → voucher pool │
   │                              │           Purchase PDA created│
   │                              │                              │
-  │─── GET /raw + X-Payment-Proof (buyer, txSig) ──▶           │
+  │─── GET /raw + X-AgentVouch-Auth ───────────────▶           │
+  │                              │── verify signed download msg ─▶
   │                              │── derive Purchase PDA ───────▶
   │                              │◀─ PDA exists, buyer matches ─│
   │◀── 200 + SKILL.md content ──│                              │
@@ -212,7 +222,9 @@ Agent                          Server                         Solana
 
 - [x] On-chain reputation (register, vouch, revoke, dispute, resolve)
 - [x] First-class author disputes with optional skill context and linked backing vouchers
+- [x] AuthorBond self-stake with first-loss slashing ahead of backing vouchers
 - [x] Skill marketplace (list, update, purchase, claim revenue)
+- [x] Free listings gated by minimum AuthorBond
 - [x] 60/40 revenue split enforced on-chain
 - [x] x402 API payment flow routed through `purchaseSkill`
 - [x] Dispute economics (100% slash to challenger + bond return)
@@ -223,7 +235,6 @@ Agent                          Server                         Solana
 
 | Gap | Priority | Notes |
 |---|---|---|
-| **Author-bonded stake** | High | Author disputes now exist as first-class objects, but author slashing still does not exist. Phase 3 should add `AuthorBond` / self-stake as first-loss capital ahead of backing vouchers. |
 | **Transitive trust (sanad chains)** | Medium | Vouches are flat. A chain model (A→B→C) would let reputation propagate and enable "degrees of trust." |
 | **Trust threshold ("mutawatir")** | Medium | No formal definition of when a skill is "verified." Could be: N vouches from M unique stakers totaling X SOL. |
 | **Code signing / content integrity** | High | VISION.md's #1 problem. Skills are unsigned. Content hash on-chain (IPFS CID) is a partial solution but doesn't verify safety. |
@@ -248,7 +259,7 @@ Agent                          Server                         Solana
 
 ```
 programs/reputation-oracle/     Anchor program (Rust)
-├── src/instructions/           13 instruction handlers
+├── src/instructions/           15 instruction handlers
 ├── src/state/                  8 account definitions
 ├── src/events.rs               On-chain events
 └── src/lib.rs                  Program entry point

@@ -33,6 +33,7 @@ import {
 } from "@solana/program-client-core";
 import {
   getAgentProfileCodec,
+  getAuthorBondCodec,
   getAuthorDisputeCodec,
   getPurchaseCodec,
   getReputationConfigCodec,
@@ -40,6 +41,8 @@ import {
   getVouchCodec,
   type AgentProfile,
   type AgentProfileArgs,
+  type AuthorBond,
+  type AuthorBondArgs,
   type AuthorDispute,
   type AuthorDisputeArgs,
   type Purchase,
@@ -55,6 +58,7 @@ import {
   getClaimVoucherRevenueInstructionAsync,
   getCloseSkillListingInstructionAsync,
   getCreateSkillListingInstructionAsync,
+  getDepositAuthorBondInstructionAsync,
   getInitializeConfigInstructionAsync,
   getMigrateAgentInstructionAsync,
   getOpenAuthorDisputeInstructionAsync,
@@ -65,9 +69,11 @@ import {
   getRevokeVouchInstructionAsync,
   getUpdateSkillListingInstructionAsync,
   getVouchInstructionAsync,
+  getWithdrawAuthorBondInstructionAsync,
   parseClaimVoucherRevenueInstruction,
   parseCloseSkillListingInstruction,
   parseCreateSkillListingInstruction,
+  parseDepositAuthorBondInstruction,
   parseInitializeConfigInstruction,
   parseMigrateAgentInstruction,
   parseOpenAuthorDisputeInstruction,
@@ -78,15 +84,18 @@ import {
   parseRevokeVouchInstruction,
   parseUpdateSkillListingInstruction,
   parseVouchInstruction,
+  parseWithdrawAuthorBondInstruction,
   type ClaimVoucherRevenueAsyncInput,
   type CloseSkillListingAsyncInput,
   type CreateSkillListingAsyncInput,
+  type DepositAuthorBondAsyncInput,
   type InitializeConfigAsyncInput,
   type MigrateAgentAsyncInput,
   type OpenAuthorDisputeAsyncInput,
   type ParsedClaimVoucherRevenueInstruction,
   type ParsedCloseSkillListingInstruction,
   type ParsedCreateSkillListingInstruction,
+  type ParsedDepositAuthorBondInstruction,
   type ParsedInitializeConfigInstruction,
   type ParsedMigrateAgentInstruction,
   type ParsedOpenAuthorDisputeInstruction,
@@ -97,6 +106,7 @@ import {
   type ParsedRevokeVouchInstruction,
   type ParsedUpdateSkillListingInstruction,
   type ParsedVouchInstruction,
+  type ParsedWithdrawAuthorBondInstruction,
   type PurchaseSkillAsyncInput,
   type RegisterAgentAsyncInput,
   type RemoveSkillListingAsyncInput,
@@ -104,6 +114,7 @@ import {
   type RevokeVouchAsyncInput,
   type UpdateSkillListingAsyncInput,
   type VouchAsyncInput,
+  type WithdrawAuthorBondAsyncInput,
 } from "../instructions";
 
 export const REPUTATION_ORACLE_PROGRAM_ADDRESS =
@@ -111,6 +122,7 @@ export const REPUTATION_ORACLE_PROGRAM_ADDRESS =
 
 export enum ReputationOracleAccount {
   AgentProfile,
+  AuthorBond,
   AuthorDispute,
   Purchase,
   ReputationConfig,
@@ -132,6 +144,17 @@ export function identifyReputationOracleAccount(
     )
   ) {
     return ReputationOracleAccount.AgentProfile;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([179, 13, 148, 157, 91, 243, 120, 251]),
+      ),
+      0,
+    )
+  ) {
+    return ReputationOracleAccount.AuthorBond;
   }
   if (
     containsBytes(
@@ -198,6 +221,7 @@ export enum ReputationOracleInstruction {
   ClaimVoucherRevenue,
   CloseSkillListing,
   CreateSkillListing,
+  DepositAuthorBond,
   InitializeConfig,
   MigrateAgent,
   OpenAuthorDispute,
@@ -208,6 +232,7 @@ export enum ReputationOracleInstruction {
   RevokeVouch,
   UpdateSkillListing,
   Vouch,
+  WithdrawAuthorBond,
 }
 
 export function identifyReputationOracleInstruction(
@@ -246,6 +271,17 @@ export function identifyReputationOracleInstruction(
     )
   ) {
     return ReputationOracleInstruction.CreateSkillListing;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([20, 24, 47, 9, 171, 195, 73, 223]),
+      ),
+      0,
+    )
+  ) {
+    return ReputationOracleInstruction.DepositAuthorBond;
   }
   if (
     containsBytes(
@@ -357,6 +393,17 @@ export function identifyReputationOracleInstruction(
   ) {
     return ReputationOracleInstruction.Vouch;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([153, 203, 38, 142, 135, 67, 201, 179]),
+      ),
+      0,
+    )
+  ) {
+    return ReputationOracleInstruction.WithdrawAuthorBond;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "reputationOracle" },
@@ -375,6 +422,9 @@ export type ParsedReputationOracleInstruction<
   | ({
       instructionType: ReputationOracleInstruction.CreateSkillListing;
     } & ParsedCreateSkillListingInstruction<TProgram>)
+  | ({
+      instructionType: ReputationOracleInstruction.DepositAuthorBond;
+    } & ParsedDepositAuthorBondInstruction<TProgram>)
   | ({
       instructionType: ReputationOracleInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
@@ -404,7 +454,10 @@ export type ParsedReputationOracleInstruction<
     } & ParsedUpdateSkillListingInstruction<TProgram>)
   | ({
       instructionType: ReputationOracleInstruction.Vouch;
-    } & ParsedVouchInstruction<TProgram>);
+    } & ParsedVouchInstruction<TProgram>)
+  | ({
+      instructionType: ReputationOracleInstruction.WithdrawAuthorBond;
+    } & ParsedWithdrawAuthorBondInstruction<TProgram>);
 
 export function parseReputationOracleInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -430,6 +483,13 @@ export function parseReputationOracleInstruction<TProgram extends string>(
       return {
         instructionType: ReputationOracleInstruction.CreateSkillListing,
         ...parseCreateSkillListingInstruction(instruction),
+      };
+    }
+    case ReputationOracleInstruction.DepositAuthorBond: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ReputationOracleInstruction.DepositAuthorBond,
+        ...parseDepositAuthorBondInstruction(instruction),
       };
     }
     case ReputationOracleInstruction.InitializeConfig: {
@@ -502,6 +562,13 @@ export function parseReputationOracleInstruction<TProgram extends string>(
         ...parseVouchInstruction(instruction),
       };
     }
+    case ReputationOracleInstruction.WithdrawAuthorBond: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ReputationOracleInstruction.WithdrawAuthorBond,
+        ...parseWithdrawAuthorBondInstruction(instruction),
+      };
+    }
     default:
       throw new SolanaError(
         SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
@@ -521,6 +588,8 @@ export type ReputationOraclePlugin = {
 export type ReputationOraclePluginAccounts = {
   agentProfile: ReturnType<typeof getAgentProfileCodec> &
     SelfFetchFunctions<AgentProfileArgs, AgentProfile>;
+  authorBond: ReturnType<typeof getAuthorBondCodec> &
+    SelfFetchFunctions<AuthorBondArgs, AuthorBond>;
   authorDispute: ReturnType<typeof getAuthorDisputeCodec> &
     SelfFetchFunctions<AuthorDisputeArgs, AuthorDispute>;
   purchase: ReturnType<typeof getPurchaseCodec> &
@@ -545,6 +614,10 @@ export type ReputationOraclePluginInstructions = {
   createSkillListing: (
     input: CreateSkillListingAsyncInput,
   ) => ReturnType<typeof getCreateSkillListingInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  depositAuthorBond: (
+    input: DepositAuthorBondAsyncInput,
+  ) => ReturnType<typeof getDepositAuthorBondInstructionAsync> &
     SelfPlanAndSendFunctions;
   initializeConfig: (
     input: InitializeConfigAsyncInput,
@@ -585,6 +658,10 @@ export type ReputationOraclePluginInstructions = {
   vouch: (
     input: VouchAsyncInput,
   ) => ReturnType<typeof getVouchInstructionAsync> & SelfPlanAndSendFunctions;
+  withdrawAuthorBond: (
+    input: WithdrawAuthorBondAsyncInput,
+  ) => ReturnType<typeof getWithdrawAuthorBondInstructionAsync> &
+    SelfPlanAndSendFunctions;
 };
 
 export type ReputationOraclePluginRequirements = ClientWithRpc<
@@ -600,6 +677,7 @@ export function reputationOracleProgram() {
       reputationOracle: <ReputationOraclePlugin>{
         accounts: {
           agentProfile: addSelfFetchFunctions(client, getAgentProfileCodec()),
+          authorBond: addSelfFetchFunctions(client, getAuthorBondCodec()),
           authorDispute: addSelfFetchFunctions(client, getAuthorDisputeCodec()),
           purchase: addSelfFetchFunctions(client, getPurchaseCodec()),
           reputationConfig: addSelfFetchFunctions(
@@ -624,6 +702,11 @@ export function reputationOracleProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getCreateSkillListingInstructionAsync(input),
+            ),
+          depositAuthorBond: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getDepositAuthorBondInstructionAsync(input),
             ),
           initializeConfig: (input) =>
             addSelfPlanAndSendFunctions(
@@ -674,6 +757,11 @@ export function reputationOracleProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getVouchInstructionAsync(input),
+            ),
+          withdrawAuthorBond: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getWithdrawAuthorBondInstructionAsync(input),
             ),
         },
       },

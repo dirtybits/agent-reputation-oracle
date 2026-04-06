@@ -17,6 +17,7 @@ pub mod reputation_oracle {
         ctx: Context<InitializeConfig>,
         min_stake: u64,
         dispute_bond: u64,
+        min_author_bond_for_free_listing: u64,
         slash_percentage: u8,
         cooldown_period: i64,
     ) -> Result<()> {
@@ -24,6 +25,7 @@ pub mod reputation_oracle {
             ctx,
             min_stake,
             dispute_bond,
+            min_author_bond_for_free_listing,
             slash_percentage,
             cooldown_period,
         )
@@ -41,6 +43,20 @@ pub mod reputation_oracle {
         metadata_uri: String,
     ) -> Result<()> {
         instructions::migrate_agent::handler(ctx, metadata_uri)
+    }
+
+    pub fn deposit_author_bond(
+        ctx: Context<DepositAuthorBond>,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::deposit_author_bond::handler(ctx, amount)
+    }
+
+    pub fn withdraw_author_bond(
+        ctx: Context<WithdrawAuthorBond>,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::withdraw_author_bond::handler(ctx, amount)
     }
 
     pub fn vouch(

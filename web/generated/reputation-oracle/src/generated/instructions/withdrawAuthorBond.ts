@@ -7,8 +7,6 @@
  */
 
 import {
-  addDecoderSizePrefix,
-  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
@@ -18,177 +16,141 @@ import {
   getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
-  getU32Decoder,
-  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
-  getUtf8Decoder,
-  getUtf8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
-  getNonNullResolvedInstructionInput,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
-export const UPDATE_SKILL_LISTING_DISCRIMINATOR = new Uint8Array([
-  192, 205, 6, 209, 45, 93, 143, 10,
+export const WITHDRAW_AUTHOR_BOND_DISCRIMINATOR = new Uint8Array([
+  153, 203, 38, 142, 135, 67, 201, 179,
 ]);
 
-export function getUpdateSkillListingDiscriminatorBytes() {
+export function getWithdrawAuthorBondDiscriminatorBytes() {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    UPDATE_SKILL_LISTING_DISCRIMINATOR,
+    WITHDRAW_AUTHOR_BOND_DISCRIMINATOR,
   );
 }
 
-export type UpdateSkillListingInstruction<
+export type WithdrawAuthorBondInstruction<
   TProgram extends string = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
-  TAccountSkillListing extends string | AccountMeta<string> = string,
+  TAccountAuthorBond extends string | AccountMeta<string> = string,
   TAccountAuthorProfile extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
-  TAccountAuthorBond extends string | AccountMeta<string> = string,
   TAccountAuthor extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountSkillListing extends string
-        ? WritableAccount<TAccountSkillListing>
-        : TAccountSkillListing,
+      TAccountAuthorBond extends string
+        ? WritableAccount<TAccountAuthorBond>
+        : TAccountAuthorBond,
       TAccountAuthorProfile extends string
         ? WritableAccount<TAccountAuthorProfile>
         : TAccountAuthorProfile,
       TAccountConfig extends string
         ? ReadonlyAccount<TAccountConfig>
         : TAccountConfig,
-      TAccountAuthorBond extends string
-        ? ReadonlyAccount<TAccountAuthorBond>
-        : TAccountAuthorBond,
       TAccountAuthor extends string
-        ? ReadonlySignerAccount<TAccountAuthor> &
+        ? WritableSignerAccount<TAccountAuthor> &
             AccountSignerMeta<TAccountAuthor>
         : TAccountAuthor,
       ...TRemainingAccounts,
     ]
   >;
 
-export type UpdateSkillListingInstructionData = {
+export type WithdrawAuthorBondInstructionData = {
   discriminator: ReadonlyUint8Array;
-  skillId: string;
-  skillUri: string;
-  name: string;
-  description: string;
-  priceLamports: bigint;
+  amount: bigint;
 };
 
-export type UpdateSkillListingInstructionDataArgs = {
-  skillId: string;
-  skillUri: string;
-  name: string;
-  description: string;
-  priceLamports: number | bigint;
-};
+export type WithdrawAuthorBondInstructionDataArgs = { amount: number | bigint };
 
-export function getUpdateSkillListingInstructionDataEncoder(): Encoder<UpdateSkillListingInstructionDataArgs> {
+export function getWithdrawAuthorBondInstructionDataEncoder(): FixedSizeEncoder<WithdrawAuthorBondInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["skillId", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["skillUri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["description", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["priceLamports", getU64Encoder()],
+      ["amount", getU64Encoder()],
     ]),
     (value) => ({
       ...value,
-      discriminator: UPDATE_SKILL_LISTING_DISCRIMINATOR,
+      discriminator: WITHDRAW_AUTHOR_BOND_DISCRIMINATOR,
     }),
   );
 }
 
-export function getUpdateSkillListingInstructionDataDecoder(): Decoder<UpdateSkillListingInstructionData> {
+export function getWithdrawAuthorBondInstructionDataDecoder(): FixedSizeDecoder<WithdrawAuthorBondInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["skillId", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["skillUri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["description", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["priceLamports", getU64Decoder()],
+    ["amount", getU64Decoder()],
   ]);
 }
 
-export function getUpdateSkillListingInstructionDataCodec(): Codec<
-  UpdateSkillListingInstructionDataArgs,
-  UpdateSkillListingInstructionData
+export function getWithdrawAuthorBondInstructionDataCodec(): FixedSizeCodec<
+  WithdrawAuthorBondInstructionDataArgs,
+  WithdrawAuthorBondInstructionData
 > {
   return combineCodec(
-    getUpdateSkillListingInstructionDataEncoder(),
-    getUpdateSkillListingInstructionDataDecoder(),
+    getWithdrawAuthorBondInstructionDataEncoder(),
+    getWithdrawAuthorBondInstructionDataDecoder(),
   );
 }
 
-export type UpdateSkillListingAsyncInput<
-  TAccountSkillListing extends string = string,
+export type WithdrawAuthorBondAsyncInput<
+  TAccountAuthorBond extends string = string,
   TAccountAuthorProfile extends string = string,
   TAccountConfig extends string = string,
-  TAccountAuthorBond extends string = string,
   TAccountAuthor extends string = string,
 > = {
-  skillListing?: Address<TAccountSkillListing>;
+  authorBond?: Address<TAccountAuthorBond>;
   authorProfile?: Address<TAccountAuthorProfile>;
   config?: Address<TAccountConfig>;
-  authorBond?: Address<TAccountAuthorBond>;
   author: TransactionSigner<TAccountAuthor>;
-  skillId: UpdateSkillListingInstructionDataArgs["skillId"];
-  skillUri: UpdateSkillListingInstructionDataArgs["skillUri"];
-  name: UpdateSkillListingInstructionDataArgs["name"];
-  description: UpdateSkillListingInstructionDataArgs["description"];
-  priceLamports: UpdateSkillListingInstructionDataArgs["priceLamports"];
+  amount: WithdrawAuthorBondInstructionDataArgs["amount"];
 };
 
-export async function getUpdateSkillListingInstructionAsync<
-  TAccountSkillListing extends string,
+export async function getWithdrawAuthorBondInstructionAsync<
+  TAccountAuthorBond extends string,
   TAccountAuthorProfile extends string,
   TAccountConfig extends string,
-  TAccountAuthorBond extends string,
   TAccountAuthor extends string,
   TProgramAddress extends Address = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
 >(
-  input: UpdateSkillListingAsyncInput<
-    TAccountSkillListing,
+  input: WithdrawAuthorBondAsyncInput<
+    TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthorBond,
     TAccountAuthor
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  UpdateSkillListingInstruction<
+  WithdrawAuthorBondInstruction<
     TProgramAddress,
-    TAccountSkillListing,
+    TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthorBond,
     TAccountAuthor
   >
 > {
@@ -198,11 +160,10 @@ export async function getUpdateSkillListingInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    skillListing: { value: input.skillListing ?? null, isWritable: true },
+    authorBond: { value: input.authorBond ?? null, isWritable: true },
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
-    authorBond: { value: input.authorBond ?? null, isWritable: false },
-    author: { value: input.author ?? null, isWritable: false },
+    author: { value: input.author ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -213,19 +174,18 @@ export async function getUpdateSkillListingInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.skillListing.value) {
-    accounts.skillListing.value = await getProgramDerivedAddress({
+  if (!accounts.authorBond.value) {
+    accounts.authorBond.value = await getProgramDerivedAddress({
       programAddress,
       seeds: [
-        getBytesEncoder().encode(new Uint8Array([115, 107, 105, 108, 108])),
+        getBytesEncoder().encode(
+          new Uint8Array([97, 117, 116, 104, 111, 114, 95, 98, 111, 110, 100]),
+        ),
         getAddressEncoder().encode(
           getAddressFromResolvedInstructionAccount(
             "author",
             accounts.author.value,
           ),
-        ),
-        getUtf8Encoder().encode(
-          getNonNullResolvedInstructionInput("skillId", args.skillId),
         ),
       ],
     });
@@ -256,67 +216,56 @@ export async function getUpdateSkillListingInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("skillListing", accounts.skillListing),
+      getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("authorProfile", accounts.authorProfile),
       getAccountMeta("config", accounts.config),
-      getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("author", accounts.author),
     ],
-    data: getUpdateSkillListingInstructionDataEncoder().encode(
-      args as UpdateSkillListingInstructionDataArgs,
+    data: getWithdrawAuthorBondInstructionDataEncoder().encode(
+      args as WithdrawAuthorBondInstructionDataArgs,
     ),
     programAddress,
-  } as UpdateSkillListingInstruction<
+  } as WithdrawAuthorBondInstruction<
     TProgramAddress,
-    TAccountSkillListing,
+    TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthorBond,
     TAccountAuthor
   >);
 }
 
-export type UpdateSkillListingInput<
-  TAccountSkillListing extends string = string,
+export type WithdrawAuthorBondInput<
+  TAccountAuthorBond extends string = string,
   TAccountAuthorProfile extends string = string,
   TAccountConfig extends string = string,
-  TAccountAuthorBond extends string = string,
   TAccountAuthor extends string = string,
 > = {
-  skillListing: Address<TAccountSkillListing>;
+  authorBond: Address<TAccountAuthorBond>;
   authorProfile: Address<TAccountAuthorProfile>;
   config: Address<TAccountConfig>;
-  authorBond?: Address<TAccountAuthorBond>;
   author: TransactionSigner<TAccountAuthor>;
-  skillId: UpdateSkillListingInstructionDataArgs["skillId"];
-  skillUri: UpdateSkillListingInstructionDataArgs["skillUri"];
-  name: UpdateSkillListingInstructionDataArgs["name"];
-  description: UpdateSkillListingInstructionDataArgs["description"];
-  priceLamports: UpdateSkillListingInstructionDataArgs["priceLamports"];
+  amount: WithdrawAuthorBondInstructionDataArgs["amount"];
 };
 
-export function getUpdateSkillListingInstruction<
-  TAccountSkillListing extends string,
+export function getWithdrawAuthorBondInstruction<
+  TAccountAuthorBond extends string,
   TAccountAuthorProfile extends string,
   TAccountConfig extends string,
-  TAccountAuthorBond extends string,
   TAccountAuthor extends string,
   TProgramAddress extends Address = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
 >(
-  input: UpdateSkillListingInput<
-    TAccountSkillListing,
+  input: WithdrawAuthorBondInput<
+    TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthorBond,
     TAccountAuthor
   >,
   config?: { programAddress?: TProgramAddress },
-): UpdateSkillListingInstruction<
+): WithdrawAuthorBondInstruction<
   TProgramAddress,
-  TAccountSkillListing,
+  TAccountAuthorBond,
   TAccountAuthorProfile,
   TAccountConfig,
-  TAccountAuthorBond,
   TAccountAuthor
 > {
   // Program address.
@@ -325,11 +274,10 @@ export function getUpdateSkillListingInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    skillListing: { value: input.skillListing ?? null, isWritable: true },
+    authorBond: { value: input.authorBond ?? null, isWritable: true },
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
-    authorBond: { value: input.authorBond ?? null, isWritable: false },
-    author: { value: input.author ?? null, isWritable: false },
+    author: { value: input.author ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -342,55 +290,52 @@ export function getUpdateSkillListingInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("skillListing", accounts.skillListing),
+      getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("authorProfile", accounts.authorProfile),
       getAccountMeta("config", accounts.config),
-      getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("author", accounts.author),
     ],
-    data: getUpdateSkillListingInstructionDataEncoder().encode(
-      args as UpdateSkillListingInstructionDataArgs,
+    data: getWithdrawAuthorBondInstructionDataEncoder().encode(
+      args as WithdrawAuthorBondInstructionDataArgs,
     ),
     programAddress,
-  } as UpdateSkillListingInstruction<
+  } as WithdrawAuthorBondInstruction<
     TProgramAddress,
-    TAccountSkillListing,
+    TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthorBond,
     TAccountAuthor
   >);
 }
 
-export type ParsedUpdateSkillListingInstruction<
+export type ParsedWithdrawAuthorBondInstruction<
   TProgram extends string = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    skillListing: TAccountMetas[0];
+    authorBond: TAccountMetas[0];
     authorProfile: TAccountMetas[1];
     config: TAccountMetas[2];
-    authorBond?: TAccountMetas[3] | undefined;
-    author: TAccountMetas[4];
+    author: TAccountMetas[3];
   };
-  data: UpdateSkillListingInstructionData;
+  data: WithdrawAuthorBondInstructionData;
 };
 
-export function parseUpdateSkillListingInstruction<
+export function parseWithdrawAuthorBondInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedUpdateSkillListingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+): ParsedWithdrawAuthorBondInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 4,
       },
     );
   }
@@ -400,22 +345,15 @@ export function parseUpdateSkillListingInstruction<
     accountIndex += 1;
     return accountMeta;
   };
-  const getNextOptionalAccount = () => {
-    const accountMeta = getNextAccount();
-    return accountMeta.address === REPUTATION_ORACLE_PROGRAM_ADDRESS
-      ? undefined
-      : accountMeta;
-  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      skillListing: getNextAccount(),
+      authorBond: getNextAccount(),
       authorProfile: getNextAccount(),
       config: getNextAccount(),
-      authorBond: getNextOptionalAccount(),
       author: getNextAccount(),
     },
-    data: getUpdateSkillListingInstructionDataDecoder().decode(
+    data: getWithdrawAuthorBondInstructionDataDecoder().decode(
       instruction.data,
     ),
   };

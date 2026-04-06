@@ -33,6 +33,7 @@ export type AuthorDisputeResolved = {
   author: Address;
   ruling: string;
   linkedVouchCount: number;
+  authorBondSlashedAmount: bigint;
   slashedAmount: bigint;
   timestamp: bigint;
 };
@@ -42,6 +43,7 @@ export type AuthorDisputeResolvedArgs = {
   author: Address;
   ruling: string;
   linkedVouchCount: number;
+  authorBondSlashedAmount: number | bigint;
   slashedAmount: number | bigint;
   timestamp: number | bigint;
 };
@@ -52,6 +54,7 @@ export function getAuthorDisputeResolvedEncoder(): Encoder<AuthorDisputeResolved
     ["author", getAddressEncoder()],
     ["ruling", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ["linkedVouchCount", getU32Encoder()],
+    ["authorBondSlashedAmount", getU64Encoder()],
     ["slashedAmount", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
@@ -63,6 +66,7 @@ export function getAuthorDisputeResolvedDecoder(): Decoder<AuthorDisputeResolved
     ["author", getAddressDecoder()],
     ["ruling", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["linkedVouchCount", getU32Decoder()],
+    ["authorBondSlashedAmount", getU64Decoder()],
     ["slashedAmount", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);

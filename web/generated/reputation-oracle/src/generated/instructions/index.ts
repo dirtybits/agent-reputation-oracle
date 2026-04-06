@@ -9,6 +9,7 @@
 export * from "./claimVoucherRevenue";
 export * from "./closeSkillListing";
 export * from "./createSkillListing";
+export * from "./depositAuthorBond";
 export * from "./initializeConfig";
 export * from "./migrateAgent";
 export * from "./openAuthorDispute";
@@ -19,3 +20,4 @@ export * from "./resolveAuthorDispute";
 export * from "./revokeVouch";
 export * from "./updateSkillListing";
 export * from "./vouch";
+export * from "./withdrawAuthorBond";

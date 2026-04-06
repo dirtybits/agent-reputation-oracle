@@ -65,6 +65,9 @@ export type AgentProfile = {
   totalVouchesReceived: number;
   totalVouchesGiven: number;
   totalStakedFor: bigint;
+  authorBondLamports: bigint;
+  activeFreeSkillListings: number;
+  openAuthorDisputes: number;
   registeredAt: bigint;
   bump: number;
 };
@@ -76,6 +79,9 @@ export type AgentProfileArgs = {
   totalVouchesReceived: number;
   totalVouchesGiven: number;
   totalStakedFor: number | bigint;
+  authorBondLamports: number | bigint;
+  activeFreeSkillListings: number;
+  openAuthorDisputes: number;
   registeredAt: number | bigint;
   bump: number;
 };
@@ -91,6 +97,9 @@ export function getAgentProfileEncoder(): Encoder<AgentProfileArgs> {
       ["totalVouchesReceived", getU32Encoder()],
       ["totalVouchesGiven", getU32Encoder()],
       ["totalStakedFor", getU64Encoder()],
+      ["authorBondLamports", getU64Encoder()],
+      ["activeFreeSkillListings", getU32Encoder()],
+      ["openAuthorDisputes", getU32Encoder()],
       ["registeredAt", getI64Encoder()],
       ["bump", getU8Encoder()],
     ]),
@@ -108,6 +117,9 @@ export function getAgentProfileDecoder(): Decoder<AgentProfile> {
     ["totalVouchesReceived", getU32Decoder()],
     ["totalVouchesGiven", getU32Decoder()],
     ["totalStakedFor", getU64Decoder()],
+    ["authorBondLamports", getU64Decoder()],
+    ["activeFreeSkillListings", getU32Decoder()],
+    ["openAuthorDisputes", getU32Decoder()],
     ["registeredAt", getI64Decoder()],
     ["bump", getU8Decoder()],
   ]);

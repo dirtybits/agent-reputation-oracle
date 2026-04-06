@@ -14,6 +14,7 @@ pub struct RemoveSkillListing<'info> {
     pub skill_listing: Account<'info, SkillListing>,
 
     #[account(
+        mut,
         seeds = [b"agent", author.key().as_ref()],
         bump = author_profile.bump,
     )]
@@ -24,6 +25,14 @@ pub struct RemoveSkillListing<'info> {
 }
 
 pub fn handler(ctx: Context<RemoveSkillListing>, _skill_id: String) -> Result<()> {
+    if crate::state::SkillListing::is_free_price(ctx.accounts.skill_listing.price_lamports) {
+        ctx.accounts.author_profile.active_free_skill_listings = ctx
+            .accounts
+            .author_profile
+            .active_free_skill_listings
+            .checked_sub(1)
+            .ok_or(RemoveSkillError::FreeListingCountUnderflow)?;
+    }
     ctx.accounts.skill_listing.status = SkillStatus::Removed;
     ctx.accounts.skill_listing.updated_at = Clock::get()?.unix_timestamp;
     Ok(())
@@ -35,4 +44,6 @@ pub enum RemoveSkillError {
     NotAuthor,
     #[msg("Skill listing is already removed")]
     AlreadyRemoved,
+    #[msg("Active free listing count underflowed")]
+    FreeListingCountUnderflow,
 }

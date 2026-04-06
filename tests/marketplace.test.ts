@@ -20,6 +20,35 @@ describe("marketplace", () => {
   let voucher: Keypair;
   let buyer: Keypair;
 
+  function getAgentPda(authority: PublicKey): PublicKey {
+    const [agentPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), authority.toBuffer()],
+      program.programId
+    );
+    return agentPda;
+  }
+
+  function getAuthorBondPda(authority: PublicKey): PublicKey {
+    const [authorBondPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("author_bond"), authority.toBuffer()],
+      program.programId
+    );
+    return authorBondPda;
+  }
+
+  async function expectFailure(
+    promise: Promise<unknown>,
+    expectedMessage: string
+  ) {
+    try {
+      await promise;
+      assert.fail(`Expected failure containing "${expectedMessage}"`);
+    } catch (error: any) {
+      const message = String(error?.message ?? error ?? "");
+      assert.include(message, expectedMessage);
+    }
+  }
+
   before(async () => {
     author = Keypair.generate();
     voucher = Keypair.generate();
@@ -47,6 +76,7 @@ describe("marketplace", () => {
         .initializeConfig(
           new anchor.BN(0.01 * anchor.web3.LAMPORTS_PER_SOL),
           new anchor.BN(0.1 * anchor.web3.LAMPORTS_PER_SOL),
+          new anchor.BN(0.1 * anchor.web3.LAMPORTS_PER_SOL),
           50,
           new anchor.BN(86400)
         )
@@ -61,20 +91,11 @@ describe("marketplace", () => {
     }
 
     // Register agents
-    const [authorProfile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), author.publicKey.toBuffer()],
-      program.programId
-    );
+    const authorProfile = getAgentPda(author.publicKey);
 
-    const [voucherProfile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), voucher.publicKey.toBuffer()],
-      program.programId
-    );
+    const voucherProfile = getAgentPda(voucher.publicKey);
 
-    const [buyerProfile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), buyer.publicKey.toBuffer()],
-      program.programId
-    );
+    const buyerProfile = getAgentPda(buyer.publicKey);
 
     await program.methods
       .registerAgent("https://author.agent")
@@ -116,10 +137,7 @@ describe("marketplace", () => {
       program.programId
     );
 
-    const [authorProfile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), author.publicKey.toBuffer()],
-      program.programId
-    );
+    const authorProfile = getAgentPda(author.publicKey);
 
     const skillUri = "ipfs://QmTest123";
     const name = "Test Trading Skill";
@@ -131,6 +149,8 @@ describe("marketplace", () => {
       .accounts({
         skillListing,
         authorProfile,
+        config: configPda,
+        authorBond: null,
         author: author.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -155,10 +175,7 @@ describe("marketplace", () => {
       program.programId
     );
 
-    const [authorProfile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), author.publicKey.toBuffer()],
-      program.programId
-    );
+    const authorProfile = getAgentPda(author.publicKey);
 
     await program.methods
       .createSkillListing(
@@ -171,6 +188,8 @@ describe("marketplace", () => {
       .accounts({
         skillListing,
         authorProfile,
+        config: configPda,
+        authorBond: null,
         author: author.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -270,15 +289,9 @@ describe("marketplace", () => {
     const price = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL);
     const stakeAmount = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL);
 
-    const [authorProfile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), author.publicKey.toBuffer()],
-      program.programId
-    );
+    const authorProfile = getAgentPda(author.publicKey);
 
-    const [voucherProfile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), voucher.publicKey.toBuffer()],
-      program.programId
-    );
+    const voucherProfile = getAgentPda(voucher.publicKey);
 
     // Step 1: Voucher vouches for author
     const [vouchPda] = PublicKey.findProgramAddressSync(
@@ -329,6 +342,8 @@ describe("marketplace", () => {
       .accounts({
         skillListing,
         authorProfile,
+        config: configPda,
+        authorBond: null,
         author: author.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -452,14 +467,8 @@ describe("marketplace", () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    const [voucher2Profile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), voucher2.publicKey.toBuffer()],
-      program.programId
-    );
-    const [authorProfile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), author.publicKey.toBuffer()],
-      program.programId
-    );
+    const voucher2Profile = getAgentPda(voucher2.publicKey);
+    const authorProfile = getAgentPda(author.publicKey);
 
     await program.methods
       .registerAgent("https://voucher2.agent")
@@ -519,6 +528,8 @@ describe("marketplace", () => {
       .accounts({
         skillListing,
         authorProfile,
+        config: configPda,
+        authorBond: null,
         author: author.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -532,10 +543,7 @@ describe("marketplace", () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    const [buyer2Profile] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), buyer2.publicKey.toBuffer()],
-      program.programId
-    );
+    const buyer2Profile = getAgentPda(buyer2.publicKey);
     await program.methods
       .registerAgent("https://buyer2.agent")
       .accounts({
@@ -587,5 +595,138 @@ describe("marketplace", () => {
       assert.include(err.toString(), "VouchNotEligible");
       console.log("Correctly rejected claim for revoked vouch");
     }
+  });
+
+  it("rejects free listings below the configured author bond floor", async () => {
+    const skillId = "free-bond-floor-" + Date.now();
+    const [skillListing] = PublicKey.findProgramAddressSync(
+      [Buffer.from("skill"), author.publicKey.toBuffer(), Buffer.from(skillId)],
+      program.programId
+    );
+    const authorProfile = getAgentPda(author.publicKey);
+    const authorBond = getAuthorBondPda(author.publicKey);
+    const insufficientBond = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL);
+
+    await program.methods
+      .depositAuthorBond(insufficientBond)
+      .accounts({
+        authorBond,
+        authorProfile,
+        config: configPda,
+        author: author.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([author])
+      .rpc();
+
+    await expectFailure(
+      program.methods
+        .createSkillListing(
+          skillId,
+          "ipfs://free-floor",
+          "Free Floor Test",
+          "Should fail until the bond floor is met",
+          new anchor.BN(0)
+        )
+        .accounts({
+          skillListing,
+          authorProfile,
+          config: configPda,
+          authorBond,
+          author: author.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([author])
+        .rpc(),
+      "Free listings require the configured minimum author bond"
+    );
+  });
+
+  it("allows bonded free listings and blocks bond withdrawal below the floor while active", async () => {
+    const skillId = "free-active-floor-" + Date.now();
+    const [skillListing] = PublicKey.findProgramAddressSync(
+      [Buffer.from("skill"), author.publicKey.toBuffer(), Buffer.from(skillId)],
+      program.programId
+    );
+    const authorProfile = getAgentPda(author.publicKey);
+    const authorBond = getAuthorBondPda(author.publicKey);
+    const topUpBond = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL);
+    const withdrawAttempt = new anchor.BN(0.01 * anchor.web3.LAMPORTS_PER_SOL);
+
+    await program.methods
+      .depositAuthorBond(topUpBond)
+      .accounts({
+        authorBond,
+        authorProfile,
+        config: configPda,
+        author: author.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([author])
+      .rpc();
+
+    await program.methods
+      .createSkillListing(
+        skillId,
+        "ipfs://free-live",
+        "Free Live Test",
+        "Should succeed once bond floor is met",
+        new anchor.BN(0)
+      )
+      .accounts({
+        skillListing,
+        authorProfile,
+        config: configPda,
+        authorBond,
+        author: author.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([author])
+      .rpc();
+
+    const authorProfileAfterCreate = await program.account.agentProfile.fetch(
+      authorProfile
+    );
+    assert.equal(authorProfileAfterCreate.activeFreeSkillListings, 1);
+
+    await expectFailure(
+      program.methods
+        .withdrawAuthorBond(withdrawAttempt)
+        .accounts({
+          authorBond,
+          authorProfile,
+          config: configPda,
+          author: author.publicKey,
+        })
+        .signers([author])
+        .rpc(),
+      "Active free listings require the configured minimum author bond"
+    );
+
+    await program.methods
+      .removeSkillListing(skillId)
+      .accounts({
+        skillListing,
+        authorProfile,
+        author: author.publicKey,
+      })
+      .signers([author])
+      .rpc();
+
+    await program.methods
+      .withdrawAuthorBond(withdrawAttempt)
+      .accounts({
+        authorBond,
+        authorProfile,
+        config: configPda,
+        author: author.publicKey,
+      })
+      .signers([author])
+      .rpc();
+
+    const authorProfileAfterWithdraw = await program.account.agentProfile.fetch(
+      authorProfile
+    );
+    assert.equal(authorProfileAfterWithdraw.activeFreeSkillListings, 0);
   });
 });

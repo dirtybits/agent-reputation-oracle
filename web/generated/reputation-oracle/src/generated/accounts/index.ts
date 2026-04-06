@@ -7,6 +7,7 @@
  */
 
 export * from "./agentProfile";
+export * from "./authorBond";
 export * from "./authorDispute";
 export * from "./purchase";
 export * from "./reputationConfig";

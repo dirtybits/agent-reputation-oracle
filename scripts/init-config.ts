@@ -32,11 +32,18 @@ async function main() {
   // Initialize with reasonable defaults
   const minStake = new anchor.BN(0.01 * anchor.web3.LAMPORTS_PER_SOL); // 0.01 SOL minimum
   const disputeBond = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL); // 0.05 SOL bond
+  const minAuthorBondForFreeListing = disputeBond;
   const slashPercentage = 50; // 50% slashing
   const cooldownPeriod = new anchor.BN(60 * 60 * 24); // 1 day cooldown
 
   const tx = await program.methods
-    .initializeConfig(minStake, disputeBond, slashPercentage, cooldownPeriod)
+    .initializeConfig(
+      minStake,
+      disputeBond,
+      minAuthorBondForFreeListing,
+      slashPercentage,
+      cooldownPeriod
+    )
     .rpc();
 
   console.log("✅ Config initialized!");
@@ -49,6 +56,11 @@ async function main() {
   console.log(
     "Dispute bond:",
     disputeBond.toNumber() / anchor.web3.LAMPORTS_PER_SOL,
+    "SOL"
+  );
+  console.log(
+    "Min free-listing author bond:",
+    minAuthorBondForFreeListing.toNumber() / anchor.web3.LAMPORTS_PER_SOL,
     "SOL"
   );
   console.log("Slash percentage:", slashPercentage, "%");

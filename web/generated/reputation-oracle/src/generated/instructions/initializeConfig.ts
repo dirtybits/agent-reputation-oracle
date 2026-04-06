@@ -84,6 +84,7 @@ export type InitializeConfigInstructionData = {
   discriminator: ReadonlyUint8Array;
   minStake: bigint;
   disputeBond: bigint;
+  minAuthorBondForFreeListing: bigint;
   slashPercentage: number;
   cooldownPeriod: bigint;
 };
@@ -91,6 +92,7 @@ export type InitializeConfigInstructionData = {
 export type InitializeConfigInstructionDataArgs = {
   minStake: number | bigint;
   disputeBond: number | bigint;
+  minAuthorBondForFreeListing: number | bigint;
   slashPercentage: number;
   cooldownPeriod: number | bigint;
 };
@@ -101,6 +103,7 @@ export function getInitializeConfigInstructionDataEncoder(): FixedSizeEncoder<In
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["minStake", getU64Encoder()],
       ["disputeBond", getU64Encoder()],
+      ["minAuthorBondForFreeListing", getU64Encoder()],
       ["slashPercentage", getU8Encoder()],
       ["cooldownPeriod", getI64Encoder()],
     ]),
@@ -113,6 +116,7 @@ export function getInitializeConfigInstructionDataDecoder(): FixedSizeDecoder<In
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["minStake", getU64Decoder()],
     ["disputeBond", getU64Decoder()],
+    ["minAuthorBondForFreeListing", getU64Decoder()],
     ["slashPercentage", getU8Decoder()],
     ["cooldownPeriod", getI64Decoder()],
   ]);
@@ -138,6 +142,7 @@ export type InitializeConfigAsyncInput<
   systemProgram?: Address<TAccountSystemProgram>;
   minStake: InitializeConfigInstructionDataArgs["minStake"];
   disputeBond: InitializeConfigInstructionDataArgs["disputeBond"];
+  minAuthorBondForFreeListing: InitializeConfigInstructionDataArgs["minAuthorBondForFreeListing"];
   slashPercentage: InitializeConfigInstructionDataArgs["slashPercentage"];
   cooldownPeriod: InitializeConfigInstructionDataArgs["cooldownPeriod"];
 };
@@ -223,6 +228,7 @@ export type InitializeConfigInput<
   systemProgram?: Address<TAccountSystemProgram>;
   minStake: InitializeConfigInstructionDataArgs["minStake"];
   disputeBond: InitializeConfigInstructionDataArgs["disputeBond"];
+  minAuthorBondForFreeListing: InitializeConfigInstructionDataArgs["minAuthorBondForFreeListing"];
   slashPercentage: InitializeConfigInstructionDataArgs["slashPercentage"];
   cooldownPeriod: InitializeConfigInstructionDataArgs["cooldownPeriod"];
 };

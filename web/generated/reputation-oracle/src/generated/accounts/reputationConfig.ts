@@ -58,6 +58,7 @@ export type ReputationConfig = {
   authority: Address;
   minStake: bigint;
   disputeBond: bigint;
+  minAuthorBondForFreeListing: bigint;
   slashPercentage: number;
   cooldownPeriod: bigint;
   stakeWeight: number;
@@ -70,6 +71,7 @@ export type ReputationConfigArgs = {
   authority: Address;
   minStake: number | bigint;
   disputeBond: number | bigint;
+  minAuthorBondForFreeListing: number | bigint;
   slashPercentage: number;
   cooldownPeriod: number | bigint;
   stakeWeight: number;
@@ -86,6 +88,7 @@ export function getReputationConfigEncoder(): FixedSizeEncoder<ReputationConfigA
       ["authority", getAddressEncoder()],
       ["minStake", getU64Encoder()],
       ["disputeBond", getU64Encoder()],
+      ["minAuthorBondForFreeListing", getU64Encoder()],
       ["slashPercentage", getU8Encoder()],
       ["cooldownPeriod", getI64Encoder()],
       ["stakeWeight", getU32Encoder()],
@@ -104,6 +107,7 @@ export function getReputationConfigDecoder(): FixedSizeDecoder<ReputationConfig>
     ["authority", getAddressDecoder()],
     ["minStake", getU64Decoder()],
     ["disputeBond", getU64Decoder()],
+    ["minAuthorBondForFreeListing", getU64Decoder()],
     ["slashPercentage", getU8Decoder()],
     ["cooldownPeriod", getI64Decoder()],
     ["stakeWeight", getU32Decoder()],
@@ -188,5 +192,5 @@ export async function fetchAllMaybeReputationConfig(
 }
 
 export function getReputationConfigSize(): number {
-  return 78;
+  return 86;
 }

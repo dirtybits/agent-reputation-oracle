@@ -25,6 +25,7 @@ const asBase64 = (bytes: Uint8Array) =>
   encodeBase64(bytes) as Base64EncodedBytes;
 const asBase58 = (addr: string) => addr as unknown as Base58EncodedBytes;
 import {
+  fetchMaybeAuthorBond,
   fetchAllMaybePurchase,
   fetchMaybeAgentProfile,
   fetchMaybeAuthorDispute,
@@ -38,13 +39,10 @@ import {
   getResolveAuthorDisputeInstructionAsync,
   getAgentProfileDecoder,
   getRegisterAgentInstructionAsync,
-  getMigrateAgentInstructionAsync,
   getVouchInstructionAsync,
   getRevokeVouchInstructionAsync,
   getCreateSkillListingInstructionAsync,
   getUpdateSkillListingInstructionAsync,
-  getRemoveSkillListingInstructionAsync,
-  getCloseSkillListingInstructionAsync,
   getPurchaseSkillInstructionAsync,
   getSkillListingDecoder,
   getVouchDecoder,
@@ -60,6 +58,11 @@ import {
   VouchStatus,
   type ReputationConfig,
 } from "../generated/reputation-oracle/src/generated";
+import { getMigrateAgentInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/migrateAgent";
+import { getDepositAuthorBondInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/depositAuthorBond";
+import { getWithdrawAuthorBondInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/withdrawAuthorBond";
+import { getRemoveSkillListingInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/removeSkillListing";
+import { getCloseSkillListingInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/closeSkillListing";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
 import {
   getConfiguredSolanaChainDisplayLabel,
@@ -357,6 +360,10 @@ async function getAgentPDA(agentKey: Address): Promise<Address> {
   return deriveAddress(["agent", agentKey]);
 }
 
+async function getAuthorBondPDA(authorKey: Address): Promise<Address> {
+  return deriveAddress(["author_bond", authorKey]);
+}
+
 async function getVouchPDA(
   voucherProfile: Address,
   voucheeProfile: Address
@@ -450,11 +457,13 @@ export async function resolveSkillListingAccounts(
   authorAddress: Address,
   skillId: string
 ) {
-  const [authorProfile, skillListing] = await Promise.all([
+  const [authorProfile, authorBond, config, skillListing] = await Promise.all([
     getAgentPDA(authorAddress),
+    getAuthorBondPDA(authorAddress),
+    getConfigPDA(),
     getSkillListingPDA(authorAddress, skillId),
   ]);
-  return { authorProfile, skillListing };
+  return { authorProfile, authorBond, config, skillListing };
 }
 
 function formatLamportsAsSol(lamports: bigint) {
@@ -836,7 +845,7 @@ export function useReputationOracle() {
     async (metadataUri: string) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
       const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
-      await assertRegisterAgentClusterReady(authorAddress);
+      await assertRegisterAgentClusterReady(walletAddress);
       const ix = await getRegisterAgentInstructionAsync({
         authority: signer,
         metadataUri,
@@ -862,6 +871,50 @@ export function useReputationOracle() {
         metadataUri,
       });
       return { tx: await sendIx(ix) };
+    },
+    [signer, walletAddress, sendIx]
+  );
+
+  const depositAuthorBond = useCallback(
+    async (amount: number) => {
+      if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
+      const [authorProfile, authorBond, config] = await Promise.all([
+        getAgentPDA(authorAddress),
+        getAuthorBondPDA(authorAddress),
+        getConfigPDA(),
+      ]);
+      const lamports = BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL)));
+      const ix = await getDepositAuthorBondInstructionAsync({
+        authorBond,
+        authorProfile,
+        config,
+        author: signer,
+        amount: lamports,
+      });
+      return { tx: await sendIx(ix), authorBond };
+    },
+    [signer, walletAddress, sendIx]
+  );
+
+  const withdrawAuthorBond = useCallback(
+    async (amount: number) => {
+      if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
+      const [authorProfile, authorBond, config] = await Promise.all([
+        getAgentPDA(authorAddress),
+        getAuthorBondPDA(authorAddress),
+        getConfigPDA(),
+      ]);
+      const lamports = BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL)));
+      const ix = await getWithdrawAuthorBondInstructionAsync({
+        authorBond,
+        authorProfile,
+        config,
+        author: signer,
+        amount: lamports,
+      });
+      return { tx: await sendIx(ix), authorBond };
     },
     [signer, walletAddress, sendIx]
   );
@@ -1016,11 +1069,16 @@ export function useReputationOracle() {
         authorKey,
         disputeId,
       });
-      const authorProfile = await getAgentPDA(authorKey);
+      const authorBond = await getAuthorBondPDA(authorKey);
+      const [authorProfile, authorBondAccount] = await Promise.all([
+        getAgentPDA(authorKey),
+        fetchMaybeAuthorBond(rpc, authorBond).catch(() => null),
+      ]);
       const authorDispute = await getAuthorDisputePDA(authorKey, disputeId);
       const ix = await getResolveAuthorDisputeInstructionAsync({
         authorDispute,
         authorProfile,
+        authorBond: authorBondAccount?.exists ? authorBond : undefined,
         authority: signer,
         challenger,
         disputeId,
@@ -1079,6 +1137,24 @@ export function useReputationOracle() {
       return getAgentProfileByAddress(pda);
     },
     [getAgentProfileByAddress]
+  );
+
+  const getAuthorBondByAddress = useCallback(async (bondAddress: Address) => {
+    try {
+      const account = await fetchMaybeAuthorBond(rpc, bondAddress);
+      if (!account.exists) return null;
+      return account.data;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const getAuthorBond = useCallback(
+    async (authorKey: Address) => {
+      const bondPda = await getAuthorBondPDA(authorKey);
+      return getAuthorBondByAddress(bondPda);
+    },
+    [getAuthorBondByAddress]
   );
 
   const getAllAgents = useCallback(async () => {
@@ -1412,13 +1488,13 @@ export function useReputationOracle() {
         skillId,
         mode: "create",
       });
-      const { authorProfile, skillListing } = await resolveSkillListingAccounts(
-        authorAddress,
-        skillId
-      );
+      const { authorProfile, authorBond, config, skillListing } =
+        await resolveSkillListingAccounts(authorAddress, skillId);
       const ix = await getCreateSkillListingInstructionAsync({
         skillListing,
         authorProfile,
+        config,
+        authorBond: priceLamports === 0 ? authorBond : undefined,
         author: signer,
         skillId,
         skillUri,
@@ -1446,13 +1522,13 @@ export function useReputationOracle() {
         skillId,
         mode: "update",
       });
-      const { authorProfile, skillListing } = await resolveSkillListingAccounts(
-        authorAddress,
-        skillId
-      );
+      const { authorProfile, authorBond, config, skillListing } =
+        await resolveSkillListingAccounts(authorAddress, skillId);
       const ix = await getUpdateSkillListingInstructionAsync({
         skillListing,
         authorProfile,
+        config,
+        authorBond: priceLamports === 0 ? authorBond : undefined,
         author: signer,
         skillId,
         skillUri,
@@ -1616,6 +1692,8 @@ export function useReputationOracle() {
       walletAddress,
       registerAgent,
       migrateAgent,
+      depositAuthorBond,
+      withdrawAuthorBond,
       vouch,
       revokeVouch,
       openAuthorDispute,
@@ -1623,6 +1701,8 @@ export function useReputationOracle() {
       getConfig,
       getAgentProfile,
       getAgentProfileByAddress,
+      getAuthorBond,
+      getAuthorBondByAddress,
       getAuthorDisputeByAddress,
       getAuthorDisputesByAuthor,
       getAuthorDisputeLinks,
@@ -1641,6 +1721,7 @@ export function useReputationOracle() {
       closeSkillListing,
       purchaseSkill,
       getAgentPDA,
+      getAuthorBondPDA,
       getVouchPDA,
       getConfigPDA,
       getAuthorDisputePDA,
@@ -1653,6 +1734,8 @@ export function useReputationOracle() {
       walletAddress,
       registerAgent,
       migrateAgent,
+      depositAuthorBond,
+      withdrawAuthorBond,
       vouch,
       revokeVouch,
       openAuthorDispute,
@@ -1660,6 +1743,8 @@ export function useReputationOracle() {
       getConfig,
       getAgentProfile,
       getAgentProfileByAddress,
+      getAuthorBond,
+      getAuthorBondByAddress,
       getAuthorDisputeByAddress,
       getAuthorDisputesByAuthor,
       getAuthorDisputeLinks,

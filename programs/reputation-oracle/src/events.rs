@@ -19,6 +19,33 @@ pub struct VouchRevoked {
 }
 
 #[event]
+pub struct AuthorBondDeposited {
+    pub author_bond: Pubkey,
+    pub author: Pubkey,
+    pub amount: u64,
+    pub total_bond_amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct AuthorBondWithdrawn {
+    pub author_bond: Pubkey,
+    pub author: Pubkey,
+    pub amount: u64,
+    pub total_bond_amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct AuthorBondSlashed {
+    pub author_bond: Pubkey,
+    pub author: Pubkey,
+    pub amount: u64,
+    pub remaining_bond_amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
 pub struct AuthorDisputeOpened {
     pub author_dispute: Pubkey,
     pub author: Pubkey,
@@ -37,6 +64,7 @@ pub struct AuthorDisputeResolved {
     pub author: Pubkey,
     pub ruling: String,
     pub linked_vouch_count: u32,
+    pub author_bond_slashed_amount: u64,
     pub slashed_amount: u64,
     pub timestamp: i64,
 }

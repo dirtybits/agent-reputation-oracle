@@ -22,6 +22,22 @@ describe("reputation-oracle", () => {
   let agent2: Keypair;
   let agent3: Keypair;
 
+  function getAgentPda(authority: PublicKey): PublicKey {
+    const [agentPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), authority.toBuffer()],
+      program.programId
+    );
+    return agentPda;
+  }
+
+  function getAuthorBondPda(authority: PublicKey): PublicKey {
+    const [authorBondPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("author_bond"), authority.toBuffer()],
+      program.programId
+    );
+    return authorBondPda;
+  }
+
   before(async () => {
     agent1 = Keypair.generate();
     agent2 = Keypair.generate();
@@ -48,6 +64,7 @@ describe("reputation-oracle", () => {
   it("Initializes the config", async () => {
     const minStake = new anchor.BN(0.01 * anchor.web3.LAMPORTS_PER_SOL);
     const disputeBond = new anchor.BN(0.1 * anchor.web3.LAMPORTS_PER_SOL);
+    const minAuthorBondForFreeListing = disputeBond;
     const slashPercentage = 50;
     const cooldownPeriod = new anchor.BN(86400); // 1 day
 
@@ -56,6 +73,7 @@ describe("reputation-oracle", () => {
         .initializeConfig(
           minStake,
           disputeBond,
+          minAuthorBondForFreeListing,
           slashPercentage,
           cooldownPeriod
         )
@@ -73,6 +91,10 @@ describe("reputation-oracle", () => {
     const config = await program.account.reputationConfig.fetch(configPda);
     assert.equal(config.minStake.toString(), minStake.toString());
     assert.equal(config.disputeBond.toString(), disputeBond.toString());
+    assert.equal(
+      config.minAuthorBondForFreeListing.toString(),
+      minAuthorBondForFreeListing.toString()
+    );
     assert.equal(config.slashPercentage, slashPercentage);
     assert.equal(config.stakeWeight, 1);
     assert.equal(config.vouchWeight, 100);
@@ -106,10 +128,7 @@ describe("reputation-oracle", () => {
   });
 
   it("Registers agent 2", async () => {
-    const [agentPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("agent"), agent2.publicKey.toBuffer()],
-      program.programId
-    );
+    const agentPda = getAgentPda(agent2.publicKey);
 
     const tx = await program.methods
       .registerAgent("https://example.com/agent2.json")
@@ -122,6 +141,22 @@ describe("reputation-oracle", () => {
       .rpc();
 
     console.log("Register agent2 tx:", tx);
+  });
+
+  it("Registers agent 3", async () => {
+    const agentPda = getAgentPda(agent3.publicKey);
+
+    const tx = await program.methods
+      .registerAgent("https://example.com/agent3.json")
+      .accounts({
+        agentProfile: agentPda,
+        authority: agent3.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([agent3])
+      .rpc();
+
+    console.log("Register agent3 tx:", tx);
   });
 
   it("Agent 1 vouches for Agent 2", async () => {
@@ -317,6 +352,65 @@ describe("reputation-oracle", () => {
     assert.equal(
       agent2After.totalStakedFor.toString(),
       expectedTotalStaked.toString()
+    );
+  });
+
+  it("Agent 3 deposits and withdraws author bond", async () => {
+    const agent3Pda = getAgentPda(agent3.publicKey);
+    const authorBondPda = getAuthorBondPda(agent3.publicKey);
+    const depositAmount = new anchor.BN(0.2 * anchor.web3.LAMPORTS_PER_SOL);
+    const withdrawAmount = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL);
+
+    await program.methods
+      .depositAuthorBond(depositAmount)
+      .accounts({
+        authorBond: authorBondPda,
+        authorProfile: agent3Pda,
+        config: configPda,
+        author: agent3.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([agent3])
+      .rpc();
+
+    const authorBondAfterDeposit = await program.account.authorBond.fetch(
+      authorBondPda
+    );
+    const agent3AfterDeposit = await program.account.agentProfile.fetch(agent3Pda);
+    assert.equal(
+      authorBondAfterDeposit.amount.toString(),
+      depositAmount.toString()
+    );
+    assert.equal(
+      agent3AfterDeposit.authorBondLamports.toString(),
+      depositAmount.toString()
+    );
+    assert.isTrue(agent3AfterDeposit.reputationScore.toNumber() > 0);
+
+    await program.methods
+      .withdrawAuthorBond(withdrawAmount)
+      .accounts({
+        authorBond: authorBondPda,
+        authorProfile: agent3Pda,
+        config: configPda,
+        author: agent3.publicKey,
+      })
+      .signers([agent3])
+      .rpc();
+
+    const authorBondAfterWithdraw = await program.account.authorBond.fetch(
+      authorBondPda
+    );
+    const agent3AfterWithdraw = await program.account.agentProfile.fetch(agent3Pda);
+    const expectedRemaining = depositAmount.sub(withdrawAmount);
+
+    assert.equal(
+      authorBondAfterWithdraw.amount.toString(),
+      expectedRemaining.toString()
+    );
+    assert.equal(
+      agent3AfterWithdraw.authorBondLamports.toString(),
+      expectedRemaining.toString()
     );
   });
 });

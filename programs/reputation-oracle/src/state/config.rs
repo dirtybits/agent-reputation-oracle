@@ -5,6 +5,7 @@ pub struct ReputationConfig {
     pub authority: Pubkey,            // Program admin
     pub min_stake: u64,               // Minimum vouch stake (lamports)
     pub dispute_bond: u64,            // Bond required to open dispute
+    pub min_author_bond_for_free_listing: u64, // Minimum self-stake required for free listings
     pub slash_percentage: u8,         // % of stake slashed (e.g. 50)
     pub cooldown_period: i64,         // Seconds before revoked vouch stake returns
     
@@ -21,6 +22,7 @@ impl ReputationConfig {
         32 + // authority
         8 + // min_stake
         8 + // dispute_bond
+        8 + // min_author_bond_for_free_listing
         1 + // slash_percentage
         8 + // cooldown_period
         4 + // stake_weight

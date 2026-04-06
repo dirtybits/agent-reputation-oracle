@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: todo-1772746691850-52pvop5nq
     content: Change minimum listing price to 0.001
-    status: pending
+    status: in_progress
 isProject: false
 ---
 

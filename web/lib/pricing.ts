@@ -28,7 +28,10 @@ export function isValidListingPriceLamports(
   lamports: number,
   currency: CurrencyKey = DEFAULT_CURRENCY
 ): boolean {
-  return Number.isFinite(lamports) && lamports >= getMinPriceLamports(currency);
+  return (
+    Number.isFinite(lamports) &&
+    (lamports === 0 || lamports >= getMinPriceLamports(currency))
+  );
 }
 
 export function formatSolAmount(

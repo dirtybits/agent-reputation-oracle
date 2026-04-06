@@ -83,7 +83,7 @@ pub fn handler(ctx: Context<MigrateAgent>, metadata_uri: String) -> Result<()> {
     drop(data);
 
     // Deserialize the best we can from the old layout to preserve stats
-    // Old layout: disc(8) + authority(32) + uri(4+len) + rep(8) + recv(4) + given(4) + staked(8) + won(4) + lost(4) + reg_at(8) + bump(1)
+    // Old layout: disc(8) + authority(32) + uri(4+len) + rep(8) + recv(4) + given(4) + staked(8) + ... + reg_at(8) + bump(1)
     let raw = profile_info.try_borrow_data()?;
     let (preserved_score, preserved_recv, preserved_given, preserved_staked, preserved_reg_at) =
         if is_migration && raw.len() >= 8 + 32 + 4 {
@@ -119,6 +119,9 @@ pub fn handler(ctx: Context<MigrateAgent>, metadata_uri: String) -> Result<()> {
         total_vouches_received: preserved_recv,
         total_vouches_given: preserved_given,
         total_staked_for: preserved_staked,
+        author_bond_lamports: 0,
+        active_free_skill_listings: 0,
+        open_author_disputes: 0,
         registered_at: preserved_reg_at,
         bump: canonical_bump,
     };

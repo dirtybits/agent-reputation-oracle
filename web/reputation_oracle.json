@@ -219,6 +219,7 @@
         },
         {
           "name": "author_profile",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -237,6 +238,28 @@
               }
             ]
           }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_bond",
+          "optional": true
         },
         {
           "name": "author",
@@ -267,6 +290,104 @@
         },
         {
           "name": "price_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deposit_author_bond",
+      "discriminator": [
+        20,
+        24,
+        47,
+        9,
+        171,
+        195,
+        73,
+        223
+      ],
+      "accounts": [
+        {
+          "name": "author_bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
           "type": "u64"
         }
       ]
@@ -320,6 +441,10 @@
         },
         {
           "name": "dispute_bond",
+          "type": "u64"
+        },
+        {
+          "name": "min_author_bond_for_free_listing",
           "type": "u64"
         },
         {
@@ -439,6 +564,7 @@
         },
         {
           "name": "author_profile",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -691,6 +817,7 @@
         },
         {
           "name": "author_profile",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -794,6 +921,11 @@
               }
             ]
           }
+        },
+        {
+          "name": "author_bond",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "config",
@@ -993,6 +1125,7 @@
         },
         {
           "name": "author_profile",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1011,6 +1144,28 @@
               }
             ]
           }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_bond",
+          "optional": true
         },
         {
           "name": "author",
@@ -1158,6 +1313,100 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "withdraw_author_bond",
+      "discriminator": [
+        153,
+        203,
+        38,
+        142,
+        135,
+        67,
+        201,
+        179
+      ],
+      "accounts": [
+        {
+          "name": "author_bond",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  98,
+                  111,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "author",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1172,6 +1421,19 @@
         87,
         86,
         205
+      ]
+    },
+    {
+      "name": "AuthorBond",
+      "discriminator": [
+        179,
+        13,
+        148,
+        157,
+        91,
+        243,
+        120,
+        251
       ]
     },
     {
@@ -1241,6 +1503,45 @@
     }
   ],
   "events": [
+    {
+      "name": "AuthorBondDeposited",
+      "discriminator": [
+        64,
+        29,
+        156,
+        145,
+        103,
+        85,
+        128,
+        109
+      ]
+    },
+    {
+      "name": "AuthorBondSlashed",
+      "discriminator": [
+        130,
+        211,
+        170,
+        231,
+        166,
+        39,
+        233,
+        90
+      ]
+    },
+    {
+      "name": "AuthorBondWithdrawn",
+      "discriminator": [
+        157,
+        11,
+        206,
+        189,
+        41,
+        171,
+        136,
+        119
+      ]
+    },
     {
       "name": "AuthorDisputeOpened",
       "discriminator": [
@@ -1362,78 +1663,63 @@
   "errors": [
     {
       "code": 6000,
-      "name": "AuthorDisputeNotOpen",
-      "msg": "Author dispute is not open"
+      "name": "UriTooLong",
+      "msg": "URI too long"
     },
     {
       "code": 6001,
-      "name": "AuthorMismatch",
-      "msg": "The disputed author does not match this author dispute"
+      "name": "NameTooLong",
+      "msg": "Name too long"
     },
     {
       "code": 6002,
-      "name": "UnauthorizedResolver",
-      "msg": "Only the configured authority can resolve author disputes"
+      "name": "DescriptionTooLong",
+      "msg": "Description too long"
     },
     {
       "code": 6003,
-      "name": "ChallengerMismatch",
-      "msg": "Challenger account mismatch"
+      "name": "PriceNotSupported",
+      "msg": "Price must be zero or at least the minimum paid listing price"
     },
     {
       "code": 6004,
-      "name": "InsufficientFunds",
-      "msg": "Insufficient funds"
+      "name": "NotAuthor",
+      "msg": "Only the author can update this listing"
     },
     {
       "code": 6005,
-      "name": "IncompleteBackingSnapshot",
-      "msg": "Author dispute cannot resolve without its full author-wide backing snapshot"
+      "name": "SkillRemoved",
+      "msg": "Cannot update a removed listing"
     },
     {
       "code": 6006,
-      "name": "InvalidSettlementAccounts",
-      "msg": "Author dispute uphold must include every snapshotted backing vouch account triple"
+      "name": "MissingAuthorBondForFreeListing",
+      "msg": "Free listings must provide the author's bond account"
     },
     {
       "code": 6007,
-      "name": "DuplicateSettlementBackingVouch",
-      "msg": "Duplicate backing vouches are not allowed during settlement"
+      "name": "FreeListingRequiresBondFloor",
+      "msg": "Free listings require the configured minimum author bond"
     },
     {
       "code": 6008,
-      "name": "AuthorDisputeVouchLinkMismatch",
-      "msg": "Settlement link does not match this author dispute"
+      "name": "AuthorBondAccountMismatch",
+      "msg": "Author bond PDA does not match the expected author"
     },
     {
       "code": 6009,
-      "name": "AuthorDisputeSettlementVouchMismatch",
-      "msg": "Settlement vouch does not match the recorded author dispute link"
+      "name": "AuthorBondProfileMismatch",
+      "msg": "Author bond account does not match the author profile totals"
     },
     {
       "code": 6010,
-      "name": "BackingVouchAuthorMismatch",
-      "msg": "Backing vouch does not belong to the disputed author"
+      "name": "FreeListingCountOverflow",
+      "msg": "Active free listing count overflowed"
     },
     {
       "code": 6011,
-      "name": "BackingVouchVoucherMismatch",
-      "msg": "Backing vouch voucher profile does not match the recorded voucher"
-    },
-    {
-      "code": 6012,
-      "name": "BackingVouchNotSlashable",
-      "msg": "Backing vouch can no longer be slashed through this author dispute"
-    },
-    {
-      "code": 6013,
-      "name": "BackingVouchCountOverflow",
-      "msg": "Backing vouch count overflow"
-    },
-    {
-      "code": 6014,
-      "name": "SlashAmountOverflow",
-      "msg": "Slash amount overflow"
+      "name": "FreeListingCountUnderflow",
+      "msg": "Active free listing count underflowed"
     }
   ],
   "types": [
@@ -1467,12 +1753,136 @@
             "type": "u64"
           },
           {
+            "name": "author_bond_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "active_free_skill_listings",
+            "type": "u32"
+          },
+          {
+            "name": "open_author_disputes",
+            "type": "u32"
+          },
+          {
             "name": "registered_at",
             "type": "i64"
           },
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorBond",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorBondDeposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author_bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_bond_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorBondSlashed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author_bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "remaining_bond_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorBondWithdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author_bond",
+            "type": "pubkey"
+          },
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_bond_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }
@@ -1655,6 +2065,10 @@
             "type": "u32"
           },
           {
+            "name": "author_bond_slashed_amount",
+            "type": "u64"
+          },
+          {
             "name": "slashed_amount",
             "type": "u64"
           },
@@ -1756,6 +2170,10 @@
           },
           {
             "name": "dispute_bond",
+            "type": "u64"
+          },
+          {
+            "name": "min_author_bond_for_free_listing",
             "type": "u64"
           },
           {

@@ -80,6 +80,7 @@ export default function DashboardPage() {
   const [metadataUri, setMetadataUri] = useState("");
   const [voucheeAddress, setVoucheeAddress] = useState("");
   const [vouchAmount, setVouchAmount] = useState("0.1");
+  const [authorBondAmount, setAuthorBondAmount] = useState("0.1");
   const [searchAddress, setSearchAddress] = useState("");
   const [searchedAgent, setSearchedAgent] = useState<AgentProfileData | null>(
     null
@@ -340,6 +341,60 @@ export default function DashboardPage() {
     }
   };
 
+  const parsePositiveSolInput = (value: string): number | null => {
+    const amount = Number.parseFloat(value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return null;
+    }
+    return amount;
+  };
+
+  const handleDepositAuthorBond = async () => {
+    const amount = parsePositiveSolInput(authorBondAmount);
+    if (amount === null) {
+      setStatus("Enter a bond amount greater than 0.");
+      setStatusTx(null);
+      return;
+    }
+    setLoading(true);
+    setStatus("Depositing author bond...");
+    setStatusTx(null);
+    try {
+      const { tx } = await oracle.depositAuthorBond(amount);
+      setStatus("Author bond deposited.");
+      setStatusTx(tx);
+      await loadAgentProfile();
+    } catch (error: unknown) {
+      setStatus(`Error: ${getErrorMessage(error)}`);
+      setStatusTx(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWithdrawAuthorBond = async () => {
+    const amount = parsePositiveSolInput(authorBondAmount);
+    if (amount === null) {
+      setStatus("Enter a bond amount greater than 0.");
+      setStatusTx(null);
+      return;
+    }
+    setLoading(true);
+    setStatus("Withdrawing author bond...");
+    setStatusTx(null);
+    try {
+      const { tx } = await oracle.withdrawAuthorBond(amount);
+      setStatus("Author bond withdrawn.");
+      setStatusTx(tx);
+      await loadAgentProfile();
+    } catch (error: unknown) {
+      setStatus(`Error: ${getErrorMessage(error)}`);
+      setStatusTx(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleVouch = async () => {
     if (!voucheeAddress) {
       setStatus("Please enter a vouchee address");
@@ -484,10 +539,37 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex justify-between py-3">
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        Total Staked
+                        External Backing
                       </span>
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
-                        {(Number(agentProfile.totalStakedFor) / 1e9).toFixed(4)}{" "}
+                        {formatSolAmount(Number(agentProfile.totalStakedFor), 3, 4)}{" "}
+                        SOL
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Author Bond
+                      </span>
+                      <span className="text-sm font-mono text-gray-900 dark:text-white">
+                        {formatSolAmount(
+                          Number(agentProfile.authorBondLamports ?? 0),
+                          3,
+                          4
+                        )}{" "}
+                        SOL
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Total Stake At Risk
+                      </span>
+                      <span className="text-sm font-mono text-gray-900 dark:text-white">
+                        {formatSolAmount(
+                          Number(agentProfile.totalStakedFor) +
+                            Number(agentProfile.authorBondLamports ?? 0),
+                          3,
+                          4
+                        )}{" "}
                         SOL
                       </span>
                     </div>
@@ -512,10 +594,15 @@ export default function DashboardPage() {
                         Open Author Reports
                       </span>
                       <span className="text-sm font-mono text-amber-600 dark:text-amber-400">
-                        {String(
-                          authorDisputes.filter((d) => d.statusLabel === "Open")
-                            .length
-                        )}
+                        {String(agentProfile.openAuthorDisputes ?? 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Free Listings
+                      </span>
+                      <span className="text-sm font-mono text-gray-900 dark:text-white">
+                        {String(agentProfile.activeFreeSkillListings ?? 0)}
                       </span>
                     </div>
                     <div className="flex justify-between py-3">
@@ -525,6 +612,48 @@ export default function DashboardPage() {
                       <span className="text-sm text-gray-900 dark:text-white">
                         {formatTimestamp(agentProfile.registeredAt)}
                       </span>
+                    </div>
+                    <div className="pt-3">
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        Manage Author Bond
+                      </span>
+                      <div className="mt-2 flex flex-col gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/40 p-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Free listings require enough self-stake, and open
+                          author reports lock withdrawals until resolution.
+                        </p>
+                        <div className="flex flex-wrap items-end gap-2">
+                          <div className="min-w-[160px] flex-1">
+                            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                              Amount (SOL)
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.001}
+                              value={authorBondAmount}
+                              onChange={(e) =>
+                                setAuthorBondAmount(e.target.value)
+                              }
+                              className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                            />
+                          </div>
+                          <button
+                            onClick={handleDepositAuthorBond}
+                            disabled={loading}
+                            className={navButtonPrimaryInlineClass}
+                          >
+                            Deposit Bond
+                          </button>
+                          <button
+                            onClick={handleWithdrawAuthorBond}
+                            disabled={loading}
+                            className={navButtonSecondaryInlineClass}
+                          >
+                            Withdraw Bond
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <div className="pt-3">
                       <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -1082,10 +1211,39 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex justify-between py-3">
                         <span className="text-sm text-gray-500 dark:text-gray-400">
-                          Total Staked
+                          External Backing
                         </span>
                         <span className="text-sm font-mono text-gray-900 dark:text-white">
-                          {(Number(searchedAgent.totalStakedFor) / 1e9).toFixed(
+                          {formatSolAmount(
+                            Number(searchedAgent.totalStakedFor),
+                            3,
+                            4
+                          )}{" "}
+                          SOL
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-3">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Author Bond
+                        </span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">
+                          {formatSolAmount(
+                            Number(searchedAgent.authorBondLamports ?? 0),
+                            3,
+                            4
+                          )}{" "}
+                          SOL
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-3">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Total Stake At Risk
+                        </span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">
+                          {formatSolAmount(
+                            Number(searchedAgent.totalStakedFor) +
+                              Number(searchedAgent.authorBondLamports ?? 0),
+                            3,
                             4
                           )}{" "}
                           SOL
@@ -1111,8 +1269,16 @@ export default function DashboardPage() {
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           Open Author Reports
                         </span>
-                        <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
-                          N/A
+                        <span className="text-sm font-mono text-amber-600 dark:text-amber-400">
+                          {String(searchedAgent.openAuthorDisputes ?? 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-3">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Free Listings
+                        </span>
+                        <span className="text-sm font-mono text-gray-900 dark:text-white">
+                          {String(searchedAgent.activeFreeSkillListings ?? 0)}
                         </span>
                       </div>
                       <div className="flex justify-between py-3">

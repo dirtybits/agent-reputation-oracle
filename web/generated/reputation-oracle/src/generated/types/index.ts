@@ -6,6 +6,9 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./authorBondDeposited";
+export * from "./authorBondSlashed";
+export * from "./authorBondWithdrawn";
 export * from "./authorDisputeOpened";
 export * from "./authorDisputeReason";
 export * from "./authorDisputeResolved";

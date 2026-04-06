@@ -232,7 +232,7 @@ function PublishSkillPageInner() {
     if (!isValidListingPriceLamports(priceLamports)) {
       setResult({
         success: false,
-        message: `Minimum listing price is ${formatMinPrice()}.`,
+        message: `Price must be 0 for a free listing or at least ${formatMinPrice()}.`,
       });
       return;
     }
@@ -841,16 +841,18 @@ function PublishSkillPageInner() {
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
               Every skill is listed on-chain so it can be vouched for and
-              disputed. Minimum price is {formatMinPrice()}.
+              disputed. Set 0 for a free listing if your author bond meets the
+              on-chain floor. Otherwise the minimum paid price is{" "}
+              {formatMinPrice()}.
             </p>
             <div className="flex items-center gap-2">
               <input
                 type="number"
-                min={PRICING.SOL.minPrice}
+                min={0}
                 step={PRICING.SOL.step}
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder={String(PRICING.SOL.minPrice)}
+                placeholder="0"
                 className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
               />
               <span className="text-sm text-gray-500 dark:text-gray-400">

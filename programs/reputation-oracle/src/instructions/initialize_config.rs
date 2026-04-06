@@ -22,6 +22,7 @@ pub fn handler(
     ctx: Context<InitializeConfig>,
     min_stake: u64,
     dispute_bond: u64,
+    min_author_bond_for_free_listing: u64,
     slash_percentage: u8,
     cooldown_period: i64,
 ) -> Result<()> {
@@ -30,6 +31,7 @@ pub fn handler(
     config.authority = ctx.accounts.authority.key();
     config.min_stake = min_stake;
     config.dispute_bond = dispute_bond;
+    config.min_author_bond_for_free_listing = min_author_bond_for_free_listing;
     config.slash_percentage = slash_percentage;
     config.cooldown_period = cooldown_period;
     

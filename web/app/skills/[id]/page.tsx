@@ -272,7 +272,7 @@ export default function SkillDetailPage({
       if (!isValidListingPriceLamports(priceLamports)) {
         setListResult({
           success: false,
-          message: `Minimum listing price is ${formatMinPrice()}.`,
+          message: `Price must be 0 for a free listing or at least ${formatMinPrice()}.`,
         });
         setListing(false);
         return;
@@ -570,7 +570,7 @@ export default function SkillDetailPage({
       if (!isValidListingPriceLamports(priceLamports)) {
         setUpdateResult({
           success: false,
-          message: `Minimum listing price is ${formatMinPrice()}.`,
+          message: `Price must be 0 for a free listing or at least ${formatMinPrice()}.`,
         });
         setUpdating(false);
         return;
@@ -1426,7 +1426,7 @@ export default function SkillDetailPage({
                     </label>
                     <input
                       type="number"
-                      min={PRICING.SOL.minPrice}
+                      min={0}
                       step={PRICING.SOL.step}
                       value={editPrice}
                       onChange={(e) => setEditPrice(e.target.value)}
@@ -1516,7 +1516,7 @@ export default function SkillDetailPage({
                   </label>
                   <input
                     type="number"
-                    min={PRICING.SOL.minPrice}
+                    min={0}
                     step={PRICING.SOL.step}
                     value={listPrice}
                     onChange={(e) => setListPrice(e.target.value)}
@@ -1542,8 +1542,9 @@ export default function SkillDetailPage({
                 </button>
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                Minimum price is {formatMinPrice()}. Requires one Solana
-                transaction.
+                Set 0 for a free listing if your author bond meets the on-chain
+                floor. Otherwise the minimum paid price is {formatMinPrice()}.
+                Requires one Solana transaction.
               </p>
             </div>
           )

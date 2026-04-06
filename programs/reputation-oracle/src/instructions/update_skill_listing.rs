@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
-use crate::state::{SkillListing, SkillStatus, AgentProfile, MIN_SKILL_PRICE_LAMPORTS};
+use crate::state::{
+    find_author_bond_pda, AgentProfile, AuthorBond, ReputationConfig, SkillListing, SkillStatus,
+};
 use crate::events::SkillListingUpdated;
 
 #[derive(Accounts)]
@@ -15,10 +17,19 @@ pub struct UpdateSkillListing<'info> {
     pub skill_listing: Account<'info, SkillListing>,
 
     #[account(
+        mut,
         seeds = [b"agent", author.key().as_ref()],
         bump = author_profile.bump,
     )]
     pub author_profile: Account<'info, AgentProfile>,
+
+    #[account(
+        seeds = [b"config"],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, ReputationConfig>,
+
+    pub author_bond: Option<Account<'info, AuthorBond>>,
 
     pub author: Signer<'info>,
 }
@@ -44,18 +55,46 @@ pub fn handler(
         UpdateSkillError::DescriptionTooLong
     );
     require!(
-        price_lamports >= MIN_SKILL_PRICE_LAMPORTS,
-        UpdateSkillError::PriceBelowMinimum
+        SkillListing::is_supported_price(price_lamports),
+        UpdateSkillError::PriceNotSupported
     );
+
+    if SkillListing::is_free_price(price_lamports) {
+        validate_free_listing_bond(
+            ctx.program_id,
+            &ctx.accounts.author.key(),
+            &ctx.accounts.author_profile,
+            &ctx.accounts.config,
+            ctx.accounts.author_bond.as_ref(),
+        )?;
+    }
 
     let skill_listing = &mut ctx.accounts.skill_listing;
     let clock = Clock::get()?;
+    let was_free = SkillListing::is_free_price(skill_listing.price_lamports);
+    let will_be_free = SkillListing::is_free_price(price_lamports);
 
     skill_listing.skill_uri = skill_uri;
     skill_listing.name = name.clone();
     skill_listing.description = description;
     skill_listing.price_lamports = price_lamports;
     skill_listing.updated_at = clock.unix_timestamp;
+
+    if !was_free && will_be_free {
+        ctx.accounts.author_profile.active_free_skill_listings = ctx
+            .accounts
+            .author_profile
+            .active_free_skill_listings
+            .checked_add(1)
+            .ok_or(UpdateSkillError::FreeListingCountOverflow)?;
+    } else if was_free && !will_be_free {
+        ctx.accounts.author_profile.active_free_skill_listings = ctx
+            .accounts
+            .author_profile
+            .active_free_skill_listings
+            .checked_sub(1)
+            .ok_or(UpdateSkillError::FreeListingCountUnderflow)?;
+    }
 
     emit!(SkillListingUpdated {
         skill_listing: ctx.accounts.skill_listing.key(),
@@ -68,6 +107,39 @@ pub fn handler(
     Ok(())
 }
 
+fn validate_free_listing_bond(
+    program_id: &Pubkey,
+    author: &Pubkey,
+    author_profile: &Account<AgentProfile>,
+    config: &Account<ReputationConfig>,
+    author_bond_account: Option<&Account<AuthorBond>>,
+) -> Result<()> {
+    let author_bond_account =
+        author_bond_account.ok_or(UpdateSkillError::MissingAuthorBondForFreeListing)?;
+    let (expected_author_bond, _) = find_author_bond_pda(author, program_id);
+    require_keys_eq!(
+        author_bond_account.key(),
+        expected_author_bond,
+        UpdateSkillError::AuthorBondAccountMismatch
+    );
+
+    require_keys_eq!(
+        author_bond_account.author,
+        *author,
+        UpdateSkillError::AuthorBondAccountMismatch
+    );
+    require!(
+        author_bond_account.amount == author_profile.author_bond_lamports,
+        UpdateSkillError::AuthorBondProfileMismatch
+    );
+    require!(
+        author_bond_account.amount >= config.min_author_bond_for_free_listing,
+        UpdateSkillError::FreeListingRequiresBondFloor
+    );
+
+    Ok(())
+}
+
 #[error_code]
 pub enum UpdateSkillError {
     #[msg("URI too long")]
@@ -76,10 +148,22 @@ pub enum UpdateSkillError {
     NameTooLong,
     #[msg("Description too long")]
     DescriptionTooLong,
-    #[msg("Price is below the minimum listing price")]
-    PriceBelowMinimum,
+    #[msg("Price must be zero or at least the minimum paid listing price")]
+    PriceNotSupported,
     #[msg("Only the author can update this listing")]
     NotAuthor,
     #[msg("Cannot update a removed listing")]
     SkillRemoved,
+    #[msg("Free listings must provide the author's bond account")]
+    MissingAuthorBondForFreeListing,
+    #[msg("Free listings require the configured minimum author bond")]
+    FreeListingRequiresBondFloor,
+    #[msg("Author bond PDA does not match the expected author")]
+    AuthorBondAccountMismatch,
+    #[msg("Author bond account does not match the author profile totals")]
+    AuthorBondProfileMismatch,
+    #[msg("Active free listing count overflowed")]
+    FreeListingCountOverflow,
+    #[msg("Active free listing count underflowed")]
+    FreeListingCountUnderflow,
 }

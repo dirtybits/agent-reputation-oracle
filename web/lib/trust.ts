@@ -23,6 +23,8 @@ export interface AuthorTrust {
   reputationScore: number;
   totalVouchesReceived: number;
   totalStakedFor: number;
+  authorBondLamports: number;
+  totalStakeAtRisk: number;
   disputesAgainstAuthor: number;
   disputesUpheldAgainstAuthor: number;
   activeDisputesAgainstAuthor: number;
@@ -42,6 +44,8 @@ const CACHE_TTL_MS = IN_MEMORY_CACHE_TTL_MS.authorTrust;
 
 const textEncoder = getUtf8Encoder();
 const addressEncoder = getAddressEncoder();
+type AgentProfileAccount = Awaited<ReturnType<typeof fetchMaybeAgentProfile>>;
+type AgentProfileData = Extract<AgentProfileAccount, { exists: true }>["data"];
 
 async function getAgentPDA(agentKey: Address): Promise<Address> {
   const [derived] = await getProgramDerivedAddress({
@@ -56,11 +60,32 @@ function getDefaultTrust(): AuthorTrust {
     reputationScore: 0,
     totalVouchesReceived: 0,
     totalStakedFor: 0,
+    authorBondLamports: 0,
+    totalStakeAtRisk: 0,
     disputesAgainstAuthor: 0,
     disputesUpheldAgainstAuthor: 0,
     activeDisputesAgainstAuthor: 0,
     registeredAt: 0,
     isRegistered: false,
+  };
+}
+
+function mapAgentProfileTrust(
+  profile: AgentProfileData
+): AuthorTrust {
+  const totalStakedFor = Number(profile.totalStakedFor);
+  const authorBondLamports = Number(profile.authorBondLamports);
+  return {
+    reputationScore: Number(profile.reputationScore),
+    totalVouchesReceived: profile.totalVouchesReceived,
+    totalStakedFor,
+    authorBondLamports,
+    totalStakeAtRisk: totalStakedFor + authorBondLamports,
+    registeredAt: Number(profile.registeredAt),
+    isRegistered: true,
+    disputesAgainstAuthor: 0,
+    disputesUpheldAgainstAuthor: 0,
+    activeDisputesAgainstAuthor: 0,
   };
 }
 
@@ -98,16 +123,7 @@ export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
 
     const d = account.data;
     const trust = mergeAuthorTrust(
-      {
-      reputationScore: Number(d.reputationScore),
-      totalVouchesReceived: d.totalVouchesReceived,
-      totalStakedFor: Number(d.totalStakedFor),
-      registeredAt: Number(d.registeredAt),
-      isRegistered: true,
-        disputesAgainstAuthor: 0,
-        disputesUpheldAgainstAuthor: 0,
-        activeDisputesAgainstAuthor: 0,
-      },
+      mapAgentProfileTrust(d),
       disputeMetrics
     );
 
@@ -132,19 +148,7 @@ export async function verifyAuthorTrust(pubkey: string): Promise<AuthorTrust> {
     }
 
     const d = account.data;
-    return mergeAuthorTrust(
-      {
-        reputationScore: Number(d.reputationScore),
-        totalVouchesReceived: d.totalVouchesReceived,
-        totalStakedFor: Number(d.totalStakedFor),
-        registeredAt: Number(d.registeredAt),
-        isRegistered: true,
-        disputesAgainstAuthor: 0,
-        disputesUpheldAgainstAuthor: 0,
-        activeDisputesAgainstAuthor: 0,
-      },
-      disputeMetrics
-    );
+    return mergeAuthorTrust(mapAgentProfileTrust(d), disputeMetrics);
   } catch (error: unknown) {
     throw new AuthorTrustVerificationError(
       getErrorMessage(error, "Unable to verify on-chain author profile")
@@ -179,19 +183,7 @@ export async function resolveMultipleAuthorTrust(
       const account = await fetchMaybeAgentProfile(rpc, agentPDA);
       const trust = !account.exists
         ? mergeAuthorTrust(getDefaultTrust(), disputeMetrics)
-        : mergeAuthorTrust(
-            {
-              reputationScore: Number(account.data.reputationScore),
-              totalVouchesReceived: account.data.totalVouchesReceived,
-              totalStakedFor: Number(account.data.totalStakedFor),
-              registeredAt: Number(account.data.registeredAt),
-              isRegistered: true,
-              disputesAgainstAuthor: 0,
-              disputesUpheldAgainstAuthor: 0,
-              activeDisputesAgainstAuthor: 0,
-            },
-            disputeMetrics
-          );
+        : mergeAuthorTrust(mapAgentProfileTrust(account.data), disputeMetrics);
 
       cache.set(pubkey, { data: trust, expires: now + CACHE_TTL_MS });
       return trust;

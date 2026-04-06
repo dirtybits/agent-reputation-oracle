@@ -14,74 +14,62 @@ import {
 } from "@solana/kit";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
-/** AuthorDisputeNotOpen: Author dispute is not open */
-export const REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_NOT_OPEN = 0x1770; // 6000
-/** AuthorMismatch: The disputed author does not match this author dispute */
-export const REPUTATION_ORACLE_ERROR__AUTHOR_MISMATCH = 0x1771; // 6001
-/** UnauthorizedResolver: Only the configured authority can resolve author disputes */
-export const REPUTATION_ORACLE_ERROR__UNAUTHORIZED_RESOLVER = 0x1772; // 6002
-/** ChallengerMismatch: Challenger account mismatch */
-export const REPUTATION_ORACLE_ERROR__CHALLENGER_MISMATCH = 0x1773; // 6003
-/** InsufficientFunds: Insufficient funds */
-export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS = 0x1774; // 6004
-/** IncompleteBackingSnapshot: Author dispute cannot resolve without its full author-wide backing snapshot */
-export const REPUTATION_ORACLE_ERROR__INCOMPLETE_BACKING_SNAPSHOT = 0x1775; // 6005
-/** InvalidSettlementAccounts: Author dispute uphold must include every snapshotted backing vouch account triple */
-export const REPUTATION_ORACLE_ERROR__INVALID_SETTLEMENT_ACCOUNTS = 0x1776; // 6006
-/** DuplicateSettlementBackingVouch: Duplicate backing vouches are not allowed during settlement */
-export const REPUTATION_ORACLE_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH = 0x1777; // 6007
-/** AuthorDisputeVouchLinkMismatch: Settlement link does not match this author dispute */
-export const REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH = 0x1778; // 6008
-/** AuthorDisputeSettlementVouchMismatch: Settlement vouch does not match the recorded author dispute link */
-export const REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH = 0x1779; // 6009
-/** BackingVouchAuthorMismatch: Backing vouch does not belong to the disputed author */
-export const REPUTATION_ORACLE_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH = 0x177a; // 6010
-/** BackingVouchVoucherMismatch: Backing vouch voucher profile does not match the recorded voucher */
-export const REPUTATION_ORACLE_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH = 0x177b; // 6011
-/** BackingVouchNotSlashable: Backing vouch can no longer be slashed through this author dispute */
-export const REPUTATION_ORACLE_ERROR__BACKING_VOUCH_NOT_SLASHABLE = 0x177c; // 6012
-/** BackingVouchCountOverflow: Backing vouch count overflow */
-export const REPUTATION_ORACLE_ERROR__BACKING_VOUCH_COUNT_OVERFLOW = 0x177d; // 6013
-/** SlashAmountOverflow: Slash amount overflow */
-export const REPUTATION_ORACLE_ERROR__SLASH_AMOUNT_OVERFLOW = 0x177e; // 6014
+/** UriTooLong: URI too long */
+export const REPUTATION_ORACLE_ERROR__URI_TOO_LONG = 0x1770; // 6000
+/** NameTooLong: Name too long */
+export const REPUTATION_ORACLE_ERROR__NAME_TOO_LONG = 0x1771; // 6001
+/** DescriptionTooLong: Description too long */
+export const REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG = 0x1772; // 6002
+/** PriceNotSupported: Price must be zero or at least the minimum paid listing price */
+export const REPUTATION_ORACLE_ERROR__PRICE_NOT_SUPPORTED = 0x1773; // 6003
+/** NotAuthor: Only the author can update this listing */
+export const REPUTATION_ORACLE_ERROR__NOT_AUTHOR = 0x1774; // 6004
+/** SkillRemoved: Cannot update a removed listing */
+export const REPUTATION_ORACLE_ERROR__SKILL_REMOVED = 0x1775; // 6005
+/** MissingAuthorBondForFreeListing: Free listings must provide the author's bond account */
+export const REPUTATION_ORACLE_ERROR__MISSING_AUTHOR_BOND_FOR_FREE_LISTING = 0x1776; // 6006
+/** FreeListingRequiresBondFloor: Free listings require the configured minimum author bond */
+export const REPUTATION_ORACLE_ERROR__FREE_LISTING_REQUIRES_BOND_FLOOR = 0x1777; // 6007
+/** AuthorBondAccountMismatch: Author bond PDA does not match the expected author */
+export const REPUTATION_ORACLE_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH = 0x1778; // 6008
+/** AuthorBondProfileMismatch: Author bond account does not match the author profile totals */
+export const REPUTATION_ORACLE_ERROR__AUTHOR_BOND_PROFILE_MISMATCH = 0x1779; // 6009
+/** FreeListingCountOverflow: Active free listing count overflowed */
+export const REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_OVERFLOW = 0x177a; // 6010
+/** FreeListingCountUnderflow: Active free listing count underflowed */
+export const REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_UNDERFLOW = 0x177b; // 6011
 
 export type ReputationOracleError =
-  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_NOT_OPEN
-  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__BACKING_VOUCH_COUNT_OVERFLOW
-  | typeof REPUTATION_ORACLE_ERROR__BACKING_VOUCH_NOT_SLASHABLE
-  | typeof REPUTATION_ORACLE_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__CHALLENGER_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH
-  | typeof REPUTATION_ORACLE_ERROR__INCOMPLETE_BACKING_SNAPSHOT
-  | typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS
-  | typeof REPUTATION_ORACLE_ERROR__INVALID_SETTLEMENT_ACCOUNTS
-  | typeof REPUTATION_ORACLE_ERROR__SLASH_AMOUNT_OVERFLOW
-  | typeof REPUTATION_ORACLE_ERROR__UNAUTHORIZED_RESOLVER;
+  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_BOND_PROFILE_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG
+  | typeof REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_OVERFLOW
+  | typeof REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_UNDERFLOW
+  | typeof REPUTATION_ORACLE_ERROR__FREE_LISTING_REQUIRES_BOND_FLOOR
+  | typeof REPUTATION_ORACLE_ERROR__MISSING_AUTHOR_BOND_FOR_FREE_LISTING
+  | typeof REPUTATION_ORACLE_ERROR__NAME_TOO_LONG
+  | typeof REPUTATION_ORACLE_ERROR__NOT_AUTHOR
+  | typeof REPUTATION_ORACLE_ERROR__PRICE_NOT_SUPPORTED
+  | typeof REPUTATION_ORACLE_ERROR__SKILL_REMOVED
+  | typeof REPUTATION_ORACLE_ERROR__URI_TOO_LONG;
 
 let reputationOracleErrorMessages:
   | Record<ReputationOracleError, string>
   | undefined;
 if (process.env.NODE_ENV !== "production") {
   reputationOracleErrorMessages = {
-    [REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_NOT_OPEN]: `Author dispute is not open`,
-    [REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH]: `Settlement vouch does not match the recorded author dispute link`,
-    [REPUTATION_ORACLE_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH]: `Settlement link does not match this author dispute`,
-    [REPUTATION_ORACLE_ERROR__AUTHOR_MISMATCH]: `The disputed author does not match this author dispute`,
-    [REPUTATION_ORACLE_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH]: `Backing vouch does not belong to the disputed author`,
-    [REPUTATION_ORACLE_ERROR__BACKING_VOUCH_COUNT_OVERFLOW]: `Backing vouch count overflow`,
-    [REPUTATION_ORACLE_ERROR__BACKING_VOUCH_NOT_SLASHABLE]: `Backing vouch can no longer be slashed through this author dispute`,
-    [REPUTATION_ORACLE_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH]: `Backing vouch voucher profile does not match the recorded voucher`,
-    [REPUTATION_ORACLE_ERROR__CHALLENGER_MISMATCH]: `Challenger account mismatch`,
-    [REPUTATION_ORACLE_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH]: `Duplicate backing vouches are not allowed during settlement`,
-    [REPUTATION_ORACLE_ERROR__INCOMPLETE_BACKING_SNAPSHOT]: `Author dispute cannot resolve without its full author-wide backing snapshot`,
-    [REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS]: `Insufficient funds`,
-    [REPUTATION_ORACLE_ERROR__INVALID_SETTLEMENT_ACCOUNTS]: `Author dispute uphold must include every snapshotted backing vouch account triple`,
-    [REPUTATION_ORACLE_ERROR__SLASH_AMOUNT_OVERFLOW]: `Slash amount overflow`,
-    [REPUTATION_ORACLE_ERROR__UNAUTHORIZED_RESOLVER]: `Only the configured authority can resolve author disputes`,
+    [REPUTATION_ORACLE_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH]: `Author bond PDA does not match the expected author`,
+    [REPUTATION_ORACLE_ERROR__AUTHOR_BOND_PROFILE_MISMATCH]: `Author bond account does not match the author profile totals`,
+    [REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG]: `Description too long`,
+    [REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_OVERFLOW]: `Active free listing count overflowed`,
+    [REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_UNDERFLOW]: `Active free listing count underflowed`,
+    [REPUTATION_ORACLE_ERROR__FREE_LISTING_REQUIRES_BOND_FLOOR]: `Free listings require the configured minimum author bond`,
+    [REPUTATION_ORACLE_ERROR__MISSING_AUTHOR_BOND_FOR_FREE_LISTING]: `Free listings must provide the author's bond account`,
+    [REPUTATION_ORACLE_ERROR__NAME_TOO_LONG]: `Name too long`,
+    [REPUTATION_ORACLE_ERROR__NOT_AUTHOR]: `Only the author can update this listing`,
+    [REPUTATION_ORACLE_ERROR__PRICE_NOT_SUPPORTED]: `Price must be zero or at least the minimum paid listing price`,
+    [REPUTATION_ORACLE_ERROR__SKILL_REMOVED]: `Cannot update a removed listing`,
+    [REPUTATION_ORACLE_ERROR__URI_TOO_LONG]: `URI too long`,
   };
 }
 

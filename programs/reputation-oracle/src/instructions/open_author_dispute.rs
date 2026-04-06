@@ -23,6 +23,7 @@ pub struct OpenAuthorDispute<'info> {
     pub author_dispute: Account<'info, AuthorDispute>,
 
     #[account(
+        mut,
         seeds = [b"agent", author_profile.authority.as_ref()],
         bump = author_profile.bump
     )]
@@ -208,6 +209,12 @@ pub fn handler<'info>(
     author_dispute.created_at = clock.unix_timestamp;
     author_dispute.resolved_at = None;
     author_dispute.bump = ctx.bumps.author_dispute;
+    ctx.accounts.author_profile.open_author_disputes = ctx
+        .accounts
+        .author_profile
+        .open_author_disputes
+        .checked_add(1)
+        .ok_or(ErrorCode::OpenAuthorDisputeCountOverflow)?;
 
     emit!(AuthorDisputeOpenedEvent {
         author_dispute: author_dispute_key,
@@ -259,4 +266,6 @@ pub enum ErrorCode {
     AuthorDisputeVouchLinkAlreadyInitialized,
     #[msg("The author-wide backing snapshot exceeded the supported link count")]
     BackingVouchCountOverflow,
+    #[msg("Open author dispute count overflowed")]
+    OpenAuthorDisputeCountOverflow,
 }

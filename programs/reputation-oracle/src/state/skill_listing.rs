@@ -43,4 +43,12 @@ impl SkillListing {
         8 + // updated_at
         1 + // status
         1; // bump
+
+    pub fn is_free_price(price_lamports: u64) -> bool {
+        price_lamports == 0
+    }
+
+    pub fn is_supported_price(price_lamports: u64) -> bool {
+        Self::is_free_price(price_lamports) || price_lamports >= MIN_SKILL_PRICE_LAMPORTS
+    }
 }

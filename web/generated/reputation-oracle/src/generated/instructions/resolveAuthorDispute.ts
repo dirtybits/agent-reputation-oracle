@@ -60,6 +60,7 @@ export type ResolveAuthorDisputeInstruction<
   TProgram extends string = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
   TAccountAuthorDispute extends string | AccountMeta<string> = string,
   TAccountAuthorProfile extends string | AccountMeta<string> = string,
+  TAccountAuthorBond extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountChallenger extends string | AccountMeta<string> = string,
@@ -74,6 +75,9 @@ export type ResolveAuthorDisputeInstruction<
       TAccountAuthorProfile extends string
         ? WritableAccount<TAccountAuthorProfile>
         : TAccountAuthorProfile,
+      TAccountAuthorBond extends string
+        ? WritableAccount<TAccountAuthorBond>
+        : TAccountAuthorBond,
       TAccountConfig extends string
         ? WritableAccount<TAccountConfig>
         : TAccountConfig,
@@ -134,12 +138,14 @@ export function getResolveAuthorDisputeInstructionDataCodec(): FixedSizeCodec<
 export type ResolveAuthorDisputeAsyncInput<
   TAccountAuthorDispute extends string = string,
   TAccountAuthorProfile extends string = string,
+  TAccountAuthorBond extends string = string,
   TAccountConfig extends string = string,
   TAccountAuthority extends string = string,
   TAccountChallenger extends string = string,
 > = {
   authorDispute: Address<TAccountAuthorDispute>;
   authorProfile: Address<TAccountAuthorProfile>;
+  authorBond?: Address<TAccountAuthorBond>;
   config?: Address<TAccountConfig>;
   authority: TransactionSigner<TAccountAuthority>;
   challenger: Address<TAccountChallenger>;
@@ -150,6 +156,7 @@ export type ResolveAuthorDisputeAsyncInput<
 export async function getResolveAuthorDisputeInstructionAsync<
   TAccountAuthorDispute extends string,
   TAccountAuthorProfile extends string,
+  TAccountAuthorBond extends string,
   TAccountConfig extends string,
   TAccountAuthority extends string,
   TAccountChallenger extends string,
@@ -158,6 +165,7 @@ export async function getResolveAuthorDisputeInstructionAsync<
   input: ResolveAuthorDisputeAsyncInput<
     TAccountAuthorDispute,
     TAccountAuthorProfile,
+    TAccountAuthorBond,
     TAccountConfig,
     TAccountAuthority,
     TAccountChallenger
@@ -168,6 +176,7 @@ export async function getResolveAuthorDisputeInstructionAsync<
     TProgramAddress,
     TAccountAuthorDispute,
     TAccountAuthorProfile,
+    TAccountAuthorBond,
     TAccountConfig,
     TAccountAuthority,
     TAccountChallenger
@@ -181,6 +190,7 @@ export async function getResolveAuthorDisputeInstructionAsync<
   const originalAccounts = {
     authorDispute: { value: input.authorDispute ?? null, isWritable: true },
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
+    authorBond: { value: input.authorBond ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: false },
     challenger: { value: input.challenger ?? null, isWritable: true },
@@ -208,6 +218,7 @@ export async function getResolveAuthorDisputeInstructionAsync<
     accounts: [
       getAccountMeta("authorDispute", accounts.authorDispute),
       getAccountMeta("authorProfile", accounts.authorProfile),
+      getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("config", accounts.config),
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("challenger", accounts.challenger),
@@ -220,6 +231,7 @@ export async function getResolveAuthorDisputeInstructionAsync<
     TProgramAddress,
     TAccountAuthorDispute,
     TAccountAuthorProfile,
+    TAccountAuthorBond,
     TAccountConfig,
     TAccountAuthority,
     TAccountChallenger
@@ -229,12 +241,14 @@ export async function getResolveAuthorDisputeInstructionAsync<
 export type ResolveAuthorDisputeInput<
   TAccountAuthorDispute extends string = string,
   TAccountAuthorProfile extends string = string,
+  TAccountAuthorBond extends string = string,
   TAccountConfig extends string = string,
   TAccountAuthority extends string = string,
   TAccountChallenger extends string = string,
 > = {
   authorDispute: Address<TAccountAuthorDispute>;
   authorProfile: Address<TAccountAuthorProfile>;
+  authorBond?: Address<TAccountAuthorBond>;
   config: Address<TAccountConfig>;
   authority: TransactionSigner<TAccountAuthority>;
   challenger: Address<TAccountChallenger>;
@@ -245,6 +259,7 @@ export type ResolveAuthorDisputeInput<
 export function getResolveAuthorDisputeInstruction<
   TAccountAuthorDispute extends string,
   TAccountAuthorProfile extends string,
+  TAccountAuthorBond extends string,
   TAccountConfig extends string,
   TAccountAuthority extends string,
   TAccountChallenger extends string,
@@ -253,6 +268,7 @@ export function getResolveAuthorDisputeInstruction<
   input: ResolveAuthorDisputeInput<
     TAccountAuthorDispute,
     TAccountAuthorProfile,
+    TAccountAuthorBond,
     TAccountConfig,
     TAccountAuthority,
     TAccountChallenger
@@ -262,6 +278,7 @@ export function getResolveAuthorDisputeInstruction<
   TProgramAddress,
   TAccountAuthorDispute,
   TAccountAuthorProfile,
+  TAccountAuthorBond,
   TAccountConfig,
   TAccountAuthority,
   TAccountChallenger
@@ -274,6 +291,7 @@ export function getResolveAuthorDisputeInstruction<
   const originalAccounts = {
     authorDispute: { value: input.authorDispute ?? null, isWritable: true },
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
+    authorBond: { value: input.authorBond ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: false },
     challenger: { value: input.challenger ?? null, isWritable: true },
@@ -291,6 +309,7 @@ export function getResolveAuthorDisputeInstruction<
     accounts: [
       getAccountMeta("authorDispute", accounts.authorDispute),
       getAccountMeta("authorProfile", accounts.authorProfile),
+      getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("config", accounts.config),
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("challenger", accounts.challenger),
@@ -303,6 +322,7 @@ export function getResolveAuthorDisputeInstruction<
     TProgramAddress,
     TAccountAuthorDispute,
     TAccountAuthorProfile,
+    TAccountAuthorBond,
     TAccountConfig,
     TAccountAuthority,
     TAccountChallenger
@@ -317,9 +337,10 @@ export type ParsedResolveAuthorDisputeInstruction<
   accounts: {
     authorDispute: TAccountMetas[0];
     authorProfile: TAccountMetas[1];
-    config: TAccountMetas[2];
-    authority: TAccountMetas[3];
-    challenger: TAccountMetas[4];
+    authorBond?: TAccountMetas[2] | undefined;
+    config: TAccountMetas[3];
+    authority: TAccountMetas[4];
+    challenger: TAccountMetas[5];
   };
   data: ResolveAuthorDisputeInstructionData;
 };
@@ -332,12 +353,12 @@ export function parseResolveAuthorDisputeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedResolveAuthorDisputeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -347,11 +368,18 @@ export function parseResolveAuthorDisputeInstruction<
     accountIndex += 1;
     return accountMeta;
   };
+  const getNextOptionalAccount = () => {
+    const accountMeta = getNextAccount();
+    return accountMeta.address === REPUTATION_ORACLE_PROGRAM_ADDRESS
+      ? undefined
+      : accountMeta;
+  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
       authorDispute: getNextAccount(),
       authorProfile: getNextAccount(),
+      authorBond: getNextOptionalAccount(),
       config: getNextAccount(),
       authority: getNextAccount(),
       challenger: getNextAccount(),

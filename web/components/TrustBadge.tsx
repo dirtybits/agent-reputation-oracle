@@ -1,6 +1,6 @@
 "use client";
 
-import { FiShield, FiUsers, FiAlertTriangle } from "react-icons/fi";
+import { FiShield, FiUsers, FiAlertTriangle, FiUser } from "react-icons/fi";
 import { LiaCoinsSolid } from "react-icons/lia";
 import { formatSolAmount } from "@/lib/pricing";
 
@@ -8,6 +8,8 @@ export interface TrustData {
   reputationScore: number;
   totalVouchesReceived: number;
   totalStakedFor: number;
+  authorBondLamports: number;
+  totalStakeAtRisk: number;
   disputesAgainstAuthor: number;
   disputesUpheldAgainstAuthor: number;
   activeDisputesAgainstAuthor: number;
@@ -75,7 +77,10 @@ export default function TrustBadge({
           {trust.totalVouchesReceived}
         </span>
         <span className="text-gray-500 dark:text-gray-400">
-          {formatSol(trust.totalStakedFor)} SOL
+          Backing {formatSol(trust.totalStakedFor)} SOL
+        </span>
+        <span className="text-gray-500 dark:text-gray-400">
+          Self {formatSol(trust.authorBondLamports)} SOL
         </span>
         <span className={`flex items-center gap-1 ${authorReports.color}`}>
           <FiAlertTriangle className="w-3.5 h-3.5" />
@@ -86,7 +91,7 @@ export default function TrustBadge({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
         <div className="flex items-center justify-center gap-1 text-green-600 dark:text-green-400 mb-1">
           <FiShield className="w-4 h-4" />
@@ -113,7 +118,22 @@ export default function TrustBadge({
           {formatSol(trust.totalStakedFor)}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          SOL Staked
+          External Backing
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
+        <div className="flex items-center justify-center gap-1 text-[var(--sea-accent)] mb-1">
+          <FiUser className="w-4 h-4" />
+        </div>
+        <div className="text-lg font-bold">
+          {formatSol(trust.authorBondLamports)}
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          Author Bond
+        </div>
+        <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+          At risk: {formatSol(trust.totalStakeAtRisk)} SOL
         </div>
       </div>
 
