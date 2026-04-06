@@ -3,6 +3,7 @@ import type { Base58EncodedBytes, Base64EncodedBytes } from "@solana/rpc-types";
 import { decodeBase64, encodeBase64 } from "@/lib/base64";
 import {
   AUTHOR_DISPUTE_DISCRIMINATOR,
+  AuthorDisputeLiabilityScope,
   AuthorDisputeReason,
   AuthorDisputeRuling,
   AuthorDisputeStatus,
@@ -50,7 +51,10 @@ export interface AuthorDisputeRecord {
   statusLabel: string;
   ruling: AuthorDisputeRuling | null;
   rulingLabel: string | null;
-  skillListing: string | null;
+  liabilityScope: AuthorDisputeLiabilityScope;
+  liabilityScopeLabel: string;
+  skillListing: string;
+  skillPriceLamportsSnapshot: number;
   purchase: string | null;
   backingVouchCountSnapshot: number;
   linkedVouchCount: number;
@@ -124,6 +128,19 @@ export function getAuthorDisputeRulingLabel(
       return "Upheld";
     case AuthorDisputeRuling.Dismissed:
       return "Dismissed";
+    default:
+      return "Unknown";
+  }
+}
+
+export function getAuthorDisputeLiabilityScopeLabel(
+  liabilityScope: AuthorDisputeLiabilityScope | number
+): string {
+  switch (liabilityScope) {
+    case AuthorDisputeLiabilityScope.AuthorBondOnly:
+      return "Author bond only";
+    case AuthorDisputeLiabilityScope.AuthorBondThenVouchers:
+      return "Author bond then vouchers";
     default:
       return "Unknown";
   }
@@ -234,7 +251,7 @@ export async function listAuthorDisputesByAuthor(
   return authorDisputes
     .map((dispute) => {
       const ruling = unwrapOption<AuthorDisputeRuling>(dispute.account.ruling);
-      const skillListing = unwrapOption<string>(dispute.account.skillListing);
+      const skillListing = String(dispute.account.skillListing);
       const purchase = unwrapOption<string>(dispute.account.purchase);
       const resolvedAt = unwrapOption<bigint>(dispute.account.resolvedAt);
       return {
@@ -249,7 +266,14 @@ export async function listAuthorDisputesByAuthor(
         statusLabel: getAuthorDisputeStatusLabel(dispute.account.status),
         ruling,
         rulingLabel: getAuthorDisputeRulingLabel(ruling),
+        liabilityScope: dispute.account.liabilityScope,
+        liabilityScopeLabel: getAuthorDisputeLiabilityScopeLabel(
+          dispute.account.liabilityScope
+        ),
         skillListing,
+        skillPriceLamportsSnapshot: Number(
+          dispute.account.skillPriceLamportsSnapshot
+        ),
         purchase,
         backingVouchCountSnapshot: dispute.account.backingVouchCountSnapshot,
         linkedVouchCount: dispute.account.linkedVouchCount,

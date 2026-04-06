@@ -15,6 +15,7 @@ import {
 import { formatSolAmount } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getConfiguredSolanaFmTxUrl } from "@/lib/chains";
+import { getAuthorDisputeLiabilityScopeLabel } from "@/lib/authorDisputes";
 import Link from "next/link";
 import { AuthorDisputeRuling } from "@/generated/reputation-oracle/src/generated";
 import {
@@ -1476,7 +1477,13 @@ export default function DashboardPage() {
                               Evidence: {dispute.account.evidenceUri}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Author-wide snapshot:{" "}
+                              Liability:{" "}
+                              {getAuthorDisputeLiabilityScopeLabel(
+                                dispute.account.liabilityScope
+                              )}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Snapshot:{" "}
                               {dispute.account.linkedVouchCount} of{" "}
                               {dispute.account.backingVouchCountSnapshot}{" "}
                               backing{" "}

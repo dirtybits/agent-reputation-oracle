@@ -37,7 +37,9 @@ export type AuthorDisputeOpened = {
   author: Address;
   challenger: Address;
   reason: string;
-  skillListing: Option<Address>;
+  liabilityScope: string;
+  skillListing: Address;
+  skillPriceLamportsSnapshot: bigint;
   purchase: Option<Address>;
   linkedVouchCount: number;
   bondAmount: bigint;
@@ -49,7 +51,9 @@ export type AuthorDisputeOpenedArgs = {
   author: Address;
   challenger: Address;
   reason: string;
-  skillListing: OptionOrNullable<Address>;
+  liabilityScope: string;
+  skillListing: Address;
+  skillPriceLamportsSnapshot: number | bigint;
   purchase: OptionOrNullable<Address>;
   linkedVouchCount: number;
   bondAmount: number | bigint;
@@ -62,7 +66,9 @@ export function getAuthorDisputeOpenedEncoder(): Encoder<AuthorDisputeOpenedArgs
     ["author", getAddressEncoder()],
     ["challenger", getAddressEncoder()],
     ["reason", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-    ["skillListing", getOptionEncoder(getAddressEncoder())],
+    ["liabilityScope", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+    ["skillListing", getAddressEncoder()],
+    ["skillPriceLamportsSnapshot", getU64Encoder()],
     ["purchase", getOptionEncoder(getAddressEncoder())],
     ["linkedVouchCount", getU32Encoder()],
     ["bondAmount", getU64Encoder()],
@@ -76,7 +82,9 @@ export function getAuthorDisputeOpenedDecoder(): Decoder<AuthorDisputeOpened> {
     ["author", getAddressDecoder()],
     ["challenger", getAddressDecoder()],
     ["reason", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["skillListing", getOptionDecoder(getAddressDecoder())],
+    ["liabilityScope", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["skillListing", getAddressDecoder()],
+    ["skillPriceLamportsSnapshot", getU64Decoder()],
     ["purchase", getOptionDecoder(getAddressDecoder())],
     ["linkedVouchCount", getU32Decoder()],
     ["bondAmount", getU64Decoder()],

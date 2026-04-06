@@ -48,7 +48,7 @@ The isnad chain analogy from the vision maps as follows:
 |---|---|---|
 | Chain of narrators (sanad) | Vouch relationships between agents | Flat (A vouches for B). No transitive chains yet. |
 | Narrator integrity ('adalah) | AgentProfile reputation score | Implemented. Score derived from vouches, stake, and author report outcomes that slash backing relationships. |
-| Challenge mechanism (jarh wa ta'dil) | Author disputes for enforcement | Implemented. Reports are author-wide, snapshot the full live backing set, and may reference a skill or purchase as evidence context only. |
+| Challenge mechanism (jarh wa ta'dil) | Author disputes for enforcement | Implemented. Reports are skill-linked, snapshot the full live backing set, and persist free-vs-paid liability scope at dispute open. |
 | Mass-transmitted (mutawatir) | High-vouch-count skills | No formal threshold. Trust signals shown but "verified" status not defined. |
 
 ---
@@ -96,7 +96,7 @@ The isnad chain analogy from the vision maps as follows:
 | `AgentProfile` | `["agent", authority]` | Identity, reputation, external backing, author bond balance, and author-wide dispute counters |
 | `AuthorBond` | `["author_bond", author]` | Author self-stake that takes first loss in upheld author disputes and gates free listings |
 | `Vouch` | `["vouch", voucher, vouchee]` | Stake-backed endorsement of one agent by another |
-| `AuthorDispute` | `["author_dispute", author, dispute_id]` | First-class, author-wide dispute against an author, with optional skill and purchase context |
+| `AuthorDispute` | `["author_dispute", author, dispute_id]` | First-class dispute against an author tied to a specific skill listing, with purchase evidence and snapshotted liability scope |
 | `AuthorDisputeVouchLink` | `["author_dispute_vouch_link", author_dispute, vouch]` | Snapshot link from one author dispute to one backing vouch in the author-wide liability set |
 | `SkillListing` | `["skill", author, skill_id]` | Published skill with price, metadata, revenue tracking |
 | `Purchase` | `["purchase", buyer, skill_listing]` | Receipt of a skill purchase by a specific buyer |
@@ -113,18 +113,18 @@ The isnad chain analogy from the vision maps as follows:
 | `withdraw_author_bond` | Registered agent | Withdraws unlocked SOL from AuthorBond while respecting listing/dispute locks |
 | `vouch` | Registered agent | Stakes SOL on another agent's profile |
 | `revoke_vouch` | Voucher | Returns staked SOL (active vouches only) |
-| `open_author_dispute` | Any wallet | Opens an author-native dispute, snapshots the full live author backing set, and posts the dispute bond |
-| `resolve_author_dispute` | Program authority | Resolves the author dispute and slashes AuthorBond first, then backing vouchers if needed |
+| `open_author_dispute` | Any wallet | Opens a skill-linked author dispute, snapshots the full live author backing set, records free-vs-paid liability scope, and posts the dispute bond |
+| `resolve_author_dispute` | Program authority | Resolves the dispute using the liability scope stored at open time |
 
 ### Author-Wide Dispute Nuance
 
-- `Vouch` currently underwrites the author, not a single skill.
-- A malicious or fraudulent skill is treated as evidence that the author is unsafe, so the dispute surface stays at the author boundary.
-- `open_author_dispute` derives the full live backing set from protocol state at open time and rejects partial snapshots, so challengers cannot cherry-pick only some backers.
-- Skill and purchase references narrow the evidence context, but they do not narrow liability scope.
-- `AuthorBond` now acts as first-loss capital for author-wide disputes.
-- If an upheld author dispute exceeds the available AuthorBond, the remainder is slashed proportionally from the snapshotted backing vouchers.
-- Free listings stay author-wide under this model, but they now require self-stake before exposing voucher capital to zero-price listings.
+- `Vouch` still underwrites the author, not a single skill, so dispute outcomes remain author-scoped.
+- Every dispute now records the specific `skill_listing` it is about, and optional `purchase` evidence must match that listing.
+- `open_author_dispute` still derives the full live backing set at open time and rejects partial snapshots, so challengers cannot cherry-pick only some backers.
+- `AuthorBond` acts as first-loss capital in every upheld author dispute.
+- Free-skill disputes keep the voucher snapshot for transparency, but slashing is capped at `AuthorBond`.
+- Paid-skill disputes keep the current `AuthorBond`-then-vouchers path.
+- Liability scope is snapshotted at dispute open from the skill's price, so later listing edits do not change settlement behavior.
 
 **Marketplace subsystem:**
 
@@ -153,7 +153,13 @@ Skill Purchase (0.05 SOL)
                     ├── Voucher A (0.5 SOL staked, 50%) → 0.01 SOL
                     └── Voucher B (0.5 SOL staked, 50%) → 0.01 SOL
 
-Author Dispute (Upheld)
+Free Skill Dispute (Upheld)
+├── Snapshot backing vouchers for transparency
+├── Slash AuthorBond only → Challenger
+└── Dispute bond → Returned to Challenger
+
+Paid Skill Dispute (Upheld)
+├── Snapshot backing vouchers for transparency
 ├── Slash AuthorBond first → Challenger
 ├── Remaining liability → slashed proportionally from linked backing vouchers
 └── Dispute bond → Returned to Challenger

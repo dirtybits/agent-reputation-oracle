@@ -187,7 +187,15 @@ Possible fields:
 I think the slash order should be:
 
 1. `AuthorBond` first
-2. backing vouchers second, if configured and if author misconduct is severe enough
+2. backing vouchers second for paid-skill disputes, if author misconduct is severe enough
+
+Current protocol nuance:
+
+- every dispute is tied to a specific on-chain `SkillListing`
+- the protocol snapshots the author's full live voucher backing set at dispute open for transparency
+- free-skill disputes stop at `AuthorBond`
+- paid-skill disputes can continue into backing vouchers after `AuthorBond`
+- the liability mode is snapshotted when the dispute opens, so repricing a listing later does not change settlement behavior
 
 Reason:
 

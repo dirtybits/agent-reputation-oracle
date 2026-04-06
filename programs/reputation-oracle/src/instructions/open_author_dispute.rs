@@ -6,7 +6,8 @@ use anchor_lang::system_program;
 
 use crate::events::AuthorDisputeOpened as AuthorDisputeOpenedEvent;
 use crate::state::{
-    AgentProfile, AuthorDispute, AuthorDisputeReason, AuthorDisputeStatus,
+    AgentProfile, AuthorDispute, AuthorDisputeLiabilityScope, AuthorDisputeReason,
+    AuthorDisputeStatus,
     AuthorDisputeVouchLink, Purchase, ReputationConfig, SkillListing, Vouch,
 };
 
@@ -35,7 +36,7 @@ pub struct OpenAuthorDispute<'info> {
     )]
     pub config: Account<'info, ReputationConfig>,
 
-    pub skill_listing: Option<Account<'info, SkillListing>>,
+    pub skill_listing: Account<'info, SkillListing>,
 
     pub purchase: Option<Account<'info, Purchase>>,
 
@@ -58,21 +59,14 @@ pub fn handler<'info>(
 
     let author = ctx.accounts.author_profile.authority;
 
-    if let Some(skill_listing) = &ctx.accounts.skill_listing {
-        require!(
-            skill_listing.author == author,
-            ErrorCode::SkillListingAuthorMismatch
-        );
-    }
+    require!(
+        ctx.accounts.skill_listing.author == author,
+        ErrorCode::SkillListingAuthorMismatch
+    );
 
     if let Some(purchase) = &ctx.accounts.purchase {
-        let skill_listing = ctx
-            .accounts
-            .skill_listing
-            .as_ref()
-            .ok_or(ErrorCode::PurchaseRequiresSkillListing)?;
         require!(
-            purchase.skill_listing == skill_listing.key(),
+            purchase.skill_listing == ctx.accounts.skill_listing.key(),
             ErrorCode::PurchaseSkillMismatch
         );
     }
@@ -90,7 +84,14 @@ pub fn handler<'info>(
     )?;
 
     let clock = Clock::get()?;
-    let skill_listing = ctx.accounts.skill_listing.as_ref().map(|account| account.key());
+    let skill_listing = ctx.accounts.skill_listing.key();
+    let skill_price_lamports_snapshot = ctx.accounts.skill_listing.price_lamports;
+    let liability_scope =
+        if SkillListing::is_free_price(skill_price_lamports_snapshot) {
+            AuthorDisputeLiabilityScope::AuthorBondOnly
+        } else {
+            AuthorDisputeLiabilityScope::AuthorBondThenVouchers
+        };
     let purchase = ctx.accounts.purchase.as_ref().map(|account| account.key());
     let expected_backing_vouch_count = ctx.accounts.author_profile.total_vouches_received;
     let author_dispute_key = ctx.accounts.author_dispute.key();
@@ -201,7 +202,9 @@ pub fn handler<'info>(
     author_dispute.evidence_uri = evidence_uri;
     author_dispute.status = AuthorDisputeStatus::Open;
     author_dispute.ruling = None;
+    author_dispute.liability_scope = liability_scope;
     author_dispute.skill_listing = skill_listing;
+    author_dispute.skill_price_lamports_snapshot = skill_price_lamports_snapshot;
     author_dispute.purchase = purchase;
     author_dispute.backing_vouch_count_snapshot = expected_backing_vouch_count;
     author_dispute.linked_vouch_count = linked_vouch_count;
@@ -221,7 +224,9 @@ pub fn handler<'info>(
         author,
         challenger: ctx.accounts.challenger.key(),
         reason: reason_label(reason).to_string(),
+        liability_scope: liability_scope_label(liability_scope).to_string(),
         skill_listing,
+        skill_price_lamports_snapshot,
         purchase,
         linked_vouch_count,
         bond_amount: config.dispute_bond,
@@ -240,14 +245,19 @@ fn reason_label(reason: AuthorDisputeReason) -> &'static str {
     }
 }
 
+fn liability_scope_label(liability_scope: AuthorDisputeLiabilityScope) -> &'static str {
+    match liability_scope {
+        AuthorDisputeLiabilityScope::AuthorBondOnly => "AuthorBondOnly",
+        AuthorDisputeLiabilityScope::AuthorBondThenVouchers => "AuthorBondThenVouchers",
+    }
+}
+
 #[error_code]
 pub enum ErrorCode {
     #[msg("Evidence URI is too long")]
     EvidenceUriTooLong,
     #[msg("The provided skill listing does not belong to the disputed author")]
     SkillListingAuthorMismatch,
-    #[msg("A purchase reference requires the matching skill listing account")]
-    PurchaseRequiresSkillListing,
     #[msg("The provided purchase does not belong to the provided skill listing")]
     PurchaseSkillMismatch,
     #[msg("Author disputes must receive link and vouch accounts in pairs")]

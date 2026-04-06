@@ -604,8 +604,7 @@
           }
         },
         {
-          "name": "skill_listing",
-          "optional": true
+          "name": "skill_listing"
         },
         {
           "name": "purchase",
@@ -1663,63 +1662,38 @@
   "errors": [
     {
       "code": 6000,
-      "name": "UriTooLong",
-      "msg": "URI too long"
+      "name": "AmountMustBePositive",
+      "msg": "Amount must be greater than zero"
     },
     {
       "code": 6001,
-      "name": "NameTooLong",
-      "msg": "Name too long"
+      "name": "AuthorBondAuthorityMismatch",
+      "msg": "Author bond authority mismatch"
     },
     {
       "code": 6002,
-      "name": "DescriptionTooLong",
-      "msg": "Description too long"
+      "name": "InsufficientBondAmount",
+      "msg": "Author bond amount is insufficient for this withdrawal"
     },
     {
       "code": 6003,
-      "name": "PriceNotSupported",
-      "msg": "Price must be zero or at least the minimum paid listing price"
+      "name": "FreeListingsRequireBondFloor",
+      "msg": "Active free listings require the configured minimum author bond"
     },
     {
       "code": 6004,
-      "name": "NotAuthor",
-      "msg": "Only the author can update this listing"
+      "name": "AuthorBondLockedWhileDisputesOpen",
+      "msg": "Author bond cannot be withdrawn while author disputes are open"
     },
     {
       "code": 6005,
-      "name": "SkillRemoved",
-      "msg": "Cannot update a removed listing"
+      "name": "InsufficientLamports",
+      "msg": "Author bond account does not have enough lamports for this withdrawal"
     },
     {
       "code": 6006,
-      "name": "MissingAuthorBondForFreeListing",
-      "msg": "Free listings must provide the author's bond account"
-    },
-    {
-      "code": 6007,
-      "name": "FreeListingRequiresBondFloor",
-      "msg": "Free listings require the configured minimum author bond"
-    },
-    {
-      "code": 6008,
-      "name": "AuthorBondAccountMismatch",
-      "msg": "Author bond PDA does not match the expected author"
-    },
-    {
-      "code": 6009,
-      "name": "AuthorBondProfileMismatch",
-      "msg": "Author bond account does not match the author profile totals"
-    },
-    {
-      "code": 6010,
-      "name": "FreeListingCountOverflow",
-      "msg": "Active free listing count overflowed"
-    },
-    {
-      "code": 6011,
-      "name": "FreeListingCountUnderflow",
-      "msg": "Active free listing count underflowed"
+      "name": "LamportOverflow",
+      "msg": "Lamport amount overflowed"
     }
   ],
   "types": [
@@ -1935,10 +1909,20 @@
             }
           },
           {
-            "name": "skill_listing",
+            "name": "liability_scope",
             "type": {
-              "option": "pubkey"
+              "defined": {
+                "name": "AuthorDisputeLiabilityScope"
+              }
             }
+          },
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "skill_price_lamports_snapshot",
+            "type": "u64"
           },
           {
             "name": "purchase",
@@ -1976,6 +1960,20 @@
       }
     },
     {
+      "name": "AuthorDisputeLiabilityScope",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "AuthorBondOnly"
+          },
+          {
+            "name": "AuthorBondThenVouchers"
+          }
+        ]
+      }
+    },
+    {
       "name": "AuthorDisputeOpened",
       "type": {
         "kind": "struct",
@@ -1997,10 +1995,16 @@
             "type": "string"
           },
           {
+            "name": "liability_scope",
+            "type": "string"
+          },
+          {
             "name": "skill_listing",
-            "type": {
-              "option": "pubkey"
-            }
+            "type": "pubkey"
+          },
+          {
+            "name": "skill_price_lamports_snapshot",
+            "type": "u64"
           },
           {
             "name": "purchase",
@@ -2061,11 +2065,19 @@
             "type": "string"
           },
           {
+            "name": "liability_scope",
+            "type": "string"
+          },
+          {
             "name": "linked_vouch_count",
             "type": "u32"
           },
           {
             "name": "author_bond_slashed_amount",
+            "type": "u64"
+          },
+          {
+            "name": "voucher_slashed_amount",
             "type": "u64"
           },
           {

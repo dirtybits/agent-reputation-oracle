@@ -14,62 +14,42 @@ import {
 } from "@solana/kit";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
-/** UriTooLong: URI too long */
-export const REPUTATION_ORACLE_ERROR__URI_TOO_LONG = 0x1770; // 6000
-/** NameTooLong: Name too long */
-export const REPUTATION_ORACLE_ERROR__NAME_TOO_LONG = 0x1771; // 6001
-/** DescriptionTooLong: Description too long */
-export const REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG = 0x1772; // 6002
-/** PriceNotSupported: Price must be zero or at least the minimum paid listing price */
-export const REPUTATION_ORACLE_ERROR__PRICE_NOT_SUPPORTED = 0x1773; // 6003
-/** NotAuthor: Only the author can update this listing */
-export const REPUTATION_ORACLE_ERROR__NOT_AUTHOR = 0x1774; // 6004
-/** SkillRemoved: Cannot update a removed listing */
-export const REPUTATION_ORACLE_ERROR__SKILL_REMOVED = 0x1775; // 6005
-/** MissingAuthorBondForFreeListing: Free listings must provide the author's bond account */
-export const REPUTATION_ORACLE_ERROR__MISSING_AUTHOR_BOND_FOR_FREE_LISTING = 0x1776; // 6006
-/** FreeListingRequiresBondFloor: Free listings require the configured minimum author bond */
-export const REPUTATION_ORACLE_ERROR__FREE_LISTING_REQUIRES_BOND_FLOOR = 0x1777; // 6007
-/** AuthorBondAccountMismatch: Author bond PDA does not match the expected author */
-export const REPUTATION_ORACLE_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH = 0x1778; // 6008
-/** AuthorBondProfileMismatch: Author bond account does not match the author profile totals */
-export const REPUTATION_ORACLE_ERROR__AUTHOR_BOND_PROFILE_MISMATCH = 0x1779; // 6009
-/** FreeListingCountOverflow: Active free listing count overflowed */
-export const REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_OVERFLOW = 0x177a; // 6010
-/** FreeListingCountUnderflow: Active free listing count underflowed */
-export const REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_UNDERFLOW = 0x177b; // 6011
+/** AmountMustBePositive: Amount must be greater than zero */
+export const REPUTATION_ORACLE_ERROR__AMOUNT_MUST_BE_POSITIVE = 0x1770; // 6000
+/** AuthorBondAuthorityMismatch: Author bond authority mismatch */
+export const REPUTATION_ORACLE_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH = 0x1771; // 6001
+/** InsufficientBondAmount: Author bond amount is insufficient for this withdrawal */
+export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_BOND_AMOUNT = 0x1772; // 6002
+/** FreeListingsRequireBondFloor: Active free listings require the configured minimum author bond */
+export const REPUTATION_ORACLE_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR = 0x1773; // 6003
+/** AuthorBondLockedWhileDisputesOpen: Author bond cannot be withdrawn while author disputes are open */
+export const REPUTATION_ORACLE_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN = 0x1774; // 6004
+/** InsufficientLamports: Author bond account does not have enough lamports for this withdrawal */
+export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_LAMPORTS = 0x1775; // 6005
+/** LamportOverflow: Lamport amount overflowed */
+export const REPUTATION_ORACLE_ERROR__LAMPORT_OVERFLOW = 0x1776; // 6006
 
 export type ReputationOracleError =
-  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_BOND_PROFILE_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG
-  | typeof REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_OVERFLOW
-  | typeof REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_UNDERFLOW
-  | typeof REPUTATION_ORACLE_ERROR__FREE_LISTING_REQUIRES_BOND_FLOOR
-  | typeof REPUTATION_ORACLE_ERROR__MISSING_AUTHOR_BOND_FOR_FREE_LISTING
-  | typeof REPUTATION_ORACLE_ERROR__NAME_TOO_LONG
-  | typeof REPUTATION_ORACLE_ERROR__NOT_AUTHOR
-  | typeof REPUTATION_ORACLE_ERROR__PRICE_NOT_SUPPORTED
-  | typeof REPUTATION_ORACLE_ERROR__SKILL_REMOVED
-  | typeof REPUTATION_ORACLE_ERROR__URI_TOO_LONG;
+  | typeof REPUTATION_ORACLE_ERROR__AMOUNT_MUST_BE_POSITIVE
+  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH
+  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN
+  | typeof REPUTATION_ORACLE_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR
+  | typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_BOND_AMOUNT
+  | typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_LAMPORTS
+  | typeof REPUTATION_ORACLE_ERROR__LAMPORT_OVERFLOW;
 
 let reputationOracleErrorMessages:
   | Record<ReputationOracleError, string>
   | undefined;
 if (process.env.NODE_ENV !== "production") {
   reputationOracleErrorMessages = {
-    [REPUTATION_ORACLE_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH]: `Author bond PDA does not match the expected author`,
-    [REPUTATION_ORACLE_ERROR__AUTHOR_BOND_PROFILE_MISMATCH]: `Author bond account does not match the author profile totals`,
-    [REPUTATION_ORACLE_ERROR__DESCRIPTION_TOO_LONG]: `Description too long`,
-    [REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_OVERFLOW]: `Active free listing count overflowed`,
-    [REPUTATION_ORACLE_ERROR__FREE_LISTING_COUNT_UNDERFLOW]: `Active free listing count underflowed`,
-    [REPUTATION_ORACLE_ERROR__FREE_LISTING_REQUIRES_BOND_FLOOR]: `Free listings require the configured minimum author bond`,
-    [REPUTATION_ORACLE_ERROR__MISSING_AUTHOR_BOND_FOR_FREE_LISTING]: `Free listings must provide the author's bond account`,
-    [REPUTATION_ORACLE_ERROR__NAME_TOO_LONG]: `Name too long`,
-    [REPUTATION_ORACLE_ERROR__NOT_AUTHOR]: `Only the author can update this listing`,
-    [REPUTATION_ORACLE_ERROR__PRICE_NOT_SUPPORTED]: `Price must be zero or at least the minimum paid listing price`,
-    [REPUTATION_ORACLE_ERROR__SKILL_REMOVED]: `Cannot update a removed listing`,
-    [REPUTATION_ORACLE_ERROR__URI_TOO_LONG]: `URI too long`,
+    [REPUTATION_ORACLE_ERROR__AMOUNT_MUST_BE_POSITIVE]: `Amount must be greater than zero`,
+    [REPUTATION_ORACLE_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH]: `Author bond authority mismatch`,
+    [REPUTATION_ORACLE_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN]: `Author bond cannot be withdrawn while author disputes are open`,
+    [REPUTATION_ORACLE_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR]: `Active free listings require the configured minimum author bond`,
+    [REPUTATION_ORACLE_ERROR__INSUFFICIENT_BOND_AMOUNT]: `Author bond amount is insufficient for this withdrawal`,
+    [REPUTATION_ORACLE_ERROR__INSUFFICIENT_LAMPORTS]: `Author bond account does not have enough lamports for this withdrawal`,
+    [REPUTATION_ORACLE_ERROR__LAMPORT_OVERFLOW]: `Lamport amount overflowed`,
   };
 }
 

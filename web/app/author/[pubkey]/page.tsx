@@ -583,15 +583,16 @@ export default function AuthorProfilePage() {
     countsTowardAuthorWideReportSnapshot(vouch.account.status)
   );
   const claimSkillOptions = [
-    ...repoSkills.map((skill) => ({
-      value: skill.on_chain_address
-        ? `skill:${skill.on_chain_address}`
-        : `repo:${skill.id}`,
-      label: skill.name,
-    })),
+    ...repoSkills
+      .filter((skill) => !!skill.on_chain_address)
+      .map((skill) => ({
+        value: `skill:${skill.on_chain_address}`,
+        label: skill.name,
+      })),
     ...chainSkills
       .filter(
         (skill) =>
+          !!skill.on_chain_address &&
           !repoSkills.some(
             (repoSkill) => repoSkill.on_chain_address === skill.on_chain_address
           )
@@ -606,16 +607,24 @@ export default function AuthorProfilePage() {
   const selectedClaimSkillLabel = claimSkillOptions.find(
     (skill) => skill.value === claimSkillContext
   )?.label;
+  const selectedClaimSkillValue =
+    claimSkillOptions.find((skill) => skill.value === claimSkillContext)?.value ??
+    claimSkillOptions[0]?.value ??
+    "";
   const registeredAt = Number(profile?.registeredAt ?? 0);
 
   const openClaimModal = useCallback(() => {
+    const requestedSkill = searchParams.get("skill") ?? "";
+    const nextSkill = claimSkillOptions.some((skill) => skill.value === requestedSkill)
+      ? requestedSkill
+      : claimSkillOptions[0]?.value ?? "";
     setClaimStatus(null);
     setClaimTx(null);
     setClaimReason("malicious-skill");
-    setClaimSkillContext(searchParams.get("skill") ?? "");
+    setClaimSkillContext(nextSkill);
     setClaimEvidenceUri("");
     setShowClaimModal(true);
-  }, [searchParams]);
+  }, [claimSkillOptions, searchParams]);
 
   const closeClaimModal = () => {
     if (claiming) return;
@@ -642,6 +651,15 @@ export default function AuthorProfilePage() {
       return;
     }
 
+    if (!selectedClaimSkillValue) {
+      setClaimStatus({
+        success: false,
+        message: "Choose the listed skill this report is about.",
+      });
+      setClaimTx(null);
+      return;
+    }
+
     if (evidenceUri.length > 200) {
       setClaimStatus({
         success: false,
@@ -656,9 +674,9 @@ export default function AuthorProfilePage() {
     setClaimTx(null);
 
     try {
-      const selectedSkillListing = claimSkillContext.startsWith("skill:")
-        ? address(claimSkillContext.slice("skill:".length))
-        : undefined;
+      const selectedSkillListing = address(
+        selectedClaimSkillValue.slice("skill:".length)
+      );
       const reason =
         claimReason === "fraudulent-claims"
           ? AuthorDisputeReason.FraudulentClaims
@@ -677,7 +695,7 @@ export default function AuthorProfilePage() {
         : "";
       setClaimStatus({
         success: true,
-        message: `Author-wide report opened${contextLabel}. The protocol snapshotted this author's current backing set automatically.`,
+        message: `Report opened${contextLabel}. Free-skill disputes snapshot voucher backing for transparency but cap slashing at author bond; paid-skill disputes can continue into vouchers after author bond.`,
       });
       setClaimTx(tx);
       setShowClaimModal(false);
@@ -764,9 +782,10 @@ export default function AuthorProfilePage() {
                   Report this author
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Open a first-class author dispute. The protocol will snapshot
-                  this author&apos;s full current backing set automatically, and
-                  an upheld report will slash that snapshotted backing.
+                  Open a skill-linked author dispute. The protocol always
+                  snapshots the author&apos;s current backing set for visibility.
+                  Free-skill disputes cap slashing at author bond; paid-skill
+                  disputes can continue into vouchers after author bond.
                 </p>
               </div>
 
@@ -813,7 +832,6 @@ export default function AuthorProfilePage() {
                         onChange={(e) => setClaimSkillContext(e.target.value)}
                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                       >
-                        <option value="">Not tied to a specific skill</option>
                         {claimSkillOptions.map((skill) => (
                           <option key={skill.value} value={skill.value}>
                             {skill.label}
@@ -828,8 +846,9 @@ export default function AuthorProfilePage() {
                       </label>
                       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 space-y-2">
                         <p className="text-sm text-gray-600 dark:text-gray-300">
-                          This report targets the author as a whole. You cannot
-                          choose individual backers.
+                          This report records the offending listed skill and the
+                          author&apos;s full backing snapshot. You cannot choose
+                          individual backers.
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {authorWideBackingVouches.length > 0
@@ -839,8 +858,8 @@ export default function AuthorProfilePage() {
                                 authorWideBackingVouches.length === 1
                                   ? "voucher"
                                   : "vouchers"
-                              } when you open the report.`
-                            : "This author has no live backing vouchers right now, so the report will open without linked voucher exposure."}
+                              } when you open the report. Free-skill disputes keep that snapshot for transparency only; paid-skill disputes may also slash it after author bond.`
+                            : "This author has no live backing vouchers right now, so only author bond can be economically in scope."}
                         </p>
                       </div>
                     </div>
@@ -857,8 +876,8 @@ export default function AuthorProfilePage() {
                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                       />
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        Skill and purchase references provide evidence context
-                        only. Liability stays author-wide.
+                        The skill listing is required. Purchase is optional
+                        evidence for delivery claims.
                       </p>
                     </div>
                   </div>
@@ -994,6 +1013,13 @@ export default function AuthorProfilePage() {
                     </p>
                     <p className="font-mono text-xs break-all">
                       Evidence: {dispute.evidenceUri}
+                    </p>
+                    <p>
+                      Liability: {dispute.liabilityScopeLabel}
+                    </p>
+                    <p>
+                      Skill price at dispute open:{" "}
+                      {formatSol(dispute.skillPriceLamportsSnapshot)} SOL
                     </p>
                     <p>
                       Snapshot scope: {dispute.linkedVouchCount} backing{" "}
@@ -1594,24 +1620,26 @@ export default function AuthorProfilePage() {
                   this author
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Open a first-class author dispute. The protocol snapshots the
-                  author&apos;s full live backing set automatically, so one bad
-                  skill affects author-wide trust and can slash the recorded
-                  backing set if upheld.
+                  Open a skill-linked author dispute. The protocol records the
+                  disputed listing and snapshots the author&apos;s live voucher
+                  backing automatically for visibility.
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {authorWideBackingVouches.length > 0
+                  {claimSkillOptions.length === 0
+                    ? "This author has no on-chain skill listings to dispute yet."
+                    : authorWideBackingVouches.length > 0
                     ? `${authorWideBackingVouches.length} live backing ${
                         authorWideBackingVouches.length === 1
                           ? "voucher is"
                           : "vouchers are"
-                      } currently in scope for an author-wide report.`
-                    : "No live backing vouchers are currently in scope, but reports can still be opened."}
+                      } snapshotted for each report. Free-skill disputes cap slashing at author bond; paid-skill disputes may continue into vouchers after author bond.`
+                    : "No live backing vouchers are currently recorded, so only author bond can be economically in scope."}
                 </p>
               </div>
 
               <button
                 onClick={() => openClaimModal()}
+                disabled={claimSkillOptions.length === 0}
                 className={navButtonPrimaryInlineClass}
               >
                 <FiFlag className="w-4 h-4" />

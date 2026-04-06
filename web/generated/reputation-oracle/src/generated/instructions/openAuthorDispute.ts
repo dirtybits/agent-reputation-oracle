@@ -160,7 +160,7 @@ export type OpenAuthorDisputeAsyncInput<
   authorDispute: Address<TAccountAuthorDispute>;
   authorProfile: Address<TAccountAuthorProfile>;
   config?: Address<TAccountConfig>;
-  skillListing?: Address<TAccountSkillListing>;
+  skillListing: Address<TAccountSkillListing>;
   purchase?: Address<TAccountPurchase>;
   challenger: TransactionSigner<TAccountChallenger>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -276,7 +276,7 @@ export type OpenAuthorDisputeInput<
   authorDispute: Address<TAccountAuthorDispute>;
   authorProfile: Address<TAccountAuthorProfile>;
   config: Address<TAccountConfig>;
-  skillListing?: Address<TAccountSkillListing>;
+  skillListing: Address<TAccountSkillListing>;
   purchase?: Address<TAccountPurchase>;
   challenger: TransactionSigner<TAccountChallenger>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -379,7 +379,7 @@ export type ParsedOpenAuthorDisputeInstruction<
     authorDispute: TAccountMetas[0];
     authorProfile: TAccountMetas[1];
     config: TAccountMetas[2];
-    skillListing?: TAccountMetas[3] | undefined;
+    skillListing: TAccountMetas[3];
     purchase?: TAccountMetas[4] | undefined;
     challenger: TAccountMetas[5];
     systemProgram: TAccountMetas[6];
@@ -422,7 +422,7 @@ export function parseOpenAuthorDisputeInstruction<
       authorDispute: getNextAccount(),
       authorProfile: getNextAccount(),
       config: getNextAccount(),
-      skillListing: getNextOptionalAccount(),
+      skillListing: getNextAccount(),
       purchase: getNextOptionalAccount(),
       challenger: getNextAccount(),
       systemProgram: getNextAccount(),

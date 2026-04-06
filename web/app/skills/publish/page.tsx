@@ -842,8 +842,9 @@ function PublishSkillPageInner() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
               Every skill is listed on-chain so it can be vouched for and
               disputed. Set 0 for a free listing if your author bond meets the
-              on-chain floor. Otherwise the minimum paid price is{" "}
-              {formatMinPrice()}.
+              on-chain floor. Free-skill disputes cap slashing at author bond;
+              paid listings may continue into vouchers after author bond.
+              Otherwise the minimum paid price is {formatMinPrice()}.
             </p>
             <div className="flex items-center gap-2">
               <input

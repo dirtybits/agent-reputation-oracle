@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getAuthorDisputeLiabilityScopeLabel,
   getAuthorDisputeReasonLabel,
   getAuthorDisputeRulingLabel,
   getAuthorDisputeStatusLabel,
 } from "@/lib/authorDisputes";
 import {
+  AuthorDisputeLiabilityScope,
   AuthorDisputeReason,
   AuthorDisputeRuling,
   AuthorDisputeStatus,
@@ -32,6 +34,16 @@ describe("author dispute helpers", () => {
     expect(getAuthorDisputeStatusLabel(AuthorDisputeStatus.Resolved)).toBe(
       "Resolved"
     );
+    expect(
+      getAuthorDisputeLiabilityScopeLabel(
+        AuthorDisputeLiabilityScope.AuthorBondOnly
+      )
+    ).toBe("Author bond only");
+    expect(
+      getAuthorDisputeLiabilityScopeLabel(
+        AuthorDisputeLiabilityScope.AuthorBondThenVouchers
+      )
+    ).toBe("Author bond then vouchers");
     expect(getAuthorDisputeRulingLabel(AuthorDisputeRuling.Upheld)).toBe(
       "Upheld"
     );

@@ -88,7 +88,7 @@ Returns full skill detail including `content` (the SKILL.md text), `versions`, `
 curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 ```
 
-Free listings use `0` lamports and download directly. Paid listings must be at least `0.001 SOL` (`1_000_000` lamports). Creating or updating a free listing also requires the author's on-chain `AuthorBond` balance to meet `min_author_bond_for_free_listing`. For paid skills, the endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase and provide a signed download header. The `402` response includes:
+Free listings use `0` lamports and download directly. Paid listings must be at least `0.001 SOL` (`1_000_000` lamports). Creating or updating a free listing also requires the author's on-chain `AuthorBond` balance to meet `min_author_bond_for_free_listing`. Free-skill disputes snapshot voucher backing for visibility but cap slashing at `AuthorBond`; paid-skill disputes can continue into vouchers after `AuthorBond`. For paid skills, the endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase and provide a signed download header. The `402` response includes:
 
 - `programId` — the Solana program to call (`ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`)
 - `chainContext` — normalized CAIP-2 chain id for the purchase flow
@@ -150,18 +150,18 @@ Every skill response includes `author_trust`. Interpret it:
 | `disputesAgainstAuthor > 0` | There is author-level dispute history to review |
 | `totalStakedFor > 0` | Others have staked SOL on this agent's trustworthiness |
 | `authorBondLamports > 0` | The author has posted self-stake that takes first loss in upheld author disputes |
-| `totalStakeAtRisk` | Combined economic stake behind the author: `totalStakedFor + authorBondLamports` |
+| `totalStakeAtRisk` | Combined economic stake behind the author: `totalStakedFor + authorBondLamports` (aggregate exposure, not the slash path for every dispute) |
 | `isRegistered: false` | Not registered on-chain — no reputation data |
 
 For deeper inspection, open `https://agentvouch.xyz/author/{pubkey}` to review the author's voucher set, staked SOL, author-wide disputes, and snapshotted backing scope in the UI.
 
 Author-dispute nuance:
 
-- Author reports are author-wide today because `Vouch` underwrites the author, not a single skill.
-- A bad skill is evidence that the author may be unsafe across all skills, so the report scope stays author-wide.
+- Author reports are still author-scoped because `Vouch` underwrites the author, not a single skill.
+- Every dispute now records the specific on-chain `skill_listing` it is about; `purchase` is optional extra evidence.
 - The protocol snapshots the author's full live backing set when `open_author_dispute` executes; users do not choose individual backers.
-- Skill and purchase references add evidence context only. They do not narrow who is economically in scope.
-- In an upheld author dispute, `AuthorBond` is slashed first. Any remaining liability is then slashed proportionally from the snapshotted backing vouchers.
+- Free-skill disputes keep that voucher snapshot for transparency but cap slashing at `AuthorBond`.
+- Paid-skill disputes slash `AuthorBond` first, then continue into the snapshotted backing vouchers if needed.
 
 ### Direct Trust Lookup
 
@@ -397,8 +397,8 @@ DisputeLink:   seeds = ["author_dispute_vouch_link", author_dispute, vouch]
 | `claim_voucher_revenue()` | Claim a voucher's accumulated share of skill revenue |
 | `vouch(stake_amount)` | Stake SOL behind another agent |
 | `revoke_vouch()` | Withdraw a vouch and reclaim stake when allowed |
-| `open_author_dispute(...)` | Open an author-wide dispute with a backing snapshot |
-| `resolve_author_dispute(...)` | Resolve an author dispute; slash `AuthorBond` first, then backing vouchers if needed |
+| `open_author_dispute(...)` | Open a skill-linked author dispute with a backing snapshot and stored liability scope |
+| `resolve_author_dispute(...)` | Resolve an author dispute using the liability scope stored at dispute open |
 
 ### Marketplace Economics
 

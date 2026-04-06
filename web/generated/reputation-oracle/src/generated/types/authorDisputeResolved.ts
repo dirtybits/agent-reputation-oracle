@@ -32,8 +32,10 @@ export type AuthorDisputeResolved = {
   authorDispute: Address;
   author: Address;
   ruling: string;
+  liabilityScope: string;
   linkedVouchCount: number;
   authorBondSlashedAmount: bigint;
+  voucherSlashedAmount: bigint;
   slashedAmount: bigint;
   timestamp: bigint;
 };
@@ -42,8 +44,10 @@ export type AuthorDisputeResolvedArgs = {
   authorDispute: Address;
   author: Address;
   ruling: string;
+  liabilityScope: string;
   linkedVouchCount: number;
   authorBondSlashedAmount: number | bigint;
+  voucherSlashedAmount: number | bigint;
   slashedAmount: number | bigint;
   timestamp: number | bigint;
 };
@@ -53,8 +57,10 @@ export function getAuthorDisputeResolvedEncoder(): Encoder<AuthorDisputeResolved
     ["authorDispute", getAddressEncoder()],
     ["author", getAddressEncoder()],
     ["ruling", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+    ["liabilityScope", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ["linkedVouchCount", getU32Encoder()],
     ["authorBondSlashedAmount", getU64Encoder()],
+    ["voucherSlashedAmount", getU64Encoder()],
     ["slashedAmount", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
@@ -65,8 +71,10 @@ export function getAuthorDisputeResolvedDecoder(): Decoder<AuthorDisputeResolved
     ["authorDispute", getAddressDecoder()],
     ["author", getAddressDecoder()],
     ["ruling", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["liabilityScope", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["linkedVouchCount", getU32Decoder()],
     ["authorBondSlashedAmount", getU64Decoder()],
+    ["voucherSlashedAmount", getU64Decoder()],
     ["slashedAmount", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);

@@ -20,6 +20,12 @@ pub enum AuthorDisputeRuling {
     Dismissed,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
+pub enum AuthorDisputeLiabilityScope {
+    AuthorBondOnly,
+    AuthorBondThenVouchers,
+}
+
 #[account]
 pub struct AuthorDispute {
     pub dispute_id: u64,
@@ -29,7 +35,9 @@ pub struct AuthorDispute {
     pub evidence_uri: String,
     pub status: AuthorDisputeStatus,
     pub ruling: Option<AuthorDisputeRuling>,
-    pub skill_listing: Option<Pubkey>,
+    pub liability_scope: AuthorDisputeLiabilityScope,
+    pub skill_listing: Pubkey,
+    pub skill_price_lamports_snapshot: u64,
     pub purchase: Option<Pubkey>,
     pub backing_vouch_count_snapshot: u32,
     pub linked_vouch_count: u32,
@@ -50,7 +58,9 @@ impl AuthorDispute {
         (4 + Self::MAX_EVIDENCE_URI_LENGTH) + // evidence_uri
         1 + // status
         (1 + 1) + // ruling
-        (1 + 32) + // skill_listing
+        1 + // liability_scope
+        32 + // skill_listing
+        8 + // skill_price_lamports_snapshot
         (1 + 32) + // purchase
         4 + // backing_vouch_count_snapshot
         4 + // linked_vouch_count

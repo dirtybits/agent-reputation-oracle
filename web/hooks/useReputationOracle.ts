@@ -52,6 +52,7 @@ import {
   SKILL_LISTING_DISCRIMINATOR,
   VOUCH_DISCRIMINATOR,
   PURCHASE_DISCRIMINATOR,
+  AuthorDisputeLiabilityScope,
   AuthorDisputeReason,
   AuthorDisputeRuling,
   AuthorDisputeStatus,
@@ -69,6 +70,7 @@ import {
   getConfiguredSolanaRpcTargetLabel,
 } from "@/lib/chains";
 import {
+  getAuthorDisputeLiabilityScopeLabel,
   listAuthorDisputeLinks,
   listAuthorDisputesByAuthor,
 } from "@/lib/authorDisputes";
@@ -1038,6 +1040,8 @@ export function useReputationOracle() {
             rulingValue === null || rulingValue === undefined
               ? null
               : AuthorDisputeRuling[rulingValue] ?? "Unknown";
+          const liabilityScopeLabel =
+            getAuthorDisputeLiabilityScopeLabel(record.account.liabilityScope);
           return {
             publicKey: record.publicKey,
             account: record.account,
@@ -1045,6 +1049,7 @@ export function useReputationOracle() {
             reasonLabel,
             statusLabel,
             rulingLabel,
+            liabilityScopeLabel,
           };
         })
         .sort(
@@ -1075,6 +1080,13 @@ export function useReputationOracle() {
         fetchMaybeAuthorBond(rpc, authorBond).catch(() => null),
       ]);
       const authorDispute = await getAuthorDisputePDA(authorKey, disputeId);
+      const maybeAuthorDisputeAccount = await fetchMaybeAuthorDispute(
+        rpc,
+        authorDispute
+      ).catch(() => null);
+      if (!maybeAuthorDisputeAccount?.exists) {
+        throw new Error("Author dispute not found");
+      }
       const ix = await getResolveAuthorDisputeInstructionAsync({
         authorDispute,
         authorProfile,
@@ -1084,7 +1096,11 @@ export function useReputationOracle() {
         disputeId,
         ruling,
       });
-      if (ruling !== AuthorDisputeRuling.Upheld) {
+      if (
+        ruling !== AuthorDisputeRuling.Upheld ||
+        maybeAuthorDisputeAccount.data.liabilityScope ===
+          AuthorDisputeLiabilityScope.AuthorBondOnly
+      ) {
         return { tx: await sendIx(ix), authorDispute };
       }
 
@@ -1411,7 +1427,7 @@ export function useReputationOracle() {
       params: {
         reason: AuthorDisputeReason;
         evidenceUri: string;
-        skillListing?: Address;
+        skillListing: Address;
         purchase?: Address;
         disputeId?: number | bigint;
       }

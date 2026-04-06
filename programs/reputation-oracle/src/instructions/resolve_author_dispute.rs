@@ -7,8 +7,9 @@ use crate::instructions::vouch_settlement::{
     compute_slash_amount, slash_author_bond, slash_vouch_with_amount,
 };
 use crate::state::{
-    find_author_bond_pda, AgentProfile, AuthorBond, AuthorDispute, AuthorDisputeRuling,
-    AuthorDisputeStatus, AuthorDisputeVouchLink, ReputationConfig, Vouch,
+    find_author_bond_pda, AgentProfile, AuthorBond, AuthorDispute,
+    AuthorDisputeLiabilityScope, AuthorDisputeRuling, AuthorDisputeStatus,
+    AuthorDisputeVouchLink, ReputationConfig, Vouch,
 };
 
 #[derive(Accounts)]
@@ -56,6 +57,7 @@ pub fn handler<'info>(
     let clock = Clock::get()?;
     let author_dispute_key = ctx.accounts.author_dispute.key();
     let author_key = ctx.accounts.author_profile.authority;
+    let liability_scope = ctx.accounts.author_dispute.liability_scope;
     let linked_vouch_count = ctx.accounts.author_dispute.linked_vouch_count;
     let backing_vouch_count_snapshot = ctx.accounts.author_dispute.backing_vouch_count_snapshot;
     let bond_amount = ctx.accounts.author_dispute.bond_amount;
@@ -74,6 +76,7 @@ pub fn handler<'info>(
             &mut ctx.accounts.author_profile,
             &ctx.accounts.config,
             &mut ctx.accounts.author_bond,
+            liability_scope,
         )?,
         AuthorDisputeRuling::Dismissed => SettlementTotals::default(),
     };
@@ -129,8 +132,10 @@ pub fn handler<'info>(
         author_dispute: author_dispute.key(),
         author: author_dispute.author,
         ruling: ruling_label(ruling).to_string(),
+        liability_scope: liability_scope_label(liability_scope).to_string(),
         linked_vouch_count: author_dispute.linked_vouch_count,
         author_bond_slashed_amount: settlement_totals.author_bond_slashed_amount,
+        voucher_slashed_amount: settlement_totals.voucher_slashed_amount,
         slashed_amount: total_slashed_amount,
         timestamp: clock.unix_timestamp,
     });
@@ -161,15 +166,8 @@ fn settle_author_liability<'info>(
     author_profile: &mut Account<'info, AgentProfile>,
     config: &Account<'info, ReputationConfig>,
     author_bond: &mut Option<Account<'info, AuthorBond>>,
+    liability_scope: AuthorDisputeLiabilityScope,
 ) -> Result<SettlementTotals> {
-    let backing_summary = summarize_backing_vouches(
-        remaining_accounts,
-        author_dispute_key,
-        expected_backing_vouch_count,
-        author_profile.key(),
-        config,
-    )?;
-
     validate_author_bond(
         author_bond.as_ref(),
         program_id,
@@ -177,10 +175,28 @@ fn settle_author_liability<'info>(
         author_profile.author_bond_lamports,
     )?;
     let author_bond_amount = author_bond.as_ref().map(|bond| bond.amount).unwrap_or(0);
-    let total_stake_at_risk = author_bond_amount
-        .checked_add(backing_summary.total_backing_stake)
-        .ok_or(ErrorCode::SlashAmountOverflow)?;
-    let desired_total_slash = compute_slash_amount(total_stake_at_risk, config.slash_percentage);
+    let desired_total_slash = match liability_scope {
+        AuthorDisputeLiabilityScope::AuthorBondOnly => {
+            require!(
+                remaining_accounts.is_empty(),
+                ErrorCode::BondOnlyDisputeMustNotProvideSettlementAccounts
+            );
+            compute_slash_amount(author_bond_amount, config.slash_percentage)
+        }
+        AuthorDisputeLiabilityScope::AuthorBondThenVouchers => {
+            let backing_summary = summarize_backing_vouches(
+                remaining_accounts,
+                author_dispute_key,
+                expected_backing_vouch_count,
+                author_profile.key(),
+                config,
+            )?;
+            let total_stake_at_risk = author_bond_amount
+                .checked_add(backing_summary.total_backing_stake)
+                .ok_or(ErrorCode::SlashAmountOverflow)?;
+            compute_slash_amount(total_stake_at_risk, config.slash_percentage)
+        }
+    };
 
     let author_bond_slashed_amount = if let Some(author_bond) = author_bond.as_mut() {
         let slash_amount = desired_total_slash.min(author_bond.amount);
@@ -201,17 +217,30 @@ fn settle_author_liability<'info>(
         0
     };
 
-    let remaining_voucher_liability = desired_total_slash.saturating_sub(author_bond_slashed_amount);
-    let voucher_slashed_amount = settle_backing_vouches(
-        remaining_accounts,
-        program_id,
-        author_dispute_key,
-        expected_backing_vouch_count,
-        author_profile,
-        config,
-        remaining_voucher_liability,
-        backing_summary.full_backing_slash_amount,
-    )?;
+    let voucher_slashed_amount = match liability_scope {
+        AuthorDisputeLiabilityScope::AuthorBondOnly => 0,
+        AuthorDisputeLiabilityScope::AuthorBondThenVouchers => {
+            let backing_summary = summarize_backing_vouches(
+                remaining_accounts,
+                author_dispute_key,
+                expected_backing_vouch_count,
+                author_profile.key(),
+                config,
+            )?;
+            let remaining_voucher_liability =
+                desired_total_slash.saturating_sub(author_bond_slashed_amount);
+            settle_backing_vouches(
+                remaining_accounts,
+                program_id,
+                author_dispute_key,
+                expected_backing_vouch_count,
+                author_profile,
+                config,
+                remaining_voucher_liability,
+                backing_summary.full_backing_slash_amount,
+            )?
+        }
+    };
 
     Ok(SettlementTotals {
         author_bond_slashed_amount,
@@ -441,6 +470,13 @@ fn ruling_label(ruling: AuthorDisputeRuling) -> &'static str {
     }
 }
 
+fn liability_scope_label(liability_scope: AuthorDisputeLiabilityScope) -> &'static str {
+    match liability_scope {
+        AuthorDisputeLiabilityScope::AuthorBondOnly => "AuthorBondOnly",
+        AuthorDisputeLiabilityScope::AuthorBondThenVouchers => "AuthorBondThenVouchers",
+    }
+}
+
 #[error_code]
 pub enum ErrorCode {
     #[msg("Author dispute is not open")]
@@ -481,6 +517,8 @@ pub enum ErrorCode {
     AuthorBondProfileMismatch,
     #[msg("Resolved voucher slash amounts did not match the expected liability")]
     InvalidSettlementAmounts,
+    #[msg("Bond-only disputes must not include voucher settlement accounts")]
+    BondOnlyDisputeMustNotProvideSettlementAccounts,
     #[msg("Open author dispute count underflowed")]
     OpenAuthorDisputeCountUnderflow,
 }

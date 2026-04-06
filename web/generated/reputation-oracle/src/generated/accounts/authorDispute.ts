@@ -51,12 +51,16 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
+  getAuthorDisputeLiabilityScopeDecoder,
+  getAuthorDisputeLiabilityScopeEncoder,
   getAuthorDisputeReasonDecoder,
   getAuthorDisputeReasonEncoder,
   getAuthorDisputeRulingDecoder,
   getAuthorDisputeRulingEncoder,
   getAuthorDisputeStatusDecoder,
   getAuthorDisputeStatusEncoder,
+  type AuthorDisputeLiabilityScope,
+  type AuthorDisputeLiabilityScopeArgs,
   type AuthorDisputeReason,
   type AuthorDisputeReasonArgs,
   type AuthorDisputeRuling,
@@ -84,7 +88,9 @@ export type AuthorDispute = {
   evidenceUri: string;
   status: AuthorDisputeStatus;
   ruling: Option<AuthorDisputeRuling>;
-  skillListing: Option<Address>;
+  liabilityScope: AuthorDisputeLiabilityScope;
+  skillListing: Address;
+  skillPriceLamportsSnapshot: bigint;
   purchase: Option<Address>;
   backingVouchCountSnapshot: number;
   linkedVouchCount: number;
@@ -102,7 +108,9 @@ export type AuthorDisputeArgs = {
   evidenceUri: string;
   status: AuthorDisputeStatusArgs;
   ruling: OptionOrNullable<AuthorDisputeRulingArgs>;
-  skillListing: OptionOrNullable<Address>;
+  liabilityScope: AuthorDisputeLiabilityScopeArgs;
+  skillListing: Address;
+  skillPriceLamportsSnapshot: number | bigint;
   purchase: OptionOrNullable<Address>;
   backingVouchCountSnapshot: number;
   linkedVouchCount: number;
@@ -124,7 +132,9 @@ export function getAuthorDisputeEncoder(): Encoder<AuthorDisputeArgs> {
       ["evidenceUri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["status", getAuthorDisputeStatusEncoder()],
       ["ruling", getOptionEncoder(getAuthorDisputeRulingEncoder())],
-      ["skillListing", getOptionEncoder(getAddressEncoder())],
+      ["liabilityScope", getAuthorDisputeLiabilityScopeEncoder()],
+      ["skillListing", getAddressEncoder()],
+      ["skillPriceLamportsSnapshot", getU64Encoder()],
       ["purchase", getOptionEncoder(getAddressEncoder())],
       ["backingVouchCountSnapshot", getU32Encoder()],
       ["linkedVouchCount", getU32Encoder()],
@@ -148,7 +158,9 @@ export function getAuthorDisputeDecoder(): Decoder<AuthorDispute> {
     ["evidenceUri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["status", getAuthorDisputeStatusDecoder()],
     ["ruling", getOptionDecoder(getAuthorDisputeRulingDecoder())],
-    ["skillListing", getOptionDecoder(getAddressDecoder())],
+    ["liabilityScope", getAuthorDisputeLiabilityScopeDecoder()],
+    ["skillListing", getAddressDecoder()],
+    ["skillPriceLamportsSnapshot", getU64Decoder()],
     ["purchase", getOptionDecoder(getAddressDecoder())],
     ["backingVouchCountSnapshot", getU32Decoder()],
     ["linkedVouchCount", getU32Decoder()],

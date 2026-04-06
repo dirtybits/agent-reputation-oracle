@@ -27,15 +27,20 @@ describe("author-disputes", () => {
   let otherAuthorProfile: PublicKey;
   let voucherOneProfile: PublicKey;
   let voucherTwoProfile: PublicKey;
-  let vouchOne: PublicKey;
-  let vouchTwo: PublicKey;
-  let foreignVouch: PublicKey;
+  let paidVouchOne: PublicKey;
+  let paidVouchTwo: PublicKey;
+  let freeVouchOne: PublicKey;
+  let freeVouchTwo: PublicKey;
   let authorBond: PublicKey;
+  let otherAuthorBond: PublicKey;
   let skillListing: PublicKey;
+  let freeSkillListing: PublicKey;
   let purchase: PublicKey;
+  let freeSkillId: string;
+  let slashPercentage = 50;
 
-  const stakeAmount = new anchor.BN(0.05 * anchor.web3.LAMPORTS_PER_SOL);
-  const authorBondAmount = new anchor.BN(0.03 * anchor.web3.LAMPORTS_PER_SOL);
+  let stakeAmount: anchor.BN;
+  let authorBondAmount: anchor.BN;
 
   function getAuthorBondPda(authorKey: PublicKey): PublicKey {
     const [bond] = PublicKey.findProgramAddressSync(
@@ -135,6 +140,10 @@ describe("author-disputes", () => {
     }
   }
 
+  function computeSlashAmount(amountLamports: number): number {
+    return Math.floor((amountLamports * slashPercentage) / 100);
+  }
+
   before(async () => {
     author = Keypair.generate();
     otherAuthor = Keypair.generate();
@@ -191,11 +200,25 @@ describe("author-disputes", () => {
       // Shared local validator state may already have the config.
     }
 
+    const configAccount = await program.account.reputationConfig.fetch(configPda);
+    slashPercentage = configAccount.slashPercentage;
+    const minimumBondLamports = Math.max(
+      configAccount.minAuthorBondForFreeListing.toNumber(),
+      0.1 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    const normalizedBondLamports =
+      minimumBondLamports % 2 === 0
+        ? minimumBondLamports
+        : minimumBondLamports + 1;
+    authorBondAmount = new anchor.BN(normalizedBondLamports);
+    stakeAmount = new anchor.BN(normalizedBondLamports);
+
     [authorProfile] = PublicKey.findProgramAddressSync(
       [Buffer.from("agent"), author.publicKey.toBuffer()],
       program.programId
     );
     authorBond = getAuthorBondPda(author.publicKey);
+    otherAuthorBond = getAuthorBondPda(otherAuthor.publicKey);
     [otherAuthorProfile] = PublicKey.findProgramAddressSync(
       [Buffer.from("agent"), otherAuthor.publicKey.toBuffer()],
       program.programId
@@ -251,7 +274,7 @@ describe("author-disputes", () => {
 
     await program.methods
       .depositAuthorBond(authorBondAmount)
-      .accounts({
+      .accountsPartial({
         authorBond,
         authorProfile,
         config: configPda,
@@ -261,7 +284,19 @@ describe("author-disputes", () => {
       .signers([author])
       .rpc();
 
-    [vouchOne] = PublicKey.findProgramAddressSync(
+    await program.methods
+      .depositAuthorBond(authorBondAmount)
+      .accountsPartial({
+        authorBond: otherAuthorBond,
+        authorProfile: otherAuthorProfile,
+        config: configPda,
+        author: otherAuthor.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([otherAuthor])
+      .rpc();
+
+    [paidVouchOne] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("vouch"),
         voucherOneProfile.toBuffer(),
@@ -269,7 +304,7 @@ describe("author-disputes", () => {
       ],
       program.programId
     );
-    [vouchTwo] = PublicKey.findProgramAddressSync(
+    [paidVouchTwo] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("vouch"),
         voucherTwoProfile.toBuffer(),
@@ -277,10 +312,18 @@ describe("author-disputes", () => {
       ],
       program.programId
     );
-    [foreignVouch] = PublicKey.findProgramAddressSync(
+    [freeVouchOne] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("vouch"),
         voucherOneProfile.toBuffer(),
+        otherAuthorProfile.toBuffer(),
+      ],
+      program.programId
+    );
+    [freeVouchTwo] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vouch"),
+        voucherTwoProfile.toBuffer(),
         otherAuthorProfile.toBuffer(),
       ],
       program.programId
@@ -289,7 +332,7 @@ describe("author-disputes", () => {
     await program.methods
       .vouch(stakeAmount)
       .accountsPartial({
-        vouch: vouchOne,
+        vouch: paidVouchOne,
         voucherProfile: voucherOneProfile,
         voucheeProfile: authorProfile,
         config: configPda,
@@ -302,7 +345,7 @@ describe("author-disputes", () => {
     await program.methods
       .vouch(stakeAmount)
       .accountsPartial({
-        vouch: vouchTwo,
+        vouch: paidVouchTwo,
         voucherProfile: voucherTwoProfile,
         voucheeProfile: authorProfile,
         config: configPda,
@@ -315,7 +358,7 @@ describe("author-disputes", () => {
     await program.methods
       .vouch(stakeAmount)
       .accountsPartial({
-        vouch: foreignVouch,
+        vouch: freeVouchOne,
         voucherProfile: voucherOneProfile,
         voucheeProfile: otherAuthorProfile,
         config: configPda,
@@ -323,6 +366,19 @@ describe("author-disputes", () => {
         systemProgram: SystemProgram.programId,
       })
       .signers([voucherOne])
+      .rpc();
+
+    await program.methods
+      .vouch(stakeAmount)
+      .accountsPartial({
+        vouch: freeVouchTwo,
+        voucherProfile: voucherTwoProfile,
+        voucheeProfile: otherAuthorProfile,
+        config: configPda,
+        voucher: voucherTwo.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([voucherTwo])
       .rpc();
 
     const skillId = `ad-${Date.now()}`;
@@ -350,6 +406,35 @@ describe("author-disputes", () => {
       .signers([author])
       .rpc();
 
+    freeSkillId = `free-ad-${Date.now()}`;
+    [freeSkillListing] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("skill"),
+        otherAuthor.publicKey.toBuffer(),
+        Buffer.from(freeSkillId),
+      ],
+      program.programId
+    );
+
+    await program.methods
+      .createSkillListing(
+        freeSkillId,
+        "ipfs://author-dispute-free-skill",
+        "Author Dispute Free Skill",
+        "Free skill used to test bond-only author disputes",
+        new anchor.BN(0)
+      )
+      .accountsPartial({
+        skillListing: freeSkillListing,
+        authorProfile: otherAuthorProfile,
+        config: configPda,
+        authorBond: otherAuthorBond,
+        author: otherAuthor.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([otherAuthor])
+      .rpc();
+
     [purchase] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("purchase"),
@@ -373,7 +458,7 @@ describe("author-disputes", () => {
       .rpc();
   });
 
-  it("rejects author disputes that do not carry the full backing snapshot", async () => {
+  it("requires every author dispute to reference a skill listing", async () => {
     const disputeId = new anchor.BN(1);
     const authorDispute = getAuthorDisputePda(author.publicKey, disputeId);
 
@@ -388,15 +473,13 @@ describe("author-disputes", () => {
           authorDispute,
           authorProfile,
           config: configPda,
-          skillListing: null,
           purchase: null,
           challenger: challenger.publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .remainingAccounts(getRemainingAccounts(authorDispute, [vouchOne]))
         .signers([challenger])
         .rpc(),
-      "Author disputes must snapshot the full author-wide backing set"
+      "skillListing"
     );
 
     const account = await provider.connection.getAccountInfo(authorDispute);
@@ -421,13 +504,13 @@ describe("author-disputes", () => {
           authorDispute: duplicateAuthorDispute,
           authorProfile,
           config: configPda,
-          skillListing: null,
+          skillListing,
           purchase: null,
           challenger: challenger.publicKey,
           systemProgram: SystemProgram.programId,
         })
         .remainingAccounts(
-          getRemainingAccounts(duplicateAuthorDispute, [vouchOne, vouchOne])
+          getRemainingAccounts(duplicateAuthorDispute, [paidVouchOne, paidVouchOne])
         )
         .signers([challenger])
         .rpc(),
@@ -451,15 +534,15 @@ describe("author-disputes", () => {
           authorDispute: mismatchedAuthorDispute,
           authorProfile,
           config: configPda,
-          skillListing: null,
+          skillListing,
           purchase: null,
           challenger: challenger.publicKey,
           systemProgram: SystemProgram.programId,
         })
         .remainingAccounts(
           getRemainingAccounts(mismatchedAuthorDispute, [
-            vouchOne,
-            foreignVouch,
+            paidVouchOne,
+            freeVouchOne,
           ])
         )
         .signers([challenger])
@@ -468,13 +551,236 @@ describe("author-disputes", () => {
     );
   });
 
-  it("opens and resolves a skill-linked author dispute with the full author-wide backing snapshot", async () => {
+  it("rejects purchases that do not match the disputed skill listing", async () => {
     const disputeId = new anchor.BN(4);
+    const authorDispute = getAuthorDisputePda(otherAuthor.publicKey, disputeId);
+
+    await expectFailure(
+      program.methods
+        .openAuthorDispute(
+          disputeId,
+          { failedDelivery: {} },
+          "https://example.com/evidence/purchase-mismatch.json"
+        )
+        .accountsPartial({
+          authorDispute,
+          authorProfile: otherAuthorProfile,
+          config: configPda,
+          skillListing: freeSkillListing,
+          purchase,
+          challenger: challenger.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([challenger])
+        .rpc(),
+      "provided purchase does not belong to the provided skill listing"
+    );
+  });
+
+  it("opens and resolves a free-skill dispute with a voucher snapshot but bond-only settlement", async () => {
+    const disputeId = new anchor.BN(5);
+    const authorDispute = getAuthorDisputePda(otherAuthor.publicKey, disputeId);
+    const linkOne = getAuthorDisputeLinkPda(authorDispute, freeVouchOne);
+    const linkTwo = getAuthorDisputeLinkPda(authorDispute, freeVouchTwo);
+    const expectedBondOnlySlash = computeSlashAmount(authorBondAmount.toNumber());
+
+    const otherAuthorBondLamportsBefore = await provider.connection.getBalance(
+      otherAuthorBond
+    );
+    const freeVouchOneLamportsBefore = await provider.connection.getBalance(
+      freeVouchOne
+    );
+    const freeVouchTwoLamportsBefore = await provider.connection.getBalance(
+      freeVouchTwo
+    );
+
+    await program.methods
+      .openAuthorDispute(
+        disputeId,
+        { maliciousSkill: {} },
+        "https://example.com/evidence/free-skill.json"
+      )
+      .accountsPartial({
+        authorDispute,
+        authorProfile: otherAuthorProfile,
+        config: configPda,
+        skillListing: freeSkillListing,
+        purchase: null,
+        challenger: challenger.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .remainingAccounts(
+        getRemainingAccounts(authorDispute, [freeVouchOne, freeVouchTwo])
+      )
+      .signers([challenger])
+      .rpc();
+
+    const opened = await program.account.authorDispute.fetch(authorDispute);
+    assert.equal(opened.skillListing.toBase58(), freeSkillListing.toBase58());
+    assert.equal(opened.skillPriceLamportsSnapshot.toNumber(), 0);
+    assert.equal(opened.liabilityScope.authorBondOnly !== undefined, true);
+    assert.equal(opened.backingVouchCountSnapshot, 2);
+    assert.equal(opened.linkedVouchCount, 2);
+
+    const linkedOne = await provider.connection.getAccountInfo(linkOne);
+    const linkedTwo = await provider.connection.getAccountInfo(linkTwo);
+    assert.isNotNull(linkedOne);
+    assert.isNotNull(linkedTwo);
+
+    await program.methods
+      .resolveAuthorDispute(disputeId, { upheld: {} })
+      .accountsPartial({
+        authorDispute,
+        authorProfile: otherAuthorProfile,
+        authorBond: otherAuthorBond,
+        config: configPda,
+        authority: provider.wallet.publicKey,
+        challenger: challenger.publicKey,
+      })
+      .rpc();
+
+    const resolved = await program.account.authorDispute.fetch(authorDispute);
+    assert.equal(resolved.status.resolved !== undefined, true);
+    assert.equal(resolved.ruling?.upheld !== undefined, true);
+    assert.equal(resolved.liabilityScope.authorBondOnly !== undefined, true);
+
+    const otherAuthorBondAccount = await program.account.authorBond.fetch(
+      otherAuthorBond
+    );
+    const freeVouchOneAccount = await program.account.vouch.fetch(freeVouchOne);
+    const freeVouchTwoAccount = await program.account.vouch.fetch(freeVouchTwo);
+    assert.equal(
+      otherAuthorBondAccount.amount.toNumber(),
+      authorBondAmount.toNumber() - expectedBondOnlySlash
+    );
+    assert.equal(freeVouchOneAccount.status.active !== undefined, true);
+    assert.equal(freeVouchTwoAccount.status.active !== undefined, true);
+
+    const otherAuthorProfileAccount = await program.account.agentProfile.fetch(
+      otherAuthorProfile
+    );
+    assert.equal(otherAuthorProfileAccount.totalVouchesReceived, 2);
+    assert.equal(
+      otherAuthorProfileAccount.authorBondLamports.toNumber(),
+      authorBondAmount.toNumber() - expectedBondOnlySlash
+    );
+    assert.equal(
+      Number(otherAuthorProfileAccount.totalStakedFor),
+      stakeAmount.toNumber() * 2
+    );
+    assert.equal(otherAuthorProfileAccount.openAuthorDisputes, 0);
+
+    const otherAuthorBondLamportsAfter = await provider.connection.getBalance(
+      otherAuthorBond
+    );
+    const freeVouchOneLamportsAfter = await provider.connection.getBalance(
+      freeVouchOne
+    );
+    const freeVouchTwoLamportsAfter = await provider.connection.getBalance(
+      freeVouchTwo
+    );
+    assert.equal(
+      otherAuthorBondLamportsBefore - otherAuthorBondLamportsAfter,
+      expectedBondOnlySlash
+    );
+    assert.equal(freeVouchOneLamportsBefore, freeVouchOneLamportsAfter);
+    assert.equal(freeVouchTwoLamportsBefore, freeVouchTwoLamportsAfter);
+  });
+
+  it("keeps free-skill disputes bond-only even if the listing price changes later", async () => {
+    const disputeId = new anchor.BN(6);
+    const authorDispute = getAuthorDisputePda(otherAuthor.publicKey, disputeId);
+    const remainingBondBefore = (
+      await program.account.authorBond.fetch(otherAuthorBond)
+    ).amount.toNumber();
+    const expectedBondOnlySlash = computeSlashAmount(remainingBondBefore);
+    const freeVouchOneLamportsBefore = await provider.connection.getBalance(
+      freeVouchOne
+    );
+    const freeVouchTwoLamportsBefore = await provider.connection.getBalance(
+      freeVouchTwo
+    );
+
+    await program.methods
+      .openAuthorDispute(
+        disputeId,
+        { fraudulentClaims: {} },
+        "https://example.com/evidence/free-skill-repriced.json"
+      )
+      .accountsPartial({
+        authorDispute,
+        authorProfile: otherAuthorProfile,
+        config: configPda,
+        skillListing: freeSkillListing,
+        purchase: null,
+        challenger: challenger.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .remainingAccounts(
+        getRemainingAccounts(authorDispute, [freeVouchOne, freeVouchTwo])
+      )
+      .signers([challenger])
+      .rpc();
+
+    await program.methods
+      .updateSkillListing(
+        freeSkillId,
+        "ipfs://author-dispute-free-skill-paid",
+        "Author Dispute Free Skill",
+        "Repriced after dispute open",
+        new anchor.BN(0.2 * anchor.web3.LAMPORTS_PER_SOL)
+      )
+      .accountsPartial({
+        skillListing: freeSkillListing,
+        authorProfile: otherAuthorProfile,
+        config: configPda,
+        authorBond: null,
+        author: otherAuthor.publicKey,
+      })
+      .signers([otherAuthor])
+      .rpc();
+
+    await program.methods
+      .resolveAuthorDispute(disputeId, { upheld: {} })
+      .accountsPartial({
+        authorDispute,
+        authorProfile: otherAuthorProfile,
+        authorBond: otherAuthorBond,
+        config: configPda,
+        authority: provider.wallet.publicKey,
+        challenger: challenger.publicKey,
+      })
+      .rpc();
+
+    const resolved = await program.account.authorDispute.fetch(authorDispute);
+    assert.equal(resolved.liabilityScope.authorBondOnly !== undefined, true);
+    assert.equal(resolved.skillPriceLamportsSnapshot.toNumber(), 0);
+
+    const otherAuthorBondAccount = await program.account.authorBond.fetch(
+      otherAuthorBond
+    );
+    assert.equal(
+      otherAuthorBondAccount.amount.toNumber(),
+      remainingBondBefore - expectedBondOnlySlash
+    );
+    assert.equal(
+      await provider.connection.getBalance(freeVouchOne),
+      freeVouchOneLamportsBefore
+    );
+    assert.equal(
+      await provider.connection.getBalance(freeVouchTwo),
+      freeVouchTwoLamportsBefore
+    );
+  });
+
+  it("opens and resolves a paid-skill dispute with voucher slashing after AuthorBond", async () => {
+    const disputeId = new anchor.BN(7);
     const authorDispute = getAuthorDisputePda(author.publicKey, disputeId);
-    const linkOne = getAuthorDisputeLinkPda(authorDispute, vouchOne);
-    const linkTwo = getAuthorDisputeLinkPda(authorDispute, vouchTwo);
-    const expectedTotalSlash = 65_000_000;
-    const slashPerVouch = 17_500_000;
+    const linkOne = getAuthorDisputeLinkPda(authorDispute, paidVouchOne);
+    const linkTwo = getAuthorDisputeLinkPda(authorDispute, paidVouchTwo);
+    const bondLamports = authorBondAmount.toNumber();
+    const expectedTotalSlash = computeSlashAmount(bondLamports * 3);
+    const slashPerVouch = bondLamports / 4;
 
     const challengerBalanceBefore = await provider.connection.getBalance(
       challenger.publicKey
@@ -483,10 +789,10 @@ describe("author-disputes", () => {
       authorBond
     );
     const vouchOneLamportsBefore = await provider.connection.getBalance(
-      vouchOne
+      paidVouchOne
     );
     const vouchTwoLamportsBefore = await provider.connection.getBalance(
-      vouchTwo
+      paidVouchTwo
     );
 
     await program.methods
@@ -505,13 +811,15 @@ describe("author-disputes", () => {
         systemProgram: SystemProgram.programId,
       })
       .remainingAccounts(
-        getRemainingAccounts(authorDispute, [vouchOne, vouchTwo])
+        getRemainingAccounts(authorDispute, [paidVouchOne, paidVouchTwo])
       )
       .signers([challenger])
       .rpc();
 
     const opened = await program.account.authorDispute.fetch(authorDispute);
-    assert.equal(opened.skillListing?.toBase58(), skillListing.toBase58());
+    assert.equal(opened.skillListing.toBase58(), skillListing.toBase58());
+    assert.equal(opened.skillPriceLamportsSnapshot.toNumber(), 250_000_000);
+    assert.equal(opened.liabilityScope.authorBondThenVouchers !== undefined, true);
     assert.equal(opened.purchase?.toBase58(), purchase.toBase58());
     assert.equal(opened.backingVouchCountSnapshot, 2);
     assert.equal(opened.linkedVouchCount, 2);
@@ -524,7 +832,7 @@ describe("author-disputes", () => {
     await expectFailure(
       program.methods
         .withdrawAuthorBond(new anchor.BN(0.01 * anchor.web3.LAMPORTS_PER_SOL))
-        .accounts({
+        .accountsPartial({
           authorBond,
           authorProfile,
           config: configPda,
@@ -547,8 +855,8 @@ describe("author-disputes", () => {
       })
       .remainingAccounts(
         getResolveRemainingAccounts(authorDispute, [
-          { vouch: vouchOne, voucherProfile: voucherOneProfile },
-          { vouch: vouchTwo, voucherProfile: voucherTwoProfile },
+          { vouch: paidVouchOne, voucherProfile: voucherOneProfile },
+          { vouch: paidVouchTwo, voucherProfile: voucherTwoProfile },
         ])
       )
       .rpc();
@@ -559,8 +867,8 @@ describe("author-disputes", () => {
     assert.equal(resolved.linkedVouchCount, resolved.backingVouchCountSnapshot);
 
     const authorBondAccount = await program.account.authorBond.fetch(authorBond);
-    const vouchOneAccount = await program.account.vouch.fetch(vouchOne);
-    const vouchTwoAccount = await program.account.vouch.fetch(vouchTwo);
+    const vouchOneAccount = await program.account.vouch.fetch(paidVouchOne);
+    const vouchTwoAccount = await program.account.vouch.fetch(paidVouchTwo);
     assert.equal(authorBondAccount.amount.toNumber(), 0);
     assert.equal(vouchOneAccount.status.slashed !== undefined, true);
     assert.equal(vouchTwoAccount.status.slashed !== undefined, true);
@@ -575,7 +883,7 @@ describe("author-disputes", () => {
       authorProfile
     );
     assert.equal(voucherOneProfileAccount.totalVouchesGiven, 1);
-    assert.equal(voucherTwoProfileAccount.totalVouchesGiven, 0);
+    assert.equal(voucherTwoProfileAccount.totalVouchesGiven, 1);
     assert.equal(authorProfileAccount.totalVouchesReceived, 0);
     assert.equal(authorProfileAccount.authorBondLamports.toNumber(), 0);
     assert.equal(authorProfileAccount.openAuthorDisputes, 0);
@@ -583,10 +891,10 @@ describe("author-disputes", () => {
 
     const authorBondLamportsAfter = await provider.connection.getBalance(authorBond);
     const vouchOneLamportsAfter = await provider.connection.getBalance(
-      vouchOne
+      paidVouchOne
     );
     const vouchTwoLamportsAfter = await provider.connection.getBalance(
-      vouchTwo
+      paidVouchTwo
     );
     assert.equal(
       authorBondLamportsBefore - authorBondLamportsAfter,
@@ -610,8 +918,8 @@ describe("author-disputes", () => {
     await expectFailure(
       program.methods
         .vouch(stakeAmount)
-        .accounts({
-          vouch: vouchOne,
+        .accountsPartial({
+          vouch: paidVouchOne,
           voucherProfile: voucherOneProfile,
           voucheeProfile: authorProfile,
           config: configPda,

@@ -133,7 +133,7 @@ export default function TrustBadge({
           Author Bond
         </div>
         <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
-          At risk: {formatSol(trust.totalStakeAtRisk)} SOL
+          Aggregate stake: {formatSol(trust.totalStakeAtRisk)} SOL
         </div>
       </div>
 
