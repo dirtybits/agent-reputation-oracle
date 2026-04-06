@@ -7,6 +7,11 @@ import {
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { discoverSolanaRegistryCandidatesByWallet } from "@/lib/solanaAgentRegistry";
 import { listAuthorDisputesByAuthor } from "@/lib/authorDisputes";
+import {
+  buildPublicCacheControl,
+  PUBLIC_ROUTE_CACHE_SECONDS,
+  PUBLIC_ROUTE_STALE_SECONDS,
+} from "@/lib/cachePolicy";
 import { getErrorMessage } from "@/lib/errors";
 import { buildAgentTrustSummary } from "@/lib/agentDiscovery";
 
@@ -36,13 +41,23 @@ export async function GET(
       identity: authorIdentity,
     });
 
-    return NextResponse.json({
-      pubkey,
-      author_trust: authorTrust,
-      author_trust_summary: authorTrustSummary,
-      author_identity: authorIdentity,
-      author_disputes: authorDisputes,
-    });
+    return NextResponse.json(
+      {
+        pubkey,
+        author_trust: authorTrust,
+        author_trust_summary: authorTrustSummary,
+        author_identity: authorIdentity,
+        author_disputes: authorDisputes,
+      },
+      {
+        headers: {
+          "Cache-Control": buildPublicCacheControl(
+            PUBLIC_ROUTE_CACHE_SECONDS.authorTrust,
+            PUBLIC_ROUTE_STALE_SECONDS.authorTrust
+          ),
+        },
+      }
+    );
   } catch (error: unknown) {
     console.error("GET /api/author/[pubkey] error:", error);
     return NextResponse.json(

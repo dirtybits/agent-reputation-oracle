@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { resolveAuthorTrust } from "@/lib/trust";
-import { getOnChainPrice } from "@/lib/onchain";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { resolveAgentIdentityByWallet } from "@/lib/agentIdentity";
 import { hasOnChainPurchase } from "@/lib/x402";
@@ -11,26 +10,24 @@ import {
   normalizePersistedChainContext,
 } from "@/lib/chains";
 import {
+  buildPublicCacheControl,
+  PRIVATE_NO_STORE_CACHE_CONTROL,
+  PUBLIC_ROUTE_CACHE_SECONDS,
+  PUBLIC_ROUTE_STALE_SECONDS,
+} from "@/lib/cachePolicy";
+import { getErrorMessage } from "@/lib/errors";
+import { fetchOnChainSkillListing, getOnChainPrice } from "@/lib/onchain";
+import {
   assessPurchasePreflight,
   createPurchasePreflightContext,
   serializePurchasePreflight,
 } from "@/lib/purchasePreflight";
-import { getErrorMessage } from "@/lib/errors";
+import { DEFAULT_SOLANA_RPC_URL } from "@/lib/solanaRpc";
 import { address, createSolanaRpc, isAddress } from "@solana/kit";
-import type { Base64EncodedBytes } from "@solana/rpc-types";
-import {
-  getSkillListingDecoder,
-  SKILL_LISTING_DISCRIMINATOR,
-} from "../../../../generated/reputation-oracle/src/generated";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../../../../generated/reputation-oracle/src/generated/programs";
 
 const CHAIN_PREFIX = "chain-";
-const rpc = createSolanaRpc(
-  process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com"
-);
+const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
 const configuredSolanaChainContext = getConfiguredSolanaChainContext();
-const asBase64 = (bytes: Uint8Array) =>
-  Buffer.from(bytes).toString("base64") as Base64EncodedBytes;
 
 type SkillRow = {
   id: string;
@@ -60,32 +57,6 @@ type SkillVersionRow = {
   created_at: string;
 };
 
-async function fetchChainSkill(pubkey: string) {
-  const accounts = await rpc
-    .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
-      encoding: "base64",
-      filters: [
-        {
-          memcmp: {
-            offset: 0n,
-            bytes: asBase64(SKILL_LISTING_DISCRIMINATOR),
-            encoding: "base64",
-          },
-        },
-      ],
-    })
-    .send();
-  const decoder = getSkillListingDecoder();
-  for (const a of accounts) {
-    if (a.pubkey !== pubkey) continue;
-    const data = decoder.decode(
-      new Uint8Array(Buffer.from(a.account.data[0], "base64"))
-    );
-    return { pubkey: a.pubkey, data };
-  }
-  return null;
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -99,7 +70,7 @@ export async function GET(
 
     if (id.startsWith(CHAIN_PREFIX)) {
       const onChainAddr = id.slice(CHAIN_PREFIX.length);
-      const listing = await fetchChainSkill(onChainAddr);
+      const listing = await fetchOnChainSkillListing(onChainAddr);
       if (!listing) {
         return NextResponse.json({ error: "Skill not found" }, { status: 404 });
       }
@@ -152,7 +123,7 @@ export async function GET(
         buyerAddress && BigInt(listing.data.priceLamports) > 0n
           ? await hasOnChainPurchase(
               String(buyerAddress),
-              listing.pubkey
+              listing.publicKey
             ).catch(() => false)
           : false;
       const author_trust_summary = author_trust
@@ -163,38 +134,50 @@ export async function GET(
           })
         : null;
 
-      return NextResponse.json({
-        id: `chain-${listing.pubkey}`,
-        skill_id: listing.pubkey,
-        author_pubkey: listing.data.author,
-        name: listing.data.name,
-        description: listing.data.description,
-        tags: [],
-        current_version: 1,
-        ipfs_cid: null,
-        on_chain_address: listing.pubkey,
-        chain_context: configuredSolanaChainContext,
-        total_installs: 0,
-        total_downloads: Number(listing.data.totalDownloads),
-        price_lamports: Number(listing.data.priceLamports),
-        contact: null,
-        created_at: new Date(
-          Number(listing.data.createdAt) * 1000
-        ).toISOString(),
-        updated_at: new Date(
-          Number(listing.data.updatedAt) * 1000
-        ).toISOString(),
-        source: "chain",
-        skill_uri: listing.data.skillUri,
-        content,
-        versions: [],
-        author_trust,
-        author_trust_summary,
-        author_identity,
-        buyerHasPurchased,
-        content_verification: null,
-        ...preflight,
-      });
+      return NextResponse.json(
+        {
+          id: `chain-${listing.publicKey}`,
+          skill_id: listing.publicKey,
+          author_pubkey: listing.data.author,
+          name: listing.data.name,
+          description: listing.data.description,
+          tags: [],
+          current_version: 1,
+          ipfs_cid: null,
+          on_chain_address: listing.publicKey,
+          chain_context: configuredSolanaChainContext,
+          total_installs: 0,
+          total_downloads: Number(listing.data.totalDownloads),
+          price_lamports: Number(listing.data.priceLamports),
+          contact: null,
+          created_at: new Date(
+            Number(listing.data.createdAt) * 1000
+          ).toISOString(),
+          updated_at: new Date(
+            Number(listing.data.updatedAt) * 1000
+          ).toISOString(),
+          source: "chain",
+          skill_uri: listing.data.skillUri,
+          content,
+          versions: [],
+          author_trust,
+          author_trust_summary,
+          author_identity,
+          buyerHasPurchased,
+          content_verification: null,
+          ...preflight,
+        },
+        {
+          headers: {
+            "Cache-Control": buyer
+              ? PRIVATE_NO_STORE_CACHE_CONTROL
+              : buildPublicCacheControl(
+                  PUBLIC_ROUTE_CACHE_SECONDS.skillDetail,
+                  PUBLIC_ROUTE_STALE_SECONDS.skillDetail
+                ),
+          },
+        }
+      );
     }
 
     const rows = await sql()<SkillRow>`
@@ -290,17 +273,29 @@ export async function GET(
         })
       : null;
 
-    return NextResponse.json({
-      ...skill,
-      content: latestContent,
-      versions: versionsWithoutContent,
-      author_trust,
-      author_trust_summary,
-      author_identity,
-      buyerHasPurchased,
-      content_verification,
-      ...preflight,
-    });
+    return NextResponse.json(
+      {
+        ...skill,
+        content: latestContent,
+        versions: versionsWithoutContent,
+        author_trust,
+        author_trust_summary,
+        author_identity,
+        buyerHasPurchased,
+        content_verification,
+        ...preflight,
+      },
+      {
+        headers: {
+          "Cache-Control": buyer
+            ? PRIVATE_NO_STORE_CACHE_CONTROL
+            : buildPublicCacheControl(
+                PUBLIC_ROUTE_CACHE_SECONDS.skillDetail,
+                PUBLIC_ROUTE_STALE_SECONDS.skillDetail
+              ),
+        },
+      }
+    );
   } catch (error: unknown) {
     console.error("GET /api/skills/[id] error:", error);
     return NextResponse.json(

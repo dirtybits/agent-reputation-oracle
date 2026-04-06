@@ -87,6 +87,7 @@ interface RepoSkill {
   ipfs_cid: string | null;
   total_installs: number;
   total_downloads?: number;
+  total_revenue?: number;
   price_lamports?: number;
   on_chain_address?: string;
   source?: "repo" | "chain";
@@ -100,9 +101,6 @@ type AgentProfileData = NonNullable<
 >;
 type VouchRecord = Awaited<
   ReturnType<ReputationOracle["getAllVouchesForAgent"]>
->[number];
-type SkillListingRecord = Awaited<
-  ReturnType<ReputationOracle["getSkillListingsByAuthor"]>
 >[number];
 
 export default function AuthorProfilePage() {
@@ -120,7 +118,7 @@ export default function AuthorProfilePage() {
   const [vouchesReceived, setVouchesReceived] = useState<VouchRecord[]>([]);
   const [vouchesGiven, setVouchesGiven] = useState<VouchRecord[]>([]);
   const [repoSkills, setRepoSkills] = useState<RepoSkill[]>([]);
-  const [chainSkills, setChainSkills] = useState<SkillListingRecord[]>([]);
+  const [chainSkills, setChainSkills] = useState<RepoSkill[]>([]);
   const [authorTrust, setAuthorTrust] = useState<TrustData | null>(null);
   const [authorIdentity, setAuthorIdentity] =
     useState<AgentIdentitySummary | null>(null);
@@ -182,12 +180,11 @@ export default function AuthorProfilePage() {
     setLoading(true);
     try {
       const agentAddr = address(pubkey);
-      const [prof, received, given, chainListings, repoRes, authorRes] =
+      const [prof, received, given, repoRes, authorRes] =
         await Promise.all([
           oracle.getAgentProfile(agentAddr).catch(() => null),
           oracle.getAllVouchesReceivedByAgent(agentAddr).catch(() => []),
           oracle.getAllVouchesForAgent(agentAddr).catch(() => []),
-          oracle.getSkillListingsByAuthor(agentAddr).catch(() => []),
           fetch(`/api/skills?author=${pubkey}`)
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null),
@@ -223,8 +220,9 @@ export default function AuthorProfilePage() {
       setProfile(prof);
       setVouchesReceived(received);
       setVouchesGiven(given);
-      setChainSkills(chainListings);
-      setRepoSkills(repoRes?.skills ?? []);
+      const apiSkills = (repoRes?.skills ?? []) as RepoSkill[];
+      setRepoSkills(apiSkills.filter((skill) => skill.source !== "chain"));
+      setChainSkills(apiSkills.filter((skill) => skill.source === "chain"));
       setAuthorTrust(authorRes?.author_trust ?? null);
       setAuthorIdentity(authorRes?.author_identity ?? null);
       setAuthorDisputes(authorRes?.author_disputes ?? []);
@@ -542,7 +540,7 @@ export default function AuthorProfilePage() {
   };
 
   const totalOnChainDownloads = chainSkills.reduce(
-    (sum, s) => sum + Number(s.account.totalDownloads ?? 0),
+    (sum, skill) => sum + (skill.total_downloads ?? 0),
     0
   );
   const totalRepoInstalls = repoSkills.reduce(
@@ -551,7 +549,7 @@ export default function AuthorProfilePage() {
   );
   const totalDownloads = totalOnChainDownloads + totalRepoInstalls;
   const totalRevenue = chainSkills.reduce(
-    (sum, s) => sum + Number(s.account.totalRevenue ?? 0),
+    (sum, skill) => sum + (skill.total_revenue ?? 0),
     0
   );
   const skillsPublished =
@@ -559,7 +557,7 @@ export default function AuthorProfilePage() {
     repoSkills.filter(
       (s) =>
         !s.on_chain_address ||
-        !chainSkills.some((c) => c.publicKey === s.on_chain_address)
+        !chainSkills.some((c) => c.on_chain_address === s.on_chain_address)
     ).length;
 
   const trustData: TrustData | null =
@@ -591,13 +589,14 @@ export default function AuthorProfilePage() {
       .filter(
         (skill) =>
           !repoSkills.some(
-            (repoSkill) => repoSkill.on_chain_address === skill.publicKey
+            (repoSkill) => repoSkill.on_chain_address === skill.on_chain_address
           )
       )
       .map((skill) => ({
-        value: `skill:${skill.publicKey}`,
+        value: `skill:${skill.on_chain_address}`,
         label:
-          skill.account.name || `On-chain skill ${shortAddr(skill.publicKey)}`,
+          skill.name ||
+          `On-chain skill ${shortAddr(String(skill.on_chain_address ?? ""))}`,
       })),
   ];
   const selectedClaimSkillLabel = claimSkillOptions.find(
@@ -1402,20 +1401,22 @@ export default function AuthorProfilePage() {
               {chainSkills
                 .filter(
                   (c) =>
-                    !repoSkills.some((r) => r.on_chain_address === c.publicKey)
+                    !repoSkills.some(
+                      (r) => r.on_chain_address === c.on_chain_address
+                    )
                 )
                 .map((skill) => {
-                  const downloads = Number(skill.account.totalDownloads ?? 0);
-                  const price = Number(skill.account.priceLamports ?? 0);
+                  const downloads = skill.total_downloads ?? 0;
+                  const price = skill.price_lamports ?? 0;
                   return (
                     <Link
-                      key={skill.publicKey}
-                      href={`/skills/chain-${skill.publicKey}`}
+                      key={skill.id}
+                      href={`/skills/${skill.id}`}
                       className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition block"
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white text-sm truncate">
-                          {skill.account.name || "Untitled"}
+                          {skill.name || "Untitled"}
                         </h3>
                         {price > 0 && (
                           <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">
@@ -1426,9 +1427,9 @@ export default function AuthorProfilePage() {
                           </span>
                         )}
                       </div>
-                      {skill.account.description && (
+                      {skill.description && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
-                          {skill.account.description}
+                          {skill.description}
                         </p>
                       )}
                       <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">

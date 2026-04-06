@@ -1,3 +1,5 @@
+import { PUBLIC_ROUTE_CACHE_SECONDS } from "@/lib/cachePolicy";
+
 type SkillIndexRow = {
   id: string;
   skill_id: string;
@@ -66,7 +68,7 @@ export async function fetchAllIndexedSkills(baseUrl: string) {
     const response = await fetch(
       `${baseUrl}/api/skills?sort=trusted&page=${page}`,
       {
-        next: { revalidate: 60 },
+        next: { revalidate: PUBLIC_ROUTE_CACHE_SECONDS.skillsList },
       }
     );
 

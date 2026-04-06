@@ -11,6 +11,7 @@ import {
   normalizeInputChainContext,
 } from "./chains";
 import { getErrorMessage } from "./errors";
+import { DEFAULT_SOLANA_RPC_URL } from "./solanaRpc";
 import { fetchMaybePurchase } from "../generated/reputation-oracle/src/generated";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
 
@@ -102,8 +103,7 @@ async function getOnChainPurchaseStatus(
   buyer: string,
   skillListingAddress: string
 ): Promise<"valid" | "missing" | "buyerMismatch"> {
-  const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
-  const rpc = createSolanaRpc(rpcUrl);
+  const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
   const purchasePda = await derivePurchasePda(buyer, skillListingAddress);
   const account = await fetchMaybePurchase(rpc, purchasePda);
   if (!account.exists) return "missing";

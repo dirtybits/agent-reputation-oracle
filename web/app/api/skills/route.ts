@@ -23,22 +23,20 @@ import {
   createPurchasePreflightContext,
   serializePurchasePreflight,
 } from "@/lib/purchasePreflight";
-import { getErrorMessage } from "@/lib/errors";
-import { address, createSolanaRpc, isAddress } from "@solana/kit";
-import type { Base64EncodedBytes } from "@solana/rpc-types";
 import {
-  getSkillListingDecoder,
-  SKILL_LISTING_DISCRIMINATOR,
-} from "../../../generated/reputation-oracle/src/generated";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../../../generated/reputation-oracle/src/generated/programs";
+  buildPublicCacheControl,
+  PRIVATE_NO_STORE_CACHE_CONTROL,
+  PUBLIC_ROUTE_CACHE_SECONDS,
+  PUBLIC_ROUTE_STALE_SECONDS,
+} from "@/lib/cachePolicy";
+import { getErrorMessage } from "@/lib/errors";
+import { listOnChainSkillListings } from "@/lib/onchain";
+import { DEFAULT_SOLANA_RPC_URL } from "@/lib/solanaRpc";
+import { address, createSolanaRpc, isAddress } from "@solana/kit";
 
 const PAGE_SIZE = 20;
-const rpc = createSolanaRpc(
-  process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com"
-);
+const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
 const configuredSolanaChainContext = getConfiguredSolanaChainContext();
-const asBase64 = (bytes: Uint8Array) =>
-  Buffer.from(bytes).toString("base64") as Base64EncodedBytes;
 
 type RepoSkillRow = {
   id: string;
@@ -84,48 +82,27 @@ type MergedSkillRow = RepoMergedSkillRow | ChainSkillRow;
 
 async function fetchOnChainListings(): Promise<ChainSkillRow[]> {
   try {
-    const accounts = await rpc
-      .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
-        encoding: "base64",
-        filters: [
-          {
-            memcmp: {
-              offset: 0n,
-              bytes: asBase64(SKILL_LISTING_DISCRIMINATOR),
-              encoding: "base64",
-            },
-          },
-        ],
-      })
-      .send();
-    const decoder = getSkillListingDecoder();
-    return accounts
-      .map((a) => {
-        const data = decoder.decode(
-          new Uint8Array(Buffer.from(a.account.data[0], "base64"))
-        );
-        return { pubkey: a.pubkey, data };
-      })
-      .map((l) => ({
-        id: `chain-${l.pubkey}`,
-        skill_id: l.pubkey,
-        author_pubkey: l.data.author,
-        name: l.data.name,
-        description: l.data.description,
-        tags: [],
-        current_version: 1,
-        ipfs_cid: null,
-        on_chain_address: l.pubkey,
-        skill_uri: l.data.skillUri || null,
-        chain_context: configuredSolanaChainContext,
-        total_installs: 0,
-        total_downloads: Number(l.data.totalDownloads),
-        price_lamports: Number(l.data.priceLamports),
-        total_revenue: Number(l.data.totalRevenue),
-        created_at: new Date(Number(l.data.createdAt) * 1000).toISOString(),
-        updated_at: new Date(Number(l.data.updatedAt) * 1000).toISOString(),
-        source: "chain" as const,
-      }));
+    const listings = await listOnChainSkillListings();
+    return listings.map((listing) => ({
+      id: `chain-${listing.publicKey}`,
+      skill_id: listing.publicKey,
+      author_pubkey: listing.data.author,
+      name: listing.data.name,
+      description: listing.data.description,
+      tags: [],
+      current_version: 1,
+      ipfs_cid: null,
+      on_chain_address: listing.publicKey,
+      skill_uri: listing.data.skillUri || null,
+      chain_context: configuredSolanaChainContext,
+      total_installs: 0,
+      total_downloads: Number(listing.data.totalDownloads),
+      price_lamports: Number(listing.data.priceLamports),
+      total_revenue: Number(listing.data.totalRevenue),
+      created_at: new Date(Number(listing.data.createdAt) * 1000).toISOString(),
+      updated_at: new Date(Number(listing.data.updatedAt) * 1000).toISOString(),
+      source: "chain" as const,
+    }));
   } catch (error) {
     console.error("Failed to fetch on-chain listings:", error);
     return [];
@@ -316,15 +293,27 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
-      skills: pagedWithPricing,
-      pagination: {
-        page,
-        pageSize: PAGE_SIZE,
-        total,
-        totalPages: Math.ceil(total / PAGE_SIZE),
+    return NextResponse.json(
+      {
+        skills: pagedWithPricing,
+        pagination: {
+          page,
+          pageSize: PAGE_SIZE,
+          total,
+          totalPages: Math.ceil(total / PAGE_SIZE),
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": buyer
+            ? PRIVATE_NO_STORE_CACHE_CONTROL
+            : buildPublicCacheControl(
+                PUBLIC_ROUTE_CACHE_SECONDS.skillsList,
+                PUBLIC_ROUTE_STALE_SECONDS.skillsList
+              ),
+        },
+      }
+    );
   } catch (error: unknown) {
     console.error("GET /api/skills error:", error);
     return NextResponse.json(

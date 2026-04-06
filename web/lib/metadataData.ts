@@ -1,28 +1,16 @@
 import { sql } from "@/lib/db";
 import { resolveAgentIdentityByWallet } from "@/lib/agentIdentity";
 import { resolveAuthorTrust } from "@/lib/trust";
-import { getOnChainPrice } from "@/lib/onchain";
+import { fetchOnChainSkillListing, getOnChainPrice } from "@/lib/onchain";
 import {
   getConfiguredSolanaChainContext,
   normalizePersistedChainContext,
 } from "@/lib/chains";
-import { createSolanaRpc } from "@solana/kit";
-import type { Base64EncodedBytes } from "@solana/rpc-types";
-import {
-  getSkillListingDecoder,
-  SKILL_LISTING_DISCRIMINATOR,
-} from "../generated/reputation-oracle/src/generated";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
 import { buildAgentTrustSummary } from "@/lib/agentDiscovery";
 import { truncateDescription } from "@/lib/site";
 
 const CHAIN_PREFIX = "chain-";
-const rpc = createSolanaRpc(
-  process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com"
-);
 const configuredSolanaChainContext = getConfiguredSolanaChainContext();
-const asBase64 = (bytes: Uint8Array) =>
-  Buffer.from(bytes).toString("base64") as Base64EncodedBytes;
 
 type SkillRow = {
   id: string;
@@ -38,7 +26,7 @@ type SkillRow = {
 export async function getSkillMetadataSummary(id: string) {
   if (id.startsWith(CHAIN_PREFIX)) {
     const onChainAddr = id.slice(CHAIN_PREFIX.length);
-    const listing = await fetchChainSkill(onChainAddr);
+    const listing = await fetchOnChainSkillListing(onChainAddr);
     if (!listing) return null;
 
     const trust = await resolveAuthorTrust(String(listing.data.author));
@@ -55,7 +43,7 @@ export async function getSkillMetadataSummary(id: string) {
     });
 
     return {
-      id: `${CHAIN_PREFIX}${listing.pubkey}`,
+      id: `${CHAIN_PREFIX}${listing.publicKey}`,
       name: listing.data.name,
       description:
         listing.data.description ||
@@ -141,30 +129,3 @@ export async function getAuthorMetadataSummary(pubkey: string) {
   };
 }
 
-async function fetchChainSkill(pubkey: string) {
-  const accounts = await rpc
-    .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
-      encoding: "base64",
-      filters: [
-        {
-          memcmp: {
-            offset: 0n,
-            bytes: asBase64(SKILL_LISTING_DISCRIMINATOR),
-            encoding: "base64",
-          },
-        },
-      ],
-    })
-    .send();
-  const decoder = getSkillListingDecoder();
-
-  for (const account of accounts) {
-    if (account.pubkey !== pubkey) continue;
-    const data = decoder.decode(
-      new Uint8Array(Buffer.from(account.account.data[0], "base64"))
-    );
-    return { pubkey: account.pubkey, data };
-  }
-
-  return null;
-}

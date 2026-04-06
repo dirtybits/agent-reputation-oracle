@@ -1,9 +1,7 @@
 import { createSolanaRpc, type Address } from "@solana/kit";
+import { DEFAULT_SOLANA_RPC_URL } from "./solanaRpc";
 
-const DEFAULT_RPC_URL =
-  process.env.SOLANA_RPC_URL ||
-  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-  "https://api.devnet.solana.com";
+const DEFAULT_RPC_URL = DEFAULT_SOLANA_RPC_URL;
 
 export const PURCHASE_ACCOUNT_SPACE = 8 + 32 + 32 + 8 + 8 + 1;
 export const PURCHASE_FEE_BUFFER_LAMPORTS = 50_000n;

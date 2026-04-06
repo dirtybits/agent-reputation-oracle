@@ -10,10 +10,16 @@ import {
 } from "../../../generated/reputation-oracle/src/generated";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../../../generated/reputation-oracle/src/generated/programs";
 import { resolveManyAgentIdentitiesByWallet } from "@/lib/agentIdentity";
+import {
+  buildPublicCacheControl,
+  PUBLIC_ROUTE_CACHE_SECONDS,
+  PUBLIC_ROUTE_STALE_SECONDS,
+} from "@/lib/cachePolicy";
 import { getErrorMessage } from "@/lib/errors";
+import { DEFAULT_SOLANA_RPC_URL } from "@/lib/solanaRpc";
 
 const rpc = createSolanaRpc(
-  process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com"
+  DEFAULT_SOLANA_RPC_URL
 );
 const asBase64 = (bytes: Uint8Array) =>
   Buffer.from(bytes).toString("base64") as Base64EncodedBytes;
@@ -145,7 +151,10 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          "Cache-Control": buildPublicCacheControl(
+            PUBLIC_ROUTE_CACHE_SECONDS.landing,
+            PUBLIC_ROUTE_STALE_SECONDS.landing
+          ),
         },
       }
     );

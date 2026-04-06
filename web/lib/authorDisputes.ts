@@ -10,13 +10,13 @@ import {
   type AuthorDispute,
 } from "../generated/reputation-oracle/src/generated";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
+import { IN_MEMORY_CACHE_TTL_MS } from "./cachePolicy";
+import { DEFAULT_SOLANA_RPC_URL } from "./solanaRpc";
+import { getOrPopulateMemoryCache } from "./serverCache";
 
-const RPC_URL =
-  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-  process.env.SOLANA_RPC_URL ||
-  "https://api.devnet.solana.com";
+const RPC_URL = DEFAULT_SOLANA_RPC_URL;
 const rpc = createSolanaRpc(RPC_URL);
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = IN_MEMORY_CACHE_TTL_MS.authorDisputes;
 const AUTHOR_DISPUTE_VOUCH_LINK_DISCRIMINATOR = new Uint8Array([
   30, 4, 152, 103, 232, 184, 75, 177,
 ]);
@@ -64,6 +64,10 @@ let allDisputesCache: {
   expires: number;
   data: DecodedAuthorDisputeAccount[];
 } | null = null;
+const authorDisputesCache = new Map<
+  string,
+  { value: DecodedAuthorDisputeAccount[]; expiresAt: number }
+>();
 
 function unwrapOption<T>(value: unknown): T | null {
   if (value === null || value === undefined) return null;
@@ -157,15 +161,62 @@ async function getAllAuthorDisputeAccounts(
   return data;
 }
 
+async function loadAuthorDisputeAccountsByAuthor(
+  authorPubkey: string
+): Promise<DecodedAuthorDisputeAccount[]> {
+  const accounts = await rpc
+    .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+      encoding: "base64",
+      filters: [
+        {
+          memcmp: {
+            offset: 0n,
+            bytes: asBase64(AUTHOR_DISPUTE_DISCRIMINATOR),
+            encoding: "base64",
+          },
+        },
+        {
+          memcmp: {
+            offset: 16n,
+            bytes: asBase58(authorPubkey),
+            encoding: "base58",
+          },
+        },
+      ],
+    })
+    .send();
+  const decoder = getAuthorDisputeDecoder();
+  return accounts.map((account) => ({
+    publicKey: account.pubkey,
+    account: decoder.decode(decodeBase64(account.account.data[0])),
+  }));
+}
+
+async function getAuthorDisputeAccountsByAuthor(
+  authorPubkey: string,
+  useCache = true
+): Promise<DecodedAuthorDisputeAccount[]> {
+  if (!useCache) {
+    return loadAuthorDisputeAccountsByAuthor(authorPubkey);
+  }
+
+  return getOrPopulateMemoryCache(
+    authorDisputesCache,
+    authorPubkey,
+    CACHE_TTL_MS,
+    () => loadAuthorDisputeAccountsByAuthor(authorPubkey)
+  );
+}
+
 export async function listAuthorDisputesByAuthor(
   authorPubkey: string,
   options: { includeLinks?: boolean; useCache?: boolean } = {}
 ): Promise<AuthorDisputeRecord[]> {
   const useCache = options.useCache ?? true;
   const includeLinks = options.includeLinks ?? true;
-  const disputes = await getAllAuthorDisputeAccounts(useCache);
-  const authorDisputes = disputes.filter(
-    (dispute) => String(dispute.account.author) === authorPubkey
+  const authorDisputes = await getAuthorDisputeAccountsByAuthor(
+    authorPubkey,
+    useCache
   );
   const linkedVouchesByDispute = includeLinks
     ? new Map<string, string[]>(
@@ -215,7 +266,7 @@ export async function resolveAuthorDisputeMetrics(
   authorPubkey: string,
   useCache = true
 ): Promise<AuthorDisputeMetrics> {
-  const disputes = await getAllAuthorDisputeAccounts(useCache);
+  const disputes = await getAuthorDisputeAccountsByAuthor(authorPubkey, useCache);
   const metrics: AuthorDisputeMetrics = {
     disputesAgainstAuthor: 0,
     disputesUpheldAgainstAuthor: 0,
@@ -223,7 +274,6 @@ export async function resolveAuthorDisputeMetrics(
   };
 
   for (const dispute of disputes) {
-    if (String(dispute.account.author) !== authorPubkey) continue;
     metrics.disputesAgainstAuthor += 1;
     if (dispute.account.status === AuthorDisputeStatus.Open) {
       metrics.activeDisputesAgainstAuthor += 1;
@@ -283,10 +333,8 @@ export async function getAuthorDisputePublicKeysByAuthor(
   authorPubkey: string,
   useCache = true
 ): Promise<string[]> {
-  const all = await getAllAuthorDisputeAccounts(useCache);
-  return all
-    .filter((dispute) => String(dispute.account.author) === authorPubkey)
-    .map((dispute) => dispute.publicKey);
+  const disputes = await getAuthorDisputeAccountsByAuthor(authorPubkey, useCache);
+  return disputes.map((dispute) => dispute.publicKey);
 }
 
 export async function listAuthorDisputeLinks(
@@ -330,30 +378,5 @@ export async function listAuthorDisputeLinks(
 export async function listAuthorDisputesByAuthorViaFilter(
   authorPubkey: string
 ): Promise<DecodedAuthorDisputeAccount[]> {
-  const accounts = await rpc
-    .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
-      encoding: "base64",
-      filters: [
-        {
-          memcmp: {
-            offset: 0n,
-            bytes: asBase64(AUTHOR_DISPUTE_DISCRIMINATOR),
-            encoding: "base64",
-          },
-        },
-        {
-          memcmp: {
-            offset: 16n,
-            bytes: asBase58(authorPubkey),
-            encoding: "base58",
-          },
-        },
-      ],
-    })
-    .send();
-  const decoder = getAuthorDisputeDecoder();
-  return accounts.map((account) => ({
-    publicKey: account.pubkey,
-    account: decoder.decode(decodeBase64(account.account.data[0])),
-  }));
+  return loadAuthorDisputeAccountsByAuthor(authorPubkey);
 }

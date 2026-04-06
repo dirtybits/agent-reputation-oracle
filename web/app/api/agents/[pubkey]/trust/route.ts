@@ -3,6 +3,11 @@ import { resolveAuthorTrust } from "@/lib/trust";
 import { resolveAgentIdentityByWallet } from "@/lib/agentIdentity";
 import { listAuthorDisputesByAuthor } from "@/lib/authorDisputes";
 import { buildAgentTrustSummary } from "@/lib/agentDiscovery";
+import {
+  buildPublicCacheControl,
+  PUBLIC_ROUTE_CACHE_SECONDS,
+  PUBLIC_ROUTE_STALE_SECONDS,
+} from "@/lib/cachePolicy";
 import { getErrorMessage } from "@/lib/errors";
 
 export async function GET(
@@ -22,13 +27,23 @@ export async function GET(
       identity,
     });
 
-    return NextResponse.json({
-      pubkey,
-      trust: trustSummary,
-      author_trust: trust,
-      author_identity: identity,
-      author_disputes: disputes,
-    });
+    return NextResponse.json(
+      {
+        pubkey,
+        trust: trustSummary,
+        author_trust: trust,
+        author_identity: identity,
+        author_disputes: disputes,
+      },
+      {
+        headers: {
+          "Cache-Control": buildPublicCacheControl(
+            PUBLIC_ROUTE_CACHE_SECONDS.authorTrust,
+            PUBLIC_ROUTE_STALE_SECONDS.authorTrust
+          ),
+        },
+      }
+    );
   } catch (error: unknown) {
     console.error("GET /api/agents/[pubkey]/trust error:", error);
     return NextResponse.json(
