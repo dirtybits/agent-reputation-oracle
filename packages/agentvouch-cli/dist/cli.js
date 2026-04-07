@@ -18,7 +18,7 @@ var package_default = {
     test: "vitest run"
   },
   dependencies: {
-    "@agentvouch/protocol": "file:../agentvouch-protocol",
+    "@agentvouch/protocol": "0.1.0",
     "@coral-xyz/anchor": "^0.32.1",
     "@solana/web3.js": "^1.98.4",
     commander: "^14.0.3",

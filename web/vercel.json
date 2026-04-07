@@ -1,4 +1,4 @@
 {
-  "installCommand": "cd .. && npm ci",
-  "buildCommand": "cd .. && npm run build --workspace @agentvouch/web"
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build"
 }
