@@ -78,26 +78,19 @@ For the full architecture and current built-vs-missing analysis, see:
 
 ```bash
 npm ci
-cd web
-npm ci
-cd ..
 ```
 
 ### Run Checks
 
 ```bash
 npm run lint
-cd web
-npm run lint
 npm run test
 npm run build
-cd ..
 ```
 
 ### Run The Web App
 
 ```bash
-cd web
 npm run dev
 ```
 

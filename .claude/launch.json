@@ -4,7 +4,7 @@
     {
       "name": "Next.js Web App",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd web && npm run dev"],
+      "runtimeArgs": ["-c", "npm run dev"],
       "port": 3000
     }
   ]

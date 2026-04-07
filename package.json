@@ -2,17 +2,23 @@
   "private": true,
   "license": "ISC",
   "workspaces": [
+    "web",
     "packages/*"
   ],
   "scripts": {
-    "build:cli": "npm --workspace @agentvouch/cli run build",
-    "build:web": "npm --prefix web run build",
-    "dev:web": "npm --prefix web run dev",
-    "install:web": "npm --prefix web ci",
+    "build": "npm run build --workspaces --if-present",
+    "build:cli": "npm run build --workspace @agentvouch/cli",
+    "build:web": "npm run build --workspace @agentvouch/web",
+    "dev": "npm run dev --workspace @agentvouch/web",
+    "dev:web": "npm run dev --workspace @agentvouch/web",
+    "generate:client": "npm exec --workspace @agentvouch/web tsx ./scripts/generate-client.ts",
+    "lint:web": "npm run lint --workspace @agentvouch/web",
     "lint:fix": "prettier \"**/*.{js,ts,tsx}\" -w",
-    "lint": "prettier \"**/*.{js,ts,tsx}\" --check",
-    "test:cli": "npm --workspace @agentvouch/cli run test",
-    "test:web": "npm --prefix web run test"
+    "lint:format": "prettier \"**/*.{js,ts,tsx}\" --check",
+    "lint": "npm run lint:format && npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:cli": "npm run test --workspace @agentvouch/cli",
+    "test:web": "npm run test --workspace @agentvouch/web"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

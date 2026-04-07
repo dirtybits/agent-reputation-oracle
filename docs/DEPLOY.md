@@ -75,9 +75,7 @@ If the web app consumes the checked-in IDL or generated client, refresh those ar
 
 ```bash
 cp target/idl/reputation_oracle.json web/reputation_oracle.json
-cd web
-npx tsx ./scripts/generate-client.ts
-cd ..
+npm run generate:client
 ```
 
 ## Deploy
@@ -214,15 +212,13 @@ If `target/idl/reputation_oracle.json` contains the new instruction but `web/rep
 
 ```bash
 cp target/idl/reputation_oracle.json web/reputation_oracle.json
-cd web
-npx tsx ./scripts/generate-client.ts
-cd ..
+npm run generate:client
 ```
 
 ### Quick Runbook
 
 ```bash
-cd /Users/andysustic/Repos/agent-reputation-oracle
+cd <REPO_ROOT>
 
 mv target/deploy/reputation_oracle-keypair.json target/deploy/reputation_oracle-keypair.old.json
 cp target/deploy/reputation_oracle_v2-keypair.json target/deploy/reputation_oracle-keypair.json
@@ -245,8 +241,7 @@ anchor deploy \
 solana program show --url https://api.devnet.solana.com ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
 
 cp target/idl/reputation_oracle.json web/reputation_oracle.json
-cd web
-npx tsx ./scripts/generate-client.ts
+npm run generate:client
 pkill -f "next dev" || true
 npm run dev
 ```
@@ -261,7 +256,7 @@ Expected checks:
 If you want one extra safety check after deploy:
 
 ```bash
-cd /Users/andysustic/Repos/agent-reputation-oracle
+cd <REPO_ROOT>
 solana program dump --url https://api.devnet.solana.com ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf /tmp/reputation_oracle_devnet.so
 shasum -a 256 target/deploy/reputation_oracle.so /tmp/reputation_oracle_devnet.so
 ```

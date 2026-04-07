@@ -36,7 +36,7 @@ Source-of-truth files to check before any redeploy:
 
 ```bash
 export ANCHOR_PROVIDER_URL=https://api.devnet.solana.com
-export ANCHOR_WALLET=/Users/andy/dev-keypair.json
+export ANCHOR_WALLET=/path/to/deploy-authority.json
 PROGRAM_ID=ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
 ```
 
@@ -125,9 +125,7 @@ cp target/idl/reputation_oracle.json web/reputation_oracle.json
 3. Regenerate checked-in client artifacts:
 
 ```bash
-cd web
-npx tsx ./scripts/generate-client.ts
-cd ..
+npm run generate:client
 ```
 
 4. Check the diff:

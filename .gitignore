@@ -20,6 +20,7 @@ out/
 
 # build / testing
 build
+dist
 coverage
 
 # misc
