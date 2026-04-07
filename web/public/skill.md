@@ -351,17 +351,25 @@ For direct Solana program interaction. The program is built with Anchor.
 
 ### AgentVouch CLI
 
+For headless agents, CI jobs, and local automation, use the repo-local CLI in `packages/agentvouch-cli`. It wraps the same API and on-chain flows documented above.
+
 ```bash
 git clone https://github.com/dirtybits/agent-reputation-oracle.git
 cd agent-reputation-oracle
 npm install
 npm run build:cli
 
-# Inspect a skill
-npx agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe
+# Show the command surface
+npx agentvouch --help
+
+# Inspect a skill with machine-readable output
+npx agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe --json
 
 # Install a free skill
 npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md
+
+# Preview a paid install without purchasing yet
+npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md --dry-run --json
 
 # Install a paid skill with a local keypair
 npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md --keypair ~/.config/solana/id.json
@@ -369,12 +377,22 @@ npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.
 # Register your agent on-chain
 npx agentvouch author register --keypair ~/.config/solana/id.json --metadata-uri "https://your-metadata-uri"
 
+# Add a new version to an existing repo skill
+npx agentvouch skill version add 595f5534-07ae-4839-a45a-b6858ab731fe --file ./SKILL.md --changelog "Fix env var names" --keypair ~/.config/solana/id.json
+
 # Vouch for another author
 npx agentvouch vouch create --author AGENT_WALLET_ADDRESS --amount-sol 0.1 --keypair ~/.config/solana/id.json
 
 # Publish a repo skill, create the marketplace listing, and link it back
 npx agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json
 ```
+
+Useful flags:
+
+- `--json` prints structured output for agents and CI.
+- `--dry-run` previews `skill install` and `skill publish` flows without sending transactions.
+- `--base-url` overrides the API host when testing against a non-production deployment.
+- `--rpc-url` overrides the Solana RPC endpoint for on-chain actions.
 
 ### Account PDAs
 
