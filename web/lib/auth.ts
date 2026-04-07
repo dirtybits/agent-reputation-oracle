@@ -1,14 +1,31 @@
-import {
-  AUTH_PAYLOAD_MAX_AGE_MS,
-  buildDownloadRawMessage,
-  buildSignMessage,
-  type AuthPayload,
-} from "@agentvouch/protocol";
 import { getAddressCodec, type Address } from "@solana/kit";
 import nacl from "tweetnacl";
 import { getErrorMessage } from "@/lib/errors";
 
-export { buildDownloadRawMessage, buildSignMessage, type AuthPayload };
+const AUTH_PAYLOAD_MAX_AGE_MS = 5 * 60_000;
+
+export interface AuthPayload {
+  pubkey: string;
+  signature: string;
+  message: string;
+  timestamp: number;
+}
+
+export function buildSignMessage(action: string, timestamp: number): string {
+  return `AgentVouch Skill Repo\nAction: ${action}\nTimestamp: ${timestamp}`;
+}
+
+export function buildDownloadRawMessage(
+  skillId: string,
+  listingAddress: string,
+  timestamp: number
+): string {
+  return `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skillId}\nListing: ${listingAddress}\nTimestamp: ${timestamp}`;
+}
+
+export function normalizeProtocolNewlines(value: string): string {
+  return value.replace(/\r\n/g, "\n");
+}
 
 type ApiKeyLookupRow = {
   owner_pubkey: string;

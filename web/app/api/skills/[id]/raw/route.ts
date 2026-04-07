@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { normalizeProtocolNewlines } from "@agentvouch/protocol";
 import { sql } from "@/lib/db";
 import { getOnChainPrice } from "@/lib/onchain";
 import {
   verifyWalletSignature,
   buildDownloadRawMessage,
+  normalizeProtocolNewlines,
   type AuthPayload,
 } from "@/lib/auth";
 import { generatePaymentRequirement, hasOnChainPurchase } from "@/lib/x402";
