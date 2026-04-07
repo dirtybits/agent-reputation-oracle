@@ -260,7 +260,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (activeTab === "explorer" && allAgents.length === 0) {
       loadAllAgents();
-    } else if (activeTab === "vouch" && connected && allAgents.length === 0) {
+    } else if (activeTab === "vouch" && allAgents.length === 0) {
       loadAllAgents();
     } else if (activeTab === "disputes" && connected) {
       loadAuthorDisputes();
@@ -460,6 +460,106 @@ export default function DashboardPage() {
       icon: <FiShield className="inline-block mr-1" />,
     },
   ];
+
+  const canVouchFromDashboard = connected && !!agentProfile;
+
+  const renderRegisteredAgentsCard = () => (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
+          Registered Agents
+        </h3>
+        <button
+          onClick={loadAllAgents}
+          disabled={loadingAgents}
+          className={navButtonSecondaryInlineClass}
+        >
+          {loadingAgents
+            ? "Loading..."
+            : allAgents.length > 0
+            ? "Refresh"
+            : "Load Agents"}
+        </button>
+      </div>
+      {loadingAgents ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Loading agents...
+        </p>
+      ) : allAgents.length === 0 ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          No agents found. Be the first to register!
+        </p>
+      ) : (
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {allAgents.map((agent, idx: number) => {
+            const agentKey = agent.publicKey;
+            const isCurrentUser = agentKey === publicKey;
+            return (
+              <div
+                key={idx}
+                className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
+                        {formatScore(agent.account.reputationScore)}
+                      </span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        reputation
+                      </span>
+                      {isCurrentUser && (
+                        <span className="px-2 py-0.5 bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs rounded font-medium border border-[var(--sea-accent-border)]">
+                          You
+                        </span>
+                      )}
+                    </div>
+                    <Link
+                      href={`/author/${agent.account.authority}`}
+                      className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2"
+                    >
+                      {agent.account.authority}
+                    </Link>
+                    <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
+                      <span className="inline-flex items-center gap-1">
+                        <FiZap /> {String(agent.account.totalVouchesReceived)}{" "}
+                        vouches
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <FiDollarSign />{" "}
+                        {formatSolAmount(Number(agent.account.totalStakedFor))} SOL
+                      </span>
+                    </div>
+                  </div>
+                  {!isCurrentUser && canVouchFromDashboard ? (
+                    <button
+                      onClick={() => {
+                        setVoucheeAddress(agent.account.authority);
+                        window.scrollTo({
+                          top: 0,
+                          behavior: "smooth",
+                        });
+                      }}
+                      className={`${navButtonPrimaryInlineClass} whitespace-nowrap`}
+                    >
+                      Vouch
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/author/${agent.account.authority}`}
+                      className={`${navButtonSecondaryInlineClass} whitespace-nowrap`}
+                    >
+                      View
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -1003,17 +1103,20 @@ export default function DashboardPage() {
           )}
 
           {activeTab === "vouch" && !connected && (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
-                <FiZap />
+            <div className="space-y-6">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
+                  <FiZap />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Connect Wallet
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Connect your wallet to vouch for agents.
+                </p>
+                <ClientWalletButton />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                Connect Wallet
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Connect your wallet to vouch for agents.
-              </p>
-              <ClientWalletButton />
+              {renderRegisteredAgentsCard()}
             </div>
           )}
 
@@ -1065,106 +1168,22 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
-                    Registered Agents
-                  </h3>
-                  <button
-                    onClick={loadAllAgents}
-                    disabled={loadingAgents}
-                    className={navButtonSecondaryInlineClass}
-                  >
-                    {loadingAgents ? "Loading..." : "Refresh"}
-                  </button>
-                </div>
-                {loadingAgents ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Loading agents...
-                  </p>
-                ) : allAgents.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No agents found. Be the first to register!
-                  </p>
-                ) : (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {allAgents.map((agent, idx: number) => {
-                      const agentKey = agent.publicKey;
-                      const isCurrentUser = agentKey === publicKey;
-                      return (
-                        <div
-                          key={idx}
-                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
-                                  {formatScore(agent.account.reputationScore)}
-                                </span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">
-                                  reputation
-                                </span>
-                                {isCurrentUser && (
-                                  <span className="px-2 py-0.5 bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs rounded font-medium border border-[var(--sea-accent-border)]">
-                                    You
-                                  </span>
-                                )}
-                              </div>
-                              <Link
-                                href={`/author/${agent.account.authority}`}
-                                className="font-mono text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate block mb-2"
-                              >
-                                {agent.account.authority}
-                              </Link>
-                              <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
-                                <span className="inline-flex items-center gap-1">
-                                  <FiZap />{" "}
-                                  {String(agent.account.totalVouchesReceived)}{" "}
-                                  vouches
-                                </span>
-                                <span className="inline-flex items-center gap-1">
-                                  <FiDollarSign />{" "}
-                                  {formatSolAmount(
-                                    Number(agent.account.totalStakedFor)
-                                  )}{" "}
-                                  SOL
-                                </span>
-                              </div>
-                            </div>
-                            {!isCurrentUser && (
-                              <button
-                                onClick={() => {
-                                  setVoucheeAddress(agent.account.authority);
-                                  window.scrollTo({
-                                    top: 0,
-                                    behavior: "smooth",
-                                  });
-                                }}
-                                className={`${navButtonPrimaryInlineClass} whitespace-nowrap`}
-                              >
-                                Vouch
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              {renderRegisteredAgentsCard()}
             </div>
           )}
 
           {activeTab === "vouch" && connected && !agentProfile && (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-              <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">
-                Vouch for an Agent
-              </h2>
-              <p className="text-sm text-amber-600 dark:text-amber-400">
-                You must register as an agent before you can vouch for others.
-                Go to the &quot;My Profile&quot; tab to register.
-              </p>
+            <div className="space-y-6">
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">
+                  Vouch for an Agent
+                </h2>
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  You must register as an agent before you can vouch for others.
+                  Go to the &quot;My Profile&quot; tab to register.
+                </p>
+              </div>
+              {renderRegisteredAgentsCard()}
             </div>
           )}
 
