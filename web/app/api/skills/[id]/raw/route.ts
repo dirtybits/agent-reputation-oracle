@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeProtocolNewlines } from "@agentvouch/protocol";
 import { sql } from "@/lib/db";
 import { getOnChainPrice } from "@/lib/onchain";
 import {
@@ -24,10 +25,6 @@ function serveContent(content: string) {
       "Content-Disposition": 'attachment; filename="SKILL.md"',
     },
   });
-}
-
-function normalizeNewlines(value: string): string {
-  return value.replace(/\r\n/g, "\n");
 }
 
 export async function GET(
@@ -81,7 +78,7 @@ export async function GET(
             skill.on_chain_address,
             auth.timestamp
           );
-          if (normalizeNewlines(auth.message) !== expectedMessage) {
+          if (normalizeProtocolNewlines(auth.message) !== expectedMessage) {
             return NextResponse.json(
               {
                 error: "Message scope mismatch",

@@ -1,6 +1,9 @@
+import { fileURLToPath } from "node:url";
+
 const nextConfig = {
+  transpilePackages: ["@agentvouch/protocol"],
   turbopack: {
-    root: process.cwd(),
+    root: fileURLToPath(new URL("..", import.meta.url)),
   },
   generateBuildId: async () => `marketplace-${Date.now()}`,
 };

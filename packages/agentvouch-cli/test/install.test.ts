@@ -1,0 +1,115 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { Keypair } from "@solana/web3.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AgentVouchApiClient } from "../src/lib/http.js";
+import { installSkill } from "../src/lib/install.js";
+import { AgentVouchSolanaClient } from "../src/lib/solana.js";
+
+async function createKeypairFile() {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "agentvouch-cli-"));
+  const keypair = Keypair.generate();
+  const keypairPath = path.join(tempDir, "id.json");
+  await writeFile(keypairPath, JSON.stringify(Array.from(keypair.secretKey)));
+  return { tempDir, keypairPath, keypair };
+}
+
+describe("installSkill", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("downloads free repo-backed skills directly", async () => {
+    const { tempDir } = await createKeypairFile();
+    const outputPath = path.join(tempDir, "SKILL.md");
+
+    vi.spyOn(AgentVouchApiClient.prototype, "getSkill").mockResolvedValue({
+      id: "595f5534-07ae-4839-a45a-b6858ab731fe",
+      skill_id: "calendar-agent",
+      author_pubkey: Keypair.generate().publicKey.toBase58(),
+      name: "Calendar Agent",
+      description: "Free skill",
+      on_chain_address: null,
+      total_installs: 0,
+    });
+    vi.spyOn(AgentVouchApiClient.prototype, "downloadRaw").mockResolvedValue({
+      ok: true,
+      status: 200,
+      content: "# free skill\n",
+    });
+    const purchaseSpy = vi.spyOn(
+      AgentVouchSolanaClient.prototype,
+      "purchaseSkill"
+    );
+
+    const result = await installSkill({
+      id: "595f5534-07ae-4839-a45a-b6858ab731fe",
+      out: outputPath,
+      baseUrl: "https://agentvouch.xyz",
+      rpcUrl: "https://api.devnet.solana.com",
+    });
+
+    expect(result.mode).toBe("free-raw");
+    expect(purchaseSpy).not.toHaveBeenCalled();
+  });
+
+  it("handles paid downloads via purchase plus signed retry", async () => {
+    const { tempDir, keypairPath } = await createKeypairFile();
+    const outputPath = path.join(tempDir, "SKILL.md");
+    const author = Keypair.generate().publicKey.toBase58();
+    const downloadSpy = vi
+      .spyOn(AgentVouchApiClient.prototype, "downloadRaw")
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 402,
+        error: "Payment required",
+        requirement: {
+          scheme: "exact",
+          network: "solana",
+          programId: "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf",
+          instruction: "purchaseSkill",
+          skillListingAddress: "37Mm4DzMockListing",
+          mint: "So11111111111111111111111111111111111111112",
+          amount: 1_000_000,
+          resource: "abc123",
+          expiry: Math.floor(Date.now() / 1000) + 300,
+          nonce: "nonce",
+        },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        content: "# paid skill\n",
+      });
+    vi.spyOn(AgentVouchApiClient.prototype, "getSkill").mockResolvedValue({
+      id: "595f5534-07ae-4839-a45a-b6858ab731fe",
+      skill_id: "calendar-agent",
+      author_pubkey: author,
+      name: "Calendar Agent",
+      description: "Paid skill",
+      on_chain_address: "37Mm4DzMockListing",
+      total_installs: 0,
+      price_lamports: 1_000_000,
+    });
+    const purchaseSpy = vi
+      .spyOn(AgentVouchSolanaClient.prototype, "purchaseSkill")
+      .mockResolvedValue({
+        tx: "mock-purchase-tx",
+        alreadyPurchased: false,
+        purchase: "purchase-pda",
+      });
+
+    const result = await installSkill({
+      id: "595f5534-07ae-4839-a45a-b6858ab731fe",
+      out: outputPath,
+      keypairPath,
+      baseUrl: "https://agentvouch.xyz",
+      rpcUrl: "https://api.devnet.solana.com",
+    });
+
+    expect(result.mode).toBe("paid-raw");
+    expect(purchaseSpy).toHaveBeenCalledWith("37Mm4DzMockListing", author);
+    expect(downloadSpy).toHaveBeenCalledTimes(2);
+  });
+});

@@ -349,22 +349,31 @@ For direct Solana program interaction. The program is built with Anchor.
 | IDL | [web/reputation_oracle.json](https://github.com/dirtybits/agent-reputation-oracle/blob/main/web/reputation_oracle.json) |
 | GitHub | [github.com/dirtybits/agent-reputation-oracle](https://github.com/dirtybits/agent-reputation-oracle) |
 
-### CLI Scripts
+### AgentVouch CLI
 
 ```bash
 git clone https://github.com/dirtybits/agent-reputation-oracle.git
 cd agent-reputation-oracle
 npm install
-anchor build
+npm run build:cli
 
-export ANCHOR_PROVIDER_URL=https://api.devnet.solana.com
-export ANCHOR_WALLET=/path/to/your-keypair.json
+# Inspect a skill
+npx agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe
 
-# Register your agent
-npx ts-node scripts/register-agent.ts /path/to/keypair.json "https://your-metadata-uri"
+# Install a free skill
+npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md
 
-# Vouch for another agent
-npx ts-node scripts/vouch.ts /path/to/your-keypair.json AGENT_WALLET_ADDRESS 0.1
+# Install a paid skill with a local keypair
+npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md --keypair ~/.config/solana/id.json
+
+# Register your agent on-chain
+npx agentvouch author register --keypair ~/.config/solana/id.json --metadata-uri "https://your-metadata-uri"
+
+# Vouch for another author
+npx agentvouch vouch create --author AGENT_WALLET_ADDRESS --amount-sol 0.1 --keypair ~/.config/solana/id.json
+
+# Publish a repo skill, create the marketplace listing, and link it back
+npx agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json
 ```
 
 ### Account PDAs

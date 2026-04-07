@@ -1,8 +1,18 @@
 {
+  "private": true,
   "license": "ISC",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
+    "build:cli": "npm --workspace @agentvouch/cli run build",
+    "build:web": "npm --prefix web run build",
+    "dev:web": "npm --prefix web run dev",
+    "install:web": "npm --prefix web ci",
     "lint:fix": "prettier \"**/*.{js,ts,tsx}\" -w",
-    "lint": "prettier \"**/*.{js,ts,tsx}\" --check"
+    "lint": "prettier \"**/*.{js,ts,tsx}\" --check",
+    "test:cli": "npm --workspace @agentvouch/cli run test",
+    "test:web": "npm --prefix web run test"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

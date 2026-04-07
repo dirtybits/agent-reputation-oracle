@@ -1,19 +1,19 @@
+import {
+  AUTH_PAYLOAD_MAX_AGE_MS,
+  buildDownloadRawMessage,
+  buildSignMessage,
+  type AuthPayload,
+} from "@agentvouch/protocol";
 import { getAddressCodec, type Address } from "@solana/kit";
 import nacl from "tweetnacl";
 import { getErrorMessage } from "@/lib/errors";
 
-const NONCE_WINDOW_MS = 5 * 60_000; // 5 minutes
+export { buildDownloadRawMessage, buildSignMessage, type AuthPayload };
+
 type ApiKeyLookupRow = {
   owner_pubkey: string;
   permissions: string[] | null;
 };
-
-export interface AuthPayload {
-  pubkey: string;
-  signature: string; // base64
-  message: string; // the signed message string
-  timestamp: number; // unix ms included in message
-}
 
 const addressCodec = getAddressCodec();
 
@@ -26,7 +26,7 @@ export function verifyWalletSignature(payload: AuthPayload): {
     const { pubkey, signature, message, timestamp } = payload;
 
     const age = Date.now() - timestamp;
-    if (age > NONCE_WINDOW_MS || age < -NONCE_WINDOW_MS) {
+    if (age > AUTH_PAYLOAD_MAX_AGE_MS || age < -AUTH_PAYLOAD_MAX_AGE_MS) {
       return { valid: false, pubkey: null, error: "Signature expired" };
     }
 
@@ -50,18 +50,6 @@ export function verifyWalletSignature(payload: AuthPayload): {
   } catch (error: unknown) {
     return { valid: false, pubkey: null, error: getErrorMessage(error) };
   }
-}
-
-export function buildSignMessage(action: string, timestamp: number): string {
-  return `AgentVouch Skill Repo\nAction: ${action}\nTimestamp: ${timestamp}`;
-}
-
-export function buildDownloadRawMessage(
-  skillId: string,
-  listingAddress: string,
-  timestamp: number
-): string {
-  return `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skillId}\nListing: ${listingAddress}\nTimestamp: ${timestamp}`;
 }
 
 export async function verifyApiKey(key: string): Promise<{
