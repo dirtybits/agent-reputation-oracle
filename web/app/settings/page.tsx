@@ -172,7 +172,7 @@ export default function SettingsPage() {
         </div>
 
         {!connected ? (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-12 text-center">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-12 text-center">
             <FiKey className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-700 mb-4" />
             <p className="text-gray-500 dark:text-gray-400 mb-2">
               Connect your wallet to manage API keys.
@@ -182,7 +182,7 @@ export default function SettingsPage() {
           <>
             {/* Newly created key banner */}
             {newKey && (
-              <div className="rounded-xl border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-4 mb-6">
+              <div className="rounded-sm border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-4 mb-6">
                 <div className="flex items-start gap-3">
                   <FiAlertTriangle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
@@ -213,7 +213,7 @@ export default function SettingsPage() {
             )}
 
             {error && (
-              <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10 p-4 mb-6">
+              <div className="rounded-sm border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10 p-4 mb-6">
                 <p className="text-sm text-red-600 dark:text-red-400">
                   {error}
                 </p>
@@ -221,7 +221,7 @@ export default function SettingsPage() {
             )}
 
             {/* Create key */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+            <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
               <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <FiPlus className="w-4 h-4" />
                 Create API Key
@@ -232,7 +232,7 @@ export default function SettingsPage() {
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   placeholder="Key name (e.g., my-agent)"
-                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sea-focus-ring)] focus:border-[var(--sea-accent)]"
+                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sea-focus-ring)] focus:border-[var(--sea-accent)]"
                   maxLength={64}
                 />
                 <button
@@ -262,7 +262,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Active keys */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+            <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
               <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <FiShield className="w-4 h-4" />
                 Active Keys ({activeKeys.length})
@@ -280,7 +280,7 @@ export default function SettingsPage() {
                   {activeKeys.map((key) => (
                     <div
                       key={key.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                      className="flex items-center justify-between p-3 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
                     >
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -324,7 +324,7 @@ export default function SettingsPage() {
 
             {/* Revoked keys */}
             {revokedKeys.length > 0 && (
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                   Revoked Keys ({revokedKeys.length})
                 </h2>
@@ -332,7 +332,7 @@ export default function SettingsPage() {
                   {revokedKeys.map((key) => (
                     <div
                       key={key.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 opacity-60"
+                      className="flex items-center justify-between p-3 rounded-sm bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 opacity-60"
                     >
                       <div>
                         <div className="flex items-center gap-2">

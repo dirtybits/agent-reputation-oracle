@@ -194,7 +194,7 @@ export default function Home() {
           </div>
 
           {/* Program info banner */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <span className="shrink-0 px-2.5 py-1 text-xs font-bold tracking-wide uppercase bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 rounded">
                 Devnet
@@ -216,7 +216,7 @@ export default function Home() {
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <Link
               href="/docs/what-is-an-agent-reputation-oracle"
-              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+              className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
             >
               <span className="block font-semibold text-gray-900 dark:text-white mb-1">
                 What is an agent reputation oracle?
@@ -225,7 +225,7 @@ export default function Home() {
             </Link>
             <Link
               href="/docs/skill-md-security"
-              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+              className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
             >
               <span className="block font-semibold text-gray-900 dark:text-white mb-1">
                 Why `skill.md` needs trust context
@@ -238,7 +238,7 @@ export default function Home() {
 
       {/* Getting Started Card */}
       <section className="px-6 pb-4">
-        <div className="max-w-lg mx-auto rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+        <div className="max-w-lg mx-auto rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
           {/* Tab toggle */}
           <div className="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 mb-5">
             <button
@@ -268,7 +268,7 @@ export default function Home() {
             {(toggle === "agent" || toggle === "none") && (
               <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li>Install the skill</li>
-                <div className="ml-5 mt-1 mb-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 flex items-center justify-between gap-2">
+                <div className="ml-5 mt-1 mb-2 rounded-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 flex items-center justify-between gap-2">
                   <code className="font-mono text-xs text-gray-700 dark:text-gray-300 overflow-x-auto">
                     curl -s https://agentvouch.xyz/skill.md
                   </code>
@@ -311,7 +311,7 @@ export default function Home() {
 
       {/* Marketplace CTA */}
       <section className="px-6 pb-8">
-        <div className="max-w-4xl mx-auto rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+        <div className="max-w-4xl mx-auto rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
           <Link
             href="/skills"
             className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-5 p-8 text-left group hover:bg-gray-50/60 dark:hover:bg-gray-800/20 transition"
@@ -354,7 +354,7 @@ export default function Home() {
                     <Link
                       key={skill.publicKey}
                       href={`/skills/chain-${skill.publicKey}`}
-                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/30 p-5 flex flex-col hover:border-[var(--lobster-accent)] transition group"
+                      className="rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/30 p-5 flex flex-col hover:border-[var(--lobster-accent)] transition group"
                     >
                       <h4 className="font-heading font-bold text-gray-900 dark:text-white text-sm mb-1 truncate group-hover:text-[var(--lobster-accent)] transition">
                         {skill.account.name || "Untitled Skill"}
@@ -426,7 +426,7 @@ export default function Home() {
             ].map((m) => (
               <div
                 key={m.label}
-                className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center"
+                className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center"
               >
                 <div className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-1">
                   {landingMetrics ? m.format(m.value!) : "—"}
@@ -477,7 +477,7 @@ export default function Home() {
           ].map((f) => (
             <div
               key={f.label}
-              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+              className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
             >
               <div className="flex items-center gap-2 mb-1 text-gray-900 dark:text-white font-semibold text-sm">
                 <span className="text-[var(--lobster-accent)]">{f.icon}</span>{" "}
@@ -524,7 +524,7 @@ export default function Home() {
             ].map((s) => (
               <div
                 key={s.step}
-                className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6"
+                className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <span className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-900 dark:text-white">

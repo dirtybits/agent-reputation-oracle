@@ -92,7 +92,7 @@ export default function TrustBadge({
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
+      <div className="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
         <div className="flex items-center justify-center gap-1 text-green-600 dark:text-green-400 mb-1">
           <FiShield className="w-4 h-4" />
         </div>
@@ -102,7 +102,7 @@ export default function TrustBadge({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
+      <div className="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
         <div className="flex items-center justify-center gap-1 text-[var(--lobster-accent)] mb-1">
           <FiUsers className="w-4 h-4" />
         </div>
@@ -110,7 +110,7 @@ export default function TrustBadge({
         <div className="text-xs text-gray-500 dark:text-gray-400">Vouches</div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
+      <div className="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
         <div className="flex items-center justify-center gap-1 text-[var(--lobster-accent)] mb-1">
           <LiaCoinsSolid className="w-4 h-4" />
         </div>
@@ -122,7 +122,7 @@ export default function TrustBadge({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
+      <div className="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
         <div className="flex items-center justify-center gap-1 text-[var(--sea-accent)] mb-1">
           <FiUser className="w-4 h-4" />
         </div>
@@ -137,7 +137,7 @@ export default function TrustBadge({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
+      <div className="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">
         <div
           className={`flex items-center justify-center gap-1 ${authorReports.color} mb-1`}
         >

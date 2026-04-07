@@ -41,7 +41,7 @@ export function CopyCodeBlock({
 
   return (
     <div
-      className={`rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 flex gap-2 ${
+      className={`rounded-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 flex gap-2 ${
         isMultiline ? "items-start" : "items-center"
       } ${className}`}
     >

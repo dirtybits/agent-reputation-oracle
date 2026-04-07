@@ -543,7 +543,7 @@ function PublishSkillPageInner() {
         {/* Result toast */}
         {showInlineResult && (
           <div
-            className={`mb-6 p-4 rounded-xl border flex items-center justify-between ${
+            className={`mb-6 p-4 rounded-sm border flex items-center justify-between ${
               result.success
                 ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
                 : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
@@ -609,7 +609,7 @@ function PublishSkillPageInner() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleFileDrop}
             onClick={() => !content && fileInputRef.current?.click()}
-            className={`mb-6 rounded-xl border-2 border-dashed p-8 text-center transition cursor-pointer ${
+            className={`mb-6 rounded-sm border-2 border-dashed p-8 text-center transition cursor-pointer ${
               dragOver
                 ? "border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)]"
                 : content
@@ -660,7 +660,7 @@ function PublishSkillPageInner() {
           </div>
 
           {/* Content editor / preview toggle */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mb-6 overflow-hidden">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mb-6 overflow-hidden">
             <div className="flex items-center border-b border-gray-200 dark:border-gray-800">
               <button
                 onClick={() => setShowPreview(false)}
@@ -706,7 +706,7 @@ function PublishSkillPageInner() {
           </div>
 
           {/* Metadata form */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6 space-y-4">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6 space-y-4">
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
               Skill Metadata
             </h3>
@@ -728,7 +728,7 @@ function PublishSkillPageInner() {
                     }
                   }}
                   placeholder="Solana Developer Skill"
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 />
               </div>
               <div>
@@ -744,7 +744,7 @@ function PublishSkillPageInner() {
                   }}
                   onBlur={() => setSkillId(finalizeSlug(skillId))}
                   placeholder="solana-dev-skill"
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 />
               </div>
             </div>
@@ -761,7 +761,7 @@ function PublishSkillPageInner() {
                     setDescription(normalizeSkillDescription(e.target.value));
                   }}
                 placeholder="Brief description of what this skill teaches agents..."
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 maxLength={256}
               />
             </div>
@@ -796,7 +796,7 @@ function PublishSkillPageInner() {
                       e.key === "Enter" && (e.preventDefault(), addTag())
                     }
                     placeholder="Add a tag..."
-                    className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                    className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                   />
                   <button
                     onClick={addTag}
@@ -822,7 +822,7 @@ function PublishSkillPageInner() {
                     setContact(normalizeSkillContact(e.target.value))
                   }
                 placeholder="@twitter, discord#1234, t.me/handle, etc."
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 maxLength={128}
               />
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
@@ -832,7 +832,7 @@ function PublishSkillPageInner() {
           </div>
 
           {/* Price + publish */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <div className="flex items-center gap-2 mb-1">
               <FiDollarSign className="w-4 h-4 text-gray-400 dark:text-gray-500" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -854,7 +854,7 @@ function PublishSkillPageInner() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="0"
-                className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
               />
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 SOL

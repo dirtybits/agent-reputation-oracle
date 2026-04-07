@@ -516,7 +516,7 @@ export default function MarketplacePage() {
           </div>
         </div>
 
-        <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
+        <div className="mb-6 rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
           AgentVouch does not just list skills. It helps you evaluate the agent
           behind them. New here? Read{" "}
           <Link
@@ -537,7 +537,7 @@ export default function MarketplacePage() {
 
         {/* Toast notifications */}
         {txSuccess && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center justify-between">
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-green-600 dark:text-green-400">
                 <FiCheckCircle />
@@ -563,7 +563,7 @@ export default function MarketplacePage() {
           </div>
         )}
         {txError && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center justify-between">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-red-600 dark:text-red-400">
                 <FiXCircle />
@@ -581,7 +581,7 @@ export default function MarketplacePage() {
           </div>
         )}
         {purchaseStatusWarning && connected && (
-          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-2">
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-sm flex items-start gap-2">
             <span className="mt-0.5 text-amber-600 dark:text-amber-400">
               <FiAlertTriangle />
             </span>
@@ -622,7 +622,7 @@ export default function MarketplacePage() {
                     placeholder="Search skills..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sea-focus-ring)] focus:border-[var(--sea-accent)] transition"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sea-focus-ring)] focus:border-[var(--sea-accent)] transition"
                   />
                 </form>
                 <div className="flex items-center gap-2">
@@ -699,7 +699,7 @@ export default function MarketplacePage() {
                       return (
                         <div
                           key={skill.id}
-                          className="group rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition flex flex-col"
+                          className="group rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition flex flex-col"
                         >
                           <div className="flex-1">
                             <div className="flex items-start justify-between mb-3">
@@ -751,7 +751,7 @@ export default function MarketplacePage() {
 
                             {creatorPrice > 0 && (
                               <div
-                                className={`mb-3 rounded-lg border p-3 ${
+                                className={`mb-3 rounded-sm border p-3 ${
                                   purchaseBlocked
                                     ? "border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/10"
                                     : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/40"
@@ -936,7 +936,7 @@ export default function MarketplacePage() {
                       <button
                         onClick={() => setPage(Math.max(1, page - 1))}
                         disabled={page === 1}
-                        className="px-3 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                        className="px-3 py-1.5 rounded-sm text-sm border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                       >
                         Previous
                       </button>
@@ -946,7 +946,7 @@ export default function MarketplacePage() {
                       <button
                         onClick={() => setPage(Math.min(totalPages, page + 1))}
                         disabled={page === totalPages}
-                        className="px-3 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                        className="px-3 py-1.5 rounded-sm text-sm border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                       >
                         Next
                       </button>
@@ -958,7 +958,7 @@ export default function MarketplacePage() {
 
             {/* Activity Feed sidebar */}
             <aside className="hidden lg:block w-72 flex-shrink-0">
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden sticky top-6">
+              <div className="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-800 overflow-hidden sticky top-6">
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                   <FiActivity className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -1084,7 +1084,7 @@ export default function MarketplacePage() {
                   return (
                     <div
                       key={purchase.publicKey}
-                      className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800 flex items-center justify-between"
+                      className="bg-white dark:bg-gray-900 rounded-sm p-5 border border-gray-200 dark:border-gray-800 flex items-center justify-between"
                     >
                       <div>
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white">
@@ -1174,7 +1174,7 @@ export default function MarketplacePage() {
                   return (
                     <div
                       key={listing.publicKey}
-                      className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800"
+                      className="bg-white dark:bg-gray-900 rounded-sm p-5 border border-gray-200 dark:border-gray-800"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white">
@@ -1191,7 +1191,7 @@ export default function MarketplacePage() {
                         {listing.account.description}
                       </p>
                       {sellerRentBlocked && (
-                        <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                        <div className="mb-3 rounded-sm border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
                           <div className="flex items-start gap-2">
                             <FiAlertTriangle className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
                             <div className="min-w-0">

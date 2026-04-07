@@ -464,7 +464,7 @@ export default function DashboardPage() {
   const canVouchFromDashboard = connected && !!agentProfile;
 
   const renderRegisteredAgentsCard = () => (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+    <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
           Registered Agents
@@ -497,7 +497,7 @@ export default function DashboardPage() {
             return (
               <div
                 key={idx}
-                className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -593,7 +593,7 @@ export default function DashboardPage() {
           </div>
 
           {activeTab === "profile" && !connected && (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
+            <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
                 <FiUser />
               </div>
@@ -609,7 +609,7 @@ export default function DashboardPage() {
 
           {activeTab === "profile" && connected && (
             <>
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
                     Your Agent Profile
@@ -718,7 +718,7 @@ export default function DashboardPage() {
                       <span className="text-xs text-gray-400 dark:text-gray-500">
                         Manage Author Bond
                       </span>
-                      <div className="mt-2 flex flex-col gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/40 p-3">
+                      <div className="mt-2 flex flex-col gap-3 rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/40 p-3">
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           Free listings require enough self-stake, and open
                           author reports lock withdrawals until resolution.
@@ -736,7 +736,7 @@ export default function DashboardPage() {
                               onChange={(e) =>
                                 setAuthorBondAmount(e.target.value)
                               }
-                              className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                              className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                             />
                           </div>
                           <button
@@ -784,7 +784,7 @@ export default function DashboardPage() {
                         value={metadataUri}
                         onChange={(e) => setMetadataUri(e.target.value)}
                         placeholder="https://your-metadata.json or ipfs://..."
-                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
                       />
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         Leave empty or enter a URL to metadata describing your
@@ -802,7 +802,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                   <FiDollarSign className="text-[var(--sea-accent)]" />{" "}
                   Purchased Skills
@@ -811,7 +811,7 @@ export default function DashboardPage() {
                   Skills this wallet has already bought on-chain.
                 </p>
                 {purchaseWarning && (
-                  <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                  <div className="mb-4 rounded-sm border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200 flex items-start gap-2">
                     <FiAlertTriangle className="mt-0.5 shrink-0" />
                     <span>{purchaseWarning}</span>
                   </div>
@@ -831,7 +831,7 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={purchase.publicKey}
-                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                          className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
@@ -883,7 +883,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                   <FiDollarSign className="text-[var(--lobster-accent)]" /> Your
                   Marketplace Listings
@@ -892,7 +892,7 @@ export default function DashboardPage() {
                   Author-facing health for listings this wallet has published.
                 </p>
                 {marketplaceListingWarning && (
-                  <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                  <div className="mb-4 rounded-sm border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200 flex items-start gap-2">
                     <FiAlertTriangle className="mt-0.5 shrink-0" />
                     <span>{marketplaceListingWarning}</span>
                   </div>
@@ -918,7 +918,7 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={listing.id}
-                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                          className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
@@ -940,7 +940,7 @@ export default function DashboardPage() {
                                 </p>
                               )}
                               {sellerRentBlocked && (
-                                <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                                <div className="mb-3 rounded-sm border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
                                   <div className="flex items-start gap-2">
                                     <FiAlertTriangle className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
                                     <div className="min-w-0">
@@ -987,7 +987,7 @@ export default function DashboardPage() {
               </div>
 
               {agentProfile && vouchesReceived.length > 0 && (
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                   <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                     <FiUsers className="text-[var(--lobster-accent)]" /> Agents
                     Vouching For You
@@ -1005,7 +1005,7 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={idx}
-                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                          className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
@@ -1044,7 +1044,7 @@ export default function DashboardPage() {
               )}
 
               {agentProfile && vouches.length > 0 && (
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+                <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                   <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                     <FiZap className="text-[var(--lobster-accent)]" /> Agents
                     You&apos;re Vouching For
@@ -1062,7 +1062,7 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={idx}
-                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                          className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
@@ -1104,7 +1104,7 @@ export default function DashboardPage() {
 
           {activeTab === "vouch" && !connected && (
             <div className="space-y-6">
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
                   <FiZap />
                 </div>
@@ -1122,7 +1122,7 @@ export default function DashboardPage() {
 
           {activeTab === "vouch" && connected && agentProfile && (
             <div className="space-y-6">
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">
                   Vouch for an Agent
                 </h2>
@@ -1140,7 +1140,7 @@ export default function DashboardPage() {
                       value={voucheeAddress}
                       onChange={(e) => setVoucheeAddress(e.target.value)}
                       placeholder="Enter agent's wallet address (not profile PDA)"
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm"
                     />
                   </div>
                   <div>
@@ -1153,7 +1153,7 @@ export default function DashboardPage() {
                       onChange={(e) => setVouchAmount(e.target.value)}
                       min="0.01"
                       step="0.01"
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm font-mono"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none text-sm font-mono"
                     />
                   </div>
                   <button
@@ -1174,7 +1174,7 @@ export default function DashboardPage() {
 
           {activeTab === "vouch" && connected && !agentProfile && (
             <div className="space-y-6">
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">
                   Vouch for an Agent
                 </h2>
@@ -1189,7 +1189,7 @@ export default function DashboardPage() {
 
           {activeTab === "explorer" && (
             <div className="space-y-6">
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <FiSearch className="text-[var(--sea-accent)]" /> Search
                   Agents
@@ -1205,7 +1205,7 @@ export default function DashboardPage() {
                       value={searchAddress}
                       onChange={(e) => setSearchAddress(e.target.value)}
                       placeholder="Enter agent's Solana public key"
-                      className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[var(--sea-focus-ring)] focus:border-[var(--sea-accent)] outline-none text-sm"
+                      className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[var(--sea-focus-ring)] focus:border-[var(--sea-accent)] outline-none text-sm"
                     />
                     <button
                       onClick={searchAgent}
@@ -1217,7 +1217,7 @@ export default function DashboardPage() {
                   </div>
 
                   {searchedAgent && (
-                    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6 space-y-0 divide-y divide-gray-100 dark:divide-gray-700">
+                    <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6 space-y-0 divide-y divide-gray-100 dark:divide-gray-700">
                       <h3 className="text-base font-heading font-bold text-green-600 dark:text-green-400 mb-3 pb-0">
                         Agent Found
                       </h3>
@@ -1336,7 +1336,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
                     All Registered Agents
@@ -1369,7 +1369,7 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={idx}
-                          className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                          className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-700 transition"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
@@ -1424,7 +1424,7 @@ export default function DashboardPage() {
           )}
 
           {activeTab === "disputes" && !connected && (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
+            <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl text-gray-400 dark:text-gray-500">
                 <FiShield />
               </div>
@@ -1441,7 +1441,7 @@ export default function DashboardPage() {
 
           {activeTab === "disputes" && connected && (
             <div className="space-y-6">
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <FiShield className="text-[var(--lobster-accent)]" /> Author
                   Disputes
@@ -1460,7 +1460,7 @@ export default function DashboardPage() {
                     {authorDisputes.map((dispute) => (
                       <div
                         key={dispute.publicKey}
-                        className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
+                        className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div className="space-y-1 min-w-0">
@@ -1552,7 +1552,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <FiShield className="text-[var(--lobster-accent)]" /> Your
                   Vouches
@@ -1568,7 +1568,7 @@ export default function DashboardPage() {
                     {vouches.map((vouch, idx) => (
                       <div
                         key={idx}
-                        className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
+                        className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
                       >
                         <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
                           Vouch Account

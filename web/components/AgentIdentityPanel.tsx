@@ -42,7 +42,7 @@ export function AgentIdentityPanel({
     : "Unknown chain";
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+    <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <FiLink2 className="w-4 h-4 text-[var(--sea-accent)]" />

@@ -720,7 +720,7 @@ export default function SkillDetailPage({
         </div>
 
         {/* Trust Section */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
             <FiShield className="w-4 h-4" />
             Author Trust Signals
@@ -812,7 +812,7 @@ export default function SkillDetailPage({
           } gap-3 mb-6`}
         >
           {creatorPriceLamports > 0 && (
-            <div className="rounded-lg border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-3 text-center">
+            <div className="rounded-sm border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-3 text-center">
               <div className="text-lg font-bold text-green-700 dark:text-green-400 font-mono flex items-center justify-center">
                 <SolAmount
                   amount={fromLamports(creatorPriceLamports).toFixed(4)}
@@ -825,7 +825,7 @@ export default function SkillDetailPage({
             </div>
           )}
           {creatorPriceLamports > 0 && (
-            <div className="rounded-lg border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] p-3 text-center">
+            <div className="rounded-sm border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] p-3 text-center">
               <div className="text-lg font-bold text-[var(--sea-accent-strong)] font-mono flex items-center justify-center">
                 <SolAmount
                   amount={fromLamports(estimatedBuyerTotalLamports).toFixed(4)}
@@ -837,7 +837,7 @@ export default function SkillDetailPage({
               </div>
             </div>
           )}
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
             <div className="text-lg font-bold text-gray-900 dark:text-white">
               v{skill.current_version}
             </div>
@@ -845,7 +845,7 @@ export default function SkillDetailPage({
               Version
             </div>
           </div>
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
             <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center justify-center gap-1">
               <FiDownload className="w-4 h-4" />
               {(skill.total_installs ?? 0) + (skill.total_downloads ?? 0)}
@@ -854,7 +854,7 @@ export default function SkillDetailPage({
               Downloads
             </div>
           </div>
-          <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
             <div className="text-sm font-bold text-gray-900 dark:text-white">
               {formatDate(skill.created_at)}
             </div>
@@ -882,7 +882,7 @@ export default function SkillDetailPage({
         {(capabilitySummary ||
           capabilityBullets.length > 0 ||
           skill.tags?.length > 0) && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
               <FiFileText className="w-4 h-4 text-[var(--sea-accent)]" />
               Capability Preview
@@ -920,7 +920,7 @@ export default function SkillDetailPage({
         {/* Install / Buy action */}
         {(creatorPriceLamports === 0 ||
           (creatorPriceLamports > 0 && skill.source !== "chain")) && (
-          <div className="rounded-xl border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] p-4 mb-6">
+          <div className="rounded-sm border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] p-4 mb-6">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
@@ -1007,7 +1007,7 @@ export default function SkillDetailPage({
             </div>
             {creatorPriceLamports > 0 && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
+                <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Creator Price
                   </div>
@@ -1018,7 +1018,7 @@ export default function SkillDetailPage({
                     />
                   </div>
                 </div>
-                <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
+                <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Receipt Rent
                   </div>
@@ -1031,7 +1031,7 @@ export default function SkillDetailPage({
                     />
                   </div>
                 </div>
-                <div className="rounded-lg border border-[var(--sea-accent-border)] bg-white/80 dark:bg-gray-950/40 p-3">
+                <div className="rounded-sm border border-[var(--sea-accent-border)] bg-white/80 dark:bg-gray-950/40 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-[var(--sea-accent)]">
                     Estimated Total
                   </div>
@@ -1099,7 +1099,7 @@ export default function SkillDetailPage({
         )}
 
         {/* Install Command */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Install
@@ -1139,13 +1139,13 @@ export default function SkillDetailPage({
               </>
             )}
           </p>
-          <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
+          <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-sm p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
             <code>{installCommand}</code>
           </pre>
         </div>
 
         {/* Agent API Access */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Agent API (x402)
@@ -1177,7 +1177,7 @@ export default function SkillDetailPage({
             )}
           </p>
           <div className="flex items-center gap-2">
-            <pre className="flex-1 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
+            <pre className="flex-1 text-sm bg-gray-50 dark:bg-gray-800 rounded-sm p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
               <code>{`GET /api/skills/${skill.id}/raw`}</code>
             </pre>
             <button
@@ -1220,7 +1220,7 @@ export default function SkillDetailPage({
                     {copied === "api-message" ? "Copied!" : "Copy"}
                   </button>
                 </div>
-                <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
+                <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-sm p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
                   <code>{signedDownloadMessage}</code>
                 </pre>
               </div>
@@ -1243,7 +1243,7 @@ export default function SkillDetailPage({
                     {copied === "api-auth" ? "Copied!" : "Copy"}
                   </button>
                 </div>
-                <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
+                <pre className="text-sm bg-gray-50 dark:bg-gray-800 rounded-sm p-3 overflow-x-auto border border-gray-100 dark:border-gray-700">
                   <code>{signedDownloadHeader}</code>
                 </pre>
               </div>
@@ -1266,7 +1266,7 @@ export default function SkillDetailPage({
 
         {/* IPFS CID */}
         {skill.ipfs_cid && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FiShield className="w-4 h-4 text-green-500" />
@@ -1300,7 +1300,7 @@ export default function SkillDetailPage({
         {/* Content Verification */}
         {skill.content_verification && (
           <div
-            className={`rounded-xl border p-4 mb-6 ${
+            className={`rounded-sm border p-4 mb-6 ${
               skill.content_verification.status === "verified"
                 ? "border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10"
                 : skill.content_verification.status === "drift_detected"
@@ -1343,7 +1343,7 @@ export default function SkillDetailPage({
 
         {/* On-chain listing section */}
         {skill.on_chain_address ? (
-          <div className="rounded-xl border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-4 mb-6">
+          <div className="rounded-sm border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
                 <FiCheckCircle className="w-4 h-4" />
@@ -1363,7 +1363,7 @@ export default function SkillDetailPage({
                     <button
                       onClick={handleRemoveListing}
                       disabled={removing}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/60 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/60 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                     >
                       <FiTrash2 className="w-3.5 h-3.5" />
                       {removing ? "Removing…" : "Remove"}
@@ -1404,7 +1404,7 @@ export default function SkillDetailPage({
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     maxLength={64}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                   />
                 </div>
                 <div>
@@ -1416,7 +1416,7 @@ export default function SkillDetailPage({
                     onChange={(e) => setEditDescription(e.target.value)}
                     maxLength={256}
                     rows={2}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)] resize-none"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)] resize-none"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1430,7 +1430,7 @@ export default function SkillDetailPage({
                       step={PRICING.SOL.step}
                       value={editPrice}
                       onChange={(e) => setEditPrice(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                     />
                   </div>
                   <div>
@@ -1441,7 +1441,7 @@ export default function SkillDetailPage({
                       type="text"
                       value={editUri}
                       onChange={(e) => setEditUri(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                     />
                   </div>
                 </div>
@@ -1485,7 +1485,7 @@ export default function SkillDetailPage({
         ) : (
           connected &&
           walletAddress === skill.author_pubkey && (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6">
+            <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <SiSolana className="w-4 h-4 text-gray-400" />
                 <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -1520,7 +1520,7 @@ export default function SkillDetailPage({
                     step={PRICING.SOL.step}
                     value={listPrice}
                     onChange={(e) => setListPrice(e.target.value)}
-                    className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                    className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                   />
                 </div>
                 <button
@@ -1554,7 +1554,7 @@ export default function SkillDetailPage({
 
         {/* Skill URI */}
         {skill.skill_uri && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FiExternalLink className="w-4 h-4 text-[var(--sea-accent)]" />
@@ -1576,7 +1576,7 @@ export default function SkillDetailPage({
 
         {/* SKILL.md Content */}
         {content ? (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
               <FiFileText className="w-4 h-4 text-gray-400" />
               <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -1588,7 +1588,7 @@ export default function SkillDetailPage({
         ) : (
           isChainOnly &&
           skill.skill_uri && (
-            <div className="rounded-xl border border-yellow-200 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10 p-4 mb-6">
+            <div className="rounded-sm border border-yellow-200 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10 p-4 mb-6">
               <p className="text-sm text-yellow-700 dark:text-yellow-400">
                 Content could not be loaded from the source URL. The file may
                 have been moved or is temporarily unavailable.
@@ -1599,7 +1599,7 @@ export default function SkillDetailPage({
 
         {/* Version History */}
         {skill.versions?.length > 0 && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
             <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
               <FiGitCommit className="w-4 h-4 text-gray-400" />
               <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -1610,7 +1610,7 @@ export default function SkillDetailPage({
               {skill.versions.map((ver) => (
                 <div
                   key={ver.id}
-                  className="flex items-start justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                  className="flex items-start justify-between p-3 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
                 >
                   <div>
                     <div className="flex items-center gap-2">

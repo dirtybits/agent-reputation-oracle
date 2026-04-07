@@ -769,7 +769,7 @@ export default function AuthorProfilePage() {
 
         {showClaimModal && !isOwnProfile && profile && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="relative w-full max-w-2xl rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-xl">
+            <div className="relative w-full max-w-2xl rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-xl">
               <button
                 onClick={closeClaimModal}
                 className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -790,7 +790,7 @@ export default function AuthorProfilePage() {
               </div>
 
               {!connected ? (
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6 text-center">
+                <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-6 text-center">
                   <FiShield className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     Connect your wallet to report this author and post the
@@ -808,7 +808,7 @@ export default function AuthorProfilePage() {
                       <select
                         value={claimReason}
                         onChange={(e) => setClaimReason(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                       >
                         <option value="malicious-skill">
                           Malicious skill or payload
@@ -830,7 +830,7 @@ export default function AuthorProfilePage() {
                       <select
                         value={claimSkillContext}
                         onChange={(e) => setClaimSkillContext(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                       >
                         {claimSkillOptions.map((skill) => (
                           <option key={skill.value} value={skill.value}>
@@ -844,7 +844,7 @@ export default function AuthorProfilePage() {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Author-wide backing snapshot
                       </label>
-                      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 space-y-2">
+                      <div className="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 space-y-2">
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           This report records the offending listed skill and the
                           author&apos;s full backing snapshot. You cannot choose
@@ -873,7 +873,7 @@ export default function AuthorProfilePage() {
                         value={claimEvidenceUri}
                         onChange={(e) => setClaimEvidenceUri(e.target.value)}
                         placeholder="https://github.com/... or ipfs://..."
-                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                       />
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         The skill listing is required. Purchase is optional
@@ -882,7 +882,7 @@ export default function AuthorProfilePage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-900/20 p-4">
+                  <div className="mt-4 rounded-sm border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-900/20 p-4">
                     <p className="text-sm text-amber-800 dark:text-amber-300">
                       <span className="inline-flex items-center gap-1">
                         <FiAlertTriangle className="w-4 h-4" />
@@ -893,7 +893,7 @@ export default function AuthorProfilePage() {
                   </div>
 
                   {claimStatus && !claimStatus.success && (
-                    <div className="mt-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+                    <div className="mt-4 rounded-sm border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
                       <p className="text-sm text-red-700 dark:text-red-300">
                         {claimStatus.message}
                       </p>
@@ -963,14 +963,14 @@ export default function AuthorProfilePage() {
 
         {/* Trust Badge */}
         {!profile ? (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6 text-center">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6 text-center">
             <FiShield className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
             <p className="text-sm text-gray-500 dark:text-gray-400">
               This author is not registered on-chain yet.
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <TrustBadge trust={trustData} />
             {registeredAt > 0 && (
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 flex items-center gap-1">
@@ -982,7 +982,7 @@ export default function AuthorProfilePage() {
         )}
 
         {authorDisputes.length > 0 && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <FiAlertTriangle className="text-[var(--lobster-accent)]" />{" "}
               Author Disputes
@@ -991,7 +991,7 @@ export default function AuthorProfilePage() {
               {authorDisputes.map((dispute) => (
                 <div
                   key={dispute.publicKey}
-                  className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
+                  className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
                 >
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="rounded-full bg-gray-200/70 dark:bg-gray-700/70 px-2 py-0.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">
@@ -1046,7 +1046,7 @@ export default function AuthorProfilePage() {
         )}
 
         {isOwnProfile && profile && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-2">
               Link Solana Agent Registry
             </h2>
@@ -1095,7 +1095,7 @@ export default function AuthorProfilePage() {
                 {registryCandidates.map((candidate) => (
                   <div
                     key={candidate.coreAssetPubkey}
-                    className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
+                    className="rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
                   >
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div className="space-y-2">
@@ -1145,7 +1145,7 @@ export default function AuthorProfilePage() {
             {registryCandidatesLoaded &&
               registryCandidates.length === 0 &&
               !discoveringRegistryCandidates && (
-                <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
+                <div className="mt-4 rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     No public registry identities were found for this wallet on
                     the configured Solana network.
@@ -1164,7 +1164,7 @@ export default function AuthorProfilePage() {
                     value={registryProgramAddress}
                     onChange={(e) => setRegistryProgramAddress(e.target.value)}
                     placeholder="Agent registry program address"
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                   />
                 </div>
 
@@ -1177,7 +1177,7 @@ export default function AuthorProfilePage() {
                     value={registryAssetPubkey}
                     onChange={(e) => setRegistryAssetPubkey(e.target.value)}
                     placeholder="Metaplex Core asset pubkey"
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                   />
                 </div>
 
@@ -1190,7 +1190,7 @@ export default function AuthorProfilePage() {
                     value={operationalWalletPubkey}
                     onChange={(e) => setOperationalWalletPubkey(e.target.value)}
                     placeholder="Optional agent wallet"
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                   />
                 </div>
 
@@ -1250,7 +1250,7 @@ export default function AuthorProfilePage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center"
+              className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center"
             >
               <div className="flex items-center justify-center text-[var(--lobster-accent)] mb-1">
                 {stat.icon}
@@ -1267,7 +1267,7 @@ export default function AuthorProfilePage() {
 
         {/* Vouch for this author */}
         {!isOwnProfile && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <FiZap className="text-[var(--lobster-accent)]" /> Vouch for this
               Author
@@ -1278,7 +1278,7 @@ export default function AuthorProfilePage() {
             </p>
 
             {!profile ? (
-              <div className="rounded-lg border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-900/20 p-4">
+              <div className="rounded-sm border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-900/20 p-4">
                 <p className="text-sm text-amber-700 dark:text-amber-300">
                   This author needs an on-chain profile before anyone can vouch
                   for them.
@@ -1297,7 +1297,7 @@ export default function AuthorProfilePage() {
                       onChange={(e) => setVouchAmount(e.target.value)}
                       min="0.01"
                       step="0.01"
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none"
                     />
                   </div>
 
@@ -1373,7 +1373,7 @@ export default function AuthorProfilePage() {
         )}
 
         {/* Skills */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <FiPackage className="text-[var(--lobster-accent)]" /> Published
             Skills
@@ -1392,7 +1392,7 @@ export default function AuthorProfilePage() {
                   <Link
                     key={skill.id}
                     href={`/skills/${skill.id}`}
-                    className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition block"
+                    className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition block"
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h3 className="font-heading font-bold text-gray-900 dark:text-white text-sm truncate">
@@ -1442,7 +1442,7 @@ export default function AuthorProfilePage() {
                     <Link
                       key={skill.id}
                       href={`/skills/${skill.id}`}
-                      className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition block"
+                      className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4 hover:border-gray-300 dark:hover:border-gray-600 transition block"
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white text-sm truncate">
@@ -1480,7 +1480,7 @@ export default function AuthorProfilePage() {
 
         {/* Vouchers (who vouches for this author) */}
         {vouchesReceived.length > 0 && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <FiUsers className="text-[var(--lobster-accent)]" /> Vouchers
             </h2>
@@ -1502,7 +1502,7 @@ export default function AuthorProfilePage() {
                 return (
                   <div
                     key={vouch.publicKey}
-                    className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
+                    className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 space-y-1">
@@ -1555,7 +1555,7 @@ export default function AuthorProfilePage() {
 
         {/* Vouching for (who this author vouches for) */}
         {vouchesGiven.length > 0 && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <FiZap className="text-[var(--lobster-accent)]" /> Vouching For
             </h2>
@@ -1568,7 +1568,7 @@ export default function AuthorProfilePage() {
                 return (
                   <div
                     key={vouch.publicKey}
-                    className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
+                    className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 space-y-1">
@@ -1612,7 +1612,7 @@ export default function AuthorProfilePage() {
         )}
 
         {!isOwnProfile && profile && (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="space-y-2">
                 <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1649,7 +1649,7 @@ export default function AuthorProfilePage() {
 
             {claimStatus && (
               <div
-                className={`mt-4 rounded-lg border p-4 ${
+                className={`mt-4 rounded-sm border p-4 ${
                   claimStatus.success
                     ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
                     : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"

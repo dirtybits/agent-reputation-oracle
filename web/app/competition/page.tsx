@@ -85,7 +85,7 @@ function StatusBanner({
 }) {
   if (phase === "upcoming") {
     return (
-      <div className="rounded-xl border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] p-6 md:p-8 mb-8 text-center">
+      <div className="rounded-sm border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] p-6 md:p-8 mb-8 text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
           <FiClock className="w-5 h-5 text-[var(--lobster-accent)]" />
           <span className="text-sm font-semibold text-[var(--lobster-accent-strong)]">
@@ -116,7 +116,7 @@ function StatusBanner({
 
   if (phase === "active") {
     return (
-      <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6 md:p-8 mb-8 text-center">
+      <div className="rounded-sm border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6 md:p-8 mb-8 text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
@@ -149,7 +149,7 @@ function StatusBanner({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 p-6 md:p-8 mb-8 text-center">
+    <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 p-6 md:p-8 mb-8 text-center">
       <div className="flex items-center justify-center gap-2 mb-2">
         <FiCheckCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
         <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -230,7 +230,7 @@ export default function CompetitionPage() {
         <StatusBanner phase={phase} remaining={remaining} />
 
         {/* Prize Section */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
           <div className="flex items-center gap-2 mb-6">
             <FiAward className="w-5 h-5 text-yellow-500" />
             <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white">
@@ -245,7 +245,7 @@ export default function CompetitionPage() {
             {PRIZES.map((prize) => (
               <div
                 key={prize.place}
-                className={`rounded-xl border p-5 text-center ${prize.bg}`}
+                className={`rounded-sm border p-5 text-center ${prize.bg}`}
               >
                 <div
                   className={`text-2xl font-heading font-bold mb-1 ${prize.color}`}
@@ -266,7 +266,7 @@ export default function CompetitionPage() {
         </div>
 
         {/* Rules */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white">
               How to Enter
@@ -351,7 +351,7 @@ export default function CompetitionPage() {
         </div>
 
         {/* Judging Criteria */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 md:p-8 mb-8">
           <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-4">
             Judging
           </h2>
@@ -380,7 +380,7 @@ export default function CompetitionPage() {
             ].map((c) => (
               <div
                 key={c.label}
-                className="flex items-start gap-2.5 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-3"
+                className="flex items-start gap-2.5 rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-3"
               >
                 <FiCheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 shrink-0" />
                 <div>
@@ -457,7 +457,7 @@ export default function CompetitionPage() {
             <FiLoader className="w-6 h-6 animate-spin text-gray-400" />
           </div>
         ) : skills.length === 0 ? (
-          <div className="text-center py-20 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="text-center py-20 rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
             <FiAward className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-700 mb-4" />
             <p className="text-gray-500 dark:text-gray-400 mb-2">
               No entries yet
@@ -488,7 +488,7 @@ export default function CompetitionPage() {
               return (
                 <div
                   key={skill.id}
-                  className="group relative flex items-start gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition"
+                  className="group relative flex items-start gap-4 rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition"
                 >
                   <Link
                     href={`/skills/${skill.id}`}

@@ -69,7 +69,7 @@ export default function MarkdownRenderer({
           ),
           table: ({ children }) => (
             <div className="overflow-x-auto my-4">
-              <table className="min-w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+              <table className="min-w-full border border-gray-200 dark:border-gray-700 rounded-sm">
                 {children}
               </table>
             </div>

@@ -51,7 +51,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             AgentVouch is a reputation oracle for AI agents. Use these docs to
             discover skills, inspect author trust, verify paid downloads, and
@@ -61,7 +61,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           <div className="grid gap-3 md:grid-cols-2">
             <a
               href="/docs/what-is-an-agent-reputation-oracle"
-              className="rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+              className="rounded-sm border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
             >
               <span className="block font-semibold text-gray-900 dark:text-white mb-1">
                 What is an agent reputation oracle?
@@ -70,7 +70,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
             </a>
             <a
               href="/docs/verify-ai-agents"
-              className="rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+              className="rounded-sm border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
             >
               <span className="block font-semibold text-gray-900 dark:text-white mb-1">
                 How to verify an AI agent
@@ -81,7 +81,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
         </div>
 
         {/* Download Skill.md */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <FiDownload className="text-[var(--sea-accent)]" /> Download Skill
           </h2>
@@ -101,13 +101,13 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
         </div>
 
         {/* Contract Info */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <FiFileText className="text-[var(--sea-accent)]" /> Smart Contract
           </h2>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3">
+              <div className="rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3">
                 <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">
                   Network
                 </div>
@@ -115,7 +115,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
                   Solana Devnet
                 </div>
               </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3">
+              <div className="rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3">
                 <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">
                   IDL
                 </div>
@@ -138,7 +138,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
         </div>
 
         {/* REST API */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <FiCode className="text-[var(--sea-accent)]" /> REST API
           </h2>
@@ -178,7 +178,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
 
         <div
           id="paid-skill-download"
-          className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4 scroll-mt-24"
+          className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4 scroll-mt-24"
         >
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <FiDownload className="text-[var(--sea-accent)]" /> Paid Skill
@@ -234,7 +234,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
         </div>
 
         {/* Example Code */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <FiCode className="text-[var(--sea-accent)]" /> On-Chain Usage
           </h2>
@@ -259,7 +259,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
         </div>
 
         {/* GitHub Link */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-gray-900 dark:text-white mb-1">
