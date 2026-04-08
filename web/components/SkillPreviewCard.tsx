@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   FiAlertTriangle,
@@ -35,6 +36,10 @@ interface SkillPreviewCardSkill {
   source?: "repo" | "chain";
   author_trust: TrustData | null;
   purchasePreflightMessage?: string | null;
+  purchaseBlockError?: {
+    code: "buyerInsufficientBalance" | "authorPayoutRentBlocked";
+    message: string;
+  } | null;
 }
 
 interface SkillPreviewCardProps {
@@ -137,6 +142,7 @@ export default function SkillPreviewCard({
   descriptionFallback,
   onPurchase,
 }: SkillPreviewCardProps) {
+  const [showPurchaseWarning, setShowPurchaseWarning] = useState(false);
   const displayTitle = truncateAtWord(skill.name, 32);
   const description = skill.description ?? descriptionFallback ?? "";
   const displayDescription = description
@@ -159,9 +165,10 @@ export default function SkillPreviewCard({
           )}.`
       : "No on-chain purchase required.";
   const purchaseWarning =
-    purchaseBlocked && skill.purchasePreflightMessage
-      ? skill.purchasePreflightMessage
+    purchaseBlocked
+      ? skill.purchaseBlockError?.message ?? skill.purchasePreflightMessage
       : null;
+  const purchaseWarningId = `purchase-warning-${skill.id}`;
 
   return (
     <div className="group flex flex-col rounded-sm border border-gray-200 bg-white p-4 transition hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
@@ -313,11 +320,6 @@ export default function SkillPreviewCard({
 
       {hasListing && (
         <div className="mt-4 border-t border-gray-100 pt-3 dark:border-gray-800">
-          {purchaseWarning && (
-            <p className="mb-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
-              {purchaseWarning}
-            </p>
-          )}
           {isOwn ? (
             <div
               className={`w-full border border-gray-200 bg-gray-50 text-center font-medium text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500 ${navButtonSizeClass}`}
@@ -343,11 +345,36 @@ export default function SkillPreviewCard({
             </div>
           ) : purchaseBlocked ? (
             <div
-              className={`w-full border border-amber-200 bg-amber-50 text-center font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300 ${navButtonSizeClass}`}
+              className="relative"
+              onMouseEnter={() => setShowPurchaseWarning(true)}
+              onMouseLeave={() => setShowPurchaseWarning(false)}
             >
-              {purchasePreflightStatus === "authorPayoutRentBlocked"
-                ? "Seller Needs SOL"
-                : "Need More SOL"}
+              <button
+                type="button"
+                onClick={() => setShowPurchaseWarning((visible) => !visible)}
+                onFocus={() => setShowPurchaseWarning(true)}
+                onBlur={() => setShowPurchaseWarning(false)}
+                aria-describedby={purchaseWarning ? purchaseWarningId : undefined}
+                aria-expanded={purchaseWarning ? showPurchaseWarning : undefined}
+                className={`w-full cursor-help border border-amber-200 bg-amber-50 text-center font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300 ${navButtonSizeClass}`}
+              >
+                {purchasePreflightStatus === "authorPayoutRentBlocked"
+                  ? "Seller Needs SOL"
+                  : "Need More SOL"}
+              </button>
+              {purchaseWarning && (
+                <div
+                  id={purchaseWarningId}
+                  role="tooltip"
+                  className={`pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-sm border border-amber-200 bg-white px-3 py-2 text-left text-[11px] leading-relaxed text-amber-700 shadow-lg transition dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300 ${
+                    showPurchaseWarning
+                      ? "visible opacity-100"
+                      : "invisible opacity-0"
+                  }`}
+                >
+                  {purchaseWarning}
+                </div>
+              )}
             </div>
           ) : (
             <button

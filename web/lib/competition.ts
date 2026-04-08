@@ -1,4 +1,5 @@
 export const COMPETITION_TAG = "competition";
+export const SHOW_COMPETITION_CTA = false;
 
 export const COMPETITION_START = new Date("2026-03-11T22:00:00Z"); // Wed 3/11 3:00 PM PDT
 export const COMPETITION_END = new Date("2026-03-18T21:59:00Z"); // Wed 3/18 2:59 PM PDT

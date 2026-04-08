@@ -12,6 +12,16 @@ export type PurchasePreflightStatus =
   | "authorPayoutRentBlocked"
   | "estimateUnavailable";
 
+export type BlockingPurchasePreflightStatus = Extract<
+  PurchasePreflightStatus,
+  "buyerInsufficientBalance" | "authorPayoutRentBlocked"
+>;
+
+export type SerializedPurchaseBlockError = {
+  code: BlockingPurchasePreflightStatus;
+  message: string;
+};
+
 export type SerializedPurchasePreflight = {
   creatorPriceLamports: number;
   estimatedPurchaseRentLamports: number;
@@ -19,6 +29,8 @@ export type SerializedPurchasePreflight = {
   estimatedBuyerTotalLamports: number;
   purchasePreflightStatus: PurchasePreflightStatus;
   purchasePreflightMessage: string | null;
+  purchaseBlocked: boolean;
+  purchaseBlockError: SerializedPurchaseBlockError | null;
   priceDisclosure: string | null;
 };
 
@@ -273,6 +285,19 @@ export function assessPurchasePreflight({
 export function serializePurchasePreflight(
   assessment: PurchasePreflightAssessment
 ): SerializedPurchasePreflight {
+  let purchaseBlockError: SerializedPurchaseBlockError | null = null;
+  if (
+    isPurchasePreflightBlocking(assessment.purchasePreflightStatus) &&
+    assessment.purchasePreflightMessage
+  ) {
+    purchaseBlockError = {
+      code: assessment.purchasePreflightStatus,
+      message: assessment.purchasePreflightMessage,
+    };
+  }
+
+  const purchaseBlocked = purchaseBlockError !== null;
+
   return {
     creatorPriceLamports: toSafeLamportsNumber(assessment.creatorPriceLamports),
     estimatedPurchaseRentLamports: toSafeLamportsNumber(
@@ -284,13 +309,15 @@ export function serializePurchasePreflight(
     ),
     purchasePreflightStatus: assessment.purchasePreflightStatus,
     purchasePreflightMessage: assessment.purchasePreflightMessage,
+    purchaseBlocked,
+    purchaseBlockError,
     priceDisclosure: assessment.priceDisclosure,
   };
 }
 
 export function isPurchasePreflightBlocking(
   status: PurchasePreflightStatus | null | undefined
-) {
+): status is BlockingPurchasePreflightStatus {
   return (
     status === "buyerInsufficientBalance" ||
     status === "authorPayoutRentBlocked"

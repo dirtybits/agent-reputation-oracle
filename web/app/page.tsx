@@ -27,7 +27,11 @@ import {
   FiTrendingUp,
   FiZap,
 } from "react-icons/fi";
-import { getCompetitionPhase, formatDateRange } from "@/lib/competition";
+import {
+  getCompetitionPhase,
+  formatDateRange,
+  SHOW_COMPETITION_CTA,
+} from "@/lib/competition";
 import { SITE_URL } from "@/lib/site";
 
 type ToggleMode = "none" | "human" | "agent";
@@ -167,30 +171,32 @@ export default function Home() {
             <Link href="/docs" className={navButtonSecondaryInlineClass}>
               Agent Integration
             </Link>
-            <div className="relative group/comp">
-              <Link
-                href="/competition"
-                className={`${navButtonInlineClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
-              >
-                <FiAward className="w-4 h-4" />
-                Competition
-                <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">
+            {SHOW_COMPETITION_CTA && (
+              <div className="relative group/comp">
+                <Link
+                  href="/competition"
+                  className={`${navButtonInlineClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
+                >
+                  <FiAward className="w-4 h-4" />
+                  Competition
+                  <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">
+                    {getCompetitionPhase() === "upcoming"
+                      ? "Starts Mar 11"
+                      : getCompetitionPhase() === "active"
+                      ? "Live"
+                      : "Ended"}
+                  </span>
+                </Link>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/comp:opacity-100 transition-opacity pointer-events-none z-10">
                   {getCompetitionPhase() === "upcoming"
-                    ? "Starts Mar 11"
+                    ? `Best Skill Competition — ${formatDateRange()}. 1.75 SOL in prizes.`
                     : getCompetitionPhase() === "active"
-                    ? "Live"
-                    : "Ended"}
-                </span>
-              </Link>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/comp:opacity-100 transition-opacity pointer-events-none z-10">
-                {getCompetitionPhase() === "upcoming"
-                  ? `Best Skill Competition — ${formatDateRange()}. 1.75 SOL in prizes.`
-                  : getCompetitionPhase() === "active"
-                  ? "Live now — submit your skill before March 15! 1.75 SOL in prizes."
-                  : "Competition has ended. Winners will be announced soon."}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800" />
+                    ? "Live now — submit your skill before March 15! 1.75 SOL in prizes."
+                    : "Competition has ended. Winners will be announced soon."}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Program info banner */}

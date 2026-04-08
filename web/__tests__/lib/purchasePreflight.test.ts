@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   assessPurchasePreflight,
   PURCHASE_FEE_BUFFER_LAMPORTS,
+  serializePurchasePreflight,
   type PurchasePreflightContext,
 } from "@/lib/purchasePreflight";
 
@@ -72,6 +73,13 @@ describe("purchase preflight", () => {
     expect(result.purchasePreflightMessage).toContain(
       "author's payout wallet is empty"
     );
+
+    const serialized = serializePurchasePreflight(result);
+    expect(serialized.purchaseBlocked).toBe(true);
+    expect(serialized.purchaseBlockError).toEqual({
+      code: "authorPayoutRentBlocked",
+      message: result.purchasePreflightMessage,
+    });
   });
 
   it("allows a 0.1 SOL listing even if the author wallet starts empty", () => {

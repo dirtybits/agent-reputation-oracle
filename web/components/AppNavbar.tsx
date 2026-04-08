@@ -9,7 +9,7 @@ import {
   navPillActiveClass,
   navPillIdleClass,
 } from "@/lib/buttonStyles";
-import { getCompetitionPhase } from "@/lib/competition";
+import { getCompetitionPhase, SHOW_COMPETITION_CTA } from "@/lib/competition";
 
 type NavItem = {
   href: string;
@@ -37,11 +37,15 @@ const navItems: NavItem[] = [
     label: "Docs",
     match: (pathname) => pathname === "/docs",
   },
-  {
-    href: "/competition",
-    label: "Competition",
-    match: (pathname) => pathname === "/competition",
-  },
+  ...(SHOW_COMPETITION_CTA
+    ? [
+        {
+          href: "/competition",
+          label: "Competition",
+          match: (pathname: string) => pathname === "/competition",
+        },
+      ]
+    : []),
 ];
 
 function navLinkClass(isActive: boolean) {

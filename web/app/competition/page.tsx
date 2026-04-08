@@ -29,6 +29,7 @@ import {
   getCompetitionPhase,
   getTimeRemaining,
   formatDateRange,
+  SHOW_COMPETITION_CTA,
   type CompetitionPhase,
   type TimeRemaining,
 } from "@/lib/competition";
@@ -397,44 +398,46 @@ export default function CompetitionPage() {
         </div>
 
         {/* Submit CTA — phase-aware */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
-          {phase === "upcoming" && (
-            <>
-              <div
-                className={`w-full sm:w-auto ${navButtonFlexClass} font-semibold bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed`}
-              >
-                <FiPlus className="w-4 h-4" />
-                Submit Your Skill
+        {SHOW_COMPETITION_CTA && (
+          <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
+            {phase === "upcoming" && (
+              <>
+                <div
+                  className={`w-full sm:w-auto ${navButtonFlexClass} font-semibold bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed`}
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Submit Your Skill
+                </div>
+                <span className="text-sm text-gray-400 dark:text-gray-500">
+                  Submissions open March 11 at 3:00 PM PDT
+                </span>
+              </>
+            )}
+            {phase === "active" && (
+              <>
+                <Link
+                  href="/skills/publish?tag=competition"
+                  className={`w-full sm:w-auto ${navButtonPrimaryFlexClass}`}
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Submit Your Skill
+                </Link>
+                <Link
+                  href="/skills"
+                  className={`w-full sm:w-auto ${navButtonSecondaryFlexClass}`}
+                >
+                  Browse All Skills <FiArrowRight className="w-4 h-4" />
+                </Link>
+              </>
+            )}
+            {phase === "ended" && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <FiCheckCircle className="w-4 h-4" />
+                Submissions closed
               </div>
-              <span className="text-sm text-gray-400 dark:text-gray-500">
-                Submissions open March 11 at 3:00 PM PDT
-              </span>
-            </>
-          )}
-          {phase === "active" && (
-            <>
-              <Link
-                href="/skills/publish?tag=competition"
-                className={`w-full sm:w-auto ${navButtonPrimaryFlexClass}`}
-              >
-                <FiPlus className="w-4 h-4" />
-                Submit Your Skill
-              </Link>
-              <Link
-                href="/skills"
-                className={`w-full sm:w-auto ${navButtonSecondaryFlexClass}`}
-              >
-                Browse All Skills <FiArrowRight className="w-4 h-4" />
-              </Link>
-            </>
-          )}
-          {phase === "ended" && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <FiCheckCircle className="w-4 h-4" />
-              Submissions closed
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Entries */}
         <div className="mb-4">
@@ -469,7 +472,7 @@ export default function CompetitionPage() {
                 ? "Be the first to submit a skill to the competition"
                 : "No skills were submitted during this competition"}
             </p>
-            {phase === "active" && (
+            {SHOW_COMPETITION_CTA && phase === "active" && (
               <Link
                 href="/skills/publish?tag=competition"
                 className={navButtonPrimaryInlineClass}

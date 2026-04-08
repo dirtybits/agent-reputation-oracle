@@ -44,7 +44,7 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 import { isRpcRateLimitError } from "@/lib/rpcErrors";
-import { getCompetitionPhase } from "@/lib/competition";
+import { getCompetitionPhase, SHOW_COMPETITION_CTA } from "@/lib/competition";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -489,30 +489,24 @@ export default function MarketplacePage() {
               )}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-3 self-start whitespace-nowrap">
-            <Link
-              href="/competition"
-              className={`${navButtonFlexClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
-            >
-              <FiAward className="w-4 h-4" />
-              <span className="hidden sm:inline">Competition</span>
-              <span className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40">
-                {getCompetitionPhase() === "upcoming"
-                  ? "Mar 11"
-                  : getCompetitionPhase() === "active"
-                  ? "Live"
-                  : "Ended"}
-              </span>
-            </Link>
-            <Link
-              href="/skills/publish"
-              className={`${navButtonPrimaryFlexClass} whitespace-nowrap`}
-            >
-              <FiPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Publish Skill</span>
-              <span className="sm:hidden">Publish</span>
-            </Link>
-          </div>
+          {SHOW_COMPETITION_CTA && (
+            <div className="flex shrink-0 items-center gap-3 self-start whitespace-nowrap">
+              <Link
+                href="/competition"
+                className={`${navButtonFlexClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
+              >
+                <FiAward className="w-4 h-4" />
+                <span className="hidden sm:inline">Competition</span>
+                <span className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40">
+                  {getCompetitionPhase() === "upcoming"
+                    ? "Mar 11"
+                    : getCompetitionPhase() === "active"
+                    ? "Live"
+                    : "Ended"}
+                </span>
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="mb-6 rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
@@ -592,20 +586,31 @@ export default function MarketplacePage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-8 overflow-x-auto pb-2 border-b border-gray-200 dark:border-gray-800">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2.5 font-medium whitespace-nowrap transition text-sm border-b-2 -mb-[2px] ${
-                activeTab === tab.key
-                  ? "border-[var(--sea-accent)] text-[var(--sea-accent-strong)]"
-                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-[var(--sea-accent)]"
-              }`}
+        <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex min-w-0 gap-1 overflow-x-auto border-b border-gray-200 pb-2 dark:border-gray-800">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-4 py-2.5 font-medium whitespace-nowrap transition text-sm border-b-2 -mb-[2px] ${
+                  activeTab === tab.key
+                    ? "border-[var(--sea-accent)] text-[var(--sea-accent-strong)]"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-[var(--sea-accent)]"
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex shrink-0 justify-start lg:justify-end">
+            <Link
+              href="/skills/publish"
+              className={`${navButtonPrimaryFlexClass} whitespace-nowrap`}
             >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
+              <FiPlus className="w-4 h-4" />
+              <span>Publish Skill</span>
+            </Link>
+          </div>
         </div>
 
         {/* ===== BROWSE TAB ===== */}
