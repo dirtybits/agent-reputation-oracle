@@ -113,6 +113,12 @@ npm run dev
 
 Then visit `http://localhost:3000`.
 
+`npm run dev` uses Webpack for local stability on macOS. If you explicitly want Turbopack, run:
+
+```bash
+npm run dev:turbopack
+```
+
 ### Run Anchor Tests
 
 ```bash

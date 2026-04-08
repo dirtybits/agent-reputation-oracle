@@ -12,10 +12,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
@@ -45,6 +43,7 @@ import {
   getNonNullResolvedInstructionInput,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
+import { findAuthorProfilePda, findSkillListingPda } from "../pdas";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
 export const REMOVE_SKILL_LISTING_DISCRIMINATOR = new Uint8Array([
@@ -169,34 +168,20 @@ export async function getRemoveSkillListingInstructionAsync<
 
   // Resolve default values.
   if (!accounts.skillListing.value) {
-    accounts.skillListing.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([115, 107, 105, 108, 108])),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "author",
-            accounts.author.value,
-          ),
-        ),
-        getUtf8Encoder().encode(
-          getNonNullResolvedInstructionInput("skillId", args.skillId),
-        ),
-      ],
+    accounts.skillListing.value = await findSkillListingPda({
+      author: getAddressFromResolvedInstructionAccount(
+        "author",
+        accounts.author.value,
+      ),
+      skillId: getNonNullResolvedInstructionInput("skillId", args.skillId),
     });
   }
   if (!accounts.authorProfile.value) {
-    accounts.authorProfile.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([97, 103, 101, 110, 116])),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "author",
-            accounts.author.value,
-          ),
-        ),
-      ],
+    accounts.authorProfile.value = await findAuthorProfilePda({
+      author: getAddressFromResolvedInstructionAccount(
+        "author",
+        accounts.author.value,
+      ),
     });
   }
 

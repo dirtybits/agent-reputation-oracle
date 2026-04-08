@@ -1115,6 +1115,72 @@ var reputation_oracle_default = {
       ]
     },
     {
+      name: "repair_agent_registered_at",
+      discriminator: [
+        7,
+        147,
+        128,
+        160,
+        11,
+        176,
+        124,
+        76
+      ],
+      accounts: [
+        {
+          name: "agent_profile",
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                kind: "account",
+                path: "agent_profile.authority",
+                account: "AgentProfile"
+              }
+            ]
+          }
+        },
+        {
+          name: "config",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          name: "authority",
+          signer: true
+        }
+      ],
+      args: [
+        {
+          name: "registered_at",
+          type: "i64"
+        }
+      ]
+    },
+    {
       name: "resolve_author_dispute",
       discriminator: [
         104,
@@ -1927,38 +1993,18 @@ var reputation_oracle_default = {
   errors: [
     {
       code: 6e3,
-      name: "AmountMustBePositive",
-      msg: "Amount must be greater than zero"
+      name: "InsufficientFunds",
+      msg: "Insufficient funds"
     },
     {
       code: 6001,
-      name: "AuthorBondAuthorityMismatch",
-      msg: "Author bond authority mismatch"
+      name: "InsufficientBondAmount",
+      msg: "Bond amount is lower than the requested slash amount"
     },
     {
       code: 6002,
-      name: "InsufficientBondAmount",
-      msg: "Author bond amount is insufficient for this withdrawal"
-    },
-    {
-      code: 6003,
-      name: "FreeListingsRequireBondFloor",
-      msg: "Active free listings require the configured minimum author bond"
-    },
-    {
-      code: 6004,
-      name: "AuthorBondLockedWhileDisputesOpen",
-      msg: "Author bond cannot be withdrawn while author disputes are open"
-    },
-    {
-      code: 6005,
-      name: "InsufficientLamports",
-      msg: "Author bond account does not have enough lamports for this withdrawal"
-    },
-    {
-      code: 6006,
-      name: "LamportOverflow",
-      msg: "Lamport amount overflowed"
+      name: "InvalidSlashAmount",
+      msg: "Slash amount exceeds the supported amount for this account"
     }
   ],
   types: [

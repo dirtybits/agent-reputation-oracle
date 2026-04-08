@@ -1,6 +1,7 @@
 pub mod initialize_config;
 pub mod register_agent;
 pub mod migrate_agent;
+pub mod repair_agent_registered_at;
 pub mod deposit_author_bond;
 pub mod withdraw_author_bond;
 pub mod vouch;
@@ -18,6 +19,7 @@ pub mod claim_voucher_revenue;
 pub use initialize_config::*;
 pub use register_agent::*;
 pub use migrate_agent::*;
+pub use repair_agent_registered_at::*;
 pub use deposit_author_bond::*;
 pub use withdraw_author_bond::*;
 pub use vouch::*;

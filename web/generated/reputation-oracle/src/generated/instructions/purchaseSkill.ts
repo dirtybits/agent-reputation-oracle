@@ -10,10 +10,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -39,6 +37,7 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
+import { findPurchasePda } from "../pdas";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
 export const PURCHASE_SKILL_DISCRIMINATOR = new Uint8Array([
@@ -182,25 +181,15 @@ export async function getPurchaseSkillInstructionAsync<
 
   // Resolve default values.
   if (!accounts.purchase.value) {
-    accounts.purchase.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(
-          new Uint8Array([112, 117, 114, 99, 104, 97, 115, 101]),
-        ),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "buyer",
-            accounts.buyer.value,
-          ),
-        ),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "skillListing",
-            accounts.skillListing.value,
-          ),
-        ),
-      ],
+    accounts.purchase.value = await findPurchasePda({
+      buyer: getAddressFromResolvedInstructionAccount(
+        "buyer",
+        accounts.buyer.value,
+      ),
+      skillListing: getAddressFromResolvedInstructionAccount(
+        "skillListing",
+        accounts.skillListing.value,
+      ),
     });
   }
   if (!accounts.systemProgram.value) {

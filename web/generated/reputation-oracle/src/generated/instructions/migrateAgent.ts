@@ -12,10 +12,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
@@ -45,6 +43,7 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
+import { findAgentProfilePda } from "../pdas";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
 export const MIGRATE_AGENT_DISCRIMINATOR = new Uint8Array([
@@ -171,17 +170,11 @@ export async function getMigrateAgentInstructionAsync<
 
   // Resolve default values.
   if (!accounts.agentProfile.value) {
-    accounts.agentProfile.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([97, 103, 101, 110, 116])),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "authority",
-            accounts.authority.value,
-          ),
-        ),
-      ],
+    accounts.agentProfile.value = await findAgentProfilePda({
+      authority: getAddressFromResolvedInstructionAccount(
+        "authority",
+        accounts.authority.value,
+      ),
     });
   }
   if (!accounts.systemProgram.value) {

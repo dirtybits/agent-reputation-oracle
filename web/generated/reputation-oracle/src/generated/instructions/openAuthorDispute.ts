@@ -14,7 +14,6 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
-  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
@@ -45,6 +44,7 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
+import { findConfigPda } from "../pdas";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 import {
   getAuthorDisputeReasonDecoder,
@@ -225,12 +225,7 @@ export async function getOpenAuthorDisputeInstructionAsync<
 
   // Resolve default values.
   if (!accounts.config.value) {
-    accounts.config.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([99, 111, 110, 102, 105, 103])),
-      ],
-    });
+    accounts.config.value = await findConfigPda();
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =

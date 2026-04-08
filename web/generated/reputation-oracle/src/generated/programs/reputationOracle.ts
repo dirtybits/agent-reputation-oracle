@@ -65,6 +65,7 @@ import {
   getPurchaseSkillInstructionAsync,
   getRegisterAgentInstructionAsync,
   getRemoveSkillListingInstructionAsync,
+  getRepairAgentRegisteredAtInstructionAsync,
   getResolveAuthorDisputeInstructionAsync,
   getRevokeVouchInstructionAsync,
   getUpdateSkillListingInstructionAsync,
@@ -80,6 +81,7 @@ import {
   parsePurchaseSkillInstruction,
   parseRegisterAgentInstruction,
   parseRemoveSkillListingInstruction,
+  parseRepairAgentRegisteredAtInstruction,
   parseResolveAuthorDisputeInstruction,
   parseRevokeVouchInstruction,
   parseUpdateSkillListingInstruction,
@@ -102,6 +104,7 @@ import {
   type ParsedPurchaseSkillInstruction,
   type ParsedRegisterAgentInstruction,
   type ParsedRemoveSkillListingInstruction,
+  type ParsedRepairAgentRegisteredAtInstruction,
   type ParsedResolveAuthorDisputeInstruction,
   type ParsedRevokeVouchInstruction,
   type ParsedUpdateSkillListingInstruction,
@@ -110,12 +113,24 @@ import {
   type PurchaseSkillAsyncInput,
   type RegisterAgentAsyncInput,
   type RemoveSkillListingAsyncInput,
+  type RepairAgentRegisteredAtAsyncInput,
   type ResolveAuthorDisputeAsyncInput,
   type RevokeVouchAsyncInput,
   type UpdateSkillListingAsyncInput,
   type VouchAsyncInput,
   type WithdrawAuthorBondAsyncInput,
 } from "../instructions";
+import {
+  findAgentProfilePda,
+  findAuthorBondPda,
+  findAuthorProfilePda,
+  findConfigPda,
+  findPurchasePda,
+  findRevokeVouchVouchPda,
+  findSkillListingPda,
+  findVoucherProfilePda,
+  findVouchPda,
+} from "../pdas";
 
 export const REPUTATION_ORACLE_PROGRAM_ADDRESS =
   "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf" as Address<"ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf">;
@@ -228,6 +243,7 @@ export enum ReputationOracleInstruction {
   PurchaseSkill,
   RegisterAgent,
   RemoveSkillListing,
+  RepairAgentRegisteredAt,
   ResolveAuthorDispute,
   RevokeVouch,
   UpdateSkillListing,
@@ -353,6 +369,17 @@ export function identifyReputationOracleInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([7, 147, 128, 160, 11, 176, 124, 76]),
+      ),
+      0,
+    )
+  ) {
+    return ReputationOracleInstruction.RepairAgentRegisteredAt;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([104, 27, 60, 182, 26, 232, 213, 247]),
       ),
       0,
@@ -444,6 +471,9 @@ export type ParsedReputationOracleInstruction<
       instructionType: ReputationOracleInstruction.RemoveSkillListing;
     } & ParsedRemoveSkillListingInstruction<TProgram>)
   | ({
+      instructionType: ReputationOracleInstruction.RepairAgentRegisteredAt;
+    } & ParsedRepairAgentRegisteredAtInstruction<TProgram>)
+  | ({
       instructionType: ReputationOracleInstruction.ResolveAuthorDispute;
     } & ParsedResolveAuthorDisputeInstruction<TProgram>)
   | ({
@@ -534,6 +564,13 @@ export function parseReputationOracleInstruction<TProgram extends string>(
         ...parseRemoveSkillListingInstruction(instruction),
       };
     }
+    case ReputationOracleInstruction.RepairAgentRegisteredAt: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ReputationOracleInstruction.RepairAgentRegisteredAt,
+        ...parseRepairAgentRegisteredAtInstruction(instruction),
+      };
+    }
     case ReputationOracleInstruction.ResolveAuthorDispute: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -583,6 +620,7 @@ export function parseReputationOracleInstruction<TProgram extends string>(
 export type ReputationOraclePlugin = {
   accounts: ReputationOraclePluginAccounts;
   instructions: ReputationOraclePluginInstructions;
+  pdas: ReputationOraclePluginPdas;
 };
 
 export type ReputationOraclePluginAccounts = {
@@ -643,6 +681,10 @@ export type ReputationOraclePluginInstructions = {
     input: RemoveSkillListingAsyncInput,
   ) => ReturnType<typeof getRemoveSkillListingInstructionAsync> &
     SelfPlanAndSendFunctions;
+  repairAgentRegisteredAt: (
+    input: RepairAgentRegisteredAtAsyncInput,
+  ) => ReturnType<typeof getRepairAgentRegisteredAtInstructionAsync> &
+    SelfPlanAndSendFunctions;
   resolveAuthorDispute: (
     input: ResolveAuthorDisputeAsyncInput,
   ) => ReturnType<typeof getResolveAuthorDisputeInstructionAsync> &
@@ -662,6 +704,18 @@ export type ReputationOraclePluginInstructions = {
     input: WithdrawAuthorBondAsyncInput,
   ) => ReturnType<typeof getWithdrawAuthorBondInstructionAsync> &
     SelfPlanAndSendFunctions;
+};
+
+export type ReputationOraclePluginPdas = {
+  vouch: typeof findVouchPda;
+  voucherProfile: typeof findVoucherProfilePda;
+  skillListing: typeof findSkillListingPda;
+  authorProfile: typeof findAuthorProfilePda;
+  config: typeof findConfigPda;
+  authorBond: typeof findAuthorBondPda;
+  agentProfile: typeof findAgentProfilePda;
+  purchase: typeof findPurchasePda;
+  revokeVouchVouch: typeof findRevokeVouchVouchPda;
 };
 
 export type ReputationOraclePluginRequirements = ClientWithRpc<
@@ -738,6 +792,11 @@ export function reputationOracleProgram() {
               client,
               getRemoveSkillListingInstructionAsync(input),
             ),
+          repairAgentRegisteredAt: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRepairAgentRegisteredAtInstructionAsync(input),
+            ),
           resolveAuthorDispute: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -763,6 +822,17 @@ export function reputationOracleProgram() {
               client,
               getWithdrawAuthorBondInstructionAsync(input),
             ),
+        },
+        pdas: {
+          vouch: findVouchPda,
+          voucherProfile: findVoucherProfilePda,
+          skillListing: findSkillListingPda,
+          authorProfile: findAuthorProfilePda,
+          config: findConfigPda,
+          authorBond: findAuthorBondPda,
+          agentProfile: findAgentProfilePda,
+          purchase: findPurchasePda,
+          revokeVouchVouch: findRevokeVouchVouchPda,
         },
       },
     };

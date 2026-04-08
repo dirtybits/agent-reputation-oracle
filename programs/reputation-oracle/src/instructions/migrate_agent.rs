@@ -1,6 +1,13 @@
 use anchor_lang::prelude::*;
 use crate::state::AgentProfile;
 
+const MIN_PLAUSIBLE_REGISTERED_AT: i64 = 946_684_800; // 2000-01-01T00:00:00Z
+
+fn is_plausible_registered_at(timestamp: i64, now: i64) -> bool {
+    timestamp >= MIN_PLAUSIBLE_REGISTERED_AT
+        && timestamp <= now.saturating_add(366 * 24 * 60 * 60)
+}
+
 /// Migrates an existing AgentProfile PDA to the current struct layout.
 /// This is needed when the on-chain struct changed (e.g. fields were removed)
 /// and the stored bump is at the wrong offset, causing ConstraintSeeds failures
@@ -68,7 +75,7 @@ pub fn handler(ctx: Context<MigrateAgent>, metadata_uri: String) -> Result<()> {
     // Now write the AgentProfile with the correct bump using Borsh serialization.
     // We preserve reputation stats from the existing account if it already has
     // a valid authority matching the caller.
-    let mut data = profile_info.try_borrow_data()?;
+    let data = profile_info.try_borrow_data()?;
     
     // Read existing stats to preserve them (best-effort — the layout may be stale
     // but authority and reputation fields are at predictable early offsets)
@@ -94,13 +101,22 @@ pub fn handler(ctx: Context<MigrateAgent>, metadata_uri: String) -> Result<()> {
                 let recv = u32::from_le_bytes(raw[base+8..base+12].try_into().unwrap_or([0;4]));
                 let given = u32::from_le_bytes(raw[base+12..base+16].try_into().unwrap_or([0;4]));
                 let staked = u64::from_le_bytes(raw[base+16..base+24].try_into().unwrap_or([0;8]));
+                let now = Clock::get()?.unix_timestamp;
                 // reg_at is at base+24 in new layout; base+32 in old layout (after disputes_won+lost)
-                // Try new layout first (base+24), fall back to old (base+32)
+                // Prefer whichever timestamp is plausible; old legacy layouts can
+                // produce a small positive integer at base+24 from disputes counters.
                 let reg_at_new = i64::from_le_bytes(raw[base+24..base+32].try_into().unwrap_or([0;8]));
-                let reg_at = if reg_at_new > 0 { reg_at_new } else if raw.len() > base + 40 {
-                    i64::from_le_bytes(raw[base+32..base+40].try_into().unwrap_or([0;8]))
+                let reg_at = if is_plausible_registered_at(reg_at_new, now) {
+                    reg_at_new
+                } else if raw.len() > base + 40 {
+                    let reg_at_old = i64::from_le_bytes(raw[base+32..base+40].try_into().unwrap_or([0;8]));
+                    if is_plausible_registered_at(reg_at_old, now) {
+                        reg_at_old
+                    } else {
+                        now
+                    }
                 } else {
-                    Clock::get()?.unix_timestamp
+                    now
                 };
                 (score, recv, given, staked, reg_at)
             } else {

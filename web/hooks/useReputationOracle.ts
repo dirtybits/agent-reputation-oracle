@@ -57,6 +57,7 @@ import {
   AuthorDisputeRuling,
   AuthorDisputeStatus,
   VouchStatus,
+  type AgentProfile,
   type ReputationConfig,
 } from "../generated/reputation-oracle/src/generated";
 import { getMigrateAgentInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/migrateAgent";
@@ -81,6 +82,7 @@ import {
   type PurchasePreflightAssessment,
 } from "@/lib/purchasePreflight";
 import { getErrorMessage } from "@/lib/errors";
+import { normalizeRegisteredAt } from "@/lib/registeredAt";
 import { wrapRpcLookupError } from "@/lib/rpcErrors";
 
 const LAMPORTS_PER_SOL = 1_000_000_000n;
@@ -531,6 +533,13 @@ function buildPurchaseClusterMismatchError(
   )} has ${formatLamportsAsSol(
     estimate.buyerBalanceLamports ?? 0n
   )} SOL on the configured ${configuredNetwork}. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+}
+
+function sanitizeAgentProfile(profile: AgentProfile): AgentProfile {
+  return {
+    ...profile,
+    registeredAt: BigInt(normalizeRegisteredAt(profile.registeredAt)),
+  };
 }
 
 function isLiveVouchStatus(status: VouchStatus): boolean {
@@ -1139,7 +1148,7 @@ export function useReputationOracle() {
       try {
         const account = await fetchMaybeAgentProfile(rpc, profileAddress);
         if (!account.exists) return null;
-        return account.data;
+        return sanitizeAgentProfile(account.data);
       } catch {
         return null;
       }
@@ -1192,7 +1201,9 @@ export function useReputationOracle() {
       const decoder = getAgentProfileDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
-        account: decoder.decode(decodeBase64(a.account.data[0])),
+        account: sanitizeAgentProfile(
+          decoder.decode(decodeBase64(a.account.data[0]))
+        ),
       }));
     } catch (e) {
       console.error("Error fetching all agents:", e);

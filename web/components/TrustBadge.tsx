@@ -26,7 +26,7 @@ function formatSol(lamports: number): string {
   return formatSolAmount(lamports);
 }
 
-function getAuthorReportStatus(
+export function getAuthorReportStatus(
   total: number,
   upheld: number,
   active: number
@@ -118,7 +118,7 @@ export default function TrustBadge({
           {formatSol(trust.totalStakedFor)}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          External Backing
+          Backing
         </div>
       </div>
 
@@ -130,7 +130,7 @@ export default function TrustBadge({
           {formatSol(trust.authorBondLamports)}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          Author Bond
+          Self Stake
         </div>
         <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
           Aggregate stake: {formatSol(trust.totalStakeAtRisk)} SOL

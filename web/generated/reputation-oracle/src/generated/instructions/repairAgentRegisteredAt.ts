@@ -7,61 +7,55 @@
  */
 
 import {
-  addDecoderSizePrefix,
-  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getI64Decoder,
+  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
-  getU32Decoder,
-  getU32Encoder,
-  getUtf8Decoder,
-  getUtf8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
-  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
-  getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findAgentProfilePda } from "../pdas";
+import { findConfigPda } from "../pdas";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
-export const REGISTER_AGENT_DISCRIMINATOR = new Uint8Array([
-  135, 157, 66, 195, 2, 113, 175, 30,
+export const REPAIR_AGENT_REGISTERED_AT_DISCRIMINATOR = new Uint8Array([
+  7, 147, 128, 160, 11, 176, 124, 76,
 ]);
 
-export function getRegisterAgentDiscriminatorBytes() {
+export function getRepairAgentRegisteredAtDiscriminatorBytes() {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    REGISTER_AGENT_DISCRIMINATOR,
+    REPAIR_AGENT_REGISTERED_AT_DISCRIMINATOR,
   );
 }
 
-export type RegisterAgentInstruction<
+export type RepairAgentRegisteredAtInstruction<
   TProgram extends string = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
   TAccountAgentProfile extends string | AccountMeta<string> = string,
+  TAccountConfig extends string | AccountMeta<string> = string,
   TAccountAuthority extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -70,80 +64,85 @@ export type RegisterAgentInstruction<
       TAccountAgentProfile extends string
         ? WritableAccount<TAccountAgentProfile>
         : TAccountAgentProfile,
+      TAccountConfig extends string
+        ? ReadonlyAccount<TAccountConfig>
+        : TAccountConfig,
       TAccountAuthority extends string
-        ? WritableSignerAccount<TAccountAuthority> &
+        ? ReadonlySignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
       ...TRemainingAccounts,
     ]
   >;
 
-export type RegisterAgentInstructionData = {
+export type RepairAgentRegisteredAtInstructionData = {
   discriminator: ReadonlyUint8Array;
-  metadataUri: string;
+  registeredAt: bigint;
 };
 
-export type RegisterAgentInstructionDataArgs = { metadataUri: string };
+export type RepairAgentRegisteredAtInstructionDataArgs = {
+  registeredAt: number | bigint;
+};
 
-export function getRegisterAgentInstructionDataEncoder(): Encoder<RegisterAgentInstructionDataArgs> {
+export function getRepairAgentRegisteredAtInstructionDataEncoder(): FixedSizeEncoder<RepairAgentRegisteredAtInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["metadataUri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["registeredAt", getI64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: REGISTER_AGENT_DISCRIMINATOR }),
+    (value) => ({
+      ...value,
+      discriminator: REPAIR_AGENT_REGISTERED_AT_DISCRIMINATOR,
+    }),
   );
 }
 
-export function getRegisterAgentInstructionDataDecoder(): Decoder<RegisterAgentInstructionData> {
+export function getRepairAgentRegisteredAtInstructionDataDecoder(): FixedSizeDecoder<RepairAgentRegisteredAtInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["metadataUri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["registeredAt", getI64Decoder()],
   ]);
 }
 
-export function getRegisterAgentInstructionDataCodec(): Codec<
-  RegisterAgentInstructionDataArgs,
-  RegisterAgentInstructionData
+export function getRepairAgentRegisteredAtInstructionDataCodec(): FixedSizeCodec<
+  RepairAgentRegisteredAtInstructionDataArgs,
+  RepairAgentRegisteredAtInstructionData
 > {
   return combineCodec(
-    getRegisterAgentInstructionDataEncoder(),
-    getRegisterAgentInstructionDataDecoder(),
+    getRepairAgentRegisteredAtInstructionDataEncoder(),
+    getRepairAgentRegisteredAtInstructionDataDecoder(),
   );
 }
 
-export type RegisterAgentAsyncInput<
+export type RepairAgentRegisteredAtAsyncInput<
   TAccountAgentProfile extends string = string,
+  TAccountConfig extends string = string,
   TAccountAuthority extends string = string,
-  TAccountSystemProgram extends string = string,
 > = {
-  agentProfile?: Address<TAccountAgentProfile>;
+  agentProfile: Address<TAccountAgentProfile>;
+  config?: Address<TAccountConfig>;
   authority: TransactionSigner<TAccountAuthority>;
-  systemProgram?: Address<TAccountSystemProgram>;
-  metadataUri: RegisterAgentInstructionDataArgs["metadataUri"];
+  registeredAt: RepairAgentRegisteredAtInstructionDataArgs["registeredAt"];
 };
 
-export async function getRegisterAgentInstructionAsync<
+export async function getRepairAgentRegisteredAtInstructionAsync<
   TAccountAgentProfile extends string,
+  TAccountConfig extends string,
   TAccountAuthority extends string,
-  TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
 >(
-  input: RegisterAgentAsyncInput<
+  input: RepairAgentRegisteredAtAsyncInput<
     TAccountAgentProfile,
-    TAccountAuthority,
-    TAccountSystemProgram
+    TAccountConfig,
+    TAccountAuthority
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  RegisterAgentInstruction<
+  RepairAgentRegisteredAtInstruction<
     TProgramAddress,
     TAccountAgentProfile,
-    TAccountAuthority,
-    TAccountSystemProgram
+    TAccountConfig,
+    TAccountAuthority
   >
 > {
   // Program address.
@@ -153,8 +152,8 @@ export async function getRegisterAgentInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     agentProfile: { value: input.agentProfile ?? null, isWritable: true },
-    authority: { value: input.authority ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    config: { value: input.config ?? null, isWritable: false },
+    authority: { value: input.authority ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -165,66 +164,57 @@ export async function getRegisterAgentInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.agentProfile.value) {
-    accounts.agentProfile.value = await findAgentProfilePda({
-      authority: getAddressFromResolvedInstructionAccount(
-        "authority",
-        accounts.authority.value,
-      ),
-    });
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
+  if (!accounts.config.value) {
+    accounts.config.value = await findConfigPda();
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("agentProfile", accounts.agentProfile),
+      getAccountMeta("config", accounts.config),
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getRegisterAgentInstructionDataEncoder().encode(
-      args as RegisterAgentInstructionDataArgs,
+    data: getRepairAgentRegisteredAtInstructionDataEncoder().encode(
+      args as RepairAgentRegisteredAtInstructionDataArgs,
     ),
     programAddress,
-  } as RegisterAgentInstruction<
+  } as RepairAgentRegisteredAtInstruction<
     TProgramAddress,
     TAccountAgentProfile,
-    TAccountAuthority,
-    TAccountSystemProgram
+    TAccountConfig,
+    TAccountAuthority
   >);
 }
 
-export type RegisterAgentInput<
+export type RepairAgentRegisteredAtInput<
   TAccountAgentProfile extends string = string,
+  TAccountConfig extends string = string,
   TAccountAuthority extends string = string,
-  TAccountSystemProgram extends string = string,
 > = {
   agentProfile: Address<TAccountAgentProfile>;
+  config: Address<TAccountConfig>;
   authority: TransactionSigner<TAccountAuthority>;
-  systemProgram?: Address<TAccountSystemProgram>;
-  metadataUri: RegisterAgentInstructionDataArgs["metadataUri"];
+  registeredAt: RepairAgentRegisteredAtInstructionDataArgs["registeredAt"];
 };
 
-export function getRegisterAgentInstruction<
+export function getRepairAgentRegisteredAtInstruction<
   TAccountAgentProfile extends string,
+  TAccountConfig extends string,
   TAccountAuthority extends string,
-  TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
 >(
-  input: RegisterAgentInput<
+  input: RepairAgentRegisteredAtInput<
     TAccountAgentProfile,
-    TAccountAuthority,
-    TAccountSystemProgram
+    TAccountConfig,
+    TAccountAuthority
   >,
   config?: { programAddress?: TProgramAddress },
-): RegisterAgentInstruction<
+): RepairAgentRegisteredAtInstruction<
   TProgramAddress,
   TAccountAgentProfile,
-  TAccountAuthority,
-  TAccountSystemProgram
+  TAccountConfig,
+  TAccountAuthority
 > {
   // Program address.
   const programAddress =
@@ -233,8 +223,8 @@ export function getRegisterAgentInstruction<
   // Original accounts.
   const originalAccounts = {
     agentProfile: { value: input.agentProfile ?? null, isWritable: true },
-    authority: { value: input.authority ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    config: { value: input.config ?? null, isWritable: false },
+    authority: { value: input.authority ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -244,52 +234,46 @@ export function getRegisterAgentInstruction<
   // Original args.
   const args = { ...input };
 
-  // Resolve default values.
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("agentProfile", accounts.agentProfile),
+      getAccountMeta("config", accounts.config),
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getRegisterAgentInstructionDataEncoder().encode(
-      args as RegisterAgentInstructionDataArgs,
+    data: getRepairAgentRegisteredAtInstructionDataEncoder().encode(
+      args as RepairAgentRegisteredAtInstructionDataArgs,
     ),
     programAddress,
-  } as RegisterAgentInstruction<
+  } as RepairAgentRegisteredAtInstruction<
     TProgramAddress,
     TAccountAgentProfile,
-    TAccountAuthority,
-    TAccountSystemProgram
+    TAccountConfig,
+    TAccountAuthority
   >);
 }
 
-export type ParsedRegisterAgentInstruction<
+export type ParsedRepairAgentRegisteredAtInstruction<
   TProgram extends string = typeof REPUTATION_ORACLE_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
     agentProfile: TAccountMetas[0];
-    authority: TAccountMetas[1];
-    systemProgram: TAccountMetas[2];
+    config: TAccountMetas[1];
+    authority: TAccountMetas[2];
   };
-  data: RegisterAgentInstructionData;
+  data: RepairAgentRegisteredAtInstructionData;
 };
 
-export function parseRegisterAgentInstruction<
+export function parseRepairAgentRegisteredAtInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedRegisterAgentInstruction<TProgram, TAccountMetas> {
+): ParsedRepairAgentRegisteredAtInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 3) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -309,9 +293,11 @@ export function parseRegisterAgentInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       agentProfile: getNextAccount(),
+      config: getNextAccount(),
       authority: getNextAccount(),
-      systemProgram: getNextAccount(),
     },
-    data: getRegisterAgentInstructionDataDecoder().decode(instruction.data),
+    data: getRepairAgentRegisteredAtInstructionDataDecoder().decode(
+      instruction.data,
+    ),
   };
 }

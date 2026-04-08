@@ -14,6 +14,7 @@ import {
 } from "./authorDisputes";
 import { IN_MEMORY_CACHE_TTL_MS } from "./cachePolicy";
 import { getErrorMessage } from "./errors";
+import { normalizeRegisteredAt } from "./registeredAt";
 import { DEFAULT_SOLANA_RPC_URL } from "./solanaRpc";
 
 const RPC_URL = DEFAULT_SOLANA_RPC_URL;
@@ -81,7 +82,7 @@ function mapAgentProfileTrust(
     totalStakedFor,
     authorBondLamports,
     totalStakeAtRisk: totalStakedFor + authorBondLamports,
-    registeredAt: Number(profile.registeredAt),
+    registeredAt: normalizeRegisteredAt(profile.registeredAt),
     isRegistered: true,
     disputesAgainstAuthor: 0,
     disputesUpheldAgainstAuthor: 0,

@@ -10,10 +10,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -39,6 +37,11 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
+import {
+  findConfigPda,
+  findRevokeVouchVouchPda,
+  findVoucherProfilePda,
+} from "../pdas";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
 export const REVOKE_VOUCH_DISCRIMINATOR = new Uint8Array([
@@ -180,46 +183,27 @@ export async function getRevokeVouchInstructionAsync<
 
   // Resolve default values.
   if (!accounts.voucherProfile.value) {
-    accounts.voucherProfile.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([97, 103, 101, 110, 116])),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "voucher",
-            accounts.voucher.value,
-          ),
-        ),
-      ],
+    accounts.voucherProfile.value = await findVoucherProfilePda({
+      voucher: getAddressFromResolvedInstructionAccount(
+        "voucher",
+        accounts.voucher.value,
+      ),
     });
   }
   if (!accounts.vouch.value) {
-    accounts.vouch.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([118, 111, 117, 99, 104])),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "voucherProfile",
-            accounts.voucherProfile.value,
-          ),
-        ),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "voucheeProfile",
-            accounts.voucheeProfile.value,
-          ),
-        ),
-      ],
+    accounts.vouch.value = await findRevokeVouchVouchPda({
+      voucherProfile: getAddressFromResolvedInstructionAccount(
+        "voucherProfile",
+        accounts.voucherProfile.value,
+      ),
+      voucheeProfile: getAddressFromResolvedInstructionAccount(
+        "voucheeProfile",
+        accounts.voucheeProfile.value,
+      ),
     });
   }
   if (!accounts.config.value) {
-    accounts.config.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([99, 111, 110, 102, 105, 103])),
-      ],
-    });
+    accounts.config.value = await findConfigPda();
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =

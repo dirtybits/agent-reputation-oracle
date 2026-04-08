@@ -31,6 +31,7 @@ import {
 } from "react-icons/fi";
 import { isRpcRateLimitError } from "@/lib/rpcErrors";
 import { getErrorMessage } from "@/lib/errors";
+import { normalizeRegisteredAt } from "@/lib/registeredAt";
 
 type Tab = "profile" | "vouch" | "explorer" | "disputes";
 
@@ -438,6 +439,15 @@ export default function DashboardPage() {
     return new Date(timestamp * 1000).toLocaleString();
   };
 
+  const formatRegisteredTimestamp = (
+    ts: number | string | bigint | null | undefined
+  ) => {
+    const timestamp = normalizeRegisteredAt(ts);
+    return timestamp > 0
+      ? new Date(timestamp * 1000).toLocaleString()
+      : "Unknown";
+  };
+
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     {
       id: "profile",
@@ -711,7 +721,7 @@ export default function DashboardPage() {
                         Registered
                       </span>
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {formatTimestamp(agentProfile.registeredAt)}
+                        {formatRegisteredTimestamp(agentProfile.registeredAt)}
                       </span>
                     </div>
                     <div className="pt-3">
@@ -1306,7 +1316,7 @@ export default function DashboardPage() {
                           Registered
                         </span>
                         <span className="text-sm text-gray-900 dark:text-white">
-                          {formatTimestamp(searchedAgent.registeredAt)}
+                          {formatRegisteredTimestamp(searchedAgent.registeredAt)}
                         </span>
                       </div>
                       <div className="pt-3">

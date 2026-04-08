@@ -11,22 +11,20 @@ import {
 import { useWalletConnection } from "@solana/react-hooks";
 import { type Address } from "@solana/kit";
 import Link from "next/link";
-import { useReputationOracle } from "@/hooks/useReputationOracle";
+import { useMarketplaceOracle } from "@/hooks/useMarketplaceOracle";
 import { getConfiguredSolanaExplorerTxUrl } from "@/lib/chains";
 import {
   navButtonFlexClass,
   navButtonInlineClass,
   navButtonPrimaryFlexClass,
   navButtonPrimaryInlineClass,
-  navButtonSizeClass,
 } from "@/lib/buttonStyles";
-import { formatSolAmount, fromLamports } from "@/lib/pricing";
+import { formatSolAmount } from "@/lib/pricing";
+import SkillPreviewCard from "@/components/SkillPreviewCard";
 import { SolAmount } from "@/components/SolAmount";
-import TrustBadge, { type TrustData } from "@/components/TrustBadge";
-import type {
-  SkillListing,
-  Purchase,
-} from "../../generated/reputation-oracle/src/generated";
+import type { TrustData } from "@/components/TrustBadge";
+import type { Purchase } from "../../generated/reputation-oracle/src/generated/accounts/purchase";
+import type { SkillListing } from "../../generated/reputation-oracle/src/generated/accounts/skillListing";
 import {
   FiActivity,
   FiAlertTriangle,
@@ -39,11 +37,9 @@ import {
   FiLoader,
   FiPackage,
   FiPlus,
-  FiExternalLink,
   FiSearch,
   FiShield,
   FiShoppingCart,
-  FiTag,
   FiTrendingUp,
   FiXCircle,
 } from "react-icons/fi";
@@ -145,7 +141,7 @@ export default function MarketplacePage() {
   const { wallet, status } = useWalletConnection();
   const connected = status === "connected" && !!wallet;
   const publicKey = wallet?.account.address ?? null;
-  const oracle = useReputationOracle();
+  const oracle = useMarketplaceOracle();
 
   const [activeTab, setActiveTab] = useState<PageTab>("browse");
 
@@ -479,12 +475,12 @@ export default function MarketplacePage() {
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-          <div>
+        <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1 lg:pr-6">
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 dark:text-white mb-1">
               Skills Marketplace
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="max-w-3xl text-sm text-gray-500 dark:text-gray-400">
               Browse AI agent skills with on-chain author trust context. Inspect
               stake, peer vouches, and dispute history before you install or
               pay.
@@ -493,7 +489,7 @@ export default function MarketplacePage() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3 self-start whitespace-nowrap">
             <Link
               href="/competition"
               className={`${navButtonFlexClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
@@ -508,7 +504,10 @@ export default function MarketplacePage() {
                   : "Ended"}
               </span>
             </Link>
-            <Link href="/skills/publish" className={navButtonPrimaryFlexClass}>
+            <Link
+              href="/skills/publish"
+              className={`${navButtonPrimaryFlexClass} whitespace-nowrap`}
+            >
               <FiPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Publish Skill</span>
               <span className="sm:hidden">Publish</span>
@@ -695,237 +694,31 @@ export default function MarketplacePage() {
                       const purchaseBlocked =
                         creatorPrice > 0 &&
                         isBlockingPurchaseStatus(purchasePreflightStatus);
-                      const purchaseMessage = skill.purchasePreflightMessage;
                       return (
-                        <div
+                        <SkillPreviewCard
                           key={skill.id}
-                          className="group rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 hover:border-gray-300 dark:hover:border-gray-700 transition flex flex-col"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-3">
-                              <Link
-                                href={`/skills/${skill.id}`}
-                                className="text-base font-bold text-gray-900 dark:text-white group-hover:text-[var(--lobster-accent)] transition hover:underline"
-                              >
-                                {skill.name}
-                              </Link>
-                              <div className="flex items-center gap-2 shrink-0">
-                                {creatorPrice > 0 ? (
-                                  <div className="flex flex-col items-end">
-                                    <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
-                                      <SolAmount
-                                        amount={formatSol(estimatedTotal)}
-                                        iconClassName="w-3 h-3"
-                                      />
-                                    </span>
-                                    <span className="mt-1 text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                      Creator{" "}
-                                      {fromLamports(creatorPrice).toFixed(3)}{" "}
-                                      SOL
-                                    </span>
-                                  </div>
-                                ) : (
-                                  listing && (
-                                    <span className="px-2 py-0.5 rounded-full bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-xs font-semibold">
-                                      Free
-                                    </span>
-                                  )
-                                )}
-                                {skill.source !== "chain" && (
-                                  <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                                    v{skill.current_version}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {skill.description ? (
-                              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
-                                {skill.description}
-                              </p>
-                            ) : getCapabilityFallback(skill.tags ?? []) ? (
-                              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
-                                {getCapabilityFallback(skill.tags ?? [])}
-                              </p>
-                            ) : null}
-
-                            {creatorPrice > 0 && (
-                              <div
-                                className={`mb-3 rounded-sm border p-3 ${
-                                  purchaseBlocked
-                                    ? "border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/10"
-                                    : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/40"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between text-xs font-medium text-gray-600 dark:text-gray-300">
-                                  <span>Estimated total</span>
-                                  <span className="font-mono text-gray-900 dark:text-white">
-                                    <SolAmount
-                                      amount={formatSol(estimatedTotal)}
-                                      iconClassName="w-3 h-3"
-                                    />
-                                  </span>
-                                </div>
-                                {estimatedTotal !== creatorPrice && (
-                                  <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
-                                    <span>Creator price</span>
-                                    <span className="font-mono">
-                                      <SolAmount
-                                        amount={formatSol(creatorPrice)}
-                                        iconClassName="w-3 h-3"
-                                      />
-                                    </span>
-                                  </div>
-                                )}
-                                {purchaseMessage && (
-                                  <p
-                                    className={`mt-2 text-[11px] leading-relaxed ${
-                                      purchaseBlocked
-                                        ? "text-amber-700 dark:text-amber-300"
-                                        : "text-gray-500 dark:text-gray-400"
-                                    }`}
-                                  >
-                                    {purchaseMessage}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            <div className="mb-3">
-                              <TrustBadge trust={skill.author_trust} compact />
-                              <p className="mt-2 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
-                                Reputation, vouches, staked SOL, and dispute
-                                history help signal author trust.
-                              </p>
-                              <Link
-                                href={`/author/${skill.author_pubkey}`}
-                                className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
-                                title={skill.author_pubkey}
-                              >
-                                View author trust{" "}
-                                <FiExternalLink className="w-3 h-3" />
-                              </Link>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
-                              <div className="flex items-center gap-3">
-                                <span className="flex items-center gap-1">
-                                  <FiDownload className="w-3.5 h-3.5" />
-                                  {downloads}
-                                </span>
-                                {skill.tags?.length > 0 && (
-                                  <span className="flex items-center gap-1">
-                                    <FiTag className="w-3.5 h-3.5" />
-                                    {skill.tags.slice(0, 2).join(", ")}
-                                  </span>
-                                )}
-                              </div>
-                              <Link
-                                href={`/author/${skill.author_pubkey}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="font-mono hover:text-[var(--sea-accent)] hover:underline transition"
-                                title={skill.author_pubkey}
-                              >
-                                {shortAddr(skill.author_pubkey)}
-                              </Link>
-                            </div>
-
-                            {skill.ipfs_cid && (
-                              <div className="mt-2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                                <FiShield className="w-3 h-3" />
-                                <span
-                                  className="font-mono truncate"
-                                  title={skill.ipfs_cid}
-                                >
-                                  {skill.ipfs_cid.slice(0, 12)}...
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {skill.skill_uri && (
-                            <a
-                              href={skill.skill_uri}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="mt-2 flex items-center gap-1 text-xs text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline truncate"
-                            >
-                              <FiExternalLink className="w-3 h-3 shrink-0" />
-                              <span className="truncate">
-                                {skill.skill_uri}
-                              </span>
-                            </a>
+                          skill={skill}
+                          hasListing={Boolean(listing)}
+                          creatorPriceLamports={creatorPrice}
+                          estimatedTotalLamports={estimatedTotal}
+                          downloads={downloads}
+                          connected={connected}
+                          isOwn={Boolean(isOwn)}
+                          hasPurchased={hasPurchased}
+                          isPurchasing={isPurchasing}
+                          purchaseBlocked={purchaseBlocked}
+                          purchasePreflightStatus={purchasePreflightStatus}
+                          descriptionFallback={getCapabilityFallback(
+                            skill.tags ?? []
                           )}
-
-                          {/* Purchase / View action for on-chain skills */}
-                          {listing && (
-                            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                              {isOwn ? (
-                                <div
-                                  className={`w-full ${navButtonSizeClass} bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-medium text-center border border-gray-200 dark:border-gray-700`}
-                                >
-                                  Your Skill
-                                </div>
-                              ) : creatorPrice === 0 ? (
-                                <Link
-                                  href={`/skills/${skill.id}`}
-                                  className={`w-full ${navButtonFlexClass} font-medium bg-[var(--sea-accent-soft)] text-[var(--sea-accent-strong)] text-center border border-[var(--sea-accent-border)] hover:bg-[var(--sea-accent-soft-hover)] transition`}
-                                >
-                                  <FiDownload className="w-3 h-3" /> Free — View
-                                  & Install
-                                </Link>
-                              ) : hasPurchased ? (
-                                <div
-                                  className={`w-full ${navButtonSizeClass} bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-medium text-center border border-green-200 dark:border-green-800`}
-                                >
-                                  <span className="inline-flex items-center gap-1">
-                                    <FiCheckCircle className="w-3 h-3" />{" "}
-                                    Purchased
-                                  </span>
-                                </div>
-                              ) : purchaseBlocked ? (
-                                <div
-                                  className={`w-full ${navButtonSizeClass} bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-medium text-center border border-amber-200 dark:border-amber-800`}
-                                >
-                                  {purchasePreflightStatus ===
-                                  "authorPayoutRentBlocked"
-                                    ? "Seller Needs SOL"
-                                    : "Need More SOL"}
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    handlePurchase(
-                                      listing.publicKey,
-                                      listing.account.author
-                                    );
-                                  }}
-                                  disabled={!connected || isPurchasing}
-                                  className={`w-full ${navButtonPrimaryFlexClass}`}
-                                >
-                                  {isPurchasing ? (
-                                    <span className="animate-pulse">
-                                      Processing...
-                                    </span>
-                                  ) : connected ? (
-                                    <span className="inline-flex items-center gap-1 justify-center">
-                                      Buy (~{" "}
-                                      <SolAmount
-                                        amount={formatSol(estimatedTotal)}
-                                        iconClassName="w-3 h-3"
-                                      />
-                                      )
-                                    </span>
-                                  ) : (
-                                    "Connect Wallet to Buy"
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                          onPurchase={() => {
+                            if (!listing) return;
+                            handlePurchase(
+                              listing.publicKey,
+                              listing.account.author
+                            );
+                          }}
+                        />
                       );
                     })}
                   </div>

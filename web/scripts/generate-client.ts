@@ -30,6 +30,7 @@ async function main() {
     'export * from "./instructions/initializeConfig";',
     'export * from "./instructions/openAuthorDispute";',
     'export * from "./instructions/purchaseSkill";',
+    'export * from "./instructions/repairAgentRegisteredAt";',
     'export * from "./instructions/registerAgent";',
     'export * from "./instructions/resolveAuthorDispute";',
     'export * from "./instructions/revokeVouch";',

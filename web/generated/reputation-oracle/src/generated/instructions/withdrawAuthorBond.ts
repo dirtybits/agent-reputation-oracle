@@ -10,10 +10,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -41,6 +39,11 @@ import {
   getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
+import {
+  findAuthorBondPda,
+  findAuthorProfilePda,
+  findConfigPda,
+} from "../pdas";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
 export const WITHDRAW_AUTHOR_BOND_DISCRIMINATOR = new Uint8Array([
@@ -175,42 +178,23 @@ export async function getWithdrawAuthorBondInstructionAsync<
 
   // Resolve default values.
   if (!accounts.authorBond.value) {
-    accounts.authorBond.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(
-          new Uint8Array([97, 117, 116, 104, 111, 114, 95, 98, 111, 110, 100]),
-        ),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "author",
-            accounts.author.value,
-          ),
-        ),
-      ],
+    accounts.authorBond.value = await findAuthorBondPda({
+      author: getAddressFromResolvedInstructionAccount(
+        "author",
+        accounts.author.value,
+      ),
     });
   }
   if (!accounts.authorProfile.value) {
-    accounts.authorProfile.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([97, 103, 101, 110, 116])),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "author",
-            accounts.author.value,
-          ),
-        ),
-      ],
+    accounts.authorProfile.value = await findAuthorProfilePda({
+      author: getAddressFromResolvedInstructionAccount(
+        "author",
+        accounts.author.value,
+      ),
     });
   }
   if (!accounts.config.value) {
-    accounts.config.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([99, 111, 110, 102, 105, 103])),
-      ],
-    });
+    accounts.config.value = await findConfigPda();
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");

@@ -787,7 +787,7 @@ export default function SkillDetailPage({
               }`}
               className={navButtonSecondaryInlineClass}
             >
-              Report author-wide
+              Report Author
             </Link>
           </div>
         </div>
@@ -820,7 +820,7 @@ export default function SkillDetailPage({
                 />
               </div>
               <div className="text-xs text-green-600 dark:text-green-500">
-                Creator Price
+                Creator price
               </div>
             </div>
           )}
@@ -833,7 +833,7 @@ export default function SkillDetailPage({
                 />
               </div>
               <div className="text-xs text-[var(--sea-accent)]">
-                Estimated Total
+                Estimated total
               </div>
             </div>
           )}
@@ -1009,7 +1009,7 @@ export default function SkillDetailPage({
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Creator Price
+                    Creator price
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
                     <SolAmount
@@ -1020,7 +1020,7 @@ export default function SkillDetailPage({
                 </div>
                 <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Receipt Rent
+                    Receipt rent
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
                     <SolAmount
@@ -1033,7 +1033,7 @@ export default function SkillDetailPage({
                 </div>
                 <div className="rounded-sm border border-[var(--sea-accent-border)] bg-white/80 dark:bg-gray-950/40 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-[var(--sea-accent)]">
-                    Estimated Total
+                    Estimated total
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
                     <SolAmount

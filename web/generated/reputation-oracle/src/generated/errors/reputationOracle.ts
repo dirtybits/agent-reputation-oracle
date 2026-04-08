@@ -14,42 +14,26 @@ import {
 } from "@solana/kit";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../programs";
 
-/** AmountMustBePositive: Amount must be greater than zero */
-export const REPUTATION_ORACLE_ERROR__AMOUNT_MUST_BE_POSITIVE = 0x1770; // 6000
-/** AuthorBondAuthorityMismatch: Author bond authority mismatch */
-export const REPUTATION_ORACLE_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH = 0x1771; // 6001
-/** InsufficientBondAmount: Author bond amount is insufficient for this withdrawal */
-export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_BOND_AMOUNT = 0x1772; // 6002
-/** FreeListingsRequireBondFloor: Active free listings require the configured minimum author bond */
-export const REPUTATION_ORACLE_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR = 0x1773; // 6003
-/** AuthorBondLockedWhileDisputesOpen: Author bond cannot be withdrawn while author disputes are open */
-export const REPUTATION_ORACLE_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN = 0x1774; // 6004
-/** InsufficientLamports: Author bond account does not have enough lamports for this withdrawal */
-export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_LAMPORTS = 0x1775; // 6005
-/** LamportOverflow: Lamport amount overflowed */
-export const REPUTATION_ORACLE_ERROR__LAMPORT_OVERFLOW = 0x1776; // 6006
+/** InsufficientFunds: Insufficient funds */
+export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS = 0x1770; // 6000
+/** InsufficientBondAmount: Bond amount is lower than the requested slash amount */
+export const REPUTATION_ORACLE_ERROR__INSUFFICIENT_BOND_AMOUNT = 0x1771; // 6001
+/** InvalidSlashAmount: Slash amount exceeds the supported amount for this account */
+export const REPUTATION_ORACLE_ERROR__INVALID_SLASH_AMOUNT = 0x1772; // 6002
 
 export type ReputationOracleError =
-  | typeof REPUTATION_ORACLE_ERROR__AMOUNT_MUST_BE_POSITIVE
-  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH
-  | typeof REPUTATION_ORACLE_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN
-  | typeof REPUTATION_ORACLE_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR
   | typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_BOND_AMOUNT
-  | typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_LAMPORTS
-  | typeof REPUTATION_ORACLE_ERROR__LAMPORT_OVERFLOW;
+  | typeof REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS
+  | typeof REPUTATION_ORACLE_ERROR__INVALID_SLASH_AMOUNT;
 
 let reputationOracleErrorMessages:
   | Record<ReputationOracleError, string>
   | undefined;
 if (process.env.NODE_ENV !== "production") {
   reputationOracleErrorMessages = {
-    [REPUTATION_ORACLE_ERROR__AMOUNT_MUST_BE_POSITIVE]: `Amount must be greater than zero`,
-    [REPUTATION_ORACLE_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH]: `Author bond authority mismatch`,
-    [REPUTATION_ORACLE_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN]: `Author bond cannot be withdrawn while author disputes are open`,
-    [REPUTATION_ORACLE_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR]: `Active free listings require the configured minimum author bond`,
-    [REPUTATION_ORACLE_ERROR__INSUFFICIENT_BOND_AMOUNT]: `Author bond amount is insufficient for this withdrawal`,
-    [REPUTATION_ORACLE_ERROR__INSUFFICIENT_LAMPORTS]: `Author bond account does not have enough lamports for this withdrawal`,
-    [REPUTATION_ORACLE_ERROR__LAMPORT_OVERFLOW]: `Lamport amount overflowed`,
+    [REPUTATION_ORACLE_ERROR__INSUFFICIENT_BOND_AMOUNT]: `Bond amount is lower than the requested slash amount`,
+    [REPUTATION_ORACLE_ERROR__INSUFFICIENT_FUNDS]: `Insufficient funds`,
+    [REPUTATION_ORACLE_ERROR__INVALID_SLASH_AMOUNT]: `Slash amount exceeds the supported amount for this account`,
   };
 }
 

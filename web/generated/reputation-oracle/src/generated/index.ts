@@ -13,6 +13,7 @@ export * from "./instructions/createSkillListing";
 export * from "./instructions/initializeConfig";
 export * from "./instructions/openAuthorDispute";
 export * from "./instructions/purchaseSkill";
+export * from "./instructions/repairAgentRegisteredAt";
 export * from "./instructions/registerAgent";
 export * from "./instructions/resolveAuthorDispute";
 export * from "./instructions/revokeVouch";
@@ -33,5 +34,6 @@ export {
   type VouchInstructionData,
   type VouchInstructionDataArgs,
 } from "./instructions/vouch";
+export * from "./pdas";
 export * from "./programs";
 export * from "./types";

@@ -45,6 +45,13 @@ pub mod reputation_oracle {
         instructions::migrate_agent::handler(ctx, metadata_uri)
     }
 
+    pub fn repair_agent_registered_at(
+        ctx: Context<RepairAgentRegisteredAt>,
+        registered_at: i64,
+    ) -> Result<()> {
+        instructions::repair_agent_registered_at::handler(ctx, registered_at)
+    }
+
     pub fn deposit_author_bond(
         ctx: Context<DepositAuthorBond>,
         amount: u64,

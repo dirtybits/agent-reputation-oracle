@@ -16,6 +16,7 @@ export * from "./openAuthorDispute";
 export * from "./purchaseSkill";
 export * from "./registerAgent";
 export * from "./removeSkillListing";
+export * from "./repairAgentRegisteredAt";
 export * from "./resolveAuthorDispute";
 export * from "./revokeVouch";
 export * from "./updateSkillListing";
