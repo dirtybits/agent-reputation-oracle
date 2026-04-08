@@ -80,6 +80,23 @@ For the full architecture and current built-vs-missing analysis, see:
 npm ci
 ```
 
+### Install The CLI
+
+The CLI is currently repo-local and not published to npm.
+
+```bash
+npm run build:cli
+npm exec --workspace @agentvouch/cli agentvouch -- --help
+```
+
+If you want a global `agentvouch` command on your machine:
+
+```bash
+cd packages/agentvouch-cli
+npm link
+agentvouch --help
+```
+
 ### Run Checks
 
 ```bash
