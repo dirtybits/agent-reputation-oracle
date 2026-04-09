@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useWalletConnection } from "@solana/react-hooks";
 import { address, type Address } from "@solana/kit";
@@ -581,28 +581,32 @@ export default function AuthorProfilePage() {
   const authorWideBackingVouches = vouchesReceived.filter((vouch) =>
     countsTowardAuthorWideReportSnapshot(vouch.account.status)
   );
-  const claimSkillOptions = [
-    ...repoSkills
-      .filter((skill) => !!skill.on_chain_address)
-      .map((skill) => ({
-        value: `skill:${skill.on_chain_address}`,
-        label: skill.name,
-      })),
-    ...chainSkills
-      .filter(
-        (skill) =>
-          !!skill.on_chain_address &&
-          !repoSkills.some(
-            (repoSkill) => repoSkill.on_chain_address === skill.on_chain_address
-          )
-      )
-      .map((skill) => ({
-        value: `skill:${skill.on_chain_address}`,
-        label:
-          skill.name ||
-          `On-chain skill ${shortAddr(String(skill.on_chain_address ?? ""))}`,
-      })),
-  ];
+  const claimSkillOptions = useMemo(
+    () => [
+      ...repoSkills
+        .filter((skill) => !!skill.on_chain_address)
+        .map((skill) => ({
+          value: `skill:${skill.on_chain_address}`,
+          label: skill.name,
+        })),
+      ...chainSkills
+        .filter(
+          (skill) =>
+            !!skill.on_chain_address &&
+            !repoSkills.some(
+              (repoSkill) =>
+                repoSkill.on_chain_address === skill.on_chain_address
+            )
+        )
+        .map((skill) => ({
+          value: `skill:${skill.on_chain_address}`,
+          label:
+            skill.name ||
+            `On-chain skill ${shortAddr(String(skill.on_chain_address ?? ""))}`,
+        })),
+    ],
+    [chainSkills, repoSkills]
+  );
   const selectedClaimSkillLabel = claimSkillOptions.find(
     (skill) => skill.value === claimSkillContext
   )?.label;
