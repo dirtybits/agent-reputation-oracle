@@ -2,6 +2,10 @@ import type { SkillListResponse, SkillRecord } from "./http.js";
 
 function getTrustFields(skill: SkillRecord) {
   return {
+    reputation:
+      skill.author_trust_summary?.reputationScore ??
+      skill.author_trust?.reputationScore ??
+      0,
     isRegistered:
       skill.author_trust_summary?.isRegistered ??
       skill.author_trust?.isRegistered ??
@@ -27,6 +31,7 @@ export function formatSkillSummary(skill: SkillRecord): string[] {
     `skill_id: ${skill.skill_id}`,
     `source: ${skill.source ?? "repo"}`,
     `author: ${skill.author_pubkey}`,
+    `author_reputation: ${trust.reputation}`,
     `price_lamports: ${skill.price_lamports ?? 0}`,
     `listing: ${skill.on_chain_address ?? "none"}`,
     `registered: ${trust.isRegistered ? "yes" : "no"}`,

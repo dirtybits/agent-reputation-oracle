@@ -211,6 +211,7 @@ var AgentVouchApiClient = class {
 // src/lib/format.ts
 function getTrustFields(skill2) {
   return {
+    reputation: skill2.author_trust_summary?.reputationScore ?? skill2.author_trust?.reputationScore ?? 0,
     isRegistered: skill2.author_trust_summary?.isRegistered ?? skill2.author_trust?.isRegistered ?? false,
     recommendedAction: skill2.author_trust_summary?.recommended_action ?? null,
     activeDisputes: skill2.author_trust_summary?.activeDisputesAgainstAuthor ?? skill2.author_trust?.activeDisputesAgainstAuthor ?? 0,
@@ -227,6 +228,7 @@ function formatSkillSummary(skill2) {
     `author: ${skill2.author_pubkey}`,
     `price_lamports: ${skill2.price_lamports ?? 0}`,
     `listing: ${skill2.on_chain_address ?? "none"}`,
+    `author_reputation: ${trust.reputation}`,
     `registered: ${trust.isRegistered ? "yes" : "no"}`,
     ...trust.recommendedAction ? [`recommended_action: ${trust.recommendedAction}`] : [],
     `active_author_disputes: ${trust.activeDisputes}`,

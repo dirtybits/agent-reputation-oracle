@@ -45,6 +45,7 @@ describe("formatSkillSummary", () => {
       })
     );
 
+    expect(lines).toContain("author_reputation: 10");
     expect(lines).toContain("registered: yes");
     expect(lines).toContain("recommended_action: review");
     expect(lines).toContain("active_author_disputes: 2");
@@ -63,9 +64,26 @@ describe("formatSkillSummary", () => {
       })
     );
 
+    expect(lines).toContain("author_reputation: 0");
     expect(lines).toContain("registered: no");
     expect(lines).not.toContain("recommended_action: review");
     expect(lines).toContain("active_author_disputes: 3");
     expect(lines).toContain("upheld_author_disputes: 4");
+  });
+
+  it("falls back to raw trust reputation when the normalized summary is absent", () => {
+    const lines = formatSkillSummary(
+      buildSkill({
+        author_trust: {
+          isRegistered: true,
+          reputationScore: 42,
+          activeDisputesAgainstAuthor: 0,
+          disputesUpheldAgainstAuthor: 0,
+        },
+        author_trust_summary: null,
+      })
+    );
+
+    expect(lines).toContain("author_reputation: 42");
   });
 });
