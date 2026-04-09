@@ -67,12 +67,38 @@ export interface SkillListResponse {
   pagination: SkillListPagination;
 }
 
+export interface AuthorRecord {
+  pubkey: string;
+  canonical_agent_id: string | null;
+  chain_context: string | null;
+  recommended_action: "allow" | "review" | "avoid" | null;
+  author_trust_summary: SkillAuthorTrustSummary | null;
+  author_identity?: {
+    name?: string | null;
+    displayName?: string | null;
+    canonicalAgentId?: string | null;
+  } | null;
+  skill_count?: number;
+  trusted_skill_count?: number;
+}
+
+export interface AuthorListResponse {
+  schema_version: string;
+  generated_at: string;
+  total: number;
+  authors: AuthorRecord[];
+}
+
 export interface ListSkillsOptions {
   q?: string;
   sort?: "newest" | "trusted" | "installs" | "name";
   author?: string;
   tags?: string;
   page?: number;
+}
+
+export interface ListAuthorsOptions {
+  trusted?: boolean;
 }
 
 export interface PublishedSkillRecord {
@@ -180,6 +206,33 @@ export class AgentVouchApiClient {
     if (!response.ok || !body || "error" in body) {
       throw new CliError(
         `Failed to inspect skill ${id}: ${body?.error || response.statusText}`,
+        { exitCode: 1, data: body }
+      );
+    }
+
+    return body;
+  }
+
+  async listAuthors(
+    options: ListAuthorsOptions = {}
+  ): Promise<AuthorListResponse> {
+    const pathname = options.trusted
+      ? "/api/index/trusted-authors"
+      : "/api/index/authors";
+    const response = await fetch(this.url(pathname));
+    const body = (await response.json().catch(() => null)) as
+      | AuthorListResponse
+      | { error?: string }
+      | null;
+
+    if (
+      !response.ok ||
+      !body ||
+      "error" in body ||
+      !Array.isArray(body.authors)
+    ) {
+      throw new CliError(
+        `Failed to list authors: ${body?.error || response.statusText}`,
         { exitCode: 1, data: body }
       );
     }

@@ -1,4 +1,9 @@
-import type { SkillListResponse, SkillRecord } from "./http.js";
+import type {
+  AuthorListResponse,
+  AuthorRecord,
+  SkillListResponse,
+  SkillRecord,
+} from "./http.js";
 
 function getTrustFields(skill: SkillRecord) {
   return {
@@ -70,6 +75,52 @@ export function formatSkillList(result: SkillListResponse): string[] {
     `total: ${result.pagination.total}`,
     `total_pages: ${result.pagination.totalPages}`
   );
+
+  return lines;
+}
+
+function getAuthorName(author: AuthorRecord): string {
+  return (
+    author.author_identity?.displayName ??
+    author.author_identity?.name ??
+    author.canonical_agent_id ??
+    author.pubkey
+  );
+}
+
+function getAuthorReputation(author: AuthorRecord): number {
+  return author.author_trust_summary?.reputationScore ?? 0;
+}
+
+export function formatAuthorSummary(author: AuthorRecord): string[] {
+  return [
+    getAuthorName(author),
+    `author: ${author.pubkey}`,
+    `author_reputation: ${getAuthorReputation(author)}`,
+    `recommended_action: ${author.recommended_action ?? "unknown"}`,
+    `skill_count: ${author.skill_count ?? author.trusted_skill_count ?? 0}`,
+    ...(author.canonical_agent_id
+      ? [`canonical_agent_id: ${author.canonical_agent_id}`]
+      : []),
+    ...(author.chain_context ? [`chain_context: ${author.chain_context}`] : []),
+  ];
+}
+
+export function formatAuthorList(result: AuthorListResponse): string[] {
+  if (result.authors.length === 0) {
+    return ["no authors found", `total: ${result.total}`];
+  }
+
+  const lines: string[] = [];
+
+  for (const [index, author] of result.authors.entries()) {
+    lines.push(...formatAuthorSummary(author));
+    if (index < result.authors.length - 1) {
+      lines.push("");
+    }
+  }
+
+  lines.push("", `total: ${result.total}`);
 
   return lines;
 }

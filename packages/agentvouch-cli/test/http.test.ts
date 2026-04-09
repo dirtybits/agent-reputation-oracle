@@ -105,4 +105,81 @@ describe("AgentVouchApiClient", () => {
       );
     }
   });
+
+  it("lists authors from the discovery index", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          schema_version: "2026-04-03",
+          generated_at: "2026-04-09T00:00:00.000Z",
+          total: 1,
+          authors: [
+            {
+              pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+              canonical_agent_id:
+                "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1/asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+              chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+              recommended_action: "allow",
+              skill_count: 2,
+              author_trust_summary: {
+                wallet_pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+                canonical_agent_id:
+                  "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1/asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+                chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+                schema_version: "2026-04-03",
+                trust_updated_at: "2026-04-09T00:00:00.000Z",
+                recommended_action: "allow",
+                reputationScore: 123,
+                totalVouchesReceived: 2,
+                totalStakedFor: 1000000,
+                disputesAgainstAuthor: 1,
+                disputesUpheldAgainstAuthor: 0,
+                activeDisputesAgainstAuthor: 0,
+                registeredAt: 123,
+                isRegistered: true,
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    );
+    const client = new AgentVouchApiClient("https://agentvouch.xyz");
+
+    const result = await client.listAuthors();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://agentvouch.xyz/api/index/authors"
+    );
+    expect(result.total).toBe(1);
+    expect(result.authors[0]?.author_trust_summary?.reputationScore).toBe(123);
+  });
+
+  it("lists trusted authors from the trusted discovery index", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          schema_version: "2026-04-03",
+          generated_at: "2026-04-09T00:00:00.000Z",
+          total: 0,
+          authors: [],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    );
+    const client = new AgentVouchApiClient("https://agentvouch.xyz");
+
+    const result = await client.listAuthors({ trusted: true });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://agentvouch.xyz/api/index/trusted-authors"
+    );
+    expect(result.total).toBe(0);
+  });
 });

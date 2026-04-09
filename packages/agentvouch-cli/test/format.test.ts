@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatSkillSummary } from "../src/lib/format.js";
-import type { SkillRecord } from "../src/lib/http.js";
+import { formatAuthorSummary, formatSkillSummary } from "../src/lib/format.js";
+import type { AuthorRecord, SkillRecord } from "../src/lib/http.js";
 
 function buildSkill(overrides: Partial<SkillRecord> = {}): SkillRecord {
   return {
@@ -13,6 +13,35 @@ function buildSkill(overrides: Partial<SkillRecord> = {}): SkillRecord {
     price_lamports: 1_000_000,
     total_installs: 4,
     source: "repo",
+    ...overrides,
+  };
+}
+
+function buildAuthor(overrides: Partial<AuthorRecord> = {}): AuthorRecord {
+  return {
+    pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+    canonical_agent_id:
+      "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1/asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+    chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    recommended_action: "allow",
+    skill_count: 2,
+    author_trust_summary: {
+      wallet_pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+      canonical_agent_id:
+        "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1/asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+      chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      schema_version: "2026-04-03",
+      trust_updated_at: "2026-04-09T00:00:00.000Z",
+      recommended_action: "allow",
+      reputationScore: 123,
+      totalVouchesReceived: 2,
+      totalStakedFor: 1000,
+      disputesAgainstAuthor: 1,
+      disputesUpheldAgainstAuthor: 0,
+      activeDisputesAgainstAuthor: 0,
+      registeredAt: 123,
+      isRegistered: true,
+    },
     ...overrides,
   };
 }
@@ -85,5 +114,34 @@ describe("formatSkillSummary", () => {
     );
 
     expect(lines).toContain("author_reputation: 42");
+  });
+});
+
+describe("formatAuthorSummary", () => {
+  it("shows a quick author trust summary", () => {
+    const lines = formatAuthorSummary(buildAuthor());
+
+    expect(lines).toContain(
+      "author: asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw"
+    );
+    expect(lines).toContain("author_reputation: 123");
+    expect(lines).toContain("recommended_action: allow");
+    expect(lines).toContain("skill_count: 2");
+  });
+
+  it("falls back cleanly when trust data is missing", () => {
+    const lines = formatAuthorSummary(
+      buildAuthor({
+        canonical_agent_id: null,
+        chain_context: null,
+        recommended_action: null,
+        author_trust_summary: null,
+        skill_count: 0,
+      })
+    );
+
+    expect(lines).toContain("author_reputation: 0");
+    expect(lines).toContain("recommended_action: unknown");
+    expect(lines).toContain("skill_count: 0");
   });
 });

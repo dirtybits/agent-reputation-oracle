@@ -133,6 +133,18 @@ var AgentVouchApiClient = class {
     }
     return body;
   }
+  async listAuthors(options = {}) {
+    const pathname = options.trusted ? "/api/index/trusted-authors" : "/api/index/authors";
+    const response = await fetch(this.url(pathname));
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body || "error" in body || !Array.isArray(body.authors)) {
+      throw new CliError(
+        `Failed to list authors: ${body?.error || response.statusText}`,
+        { exitCode: 1, data: body }
+      );
+    }
+    return body;
+  }
   async fetchRemoteText(url) {
     const response = await fetch(url);
     if (!response.ok) {
@@ -226,9 +238,9 @@ function formatSkillSummary(skill2) {
     `skill_id: ${skill2.skill_id}`,
     `source: ${skill2.source ?? "repo"}`,
     `author: ${skill2.author_pubkey}`,
+    `author_reputation: ${trust.reputation}`,
     `price_lamports: ${skill2.price_lamports ?? 0}`,
     `listing: ${skill2.on_chain_address ?? "none"}`,
-    `author_reputation: ${trust.reputation}`,
     `registered: ${trust.isRegistered ? "yes" : "no"}`,
     ...trust.recommendedAction ? [`recommended_action: ${trust.recommendedAction}`] : [],
     `active_author_disputes: ${trust.activeDisputes}`,
@@ -259,6 +271,37 @@ function formatSkillList(result) {
     `total: ${result.pagination.total}`,
     `total_pages: ${result.pagination.totalPages}`
   );
+  return lines;
+}
+function getAuthorName(author2) {
+  return author2.author_identity?.displayName ?? author2.author_identity?.name ?? author2.canonical_agent_id ?? author2.pubkey;
+}
+function getAuthorReputation(author2) {
+  return author2.author_trust_summary?.reputationScore ?? 0;
+}
+function formatAuthorSummary(author2) {
+  return [
+    getAuthorName(author2),
+    `author: ${author2.pubkey}`,
+    `author_reputation: ${getAuthorReputation(author2)}`,
+    `recommended_action: ${author2.recommended_action ?? "unknown"}`,
+    `skill_count: ${author2.skill_count ?? author2.trusted_skill_count ?? 0}`,
+    ...author2.canonical_agent_id ? [`canonical_agent_id: ${author2.canonical_agent_id}`] : [],
+    ...author2.chain_context ? [`chain_context: ${author2.chain_context}`] : []
+  ];
+}
+function formatAuthorList(result) {
+  if (result.authors.length === 0) {
+    return ["no authors found", `total: ${result.total}`];
+  }
+  const lines = [];
+  for (const [index, author2] of result.authors.entries()) {
+    lines.push(...formatAuthorSummary(author2));
+    if (index < result.authors.length - 1) {
+      lines.push("");
+    }
+  }
+  lines.push("", `total: ${result.total}`);
   return lines;
 }
 
@@ -3765,6 +3808,27 @@ addBaseUrlOption(
   )
 );
 var author = program.command("author").description("Manage author profile actions.");
+addBaseUrlOption(
+  author.command("list").option(
+    "--trusted",
+    "Only return authors whose recommended action is allow"
+  ).option("--json", "Print structured JSON output").addHelpText(
+    "after",
+    "\nExamples:\n  agentvouch author list\n  agentvouch author list --trusted\n  agentvouch author list --json"
+  ).action(
+    async (options) => {
+      await runCommand(
+        options,
+        async () => new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listAuthors(
+          {
+            trusted: options.trusted
+          }
+        ),
+        formatAuthorList
+      );
+    }
+  )
+);
 addRpcUrlOption(
   author.command("register").requiredOption("--keypair <file>", "Solana keypair JSON file").option("--metadata-uri <uri>", "Metadata URI for the agent profile", "").option("--json", "Print structured JSON output").addHelpText(
     "after",

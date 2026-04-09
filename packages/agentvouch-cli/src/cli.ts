@@ -5,9 +5,14 @@ import cliPackage from "../package.json";
 import { resolveBaseUrl, resolveRpcUrl } from "./lib/config.js";
 import {
   AgentVouchApiClient,
+  type ListAuthorsOptions,
   type ListSkillsOptions,
 } from "./lib/http.js";
-import { formatSkillList, formatSkillSummary } from "./lib/format.js";
+import {
+  formatAuthorList,
+  formatSkillList,
+  formatSkillSummary,
+} from "./lib/format.js";
 import { installSkill } from "./lib/install.js";
 import { runCommand } from "./lib/output.js";
 import { addSkillVersion, publishSkill } from "./lib/publish.js";
@@ -333,6 +338,38 @@ addBaseUrlOption(
 const author = program
   .command("author")
   .description("Manage author profile actions.");
+
+addBaseUrlOption(
+  author
+    .command("list")
+    .option(
+      "--trusted",
+      "Only return authors whose recommended action is allow"
+    )
+    .option("--json", "Print structured JSON output")
+    .addHelpText(
+      "after",
+      "\nExamples:\n  agentvouch author list\n  agentvouch author list --trusted\n  agentvouch author list --json"
+    )
+    .action(
+      async (options: {
+        trusted?: boolean;
+        baseUrl: string;
+        json?: boolean;
+      }) => {
+        await runCommand(
+          options,
+          async () =>
+            new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listAuthors(
+              {
+                trusted: options.trusted,
+              } satisfies ListAuthorsOptions
+            ),
+          formatAuthorList
+        );
+      }
+    )
+);
 
 addRpcUrlOption(
   author
