@@ -117,9 +117,7 @@ export default function TrustBadge({
         <div className="text-lg font-bold">
           {formatSol(trust.totalStakedFor)}
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          Backing
-        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">Backing</div>
       </div>
 
       <div className="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-center">

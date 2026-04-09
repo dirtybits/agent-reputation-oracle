@@ -67,7 +67,9 @@ function getErrorMessage(error) {
 
 // src/lib/http.ts
 function getJsonContentType(response) {
-  return (response.headers.get("content-type") || "").includes("application/json");
+  return (response.headers.get("content-type") || "").includes(
+    "application/json"
+  );
 }
 function parsePaymentRequirement(response, body) {
   const header = response.headers.get("x-payment");
@@ -3070,12 +3072,13 @@ var AgentVouchSolanaClient = class {
   constructor(keypair, rpcUrl, commitment = "confirmed") {
     this.keypair = keypair;
     this.connection = new web3.Connection(rpcUrl, commitment);
-    this.provider = new AnchorProvider(
-      this.connection,
-      new Wallet(keypair),
-      { commitment }
+    this.provider = new AnchorProvider(this.connection, new Wallet(keypair), {
+      commitment
+    });
+    this.program = new Program(
+      reputation_oracle_default,
+      this.provider
     );
-    this.program = new Program(reputation_oracle_default, this.provider);
   }
   connection;
   provider;
@@ -3103,7 +3106,11 @@ var AgentVouchSolanaClient = class {
   }
   getSkillListingAddress(skillId, author2 = this.authority) {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("skill"), toPublicKey(author2).toBuffer(), Buffer.from(skillId)],
+      [
+        Buffer.from("skill"),
+        toPublicKey(author2).toBuffer(),
+        Buffer.from(skillId)
+      ],
       new PublicKey(AGENTVOUCH_PROGRAM_ID)
     )[0];
   }
@@ -3536,20 +3543,26 @@ function addRpcUrlOption(command) {
 var program = new Command().name("agentvouch").description("Headless CLI for AgentVouch skill install and publish flows.").version(package_default.version);
 var skill = program.command("skill").description("Inspect, list, install, and publish skills.");
 addBaseUrlOption(
-  skill.command("list").option("--q <query>", "Search by keyword").option("--author <pubkey>", "Filter by author pubkey").option("--tags <csv>", "Filter by comma-separated tags").option("--sort <order>", "Sort by newest, trusted, installs, or name", "newest").option("--page <number>", "Results page number", parsePage, 1).option("--json", "Print structured JSON output").addHelpText(
+  skill.command("list").option("--q <query>", "Search by keyword").option("--author <pubkey>", "Filter by author pubkey").option("--tags <csv>", "Filter by comma-separated tags").option(
+    "--sort <order>",
+    "Sort by newest, trusted, installs, or name",
+    "newest"
+  ).option("--page <number>", "Results page number", parsePage, 1).option("--json", "Print structured JSON output").addHelpText(
     "after",
     "\nExamples:\n  agentvouch skill list\n  agentvouch skill list --q calendar --sort trusted\n  agentvouch skill list --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --page 2 --json"
   ).action(
     async (options) => {
       await runCommand(
         options,
-        async () => new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listSkills({
-          q: options.q,
-          author: options.author,
-          tags: options.tags,
-          sort: options.sort,
-          page: options.page
-        }),
+        async () => new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listSkills(
+          {
+            q: options.q,
+            author: options.author,
+            tags: options.tags,
+            sort: options.sort,
+            page: options.page
+          }
+        ),
         formatSkillList
       );
     }
@@ -3559,17 +3572,28 @@ addBaseUrlOption(
   skill.command("inspect").argument("<id>", "Repo UUID or chain-<listing> id").option("--json", "Print structured JSON output").addHelpText(
     "after",
     "\nExamples:\n  agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe\n  agentvouch skill inspect chain-Eq35iaSKECtZAGMkPVSk18tqFDFe6L3hgEhJsUzkByFd --json"
-  ).action(async (id, options) => {
-    await runCommand(
-      options,
-      async () => new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).getSkill(id),
-      formatSkillSummary
-    );
-  })
+  ).action(
+    async (id, options) => {
+      await runCommand(
+        options,
+        async () => new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).getSkill(
+          id
+        ),
+        formatSkillSummary
+      );
+    }
+  )
 );
 addRpcUrlOption(
   addBaseUrlOption(
-    skill.command("install").argument("<id>", "Repo UUID or chain-<listing> id").requiredOption("--out <path>", "Output path for the downloaded skill file", "SKILL.md").option("--keypair <file>", "Solana keypair JSON file for paid installs").option("--force", "Overwrite an existing output file").option("--dry-run", "Show the required paid flow without purchasing or writing").option("--json", "Print structured JSON output").addHelpText(
+    skill.command("install").argument("<id>", "Repo UUID or chain-<listing> id").requiredOption(
+      "--out <path>",
+      "Output path for the downloaded skill file",
+      "SKILL.md"
+    ).option("--keypair <file>", "Solana keypair JSON file for paid installs").option("--force", "Overwrite an existing output file").option(
+      "--dry-run",
+      "Show the required paid flow without purchasing or writing"
+    ).option("--json", "Print structured JSON output").addHelpText(
       "after",
       "\nExamples:\n  agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md\n  agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md --keypair ~/.config/solana/id.json\n  agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md --dry-run --json"
     ).action(
@@ -3606,7 +3630,10 @@ addRpcUrlOption(
       "Listing price in lamports",
       parseLamports,
       1e6
-    ).option("--dry-run", "Preview the repo and on-chain requests without sending them").option("--json", "Print structured JSON output").addHelpText(
+    ).option(
+      "--dry-run",
+      "Preview the repo and on-chain requests without sending them"
+    ).option("--json", "Print structured JSON output").addHelpText(
       "after",
       '\nExamples:\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --price-lamports 0 --keypair ~/.config/solana/id.json --dry-run'
     ).action(
@@ -3698,7 +3725,11 @@ addRpcUrlOption(
 );
 var vouch = program.command("vouch").description("Create stake-backed vouches.");
 addRpcUrlOption(
-  vouch.command("create").requiredOption("--author <pubkey>", "Author wallet pubkey to vouch for").requiredOption("--amount-sol <amount>", "SOL amount to stake", parseAmountSol).requiredOption("--keypair <file>", "Solana keypair JSON file").option("--json", "Print structured JSON output").addHelpText(
+  vouch.command("create").requiredOption("--author <pubkey>", "Author wallet pubkey to vouch for").requiredOption(
+    "--amount-sol <amount>",
+    "SOL amount to stake",
+    parseAmountSol
+  ).requiredOption("--keypair <file>", "Solana keypair JSON file").option("--json", "Print structured JSON output").addHelpText(
     "after",
     "\nExamples:\n  agentvouch vouch create --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --amount-sol 0.1 --keypair ~/.config/solana/id.json"
   ).action(

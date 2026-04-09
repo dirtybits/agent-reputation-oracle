@@ -18,7 +18,9 @@ export function loadKeypair(keypairPath: string): Keypair {
     return Keypair.fromSecretKey(Uint8Array.from(secret));
   } catch (error) {
     throw new CliError(
-      `Failed to read keypair at ${keypairPath}: ${error instanceof Error ? error.message : "invalid keypair file"}`
+      `Failed to read keypair at ${keypairPath}: ${
+        error instanceof Error ? error.message : "invalid keypair file"
+      }`
     );
   }
 }

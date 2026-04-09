@@ -1544,9 +1544,9 @@ export default function SkillDetailPage({
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                 Set 0 for a free listing if your author bond meets the on-chain
                 floor. Free-skill disputes cap slashing at author bond; paid
-                listings may continue into vouchers after author bond.
-                Otherwise the minimum paid price is {formatMinPrice()}. Requires
-                one Solana transaction.
+                listings may continue into vouchers after author bond. Otherwise
+                the minimum paid price is {formatMinPrice()}. Requires one
+                Solana transaction.
               </p>
             </div>
           )

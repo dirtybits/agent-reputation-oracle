@@ -180,18 +180,17 @@ export default function AuthorProfilePage() {
     setLoading(true);
     try {
       const agentAddr = address(pubkey);
-      const [prof, received, given, repoRes, authorRes] =
-        await Promise.all([
-          oracle.getAgentProfile(agentAddr).catch(() => null),
-          oracle.getAllVouchesReceivedByAgent(agentAddr).catch(() => []),
-          oracle.getAllVouchesForAgent(agentAddr).catch(() => []),
-          fetch(`/api/skills?author=${pubkey}`)
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
-          fetch(`/api/author/${pubkey}`)
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
-        ]);
+      const [prof, received, given, repoRes, authorRes] = await Promise.all([
+        oracle.getAgentProfile(agentAddr).catch(() => null),
+        oracle.getAllVouchesReceivedByAgent(agentAddr).catch(() => []),
+        oracle.getAllVouchesForAgent(agentAddr).catch(() => []),
+        fetch(`/api/skills?author=${pubkey}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        fetch(`/api/author/${pubkey}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+      ]);
       const relatedProfileKeys = Array.from(
         new Set(
           [
@@ -608,14 +607,17 @@ export default function AuthorProfilePage() {
     (skill) => skill.value === claimSkillContext
   )?.label;
   const selectedClaimSkillValue =
-    claimSkillOptions.find((skill) => skill.value === claimSkillContext)?.value ??
+    claimSkillOptions.find((skill) => skill.value === claimSkillContext)
+      ?.value ??
     claimSkillOptions[0]?.value ??
     "";
   const registeredAt = Number(profile?.registeredAt ?? 0);
 
   const openClaimModal = useCallback(() => {
     const requestedSkill = searchParams.get("skill") ?? "";
-    const nextSkill = claimSkillOptions.some((skill) => skill.value === requestedSkill)
+    const nextSkill = claimSkillOptions.some(
+      (skill) => skill.value === requestedSkill
+    )
       ? requestedSkill
       : claimSkillOptions[0]?.value ?? "";
     setClaimStatus(null);
@@ -783,9 +785,10 @@ export default function AuthorProfilePage() {
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   Open a skill-linked author dispute. The protocol always
-                  snapshots the author&apos;s current backing set for visibility.
-                  Free-skill disputes cap slashing at author bond; paid-skill
-                  disputes can continue into vouchers after author bond.
+                  snapshots the author&apos;s current backing set for
+                  visibility. Free-skill disputes cap slashing at author bond;
+                  paid-skill disputes can continue into vouchers after author
+                  bond.
                 </p>
               </div>
 
@@ -1014,9 +1017,7 @@ export default function AuthorProfilePage() {
                     <p className="font-mono text-xs break-all">
                       Evidence: {dispute.evidenceUri}
                     </p>
-                    <p>
-                      Liability: {dispute.liabilityScopeLabel}
-                    </p>
+                    <p>Liability: {dispute.liabilityScopeLabel}</p>
                     <p>
                       Skill price at dispute open:{" "}
                       {formatSol(dispute.skillPriceLamportsSnapshot)} SOL

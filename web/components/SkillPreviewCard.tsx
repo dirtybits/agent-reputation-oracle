@@ -14,10 +14,7 @@ import {
 } from "react-icons/fi";
 import { LiaCoinsSolid } from "react-icons/lia";
 import { SolAmount } from "@/components/SolAmount";
-import {
-  getAuthorReportStatus,
-  type TrustData,
-} from "@/components/TrustBadge";
+import { getAuthorReportStatus, type TrustData } from "@/components/TrustBadge";
 import {
   navButtonFlexClass,
   navButtonPrimaryFlexClass,
@@ -186,10 +183,9 @@ export default function SkillPreviewCard({
             creatorPriceLamports
           )}.`
       : "No on-chain purchase required.";
-  const purchaseWarning =
-    purchaseBlocked
-      ? skill.purchaseBlockError?.message ?? skill.purchasePreflightMessage
-      : null;
+  const purchaseWarning = purchaseBlocked
+    ? skill.purchaseBlockError?.message ?? skill.purchasePreflightMessage
+    : null;
   const purchaseWarningId = `purchase-warning-${skill.id}`;
 
   return (
@@ -247,8 +243,8 @@ export default function SkillPreviewCard({
                 trust.activeDisputesAgainstAuthor > 0
                   ? "danger"
                   : trust.disputesUpheldAgainstAuthor > 0
-                    ? "warning"
-                    : "positive"
+                  ? "warning"
+                  : "positive"
               }
               icon={FiAlertTriangle}
             />
@@ -359,8 +355,12 @@ export default function SkillPreviewCard({
                 onClick={() => setShowPurchaseWarning((visible) => !visible)}
                 onFocus={() => setShowPurchaseWarning(true)}
                 onBlur={() => setShowPurchaseWarning(false)}
-                aria-describedby={purchaseWarning ? purchaseWarningId : undefined}
-                aria-expanded={purchaseWarning ? showPurchaseWarning : undefined}
+                aria-describedby={
+                  purchaseWarning ? purchaseWarningId : undefined
+                }
+                aria-expanded={
+                  purchaseWarning ? showPurchaseWarning : undefined
+                }
                 className={`w-full cursor-help border border-amber-200 bg-amber-50 text-center font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300 ${navButtonSizeClass}`}
               >
                 {purchasePreflightStatus === "authorPayoutRentBlocked"

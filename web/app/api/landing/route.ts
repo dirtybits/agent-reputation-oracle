@@ -18,9 +18,7 @@ import {
 import { getErrorMessage } from "@/lib/errors";
 import { DEFAULT_SOLANA_RPC_URL } from "@/lib/solanaRpc";
 
-const rpc = createSolanaRpc(
-  DEFAULT_SOLANA_RPC_URL
-);
+const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
 const asBase64 = (bytes: Uint8Array) =>
   Buffer.from(bytes).toString("base64") as Base64EncodedBytes;
 

@@ -14,33 +14,39 @@ vi.mock("@solana/kit", () => {
 
 vi.mock("@solana/rpc-types", () => ({}));
 
-vi.mock("@/generated/reputation-oracle/src/generated", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/generated/reputation-oracle/src/generated")>();
+vi.mock(
+  "@/generated/reputation-oracle/src/generated",
+  async (importOriginal) => {
+    const actual = await importOriginal<
+      typeof import("@/generated/reputation-oracle/src/generated")
+    >();
 
-  return {
-    ...actual,
-    getSkillListingDecoder: () => ({
-      decode: () => ({
-        author: "Author1",
-        name: "Test Skill",
-        description: "A skill",
-        priceLamports: 1000000n,
-        totalDownloads: 5n,
-        totalRevenue: 2000000n,
-        status: actual.SkillStatus.Active,
+    return {
+      ...actual,
+      getSkillListingDecoder: () => ({
+        decode: () => ({
+          author: "Author1",
+          name: "Test Skill",
+          description: "A skill",
+          priceLamports: 1000000n,
+          totalDownloads: 5n,
+          totalRevenue: 2000000n,
+          status: actual.SkillStatus.Active,
+        }),
       }),
-    }),
-    SKILL_LISTING_DISCRIMINATOR: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
-    getAgentProfileDecoder: () => ({
-      decode: () => ({
-        authority: "Agent1",
-        totalStakedFor: 500000n,
+      SKILL_LISTING_DISCRIMINATOR: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
+      getAgentProfileDecoder: () => ({
+        decode: () => ({
+          authority: "Agent1",
+          totalStakedFor: 500000n,
+        }),
       }),
-    }),
-    AGENT_PROFILE_DISCRIMINATOR: new Uint8Array([9, 10, 11, 12, 13, 14, 15, 16]),
-  };
-});
+      AGENT_PROFILE_DISCRIMINATOR: new Uint8Array([
+        9, 10, 11, 12, 13, 14, 15, 16,
+      ]),
+    };
+  }
+);
 
 vi.mock("@/generated/reputation-oracle/src/generated/programs", () => ({
   REPUTATION_ORACLE_PROGRAM_ADDRESS: "FakeProgramAddr",

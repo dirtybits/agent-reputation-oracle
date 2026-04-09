@@ -38,20 +38,21 @@ describe("publish flows", () => {
         };
       }
     );
-    vi.spyOn(AgentVouchApiClient.prototype, "linkSkillListing").mockImplementation(
-      async (_id, body) => {
-        linkBody = body;
-        return {
-          id: "595f5534-07ae-4839-a45a-b6858ab731fe",
-          skill_id: "calendar-agent",
-          author_pubkey: Keypair.generate().publicKey.toBase58(),
-          name: "Calendar Agent",
-          description: "Books meetings",
-          on_chain_address: String(body.on_chain_address),
-          total_installs: 0,
-        };
-      }
-    );
+    vi.spyOn(
+      AgentVouchApiClient.prototype,
+      "linkSkillListing"
+    ).mockImplementation(async (_id, body) => {
+      linkBody = body;
+      return {
+        id: "595f5534-07ae-4839-a45a-b6858ab731fe",
+        skill_id: "calendar-agent",
+        author_pubkey: Keypair.generate().publicKey.toBase58(),
+        name: "Calendar Agent",
+        description: "Books meetings",
+        on_chain_address: String(body.on_chain_address),
+        total_installs: 0,
+      };
+    });
     vi.spyOn(
       AgentVouchSolanaClient.prototype,
       "createSkillListing"
@@ -76,12 +77,20 @@ describe("publish flows", () => {
     expect(result.repoSkillId).toBe("595f5534-07ae-4839-a45a-b6858ab731fe");
     expect(String(publishBody?.skill_id)).toBe("calendar-agent");
     expect(String(publishBody?.content)).toContain("# skill content");
-    expect(String((publishBody?.auth as { message: string }).message)).toContain(
-      buildSignMessage("publish-skill", (publishBody?.auth as { timestamp: number }).timestamp)
+    expect(
+      String((publishBody?.auth as { message: string }).message)
+    ).toContain(
+      buildSignMessage(
+        "publish-skill",
+        (publishBody?.auth as { timestamp: number }).timestamp
+      )
     );
     expect(String(linkBody?.on_chain_address)).toBe(result.listingAddress);
     expect(String((linkBody?.auth as { message: string }).message)).toContain(
-      buildSignMessage("publish-skill", (linkBody?.auth as { timestamp: number }).timestamp)
+      buildSignMessage(
+        "publish-skill",
+        (linkBody?.auth as { timestamp: number }).timestamp
+      )
     );
   });
 
@@ -89,12 +98,13 @@ describe("publish flows", () => {
     const { keypairPath, skillFile } = await createFixtureFiles();
     let versionBody: Record<string, unknown> | null = null;
 
-    vi.spyOn(AgentVouchApiClient.prototype, "addSkillVersion").mockImplementation(
-      async (_id, body) => {
-        versionBody = body;
-        return { version: 2 };
-      }
-    );
+    vi.spyOn(
+      AgentVouchApiClient.prototype,
+      "addSkillVersion"
+    ).mockImplementation(async (_id, body) => {
+      versionBody = body;
+      return { version: 2 };
+    });
 
     const result = await addSkillVersion({
       id: "595f5534-07ae-4839-a45a-b6858ab731fe",
@@ -107,7 +117,9 @@ describe("publish flows", () => {
     expect(result.version).toBe(2);
     expect(String(versionBody?.content)).toContain("# skill content");
     expect(String(versionBody?.changelog)).toBe("Fix env names");
-    expect(String((versionBody?.auth as { message: string }).message)).toContain(
+    expect(
+      String((versionBody?.auth as { message: string }).message)
+    ).toContain(
       buildSignMessage(
         "publish-skill",
         (versionBody?.auth as { timestamp: number }).timestamp

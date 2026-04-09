@@ -20,10 +20,7 @@ import {
   createWalletTransactionSigner,
   type TransactionPrepareAndSendRequest,
 } from "@solana/client";
-import type {
-  Base58EncodedBytes,
-  Base64EncodedBytes,
-} from "@solana/rpc-types";
+import type { Base58EncodedBytes, Base64EncodedBytes } from "@solana/rpc-types";
 import { decodeBase64, encodeBase64 } from "@/lib/base64";
 import {
   assessPurchasePreflight,
@@ -255,14 +252,14 @@ export function useMarketplaceOracle() {
           Array.isArray((cause as { logs?: unknown }).logs)
             ? (cause as { logs: unknown[] }).logs
             : cause &&
-                typeof cause === "object" &&
-                "context" in cause &&
-                (cause as { context?: unknown }).context &&
-                typeof (cause as { context?: unknown }).context === "object" &&
-                "logs" in
-                  ((cause as { context: { logs?: unknown } }).context ?? {})
-              ? (cause as { context: { logs?: unknown[] } }).context.logs ?? null
-              : null;
+              typeof cause === "object" &&
+              "context" in cause &&
+              (cause as { context?: unknown }).context &&
+              typeof (cause as { context?: unknown }).context === "object" &&
+              "logs" in
+                ((cause as { context: { logs?: unknown } }).context ?? {})
+            ? (cause as { context: { logs?: unknown[] } }).context.logs ?? null
+            : null;
         if (logs?.length) console.error("Simulation logs:", logs);
         if (cause) {
           console.error("Transaction failed (cause):", cause);
@@ -403,7 +400,10 @@ export function useMarketplaceOracle() {
             getPurchasePDA(buyer, skillListing)
           )
         );
-        const maybePurchases = await fetchAllMaybePurchase(rpc, purchaseAddresses);
+        const maybePurchases = await fetchAllMaybePurchase(
+          rpc,
+          purchaseAddresses
+        );
 
         return new Set(
           skillListings

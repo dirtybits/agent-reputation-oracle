@@ -71,9 +71,7 @@ function getDefaultTrust(): AuthorTrust {
   };
 }
 
-function mapAgentProfileTrust(
-  profile: AgentProfileData
-): AuthorTrust {
+function mapAgentProfileTrust(profile: AgentProfileData): AuthorTrust {
   const totalStakedFor = Number(profile.totalStakedFor);
   const authorBondLamports = Number(profile.authorBondLamports);
   return {
@@ -123,10 +121,7 @@ export async function resolveAuthorTrust(pubkey: string): Promise<AuthorTrust> {
     }
 
     const d = account.data;
-    const trust = mergeAuthorTrust(
-      mapAgentProfileTrust(d),
-      disputeMetrics
-    );
+    const trust = mergeAuthorTrust(mapAgentProfileTrust(d), disputeMetrics);
 
     cache.set(pubkey, { data: trust, expires: now + CACHE_TTL_MS });
     return trust;

@@ -1115,8 +1115,9 @@ export function useReputationOracle() {
             rulingValue === null || rulingValue === undefined
               ? null
               : AuthorDisputeRuling[rulingValue] ?? "Unknown";
-          const liabilityScopeLabel =
-            getAuthorDisputeLiabilityScopeLabel(record.account.liabilityScope);
+          const liabilityScopeLabel = getAuthorDisputeLiabilityScopeLabel(
+            record.account.liabilityScope
+          );
           return {
             publicKey: record.publicKey,
             account: record.account,

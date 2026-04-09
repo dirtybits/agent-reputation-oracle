@@ -290,7 +290,10 @@ export async function resolveAuthorDisputeMetrics(
   authorPubkey: string,
   useCache = true
 ): Promise<AuthorDisputeMetrics> {
-  const disputes = await getAuthorDisputeAccountsByAuthor(authorPubkey, useCache);
+  const disputes = await getAuthorDisputeAccountsByAuthor(
+    authorPubkey,
+    useCache
+  );
   const metrics: AuthorDisputeMetrics = {
     disputesAgainstAuthor: 0,
     disputesUpheldAgainstAuthor: 0,
@@ -357,7 +360,10 @@ export async function getAuthorDisputePublicKeysByAuthor(
   authorPubkey: string,
   useCache = true
 ): Promise<string[]> {
-  const disputes = await getAuthorDisputeAccountsByAuthor(authorPubkey, useCache);
+  const disputes = await getAuthorDisputeAccountsByAuthor(
+    authorPubkey,
+    useCache
+  );
   return disputes.map((dispute) => dispute.publicKey);
 }
 

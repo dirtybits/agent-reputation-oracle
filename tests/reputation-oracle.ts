@@ -376,7 +376,9 @@ describe("reputation-oracle", () => {
     const authorBondAfterDeposit = await program.account.authorBond.fetch(
       authorBondPda
     );
-    const agent3AfterDeposit = await program.account.agentProfile.fetch(agent3Pda);
+    const agent3AfterDeposit = await program.account.agentProfile.fetch(
+      agent3Pda
+    );
     assert.equal(
       authorBondAfterDeposit.amount.toString(),
       depositAmount.toString()
@@ -401,7 +403,9 @@ describe("reputation-oracle", () => {
     const authorBondAfterWithdraw = await program.account.authorBond.fetch(
       authorBondPda
     );
-    const agent3AfterWithdraw = await program.account.agentProfile.fetch(agent3Pda);
+    const agent3AfterWithdraw = await program.account.agentProfile.fetch(
+      agent3Pda
+    );
     const expectedRemaining = depositAmount.sub(withdrawAmount);
 
     assert.equal(
@@ -435,10 +439,7 @@ describe("reputation-oracle", () => {
       after.authorBondLamports.toString(),
       before.authorBondLamports.toString()
     );
-    assert.equal(
-      after.activeFreeSkillListings,
-      before.activeFreeSkillListings
-    );
+    assert.equal(after.activeFreeSkillListings, before.activeFreeSkillListings);
     assert.equal(after.openAuthorDisputes, before.openAuthorDisputes);
     assert.equal(after.bump, before.bump);
   });
@@ -464,10 +465,7 @@ describe("reputation-oracle", () => {
       after.authorBondLamports.toString(),
       before.authorBondLamports.toString()
     );
-    assert.equal(
-      after.activeFreeSkillListings,
-      before.activeFreeSkillListings
-    );
+    assert.equal(after.activeFreeSkillListings, before.activeFreeSkillListings);
     assert.equal(after.openAuthorDisputes, before.openAuthorDisputes);
   });
 });

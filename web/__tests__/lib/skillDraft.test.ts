@@ -49,9 +49,7 @@ describe("skillDraft helpers", () => {
       descriptionManuallyEdited: false,
     });
 
-    expect(draft.description).toBe(
-      normalizeSkillDescription(longDescription)
-    );
+    expect(draft.description).toBe(normalizeSkillDescription(longDescription));
     expect(draft.description.length).toBe(MAX_SKILL_DESCRIPTION_LENGTH);
   });
 

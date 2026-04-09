@@ -2,10 +2,7 @@ import path from "node:path";
 import { CliError } from "./errors.js";
 import { assertWritableOutputPath, writeUtf8File } from "./fs.js";
 import { type SkillRecord, AgentVouchApiClient } from "./http.js";
-import {
-  createDownloadAuthPayload,
-  loadKeypair,
-} from "./signer.js";
+import { createDownloadAuthPayload, loadKeypair } from "./signer.js";
 import { AgentVouchSolanaClient } from "./solana.js";
 
 export interface InstallSkillInput {
@@ -32,7 +29,10 @@ async function resolveChainSkillContent(
     return skill.content;
   }
 
-  if (skill.skill_uri?.startsWith("http://") || skill.skill_uri?.startsWith("https://")) {
+  if (
+    skill.skill_uri?.startsWith("http://") ||
+    skill.skill_uri?.startsWith("https://")
+  ) {
     return api.fetchRemoteText(skill.skill_uri);
   }
 
@@ -85,7 +85,9 @@ export async function installSkill(input: InstallSkillInput) {
 
   if (initialDownload.status !== 402 || !initialDownload.requirement) {
     throw new CliError(
-      `Failed to download skill ${input.id}: ${initialDownload.error || "unexpected response"}`
+      `Failed to download skill ${input.id}: ${
+        initialDownload.error || "unexpected response"
+      }`
     );
   }
 
@@ -129,7 +131,9 @@ export async function installSkill(input: InstallSkillInput) {
 
   if (!signedDownload.ok || signedDownload.content === undefined) {
     throw new CliError(
-      `Purchase completed but signed raw download failed: ${signedDownload.error || "unexpected response"}`
+      `Purchase completed but signed raw download failed: ${
+        signedDownload.error || "unexpected response"
+      }`
     );
   }
 

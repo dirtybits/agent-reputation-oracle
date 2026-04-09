@@ -537,7 +537,8 @@ export default function DashboardPage() {
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <FiDollarSign />{" "}
-                        {formatSolAmount(Number(agent.account.totalStakedFor))} SOL
+                        {formatSolAmount(Number(agent.account.totalStakedFor))}{" "}
+                        SOL
                       </span>
                     </div>
                   </div>
@@ -653,7 +654,11 @@ export default function DashboardPage() {
                         External Backing
                       </span>
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
-                        {formatSolAmount(Number(agentProfile.totalStakedFor), 3, 4)}{" "}
+                        {formatSolAmount(
+                          Number(agentProfile.totalStakedFor),
+                          3,
+                          4
+                        )}{" "}
                         SOL
                       </span>
                     </div>
@@ -1316,7 +1321,9 @@ export default function DashboardPage() {
                           Registered
                         </span>
                         <span className="text-sm text-gray-900 dark:text-white">
-                          {formatRegisteredTimestamp(searchedAgent.registeredAt)}
+                          {formatRegisteredTimestamp(
+                            searchedAgent.registeredAt
+                          )}
                         </span>
                       </div>
                       <div className="pt-3">
@@ -1512,8 +1519,7 @@ export default function DashboardPage() {
                               )}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Snapshot:{" "}
-                              {dispute.account.linkedVouchCount} of{" "}
+                              Snapshot: {dispute.account.linkedVouchCount} of{" "}
                               {dispute.account.backingVouchCountSnapshot}{" "}
                               backing{" "}
                               {dispute.account.backingVouchCountSnapshot === 1

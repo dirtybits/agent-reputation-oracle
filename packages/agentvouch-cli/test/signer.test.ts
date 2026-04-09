@@ -1,4 +1,7 @@
-import { buildDownloadRawMessage, buildSignMessage } from "@agentvouch/protocol";
+import {
+  buildDownloadRawMessage,
+  buildSignMessage,
+} from "@agentvouch/protocol";
 import { Keypair } from "@solana/web3.js";
 import { describe, expect, it } from "vitest";
 import {

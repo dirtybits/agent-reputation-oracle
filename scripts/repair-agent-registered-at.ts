@@ -172,7 +172,10 @@ async function loadTargets(
 ): Promise<RepairTarget[]> {
   if (options.authorPubkey) {
     const author = new PublicKey(options.authorPubkey);
-    const agentProfilePda = await deriveAgentProfilePda(program.programId, author);
+    const agentProfilePda = await deriveAgentProfilePda(
+      program.programId,
+      author
+    );
     const profile = await program.account.agentProfile.fetch(agentProfilePda);
     return [
       {
@@ -252,7 +255,10 @@ async function main() {
     );
 
     console.log("Recovered signature:", recovered.signature);
-    console.log("Recovered registered_at:", formatTimestamp(recovered.timestamp));
+    console.log(
+      "Recovered registered_at:",
+      formatTimestamp(recovered.timestamp)
+    );
 
     if (target.currentRegisteredAt === recovered.timestamp) {
       console.log("No change needed.");

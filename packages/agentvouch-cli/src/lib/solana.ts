@@ -26,12 +26,13 @@ export class AgentVouchSolanaClient {
     commitment: Commitment = "confirmed"
   ) {
     this.connection = new web3.Connection(rpcUrl, commitment);
-    this.provider = new AnchorProvider(
-      this.connection,
-      new Wallet(keypair),
-      { commitment }
+    this.provider = new AnchorProvider(this.connection, new Wallet(keypair), {
+      commitment,
+    });
+    this.program = new Program(
+      reputationOracleIdl as anchor.Idl,
+      this.provider
     );
-    this.program = new Program(reputationOracleIdl as anchor.Idl, this.provider);
   }
 
   get authority(): PublicKey {
@@ -59,9 +60,16 @@ export class AgentVouchSolanaClient {
     )[0];
   }
 
-  getSkillListingAddress(skillId: string, author: PublicKey | string = this.authority) {
+  getSkillListingAddress(
+    skillId: string,
+    author: PublicKey | string = this.authority
+  ) {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("skill"), toPublicKey(author).toBuffer(), Buffer.from(skillId)],
+      [
+        Buffer.from("skill"),
+        toPublicKey(author).toBuffer(),
+        Buffer.from(skillId),
+      ],
       new PublicKey(AGENTVOUCH_PROGRAM_ID)
     )[0];
   }
@@ -210,7 +218,9 @@ export class AgentVouchSolanaClient {
     const authorProfile = this.getAgentProfileAddress(this.authority);
     const config = this.getConfigAddress();
     const authorBond =
-      input.priceLamports === 0 ? this.getAuthorBondAddress(this.authority) : null;
+      input.priceLamports === 0
+        ? this.getAuthorBondAddress(this.authority)
+        : null;
 
     const tx = await this.program.methods
       .createSkillListing(

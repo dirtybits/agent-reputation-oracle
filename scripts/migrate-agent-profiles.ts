@@ -147,7 +147,9 @@ function parseCurrentAgentProfile(
   const reasons: string[] = [];
 
   if (storedBump !== canonicalBump) {
-    reasons.push(`stored bump ${storedBump} != canonical bump ${canonicalBump}`);
+    reasons.push(
+      `stored bump ${storedBump} != canonical bump ${canonicalBump}`
+    );
   }
   if (!isPlausibleRegisteredAt(storedRegisteredAt)) {
     reasons.push(`registered_at ${storedRegisteredAt} is implausible`);
@@ -298,7 +300,13 @@ async function loadTargets(
         `Agent profile ${agentProfilePda.toBase58()} does not exist for author ${author.toBase58()}`
       );
     }
-    return [parseAgentProfileAccount(agentProfilePda, account.data, program.programId)];
+    return [
+      parseAgentProfileAccount(
+        agentProfilePda,
+        account.data,
+        program.programId
+      ),
+    ];
   }
 
   const filters: GetProgramAccountsFilter[] = [
@@ -320,7 +328,11 @@ async function loadTargets(
 
   const parsed = accounts
     .map((entry) =>
-      parseAgentProfileAccount(entry.pubkey, entry.account.data, program.programId)
+      parseAgentProfileAccount(
+        entry.pubkey,
+        entry.account.data,
+        program.programId
+      )
     )
     .filter((entry) => entry.needsMigration || entry.needsTimestampRepair);
 
@@ -380,8 +392,14 @@ async function main() {
           provider.connection,
           target.publicKey
         );
-        console.log("Would repair registered_at from history:", recovered.signature);
-        console.log("Recovered registered_at:", formatTimestamp(recovered.timestamp));
+        console.log(
+          "Would repair registered_at from history:",
+          recovered.signature
+        );
+        console.log(
+          "Recovered registered_at:",
+          formatTimestamp(recovered.timestamp)
+        );
       }
       continue;
     }
@@ -417,7 +435,10 @@ async function main() {
       })
       .rpc();
     console.log("Recovered signature:", recovered.signature);
-    console.log("Recovered registered_at:", formatTimestamp(recovered.timestamp));
+    console.log(
+      "Recovered registered_at:",
+      formatTimestamp(recovered.timestamp)
+    );
     console.log("Repair transaction:", repairTx);
   }
 }

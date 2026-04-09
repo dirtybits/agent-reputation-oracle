@@ -128,4 +128,3 @@ export async function getAuthorMetadataSummary(pubkey: string) {
     publishedSkills,
   };
 }
-

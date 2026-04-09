@@ -113,7 +113,10 @@ async function main() {
     program.programId
   );
 
-  const accountInfo = await provider.connection.getAccountInfo(configPda, "confirmed");
+  const accountInfo = await provider.connection.getAccountInfo(
+    configPda,
+    "confirmed"
+  );
   if (!accountInfo) {
     throw new Error(
       `Config PDA ${configPda.toBase58()} does not exist on this cluster. Run initialize_config instead.`
@@ -186,7 +189,9 @@ async function main() {
 
   console.log("Migration transaction:", tx);
 
-  const migratedAccount = await program.account.reputationConfig.fetch(configPda);
+  const migratedAccount = await program.account.reputationConfig.fetch(
+    configPda
+  );
   console.log("Migrated config size:", CURRENT_REPUTATION_CONFIG_LEN, "bytes");
   console.log(
     "Migrated min_author_bond_for_free_listing:",

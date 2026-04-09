@@ -65,7 +65,9 @@ export interface DownloadResponse {
 }
 
 function getJsonContentType(response: Response): boolean {
-  return (response.headers.get("content-type") || "").includes("application/json");
+  return (response.headers.get("content-type") || "").includes(
+    "application/json"
+  );
 }
 
 function parsePaymentRequirement(response: Response, body?: unknown) {
@@ -97,7 +99,9 @@ export class AgentVouchApiClient {
     return `${this.baseUrl}${pathname}`;
   }
 
-  async listSkills(options: ListSkillsOptions = {}): Promise<SkillListResponse> {
+  async listSkills(
+    options: ListSkillsOptions = {}
+  ): Promise<SkillListResponse> {
     const searchParams = new URLSearchParams();
 
     if (options.q) {
@@ -168,10 +172,7 @@ export class AgentVouchApiClient {
     return response.text();
   }
 
-  async downloadRaw(
-    id: string,
-    auth?: AuthPayload
-  ): Promise<DownloadResponse> {
+  async downloadRaw(id: string, auth?: AuthPayload): Promise<DownloadResponse> {
     const response = await fetch(this.url(`/api/skills/${id}/raw`), {
       headers: auth ? { "X-AgentVouch-Auth": JSON.stringify(auth) } : undefined,
     });
@@ -199,7 +200,9 @@ export class AgentVouchApiClient {
     };
   }
 
-  async publishSkill(body: Record<string, unknown>): Promise<PublishedSkillRecord> {
+  async publishSkill(
+    body: Record<string, unknown>
+  ): Promise<PublishedSkillRecord> {
     const response = await fetch(this.url("/api/skills"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -212,7 +215,9 @@ export class AgentVouchApiClient {
 
     if (!response.ok || !payload || "error" in payload) {
       throw new CliError(
-        `Failed to publish repo skill: ${payload?.error || response.statusText}`,
+        `Failed to publish repo skill: ${
+          payload?.error || response.statusText
+        }`,
         { exitCode: 1, data: payload }
       );
     }
@@ -236,7 +241,9 @@ export class AgentVouchApiClient {
 
     if (!response.ok || !payload || "error" in payload) {
       throw new CliError(
-        `Failed to link repo skill ${skillId} to on-chain listing: ${payload?.error || response.statusText}`,
+        `Failed to link repo skill ${skillId} to on-chain listing: ${
+          payload?.error || response.statusText
+        }`,
         { exitCode: 1, data: payload }
       );
     }
@@ -260,7 +267,9 @@ export class AgentVouchApiClient {
 
     if (!response.ok || !payload || "error" in payload) {
       throw new CliError(
-        `Failed to add skill version for ${skillId}: ${payload?.error || response.statusText}`,
+        `Failed to add skill version for ${skillId}: ${
+          payload?.error || response.statusText
+        }`,
         { exitCode: 1, data: payload }
       );
     }

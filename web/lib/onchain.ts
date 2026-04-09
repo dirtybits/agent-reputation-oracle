@@ -29,7 +29,9 @@ export type OnChainSkillListingRecord = {
   data: SkillListing;
 };
 
-async function loadAllOnChainSkillListings(): Promise<OnChainSkillListingRecord[]> {
+async function loadAllOnChainSkillListings(): Promise<
+  OnChainSkillListingRecord[]
+> {
   const accounts = await rpc
     .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
       encoding: "base64",
@@ -67,7 +69,8 @@ async function loadOnChainSkillListing(
   const cachedAll = allListingsCache.get(ALL_LISTINGS_CACHE_KEY);
   if (cachedAll && cachedAll.expiresAt > Date.now()) {
     return (
-      cachedAll.value.find((listing) => listing.publicKey === onChainAddress) ?? null
+      cachedAll.value.find((listing) => listing.publicKey === onChainAddress) ??
+      null
     );
   }
 

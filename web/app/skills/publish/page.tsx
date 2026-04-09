@@ -756,10 +756,10 @@ function PublishSkillPageInner() {
               <input
                 type="text"
                 value={description}
-                  onChange={(e) => {
-                    setDescriptionManuallyEdited(true);
-                    setDescription(normalizeSkillDescription(e.target.value));
-                  }}
+                onChange={(e) => {
+                  setDescriptionManuallyEdited(true);
+                  setDescription(normalizeSkillDescription(e.target.value));
+                }}
                 placeholder="Brief description of what this skill teaches agents..."
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 maxLength={256}
@@ -818,9 +818,9 @@ function PublishSkillPageInner() {
               <input
                 type="text"
                 value={contact}
-                  onChange={(e) =>
-                    setContact(normalizeSkillContact(e.target.value))
-                  }
+                onChange={(e) =>
+                  setContact(normalizeSkillContact(e.target.value))
+                }
                 placeholder="@twitter, discord#1234, t.me/handle, etc."
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
                 maxLength={128}

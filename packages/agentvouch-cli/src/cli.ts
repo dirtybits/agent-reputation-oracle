@@ -112,7 +112,11 @@ addBaseUrlOption(
     .option("--q <query>", "Search by keyword")
     .option("--author <pubkey>", "Filter by author pubkey")
     .option("--tags <csv>", "Filter by comma-separated tags")
-    .option("--sort <order>", "Sort by newest, trusted, installs, or name", "newest")
+    .option(
+      "--sort <order>",
+      "Sort by newest, trusted, installs, or name",
+      "newest"
+    )
     .option("--page <number>", "Results page number", parsePage, 1)
     .option("--json", "Print structured JSON output")
     .addHelpText(
@@ -132,13 +136,15 @@ addBaseUrlOption(
         await runCommand(
           options,
           async () =>
-            new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listSkills({
-              q: options.q,
-              author: options.author,
-              tags: options.tags,
-              sort: options.sort,
-              page: options.page,
-            }),
+            new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listSkills(
+              {
+                q: options.q,
+                author: options.author,
+                tags: options.tags,
+                sort: options.sort,
+                page: options.page,
+              }
+            ),
           formatSkillList
         );
       }
@@ -154,13 +160,18 @@ addBaseUrlOption(
       "after",
       "\nExamples:\n  agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe\n  agentvouch skill inspect chain-Eq35iaSKECtZAGMkPVSk18tqFDFe6L3hgEhJsUzkByFd --json"
     )
-    .action(async (id: string, options: { baseUrl: string; json?: boolean }) => {
-      await runCommand(
-        options,
-        async () => new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).getSkill(id),
-        formatSkillSummary
-      );
-    })
+    .action(
+      async (id: string, options: { baseUrl: string; json?: boolean }) => {
+        await runCommand(
+          options,
+          async () =>
+            new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).getSkill(
+              id
+            ),
+          formatSkillSummary
+        );
+      }
+    )
 );
 
 addRpcUrlOption(
@@ -168,10 +179,17 @@ addRpcUrlOption(
     skill
       .command("install")
       .argument("<id>", "Repo UUID or chain-<listing> id")
-      .requiredOption("--out <path>", "Output path for the downloaded skill file", "SKILL.md")
+      .requiredOption(
+        "--out <path>",
+        "Output path for the downloaded skill file",
+        "SKILL.md"
+      )
       .option("--keypair <file>", "Solana keypair JSON file for paid installs")
       .option("--force", "Overwrite an existing output file")
-      .option("--dry-run", "Show the required paid flow without purchasing or writing")
+      .option(
+        "--dry-run",
+        "Show the required paid flow without purchasing or writing"
+      )
       .option("--json", "Print structured JSON output")
       .addHelpText(
         "after",
@@ -207,8 +225,12 @@ addRpcUrlOption(
               `mode: ${result.mode}`,
               `output: ${result.outputPath}`,
               `price_lamports: ${result.priceLamports}`,
-              ...(result.listingAddress ? [`listing: ${result.listingAddress}`] : []),
-              ...(result.purchaseTx ? [`purchase_tx: ${result.purchaseTx}`] : []),
+              ...(result.listingAddress
+                ? [`listing: ${result.listingAddress}`]
+                : []),
+              ...(result.purchaseTx
+                ? [`purchase_tx: ${result.purchaseTx}`]
+                : []),
               ...(result.dryRun ? ["dry_run: true"] : []),
             ]
           );
@@ -234,11 +256,14 @@ addRpcUrlOption(
         parseLamports,
         1_000_000
       )
-      .option("--dry-run", "Preview the repo and on-chain requests without sending them")
+      .option(
+        "--dry-run",
+        "Preview the repo and on-chain requests without sending them"
+      )
       .option("--json", "Print structured JSON output")
       .addHelpText(
         "after",
-        "\nExamples:\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name \"Calendar Agent\" --description \"Books and manages calendar tasks\" --keypair ~/.config/solana/id.json\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name \"Calendar Agent\" --description \"Books and manages calendar tasks\" --price-lamports 0 --keypair ~/.config/solana/id.json --dry-run"
+        '\nExamples:\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --price-lamports 0 --keypair ~/.config/solana/id.json --dry-run'
       )
       .action(
         async (options: {
@@ -299,7 +324,9 @@ addRpcUrlOption(
   )
 );
 
-const skillVersion = skill.command("version").description("Manage repo skill versions.");
+const skillVersion = skill
+  .command("version")
+  .description("Manage repo skill versions.");
 
 addBaseUrlOption(
   skillVersion
@@ -311,7 +338,7 @@ addBaseUrlOption(
     .option("--json", "Print structured JSON output")
     .addHelpText(
       "after",
-      "\nExamples:\n  agentvouch skill version add 595f5534-07ae-4839-a45a-b6858ab731fe --file ./SKILL.md --changelog \"Fix env var names\" --keypair ~/.config/solana/id.json"
+      '\nExamples:\n  agentvouch skill version add 595f5534-07ae-4839-a45a-b6858ab731fe --file ./SKILL.md --changelog "Fix env var names" --keypair ~/.config/solana/id.json'
     )
     .action(
       async (
@@ -343,7 +370,9 @@ addBaseUrlOption(
     )
 );
 
-const author = program.command("author").description("Manage author profile actions.");
+const author = program
+  .command("author")
+  .description("Manage author profile actions.");
 
 addRpcUrlOption(
   author
@@ -382,13 +411,19 @@ addRpcUrlOption(
     )
 );
 
-const vouch = program.command("vouch").description("Create stake-backed vouches.");
+const vouch = program
+  .command("vouch")
+  .description("Create stake-backed vouches.");
 
 addRpcUrlOption(
   vouch
     .command("create")
     .requiredOption("--author <pubkey>", "Author wallet pubkey to vouch for")
-    .requiredOption("--amount-sol <amount>", "SOL amount to stake", parseAmountSol)
+    .requiredOption(
+      "--amount-sol <amount>",
+      "SOL amount to stake",
+      parseAmountSol
+    )
     .requiredOption("--keypair <file>", "Solana keypair JSON file")
     .option("--json", "Print structured JSON output")
     .addHelpText(

@@ -36,7 +36,10 @@ function sqlStringLiteral(db: SqlQuery, value: string) {
 export async function initializeDatabase() {
   const db = sql();
   const configuredSolanaChainContext = getConfiguredSolanaChainContext();
-  const chainContextDefault = sqlStringLiteral(db, configuredSolanaChainContext);
+  const chainContextDefault = sqlStringLiteral(
+    db,
+    configuredSolanaChainContext
+  );
 
   await db`
     CREATE TABLE IF NOT EXISTS skills (

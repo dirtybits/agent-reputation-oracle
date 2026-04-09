@@ -4,7 +4,11 @@ import {
 } from "@agentvouch/protocol";
 
 export function resolveBaseUrl(baseUrl?: string): string {
-  return (baseUrl || process.env.AGENTVOUCH_BASE_URL || AGENTVOUCH_DEFAULT_BASE_URL)
+  return (
+    baseUrl ||
+    process.env.AGENTVOUCH_BASE_URL ||
+    AGENTVOUCH_DEFAULT_BASE_URL
+  )
     .trim()
     .replace(/\/+$/, "");
 }

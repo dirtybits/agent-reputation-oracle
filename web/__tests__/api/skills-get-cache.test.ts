@@ -80,9 +80,7 @@ describe("GET /api/skills cache headers", () => {
 
   it("disables shared caching for buyer-scoped responses", async () => {
     const res = await GET(
-      makeRequest(
-        "?sort=newest&page=1&buyer=11111111111111111111111111111111"
-      )
+      makeRequest("?sort=newest&page=1&buyer=11111111111111111111111111111111")
     );
 
     expect(res.status).toBe(200);

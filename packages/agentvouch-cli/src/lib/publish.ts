@@ -31,7 +31,9 @@ export async function publishSkill(input: PublishSkillInput) {
   const keypair = loadKeypair(input.keypairPath);
   const repoAuth = createRepoAuthPayload(keypair, "publish-skill");
   const solana = new AgentVouchSolanaClient(keypair, input.rpcUrl);
-  const listingAddress = solana.getSkillListingAddress(input.skillId).toBase58();
+  const listingAddress = solana
+    .getSkillListingAddress(input.skillId)
+    .toBase58();
 
   if (input.dryRun) {
     return {

@@ -113,9 +113,9 @@ describe("useReputationOracle send helpers", () => {
   it("rejects mismatched wallet and signer addresses before listing creation", () => {
     const signer = createMockSigner();
 
-    expect(() =>
-      getConnectedAuthorAddress(VOUCHEE_PROFILE, signer)
-    ).toThrow(/does not match transaction signer/i);
+    expect(() => getConnectedAuthorAddress(VOUCHEE_PROFILE, signer)).toThrow(
+      /does not match transaction signer/i
+    );
   });
 
   it("reports a configured-network balance mismatch before sending a vouch", () => {

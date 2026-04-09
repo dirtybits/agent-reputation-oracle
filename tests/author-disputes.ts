@@ -200,7 +200,9 @@ describe("author-disputes", () => {
       // Shared local validator state may already have the config.
     }
 
-    const configAccount = await program.account.reputationConfig.fetch(configPda);
+    const configAccount = await program.account.reputationConfig.fetch(
+      configPda
+    );
     slashPercentage = configAccount.slashPercentage;
     const minimumBondLamports = Math.max(
       configAccount.minAuthorBondForFreeListing.toNumber(),
@@ -510,7 +512,10 @@ describe("author-disputes", () => {
           systemProgram: SystemProgram.programId,
         })
         .remainingAccounts(
-          getRemainingAccounts(duplicateAuthorDispute, [paidVouchOne, paidVouchOne])
+          getRemainingAccounts(duplicateAuthorDispute, [
+            paidVouchOne,
+            paidVouchOne,
+          ])
         )
         .signers([challenger])
         .rpc(),
@@ -582,7 +587,9 @@ describe("author-disputes", () => {
     const authorDispute = getAuthorDisputePda(otherAuthor.publicKey, disputeId);
     const linkOne = getAuthorDisputeLinkPda(authorDispute, freeVouchOne);
     const linkTwo = getAuthorDisputeLinkPda(authorDispute, freeVouchTwo);
-    const expectedBondOnlySlash = computeSlashAmount(authorBondAmount.toNumber());
+    const expectedBondOnlySlash = computeSlashAmount(
+      authorBondAmount.toNumber()
+    );
 
     const otherAuthorBondLamportsBefore = await provider.connection.getBalance(
       otherAuthorBond
@@ -819,7 +826,10 @@ describe("author-disputes", () => {
     const opened = await program.account.authorDispute.fetch(authorDispute);
     assert.equal(opened.skillListing.toBase58(), skillListing.toBase58());
     assert.equal(opened.skillPriceLamportsSnapshot.toNumber(), 250_000_000);
-    assert.equal(opened.liabilityScope.authorBondThenVouchers !== undefined, true);
+    assert.equal(
+      opened.liabilityScope.authorBondThenVouchers !== undefined,
+      true
+    );
     assert.equal(opened.purchase?.toBase58(), purchase.toBase58());
     assert.equal(opened.backingVouchCountSnapshot, 2);
     assert.equal(opened.linkedVouchCount, 2);
@@ -866,7 +876,9 @@ describe("author-disputes", () => {
     assert.equal(resolved.ruling?.upheld !== undefined, true);
     assert.equal(resolved.linkedVouchCount, resolved.backingVouchCountSnapshot);
 
-    const authorBondAccount = await program.account.authorBond.fetch(authorBond);
+    const authorBondAccount = await program.account.authorBond.fetch(
+      authorBond
+    );
     const vouchOneAccount = await program.account.vouch.fetch(paidVouchOne);
     const vouchTwoAccount = await program.account.vouch.fetch(paidVouchTwo);
     assert.equal(authorBondAccount.amount.toNumber(), 0);
@@ -889,7 +901,9 @@ describe("author-disputes", () => {
     assert.equal(authorProfileAccount.openAuthorDisputes, 0);
     assert.equal(Number(authorProfileAccount.totalStakedFor), 0);
 
-    const authorBondLamportsAfter = await provider.connection.getBalance(authorBond);
+    const authorBondLamportsAfter = await provider.connection.getBalance(
+      authorBond
+    );
     const vouchOneLamportsAfter = await provider.connection.getBalance(
       paidVouchOne
     );
