@@ -90,6 +90,36 @@ var AgentVouchApiClient = class {
   url(pathname) {
     return `${this.baseUrl}${pathname}`;
   }
+  async listSkills(options = {}) {
+    const searchParams = new URLSearchParams();
+    if (options.q) {
+      searchParams.set("q", options.q);
+    }
+    if (options.sort) {
+      searchParams.set("sort", options.sort);
+    }
+    if (options.author) {
+      searchParams.set("author", options.author);
+    }
+    if (options.tags) {
+      searchParams.set("tags", options.tags);
+    }
+    if (options.page !== void 0) {
+      searchParams.set("page", String(options.page));
+    }
+    const query = searchParams.toString();
+    const response = await fetch(
+      this.url(`/api/skills${query ? `?${query}` : ""}`)
+    );
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body || "error" in body || !Array.isArray(body.skills) || !body.pagination) {
+      throw new CliError(
+        `Failed to list skills: ${body?.error || response.statusText}`,
+        { exitCode: 1, data: body }
+      );
+    }
+    return body;
+  }
   async getSkill(id) {
     const response = await fetch(this.url(`/api/skills/${id}`));
     const body = await response.json().catch(() => null);
@@ -3446,6 +3476,13 @@ function parseAmountSol(value) {
   }
   return parsed;
 }
+function parsePage(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error("Expected a positive page number.");
+  }
+  return parsed;
+}
 function formatSkillSummary(skill2) {
   return [
     `${skill2.name}`,
@@ -3460,6 +3497,32 @@ function formatSkillSummary(skill2) {
     `upheld_author_disputes: ${skill2.author_trust?.upheldAuthorDisputes ?? 0}`
   ];
 }
+function formatSkillList(result) {
+  if (result.skills.length === 0) {
+    return [
+      "no skills found",
+      `page: ${result.pagination.page}`,
+      `page_size: ${result.pagination.pageSize}`,
+      `total: ${result.pagination.total}`,
+      `total_pages: ${result.pagination.totalPages}`
+    ];
+  }
+  const lines = [];
+  for (const [index, skill2] of result.skills.entries()) {
+    lines.push(...formatSkillSummary(skill2));
+    if (index < result.skills.length - 1) {
+      lines.push("");
+    }
+  }
+  lines.push(
+    "",
+    `page: ${result.pagination.page}`,
+    `page_size: ${result.pagination.pageSize}`,
+    `total: ${result.pagination.total}`,
+    `total_pages: ${result.pagination.totalPages}`
+  );
+  return lines;
+}
 function addBaseUrlOption(command) {
   return command.option(
     "--base-url <url>",
@@ -3471,7 +3534,27 @@ function addRpcUrlOption(command) {
   return command.option("--rpc-url <url>", "Solana RPC URL", resolveRpcUrl());
 }
 var program = new Command().name("agentvouch").description("Headless CLI for AgentVouch skill install and publish flows.").version(package_default.version);
-var skill = program.command("skill").description("Inspect, install, and publish skills.");
+var skill = program.command("skill").description("Inspect, list, install, and publish skills.");
+addBaseUrlOption(
+  skill.command("list").option("--q <query>", "Search by keyword").option("--author <pubkey>", "Filter by author pubkey").option("--tags <csv>", "Filter by comma-separated tags").option("--sort <order>", "Sort by newest, trusted, installs, or name", "newest").option("--page <number>", "Results page number", parsePage, 1).option("--json", "Print structured JSON output").addHelpText(
+    "after",
+    "\nExamples:\n  agentvouch skill list\n  agentvouch skill list --q calendar --sort trusted\n  agentvouch skill list --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --page 2 --json"
+  ).action(
+    async (options) => {
+      await runCommand(
+        options,
+        async () => new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listSkills({
+          q: options.q,
+          author: options.author,
+          tags: options.tags,
+          sort: options.sort,
+          page: options.page
+        }),
+        formatSkillList
+      );
+    }
+  )
+);
 addBaseUrlOption(
   skill.command("inspect").argument("<id>", "Repo UUID or chain-<listing> id").option("--json", "Print structured JSON output").addHelpText(
     "after",

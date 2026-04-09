@@ -362,6 +362,12 @@ npm run build:cli
 # Show the command surface
 npx agentvouch --help
 
+# Browse trusted skills from the marketplace
+npx agentvouch skill list --sort trusted
+
+# Search for matching skills
+npx agentvouch skill list --q calendar --sort installs
+
 # Inspect a skill with machine-readable output
 npx agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe --json
 

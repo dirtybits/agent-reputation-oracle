@@ -7,6 +7,8 @@ export interface SkillRecord {
   author_pubkey: string;
   name: string;
   description: string | null;
+  tags?: string[];
+  chain_context?: string | null;
   on_chain_address: string | null;
   price_lamports?: number | null;
   total_installs: number;
@@ -26,6 +28,26 @@ export interface SkillRecord {
   author_identity?: {
     name?: string | null;
   } | null;
+}
+
+export interface SkillListPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface SkillListResponse {
+  skills: SkillRecord[];
+  pagination: SkillListPagination;
+}
+
+export interface ListSkillsOptions {
+  q?: string;
+  sort?: "newest" | "trusted" | "installs" | "name";
+  author?: string;
+  tags?: string;
+  page?: number;
 }
 
 export interface PublishedSkillRecord {
@@ -73,6 +95,50 @@ export class AgentVouchApiClient {
 
   url(pathname: string): string {
     return `${this.baseUrl}${pathname}`;
+  }
+
+  async listSkills(options: ListSkillsOptions = {}): Promise<SkillListResponse> {
+    const searchParams = new URLSearchParams();
+
+    if (options.q) {
+      searchParams.set("q", options.q);
+    }
+    if (options.sort) {
+      searchParams.set("sort", options.sort);
+    }
+    if (options.author) {
+      searchParams.set("author", options.author);
+    }
+    if (options.tags) {
+      searchParams.set("tags", options.tags);
+    }
+    if (options.page !== undefined) {
+      searchParams.set("page", String(options.page));
+    }
+
+    const query = searchParams.toString();
+    const response = await fetch(
+      this.url(`/api/skills${query ? `?${query}` : ""}`)
+    );
+    const body = (await response.json().catch(() => null)) as
+      | SkillListResponse
+      | { error?: string }
+      | null;
+
+    if (
+      !response.ok ||
+      !body ||
+      "error" in body ||
+      !Array.isArray(body.skills) ||
+      !body.pagination
+    ) {
+      throw new CliError(
+        `Failed to list skills: ${body?.error || response.statusText}`,
+        { exitCode: 1, data: body }
+      );
+    }
+
+    return body;
   }
 
   async getSkill(id: string): Promise<SkillRecord> {

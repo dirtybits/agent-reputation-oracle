@@ -3,7 +3,12 @@
 import { Command } from "commander";
 import cliPackage from "../package.json";
 import { resolveBaseUrl, resolveRpcUrl } from "./lib/config.js";
-import { AgentVouchApiClient, type SkillRecord } from "./lib/http.js";
+import {
+  AgentVouchApiClient,
+  type ListSkillsOptions,
+  type SkillListResponse,
+  type SkillRecord,
+} from "./lib/http.js";
 import { installSkill } from "./lib/install.js";
 import { runCommand } from "./lib/output.js";
 import { addSkillVersion, publishSkill } from "./lib/publish.js";
@@ -26,6 +31,14 @@ function parseAmountSol(value: string): number {
   return parsed;
 }
 
+function parsePage(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error("Expected a positive page number.");
+  }
+  return parsed;
+}
+
 function formatSkillSummary(skill: SkillRecord): string[] {
   return [
     `${skill.name}`,
@@ -39,6 +52,37 @@ function formatSkillSummary(skill: SkillRecord): string[] {
     `active_author_disputes: ${skill.author_trust?.activeAuthorDisputes ?? 0}`,
     `upheld_author_disputes: ${skill.author_trust?.upheldAuthorDisputes ?? 0}`,
   ];
+}
+
+function formatSkillList(result: SkillListResponse): string[] {
+  if (result.skills.length === 0) {
+    return [
+      "no skills found",
+      `page: ${result.pagination.page}`,
+      `page_size: ${result.pagination.pageSize}`,
+      `total: ${result.pagination.total}`,
+      `total_pages: ${result.pagination.totalPages}`,
+    ];
+  }
+
+  const lines: string[] = [];
+
+  for (const [index, skill] of result.skills.entries()) {
+    lines.push(...formatSkillSummary(skill));
+    if (index < result.skills.length - 1) {
+      lines.push("");
+    }
+  }
+
+  lines.push(
+    "",
+    `page: ${result.pagination.page}`,
+    `page_size: ${result.pagination.pageSize}`,
+    `total: ${result.pagination.total}`,
+    `total_pages: ${result.pagination.totalPages}`
+  );
+
+  return lines;
 }
 
 function addBaseUrlOption(command: Command): Command {
@@ -58,7 +102,48 @@ const program = new Command()
   .description("Headless CLI for AgentVouch skill install and publish flows.")
   .version(cliPackage.version);
 
-const skill = program.command("skill").description("Inspect, install, and publish skills.");
+const skill = program
+  .command("skill")
+  .description("Inspect, list, install, and publish skills.");
+
+addBaseUrlOption(
+  skill
+    .command("list")
+    .option("--q <query>", "Search by keyword")
+    .option("--author <pubkey>", "Filter by author pubkey")
+    .option("--tags <csv>", "Filter by comma-separated tags")
+    .option("--sort <order>", "Sort by newest, trusted, installs, or name", "newest")
+    .option("--page <number>", "Results page number", parsePage, 1)
+    .option("--json", "Print structured JSON output")
+    .addHelpText(
+      "after",
+      "\nExamples:\n  agentvouch skill list\n  agentvouch skill list --q calendar --sort trusted\n  agentvouch skill list --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --page 2 --json"
+    )
+    .action(
+      async (options: {
+        q?: string;
+        author?: string;
+        tags?: string;
+        sort: ListSkillsOptions["sort"];
+        page: number;
+        baseUrl: string;
+        json?: boolean;
+      }) => {
+        await runCommand(
+          options,
+          async () =>
+            new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listSkills({
+              q: options.q,
+              author: options.author,
+              tags: options.tags,
+              sort: options.sort,
+              page: options.page,
+            }),
+          formatSkillList
+        );
+      }
+    )
+);
 
 addBaseUrlOption(
   skill
