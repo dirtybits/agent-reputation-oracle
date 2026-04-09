@@ -113,16 +113,38 @@ function MetricCell({
 }: MetricCellProps) {
   return (
     <div
-      className="rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/50 px-3 py-2"
+      className="flex items-center justify-between gap-3 px-3 py-2"
       title={title}
     >
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      <div className="flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
         <Icon className="h-3.5 w-3.5" />
         <span>{label}</span>
       </div>
-      <div className={`mt-1 text-sm font-semibold ${getToneClass(tone)}`}>
+      <div className={`shrink-0 text-[11px] ${getToneClass(tone)}`}>
         {value}
       </div>
+    </div>
+  );
+}
+
+function AuthorMetricRow({ authorPubkey }: { authorPubkey: string }) {
+  return (
+    <div
+      className="flex items-center justify-between gap-3 px-3 py-2"
+      title="Author wallet that published this skill and receives creator proceeds."
+    >
+      <div className="flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <FiUser className="h-3.5 w-3.5" />
+        <span>Author</span>
+      </div>
+      <Link
+        href={`/author/${authorPubkey}`}
+        className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--sea-accent)] transition hover:text-[var(--sea-accent-strong)] hover:underline"
+        title="Author wallet that published this skill and receives creator proceeds."
+      >
+        <span className="font-mono">{shortAddr(authorPubkey)}</span>
+        <FiExternalLink className="h-3 w-3" />
+      </Link>
     </div>
   );
 }
@@ -173,67 +195,36 @@ export default function SkillPreviewCard({
   return (
     <div className="group flex flex-col rounded-sm border border-gray-200 bg-white p-4 transition hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
       <div className="flex-1">
-        <div className="mb-3 flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <Link
-              href={`/skills/${skill.id}`}
-              className="block truncate font-heading text-base font-bold text-gray-900 transition group-hover:text-[var(--lobster-accent)] hover:underline dark:text-white"
-              title={skill.name}
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <Link
+            href={`/skills/${skill.id}`}
+            className="block min-w-0 flex-1 font-heading text-base font-bold text-gray-900 transition group-hover:text-[var(--lobster-accent)] hover:underline dark:text-white"
+            title={skill.name}
+          >
+            {displayTitle}
+          </Link>
+          {skill.source !== "chain" && (
+            <span
+              className="shrink-0 rounded-sm border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] px-2 py-0.5 font-mono text-[11px] text-[var(--sea-accent-strong)]"
+              title={`Current repo version: v${skill.current_version}`}
             >
-              {displayTitle}
-            </Link>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {skill.source !== "chain" && (
-              <span
-                className="rounded-sm border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--sea-accent-strong)]"
-                title={`Current repo version: v${skill.current_version}`}
-              >
-                v{skill.current_version}
-              </span>
-            )}
-            {creatorPriceLamports > 0 ? (
-              <span
-                className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                title={priceTooltip}
-              >
-                <SolAmount
-                  amount={formatSolAmount(estimatedTotalLamports)}
-                  iconClassName="h-3 w-3"
-                />
-              </span>
-            ) : hasListing ? (
-              <span
-                className="rounded-full bg-[var(--sea-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--sea-accent-strong)]"
-                title={priceTooltip}
-              >
-                Free
-              </span>
-            ) : null}
-          </div>
+              v{skill.current_version}
+            </span>
+          )}
         </div>
 
         {displayDescription && (
           <p
-            className="mb-3 min-h-[2.5rem] text-sm leading-5 text-gray-500 dark:text-gray-400"
+            className="mb-3 min-h-[2.5rem] line-clamp-2 text-[13px] leading-5 text-gray-500 dark:text-gray-400"
             title={description}
           >
             {displayDescription}
           </p>
         )}
 
-        <Link
-          href={`/author/${skill.author_pubkey}`}
-          className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 transition hover:text-[var(--sea-accent)] hover:underline dark:text-gray-400"
-          title="Author wallet that published this skill and receives creator proceeds."
-        >
-          <FiUser className="h-3.5 w-3.5" />
-          <span className="font-mono">{shortAddr(skill.author_pubkey)}</span>
-          <FiExternalLink className="h-3 w-3" />
-        </Link>
-
         {trust && trust.isRegistered ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="divide-y divide-gray-200 dark:divide-gray-800">
+            <AuthorMetricRow authorPubkey={skill.author_pubkey} />
             <MetricCell
               label="Reputation"
               value={trust.reputationScore.toLocaleString("en-US")}
@@ -281,16 +272,19 @@ export default function SkillPreviewCard({
             />
           </div>
         ) : (
-          <div className="rounded-sm border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-950/50 dark:text-gray-400">
-            <div className="flex items-center gap-2">
-              <FiShield className="h-3.5 w-3.5" />
-              <span title="This author has no registered on-chain trust profile yet.">
-                Unregistered author
-              </span>
-            </div>
-            <div className="mt-2 flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">
-              <FiDownload className="h-3.5 w-3.5" />
-              <span>{downloads.toLocaleString("en-US")} downloads</span>
+          <div className="divide-y divide-gray-200 dark:divide-gray-800">
+            <AuthorMetricRow authorPubkey={skill.author_pubkey} />
+            <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2">
+                <FiShield className="h-3.5 w-3.5" />
+                <span title="This author has no registered on-chain trust profile yet.">
+                  Unregistered author
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">
+                <FiDownload className="h-3.5 w-3.5" />
+                <span>{downloads.toLocaleString("en-US")} downloads</span>
+              </div>
             </div>
           </div>
         )}
@@ -308,13 +302,24 @@ export default function SkillPreviewCard({
               </span>
             ))}
           </div>
-          <Link
-            href={`/author/${skill.author_pubkey}`}
-            className="shrink-0 text-[11px] font-medium text-[var(--sea-accent)] transition hover:text-[var(--sea-accent-strong)] hover:underline"
-            title={skill.author_pubkey}
-          >
-            Trust details
-          </Link>
+          {creatorPriceLamports > 0 ? (
+            <span
+              className="shrink-0 inline-flex rounded-sm border border-green-200 bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400"
+              title={priceTooltip}
+            >
+              <SolAmount
+                amount={formatSolAmount(estimatedTotalLamports)}
+                iconClassName="h-3 w-3"
+              />
+            </span>
+          ) : hasListing ? (
+            <span
+              className="shrink-0 rounded-full bg-[var(--sea-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--sea-accent-strong)]"
+              title={priceTooltip}
+            >
+              Free
+            </span>
+          ) : null}
         </div>
       </div>
 
