@@ -25,9 +25,11 @@ async function main() {
   const rootIndexPath = path.join(outputPath, "src/generated/index.ts");
   const rootIndex = fs.readFileSync(rootIndexPath, "utf-8");
   const instructionsBarrel = [
+    'export * from "./instructions/adminMigrateAgent";',
     'export * from "./instructions/claimVoucherRevenue";',
     'export * from "./instructions/createSkillListing";',
     'export * from "./instructions/initializeConfig";',
+    'export * from "./instructions/migrateConfig";',
     'export * from "./instructions/openAuthorDispute";',
     'export * from "./instructions/purchaseSkill";',
     'export * from "./instructions/repairAgentRegisteredAt";',

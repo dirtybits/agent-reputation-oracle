@@ -273,6 +273,56 @@ var reputation_oracle_default = {
   },
   instructions: [
     {
+      name: "admin_migrate_agent",
+      discriminator: [
+        203,
+        79,
+        102,
+        176,
+        194,
+        111,
+        179,
+        208
+      ],
+      accounts: [
+        {
+          name: "agent_profile",
+          docs: [
+            "validate its owner/discriminator/PDA manually before rewriting it."
+          ],
+          writable: true
+        },
+        {
+          name: "config",
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          name: "authority",
+          writable: true,
+          signer: true
+        },
+        {
+          name: "system_program",
+          address: "11111111111111111111111111111111"
+        }
+      ],
+      args: []
+    },
+    {
       name: "claim_voucher_revenue",
       discriminator: [
         197,
@@ -777,6 +827,54 @@ var reputation_oracle_default = {
           type: "string"
         }
       ]
+    },
+    {
+      name: "migrate_config",
+      discriminator: [
+        92,
+        131,
+        58,
+        105,
+        210,
+        154,
+        224,
+        193
+      ],
+      accounts: [
+        {
+          name: "config",
+          docs: [
+            "deserialized as `Account<ReputationConfig>` yet. Seeds and ownership are",
+            "validated here, then the account is rewritten manually."
+          ],
+          writable: true,
+          pda: {
+            seeds: [
+              {
+                kind: "const",
+                value: [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          name: "authority",
+          writable: true,
+          signer: true
+        },
+        {
+          name: "system_program",
+          address: "11111111111111111111111111111111"
+        }
+      ],
+      args: []
     },
     {
       name: "open_author_dispute",
@@ -1993,18 +2091,108 @@ var reputation_oracle_default = {
   errors: [
     {
       code: 6e3,
+      name: "AuthorDisputeNotOpen",
+      msg: "Author dispute is not open"
+    },
+    {
+      code: 6001,
+      name: "AuthorMismatch",
+      msg: "The disputed author does not match this author dispute"
+    },
+    {
+      code: 6002,
+      name: "UnauthorizedResolver",
+      msg: "Only the configured authority can resolve author disputes"
+    },
+    {
+      code: 6003,
+      name: "ChallengerMismatch",
+      msg: "Challenger account mismatch"
+    },
+    {
+      code: 6004,
       name: "InsufficientFunds",
       msg: "Insufficient funds"
     },
     {
-      code: 6001,
-      name: "InsufficientBondAmount",
-      msg: "Bond amount is lower than the requested slash amount"
+      code: 6005,
+      name: "IncompleteBackingSnapshot",
+      msg: "Author dispute cannot resolve without its full author-wide backing snapshot"
     },
     {
-      code: 6002,
-      name: "InvalidSlashAmount",
-      msg: "Slash amount exceeds the supported amount for this account"
+      code: 6006,
+      name: "InvalidSettlementAccounts",
+      msg: "Author dispute uphold must include every snapshotted backing vouch account triple"
+    },
+    {
+      code: 6007,
+      name: "DuplicateSettlementBackingVouch",
+      msg: "Duplicate backing vouches are not allowed during settlement"
+    },
+    {
+      code: 6008,
+      name: "AuthorDisputeVouchLinkMismatch",
+      msg: "Settlement link does not match this author dispute"
+    },
+    {
+      code: 6009,
+      name: "AuthorDisputeSettlementVouchMismatch",
+      msg: "Settlement vouch does not match the recorded author dispute link"
+    },
+    {
+      code: 6010,
+      name: "BackingVouchAuthorMismatch",
+      msg: "Backing vouch does not belong to the disputed author"
+    },
+    {
+      code: 6011,
+      name: "BackingVouchVoucherMismatch",
+      msg: "Backing vouch voucher profile does not match the recorded voucher"
+    },
+    {
+      code: 6012,
+      name: "BackingVouchNotSlashable",
+      msg: "Backing vouch can no longer be slashed through this author dispute"
+    },
+    {
+      code: 6013,
+      name: "BackingVouchCountOverflow",
+      msg: "Backing vouch count overflow"
+    },
+    {
+      code: 6014,
+      name: "SlashAmountOverflow",
+      msg: "Slash amount overflow"
+    },
+    {
+      code: 6015,
+      name: "MissingAuthorBondForSettlement",
+      msg: "Resolver must provide the author's bond account when bond capital exists"
+    },
+    {
+      code: 6016,
+      name: "AuthorBondAccountMismatch",
+      msg: "Author bond PDA does not match the expected author"
+    },
+    {
+      code: 6017,
+      name: "AuthorBondProfileMismatch",
+      msg: "Author bond account does not match the author profile totals"
+    },
+    {
+      code: 6018,
+      name: "InvalidSettlementAmounts",
+      msg: "Resolved voucher slash amounts did not match the expected liability"
+    },
+    {
+      code: 6019,
+      name: "BondOnlyDisputeMustNotProvideSettlementAccounts",
+      msg: "Bond-only disputes must not include voucher settlement accounts"
+    },
+    {
+      code: 6020,
+      name: "OpenAuthorDisputeCountUnderflow",
+      msg: "Open author dispute count underflowed"
     }
   ],
   types: [

@@ -31,6 +31,10 @@ pub mod reputation_oracle {
         )
     }
 
+    pub fn migrate_config(ctx: Context<MigrateConfig>) -> Result<()> {
+        instructions::migrate_config::handler(ctx)
+    }
+
     pub fn register_agent(
         ctx: Context<RegisterAgent>,
         metadata_uri: String,
@@ -43,6 +47,10 @@ pub mod reputation_oracle {
         metadata_uri: String,
     ) -> Result<()> {
         instructions::migrate_agent::handler(ctx, metadata_uri)
+    }
+
+    pub fn admin_migrate_agent(ctx: Context<AdminMigrateAgent>) -> Result<()> {
+        instructions::admin_migrate_agent::handler(ctx)
     }
 
     pub fn repair_agent_registered_at(

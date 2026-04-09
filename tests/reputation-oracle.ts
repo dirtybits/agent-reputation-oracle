@@ -413,4 +413,61 @@ describe("reputation-oracle", () => {
       expectedRemaining.toString()
     );
   });
+
+  it("Preserves bond state when the author re-migrates a current profile", async () => {
+    const agent3Pda = getAgentPda(agent3.publicKey);
+    const before = await program.account.agentProfile.fetch(agent3Pda);
+
+    await program.methods
+      .migrateAgent(before.metadataUri)
+      .accounts({
+        agentProfile: agent3Pda,
+        authority: agent3.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([agent3])
+      .rpc();
+
+    const after = await program.account.agentProfile.fetch(agent3Pda);
+    assert.equal(after.authority.toString(), before.authority.toString());
+    assert.equal(after.metadataUri, before.metadataUri);
+    assert.equal(
+      after.authorBondLamports.toString(),
+      before.authorBondLamports.toString()
+    );
+    assert.equal(
+      after.activeFreeSkillListings,
+      before.activeFreeSkillListings
+    );
+    assert.equal(after.openAuthorDisputes, before.openAuthorDisputes);
+    assert.equal(after.bump, before.bump);
+  });
+
+  it("Lets the config authority admin-migrate a current profile without the owner signer", async () => {
+    const agent3Pda = getAgentPda(agent3.publicKey);
+    const before = await program.account.agentProfile.fetch(agent3Pda);
+
+    await program.methods
+      .adminMigrateAgent()
+      .accounts({
+        agentProfile: agent3Pda,
+        config: configPda,
+        authority: provider.wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    const after = await program.account.agentProfile.fetch(agent3Pda);
+    assert.equal(after.authority.toString(), before.authority.toString());
+    assert.equal(after.metadataUri, before.metadataUri);
+    assert.equal(
+      after.authorBondLamports.toString(),
+      before.authorBondLamports.toString()
+    );
+    assert.equal(
+      after.activeFreeSkillListings,
+      before.activeFreeSkillListings
+    );
+    assert.equal(after.openAuthorDisputes, before.openAuthorDisputes);
+  });
 });

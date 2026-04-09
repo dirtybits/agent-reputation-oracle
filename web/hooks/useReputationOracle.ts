@@ -3,6 +3,7 @@ import { useMemo, useCallback } from "react";
 import {
   address,
   createSolanaRpc,
+  fetchEncodedAccount,
   getAddressEncoder,
   getProgramDerivedAddress,
   getUtf8Encoder,
@@ -34,10 +35,12 @@ import {
   fetchMaybeSkillListing,
   fetchMaybeVouch,
   fetchVouch,
+  decodeReputationConfig,
   getAuthorDisputeDecoder,
   getOpenAuthorDisputeInstructionAsync,
   getResolveAuthorDisputeInstructionAsync,
   getAgentProfileDecoder,
+  getReputationConfigSize,
   getRegisterAgentInstructionAsync,
   getVouchInstructionAsync,
   getRevokeVouchInstructionAsync,
@@ -189,6 +192,13 @@ type ResolveAuthorDisputeClusterGuardAssessment = ClusterGuardContext & {
   resolverAuthorized: boolean;
 };
 
+type BondConfigClusterGuardAssessment = ClusterGuardContext & {
+  configExists: boolean;
+  configReadable: boolean;
+  configDataLength: number | null;
+  expectedConfigDataLength: number;
+};
+
 function getConfiguredNetworkDescription(context: ClusterGuardContext = {}) {
   const configuredChainLabel =
     context.configuredChainLabel ?? getConfiguredSolanaChainDisplayLabel();
@@ -333,6 +343,26 @@ export function getResolveAuthorDisputeClusterGuardError(
     return `Connected wallet ${shortAddress(
       assessment.walletAddress
     )} is not the configured resolver on the configured ${configuredNetwork}. If you meant to resolve this dispute on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+
+  return null;
+}
+
+export function getBondConfigClusterGuardError(
+  assessment: BondConfigClusterGuardAssessment
+): string | null {
+  const configuredNetwork = getConfiguredNetworkDescription(assessment);
+
+  if (!assessment.configExists) {
+    return `The protocol config is missing on the configured ${configuredNetwork}. An operator must initialize or migrate the config on this cluster before author bond actions can proceed.`;
+  }
+
+  if (!assessment.configReadable) {
+    const layoutDetail =
+      assessment.configDataLength == null
+        ? "its layout could not be read"
+        : `it is ${assessment.configDataLength} bytes instead of the expected ${assessment.expectedConfigDataLength}`;
+    return `The protocol config on the configured ${configuredNetwork} is outdated or unreadable because ${layoutDetail}. An operator must run the config migration on this cluster before author bond actions can proceed.`;
   }
 
   return null;
@@ -630,6 +660,40 @@ async function assertRegisterAgentClusterReady(walletAddress: Address) {
   }
 }
 
+async function assertBondConfigClusterReady() {
+  try {
+    const configPda = await getConfigPDA();
+    const encodedConfig = await fetchEncodedAccount(rpc, configPda);
+    const expectedConfigDataLength = getReputationConfigSize();
+
+    let configReadable = false;
+    let configDataLength: number | null = null;
+
+    if (encodedConfig.exists) {
+      configDataLength = encodedConfig.data.length;
+      if (configDataLength === expectedConfigDataLength) {
+        try {
+          decodeReputationConfig(encodedConfig);
+          configReadable = true;
+        } catch {
+          configReadable = false;
+        }
+      }
+    }
+
+    const guardError = getBondConfigClusterGuardError({
+      configExists: encodedConfig.exists,
+      configReadable,
+      configDataLength,
+      expectedConfigDataLength,
+    });
+    if (guardError) throw new ClusterGuardError(guardError);
+  } catch (error) {
+    if (error instanceof ClusterGuardError) throw error;
+    console.warn("Bond config cluster guard skipped:", error);
+  }
+}
+
 async function assertSkillListingClusterReady(input: {
   walletAddress: Address;
   skillId: string;
@@ -889,6 +953,7 @@ export function useReputationOracle() {
   const depositAuthorBond = useCallback(
     async (amount: number) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      await assertBondConfigClusterReady();
       const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
       const [authorProfile, authorBond, config] = await Promise.all([
         getAgentPDA(authorAddress),
@@ -911,6 +976,7 @@ export function useReputationOracle() {
   const withdrawAuthorBond = useCallback(
     async (amount: number) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      await assertBondConfigClusterReady();
       const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
       const [authorProfile, authorBond, config] = await Promise.all([
         getAgentPDA(authorAddress),

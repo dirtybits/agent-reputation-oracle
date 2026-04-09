@@ -1,6 +1,9 @@
 pub mod initialize_config;
+pub mod migrate_config;
+pub(crate) mod agent_profile_migration;
 pub mod register_agent;
 pub mod migrate_agent;
+pub mod admin_migrate_agent;
 pub mod repair_agent_registered_at;
 pub mod deposit_author_bond;
 pub mod withdraw_author_bond;
@@ -17,8 +20,10 @@ pub mod purchase_skill;
 pub mod claim_voucher_revenue;
 
 pub use initialize_config::*;
+pub use migrate_config::*;
 pub use register_agent::*;
 pub use migrate_agent::*;
+pub use admin_migrate_agent::*;
 pub use repair_agent_registered_at::*;
 pub use deposit_author_bond::*;
 pub use withdraw_author_bond::*;

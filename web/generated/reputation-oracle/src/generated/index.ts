@@ -8,9 +8,11 @@
 
 export * from "./accounts";
 export * from "./errors";
+export * from "./instructions/adminMigrateAgent";
 export * from "./instructions/claimVoucherRevenue";
 export * from "./instructions/createSkillListing";
 export * from "./instructions/initializeConfig";
+export * from "./instructions/migrateConfig";
 export * from "./instructions/openAuthorDispute";
 export * from "./instructions/purchaseSkill";
 export * from "./instructions/repairAgentRegisteredAt";
