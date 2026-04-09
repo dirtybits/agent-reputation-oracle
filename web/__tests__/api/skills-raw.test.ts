@@ -9,10 +9,17 @@ vi.mock("@/lib/onchain", () => ({
   getOnChainPrice: vi.fn(),
 }));
 
-vi.mock("@/lib/auth", () => ({
-  verifyWalletSignature: vi.fn(),
-  buildDownloadRawMessage: vi.fn(),
-}));
+vi.mock("@/lib/auth", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/auth")>(
+    "@/lib/auth"
+  );
+
+  return {
+    ...actual,
+    verifyWalletSignature: vi.fn(),
+    buildDownloadRawMessage: vi.fn(),
+  };
+});
 
 vi.mock("@/lib/x402", () => ({
   generatePaymentRequirement: vi.fn(),

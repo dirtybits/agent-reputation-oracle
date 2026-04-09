@@ -22,10 +22,13 @@ describe("skills page source", () => {
       "utf8"
     );
 
-    expect(source).toContain("Estimated total");
-    expect(source).toContain("Creator price");
-    expect(source).toContain("Seller Needs SOL");
+    expect(source).toContain("estimatedBuyerTotalLamports");
+    expect(source).toContain("creatorPriceLamports");
     expect(source).toContain("purchasePreflightStatus");
+    expect(source).toMatch(
+      /purchasePreflightStatus\s*===\s*"authorPayoutRentBlocked"/
+    );
+    expect(source).toContain("purchaseBlocked={purchaseBlocked}");
     expect(source).toContain("Low-priced sales are currently blocked");
     expect(source).toMatch(
       /will fail until this payout wallet\s+holds enough SOL/

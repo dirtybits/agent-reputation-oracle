@@ -23,6 +23,7 @@
     "migrate:config": "ts-node scripts/migrate-config.ts",
     "migrate:agents": "ts-node scripts/migrate-agent-profiles.ts",
     "repair:registered-at": "ts-node scripts/repair-agent-registered-at.ts",
+    "smoke:flow-surface": "node scripts/smoke-flow-surface.mjs",
     "test": "npm run test --workspaces --if-present",
     "test:cli": "npm run test --workspace @agentvouch/cli",
     "test:web": "npm run test --workspace @agentvouch/web"

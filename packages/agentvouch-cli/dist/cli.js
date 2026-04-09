@@ -208,6 +208,58 @@ var AgentVouchApiClient = class {
   }
 };
 
+// src/lib/format.ts
+function getTrustFields(skill2) {
+  return {
+    isRegistered: skill2.author_trust_summary?.isRegistered ?? skill2.author_trust?.isRegistered ?? false,
+    recommendedAction: skill2.author_trust_summary?.recommended_action ?? null,
+    activeDisputes: skill2.author_trust_summary?.activeDisputesAgainstAuthor ?? skill2.author_trust?.activeDisputesAgainstAuthor ?? 0,
+    upheldDisputes: skill2.author_trust_summary?.disputesUpheldAgainstAuthor ?? skill2.author_trust?.disputesUpheldAgainstAuthor ?? 0
+  };
+}
+function formatSkillSummary(skill2) {
+  const trust = getTrustFields(skill2);
+  return [
+    `${skill2.name}`,
+    `id: ${skill2.id}`,
+    `skill_id: ${skill2.skill_id}`,
+    `source: ${skill2.source ?? "repo"}`,
+    `author: ${skill2.author_pubkey}`,
+    `price_lamports: ${skill2.price_lamports ?? 0}`,
+    `listing: ${skill2.on_chain_address ?? "none"}`,
+    `registered: ${trust.isRegistered ? "yes" : "no"}`,
+    ...trust.recommendedAction ? [`recommended_action: ${trust.recommendedAction}`] : [],
+    `active_author_disputes: ${trust.activeDisputes}`,
+    `upheld_author_disputes: ${trust.upheldDisputes}`
+  ];
+}
+function formatSkillList(result) {
+  if (result.skills.length === 0) {
+    return [
+      "no skills found",
+      `page: ${result.pagination.page}`,
+      `page_size: ${result.pagination.pageSize}`,
+      `total: ${result.pagination.total}`,
+      `total_pages: ${result.pagination.totalPages}`
+    ];
+  }
+  const lines = [];
+  for (const [index, skill2] of result.skills.entries()) {
+    lines.push(...formatSkillSummary(skill2));
+    if (index < result.skills.length - 1) {
+      lines.push("");
+    }
+  }
+  lines.push(
+    "",
+    `page: ${result.pagination.page}`,
+    `page_size: ${result.pagination.pageSize}`,
+    `total: ${result.pagination.total}`,
+    `total_pages: ${result.pagination.totalPages}`
+  );
+  return lines;
+}
+
 // src/lib/install.ts
 import path2 from "path";
 
@@ -287,7 +339,7 @@ function createDownloadAuthPayload(keypair, skillId, listingAddress, timestamp =
 
 // src/lib/solana.ts
 import { AGENTVOUCH_PROGRAM_ID } from "@agentvouch/protocol";
-import * as anchor from "@coral-xyz/anchor";
+import anchor from "@coral-xyz/anchor";
 import {
   LAMPORTS_PER_SOL,
   PublicKey,
@@ -3064,9 +3116,54 @@ var reputation_oracle_default = {
 };
 
 // src/lib/solana.ts
-var { AnchorProvider, BN, Program, Wallet, web3 } = anchor;
+var { AnchorProvider, Program, Wallet, web3 } = anchor;
+var MIN_SKILL_PRICE_LAMPORTS = 1000000n;
 function toPublicKey(value) {
   return value instanceof PublicKey ? value : new PublicKey(value);
+}
+function toLamportsBigInt(value, fieldName) {
+  if (typeof value === "bigint") {
+    if (value < 0n) {
+      throw new Error(`${fieldName} must be non-negative.`);
+    }
+    return value;
+  }
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) {
+    throw new Error(`${fieldName} must be a non-negative integer.`);
+  }
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(
+      `${fieldName} exceeds JavaScript's safe integer range.`
+    );
+  }
+  return BigInt(value);
+}
+function toLamportsBn(value, fieldName) {
+  return new anchor.BN(toLamportsBigInt(value, fieldName).toString());
+}
+function toStakeLamports(amountSol) {
+  if (!Number.isFinite(amountSol) || amountSol <= 0) {
+    throw new Error("amountSol must be a positive SOL amount.");
+  }
+  const lamports = amountSol * LAMPORTS_PER_SOL;
+  if (!Number.isFinite(lamports) || !Number.isInteger(lamports)) {
+    throw new Error(
+      "amountSol must convert to a whole lamport amount."
+    );
+  }
+  if (!Number.isSafeInteger(lamports)) {
+    throw new Error(
+      "amountSol exceeds JavaScript's safe integer range in lamports."
+    );
+  }
+  return BigInt(lamports);
+}
+function assertSupportedListingPrice(priceLamports) {
+  if (priceLamports !== 0n && priceLamports < MIN_SKILL_PRICE_LAMPORTS) {
+    throw new Error(
+      `priceLamports must be 0 or at least ${MIN_SKILL_PRICE_LAMPORTS.toString()} lamports.`
+    );
+  }
 }
 var AgentVouchSolanaClient = class {
   constructor(keypair, rpcUrl, commitment = "confirmed") {
@@ -3171,8 +3268,8 @@ var AgentVouchSolanaClient = class {
         vouch: vouch2.toBase58()
       };
     }
-    const lamports = Math.round(amountSol * LAMPORTS_PER_SOL);
-    const tx = await this.program.methods.vouch(new BN(lamports)).accounts({
+    const lamports = toStakeLamports(amountSol);
+    const tx = await this.program.methods.vouch(toLamportsBn(lamports, "stakeLamports")).accounts({
       vouch: vouch2,
       voucherProfile,
       voucheeProfile,
@@ -3184,7 +3281,7 @@ var AgentVouchSolanaClient = class {
       tx,
       alreadyExists: false,
       vouch: vouch2.toBase58(),
-      lamports
+      lamports: Number(lamports)
     };
   }
   async purchaseSkill(skillListingAddress, authorAddress) {
@@ -3212,6 +3309,8 @@ var AgentVouchSolanaClient = class {
     };
   }
   async createSkillListing(input) {
+    const priceLamports = toLamportsBigInt(input.priceLamports, "priceLamports");
+    assertSupportedListingPrice(priceLamports);
     const skillListing = this.getSkillListingAddress(input.skillId);
     if (await this.accountExists(skillListing)) {
       return {
@@ -3222,13 +3321,13 @@ var AgentVouchSolanaClient = class {
     }
     const authorProfile = this.getAgentProfileAddress(this.authority);
     const config = this.getConfigAddress();
-    const authorBond = input.priceLamports === 0 ? this.getAuthorBondAddress(this.authority) : null;
+    const authorBond = priceLamports === 0n ? this.getAuthorBondAddress(this.authority) : null;
     const tx = await this.program.methods.createSkillListing(
       input.skillId,
       input.skillUri,
       input.name,
       input.description,
-      new BN(input.priceLamports)
+      toLamportsBn(priceLamports, "priceLamports")
     ).accounts({
       skillListing,
       authorProfile,
@@ -3469,10 +3568,16 @@ async function addSkillVersion(input) {
 }
 
 // src/cli.ts
+var MIN_SKILL_PRICE_LAMPORTS2 = 1e6;
 function parseLamports(value) {
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  if (!Number.isFinite(parsed) || !Number.isSafeInteger(parsed) || parsed < 0) {
     throw new Error("Expected a non-negative integer lamport amount.");
+  }
+  if (parsed !== 0 && parsed < MIN_SKILL_PRICE_LAMPORTS2) {
+    throw new Error(
+      `Expected 0 or at least ${MIN_SKILL_PRICE_LAMPORTS2} lamports.`
+    );
   }
   return parsed;
 }
@@ -3489,46 +3594,6 @@ function parsePage(value) {
     throw new Error("Expected a positive page number.");
   }
   return parsed;
-}
-function formatSkillSummary(skill2) {
-  return [
-    `${skill2.name}`,
-    `id: ${skill2.id}`,
-    `skill_id: ${skill2.skill_id}`,
-    `source: ${skill2.source ?? "repo"}`,
-    `author: ${skill2.author_pubkey}`,
-    `price_lamports: ${skill2.price_lamports ?? 0}`,
-    `listing: ${skill2.on_chain_address ?? "none"}`,
-    `registered: ${skill2.author_trust?.isRegistered ? "yes" : "no"}`,
-    `active_author_disputes: ${skill2.author_trust?.activeAuthorDisputes ?? 0}`,
-    `upheld_author_disputes: ${skill2.author_trust?.upheldAuthorDisputes ?? 0}`
-  ];
-}
-function formatSkillList(result) {
-  if (result.skills.length === 0) {
-    return [
-      "no skills found",
-      `page: ${result.pagination.page}`,
-      `page_size: ${result.pagination.pageSize}`,
-      `total: ${result.pagination.total}`,
-      `total_pages: ${result.pagination.totalPages}`
-    ];
-  }
-  const lines = [];
-  for (const [index, skill2] of result.skills.entries()) {
-    lines.push(...formatSkillSummary(skill2));
-    if (index < result.skills.length - 1) {
-      lines.push("");
-    }
-  }
-  lines.push(
-    "",
-    `page: ${result.pagination.page}`,
-    `page_size: ${result.pagination.pageSize}`,
-    `total: ${result.pagination.total}`,
-    `total_pages: ${result.pagination.totalPages}`
-  );
-  return lines;
 }
 function addBaseUrlOption(command) {
   return command.option(
@@ -3549,7 +3614,7 @@ addBaseUrlOption(
     "newest"
   ).option("--page <number>", "Results page number", parsePage, 1).option("--json", "Print structured JSON output").addHelpText(
     "after",
-    "\nExamples:\n  agentvouch skill list\n  agentvouch skill list --q calendar --sort trusted\n  agentvouch skill list --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --page 2 --json"
+    "\nExamples:\n  agentvouch skill list\n  agentvouch skill list --q calendar --sort trusted\n  agentvouch skill list --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --page 2 --json\n\nTrust contract:\n  author_trust_summary is the normalized machine-readable trust summary.\n  author_trust keeps the raw stake and bond fields."
   ).action(
     async (options) => {
       await runCommand(
@@ -3571,7 +3636,7 @@ addBaseUrlOption(
 addBaseUrlOption(
   skill.command("inspect").argument("<id>", "Repo UUID or chain-<listing> id").option("--json", "Print structured JSON output").addHelpText(
     "after",
-    "\nExamples:\n  agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe\n  agentvouch skill inspect chain-Eq35iaSKECtZAGMkPVSk18tqFDFe6L3hgEhJsUzkByFd --json"
+    "\nExamples:\n  agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe\n  agentvouch skill inspect chain-Eq35iaSKECtZAGMkPVSk18tqFDFe6L3hgEhJsUzkByFd --json\n\nTrust contract:\n  author_trust_summary matches GET /api/agents/{pubkey}/trust -> trust.\n  author_trust includes raw bond and total stake-at-risk fields."
   ).action(
     async (id, options) => {
       await runCommand(

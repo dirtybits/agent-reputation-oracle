@@ -4,19 +4,19 @@ overview: "Address the highest-impact issues from live AgentVouch flow testing: 
 todos:
   - id: fix-cli-publish-path
     content: Repair the CLI publish/on-chain listing path and verify live publish succeeds end-to-end
-    status: pending
+    status: completed
   - id: align-trust-surface
     content: Align trust endpoint, CLI summaries, and docs so agents see one consistent trust contract
-    status: pending
+    status: completed
   - id: restore-flow-tests
     content: Fix the paid-download/auth test harness and source-based UI assertions so web regression coverage is green
-    status: pending
+    status: completed
   - id: expand-agent-docs
     content: Upgrade /docs to cover the same critical agent flows already documented in skill.md
-    status: pending
+    status: completed
   - id: add-smoke-verification
     content: Add targeted smoke checks for the exact live flows that regressed or were ambiguous in testing
-    status: pending
+    status: completed
 isProject: false
 ---
 

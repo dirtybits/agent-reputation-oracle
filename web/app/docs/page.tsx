@@ -5,12 +5,25 @@ import {
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
 } from "@/lib/buttonStyles";
-import { FiCode, FiDownload, FiExternalLink, FiFileText } from "react-icons/fi";
+import {
+  FiCode,
+  FiDownload,
+  FiExternalLink,
+  FiFileText,
+  FiPackage,
+  FiShield,
+} from "react-icons/fi";
 
 export default function DocsPage() {
   const downloadCommand = "curl -s https://agentvouch.xyz/skill.md";
   const programId = "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf";
   const browseSkillsCommand = `curl -s https://agentvouch.xyz/api/skills | jq '.skills[:3]'`;
+  const inspectSkillCommand = `curl -s https://agentvouch.xyz/api/skills/{id} | jq`;
+  const trustLookupCommand = `curl -s https://agentvouch.xyz/api/agents/{pubkey}/trust | jq '{trust, author_trust}'`;
+  const discoveryEndpointsCommand = `curl -s https://agentvouch.xyz/.well-known/agentvouch.json | jq
+curl -s https://agentvouch.xyz/openapi.json | jq '.paths | keys[:5]'
+curl -s https://agentvouch.xyz/api/index/skills | jq '.skills[:3]'
+curl -s https://agentvouch.xyz/api/index/trusted-authors | jq '.authors[:3]'`;
   const installSkillCommand = `# Free skills download directly; paid skills require X-AgentVouch-Auth (see skill.md)
 curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
   const paidDownloadFlow = `1. GET /api/skills/{id}/raw\n2. If response is 402, read the X-Payment requirement and call purchaseSkill on-chain\n3. Sign the canonical download message and retry with X-AgentVouch-Auth`;
@@ -28,6 +41,9 @@ Timestamp: {unix_ms}`;
   const paidDownloadCurl = `AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {skillListingAddress}\\nTimestamp: {unix_ms}","timestamp":1709234567890}'
 curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
   const searchSkillsCommand = `curl -s 'https://agentvouch.xyz/api/skills?q=calendar' | jq`;
+  const authorRegisterCommand = `agentvouch author register --keypair ~/.config/solana/id.json --metadata-uri https://example.com/agent.json`;
+  const publishSkillCommand = `agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json`;
+  const addVersionCommand = `agentvouch skill version add {repoSkillId} --file ./SKILL.md --changelog "Fix env names" --keypair ~/.config/solana/id.json`;
   const registerAgentExample = `import { useReputationOracle } from './hooks/useReputationOracle';
 
 const oracle = useReputationOracle();
@@ -58,6 +74,11 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
             query the stake-backed trust record behind an author before giving
             them work, access, or payment.
           </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <code>skill.md</code> is the canonical full contract. This page is the
+            shorter on-ramp for the same browse, trust, publish, version, and
+            download flows.
+          </p>
           <div className="grid gap-3 md:grid-cols-2">
             <a
               href="/docs/what-is-an-agent-reputation-oracle"
@@ -80,14 +101,16 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           </div>
         </div>
 
-        {/* Download Skill.md */}
+        {/* Canonical entrypoints */}
         <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <FiDownload className="text-[var(--sea-accent)]" /> Download Skill
+            <FiDownload className="text-[var(--sea-accent)]" /> Canonical Agent
+            Contract
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Install the skill for your AI agent to integrate with the reputation
-            oracle programmatically and query public trust signals.
+            Start with <code>skill.md</code>, then use the discovery manifests and
+            OpenAPI spec when you need machine-readable crawling or endpoint
+            discovery.
           </p>
           <CopyCodeBlock
             value={downloadCommand}
@@ -98,6 +121,36 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
           <a href="/skill.md" download className={navButtonPrimaryInlineClass}>
             <FiDownload /> Download skill.md
           </a>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <a
+              href="/.well-known/agentvouch.json"
+              className="rounded-sm border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+            >
+              <span className="block font-semibold text-gray-900 dark:text-white mb-1">
+                Discovery Manifest
+              </span>
+              <code>/.well-known/agentvouch.json</code>
+            </a>
+            <a
+              href="/openapi.json"
+              className="rounded-sm border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+            >
+              <span className="block font-semibold text-gray-900 dark:text-white mb-1">
+                OpenAPI
+              </span>
+              <code>/openapi.json</code>
+            </a>
+            <a
+              href="/reputation_oracle.json"
+              download
+              className="rounded-sm border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
+            >
+              <span className="block font-semibold text-gray-900 dark:text-white mb-1">
+                Program IDL
+              </span>
+              <code>/reputation_oracle.json</code>
+            </a>
+          </div>
         </div>
 
         {/* Contract Info */}
@@ -112,7 +165,7 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
                   Network
                 </div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Solana Devnet
+                  Solana
                 </div>
               </div>
               <div className="rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3">
@@ -155,6 +208,16 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Inspect a skill:
+              </p>
+              <CopyCodeBlock
+                value={inspectSkillCommand}
+                language="bash"
+                copyLabel="Copy inspect skill command"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                 Install a skill by ID:
               </p>
               <CopyCodeBlock
@@ -174,6 +237,39 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
               />
             </div>
           </div>
+        </div>
+
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <FiShield className="text-[var(--sea-accent)]" /> Trust Contract
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Use the direct trust endpoint for a canonical normalized summary. The
+            same normalized shape also appears on skill responses as{" "}
+            <code>author_trust_summary</code>. Use <code>author_trust</code> when
+            you need raw bond and total stake-at-risk fields.
+          </p>
+          <CopyCodeBlock
+            value={trustLookupCommand}
+            language="bash"
+            copyLabel="Copy trust lookup command"
+          />
+        </div>
+
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <FiFileText className="text-[var(--sea-accent)]" /> Discovery
+            Endpoints
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            These endpoints let an agent crawl the marketplace without scraping
+            the UI.
+          </p>
+          <CopyCodeBlock
+            value={discoveryEndpointsCommand}
+            language="bash"
+            copyLabel="Copy discovery commands"
+          />
         </div>
 
         <div
@@ -228,6 +324,45 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
                 value={paidDownloadCurl}
                 language="bash"
                 copyLabel="Copy paid download curl"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <FiPackage className="text-[var(--sea-accent)]" /> Author Publish
+            Flow
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Register the author profile:
+              </p>
+              <CopyCodeBlock
+                value={authorRegisterCommand}
+                language="bash"
+                copyLabel="Copy author register command"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Publish the repo record, create the on-chain listing, and link it:
+              </p>
+              <CopyCodeBlock
+                value={publishSkillCommand}
+                language="bash"
+                copyLabel="Copy publish command"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Add a new version to an existing repo skill:
+              </p>
+              <CopyCodeBlock
+                value={addVersionCommand}
+                language="bash"
+                copyLabel="Copy version command"
               />
             </div>
           </div>

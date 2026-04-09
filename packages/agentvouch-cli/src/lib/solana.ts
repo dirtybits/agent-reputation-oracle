@@ -1,5 +1,5 @@
 import { AGENTVOUCH_PROGRAM_ID } from "@agentvouch/protocol";
-import * as anchor from "@coral-xyz/anchor";
+import anchor from "@coral-xyz/anchor";
 import {
   Keypair,
   LAMPORTS_PER_SOL,
@@ -9,10 +9,66 @@ import {
 } from "@solana/web3.js";
 import reputationOracleIdl from "../../../../web/reputation_oracle.json";
 
-const { AnchorProvider, BN, Program, Wallet, web3 } = anchor;
+const { AnchorProvider, Program, Wallet, web3 } = anchor;
+const MIN_SKILL_PRICE_LAMPORTS = 1_000_000n;
 
 function toPublicKey(value: PublicKey | string): PublicKey {
   return value instanceof PublicKey ? value : new PublicKey(value);
+}
+
+function toLamportsBigInt(
+  value: number | bigint,
+  fieldName: string
+): bigint {
+  if (typeof value === "bigint") {
+    if (value < 0n) {
+      throw new Error(`${fieldName} must be non-negative.`);
+    }
+    return value;
+  }
+
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) {
+    throw new Error(`${fieldName} must be a non-negative integer.`);
+  }
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(
+      `${fieldName} exceeds JavaScript's safe integer range.`
+    );
+  }
+
+  return BigInt(value);
+}
+
+function toLamportsBn(value: number | bigint, fieldName: string) {
+  return new anchor.BN(toLamportsBigInt(value, fieldName).toString());
+}
+
+function toStakeLamports(amountSol: number): bigint {
+  if (!Number.isFinite(amountSol) || amountSol <= 0) {
+    throw new Error("amountSol must be a positive SOL amount.");
+  }
+
+  const lamports = amountSol * LAMPORTS_PER_SOL;
+  if (!Number.isFinite(lamports) || !Number.isInteger(lamports)) {
+    throw new Error(
+      "amountSol must convert to a whole lamport amount."
+    );
+  }
+  if (!Number.isSafeInteger(lamports)) {
+    throw new Error(
+      "amountSol exceeds JavaScript's safe integer range in lamports."
+    );
+  }
+
+  return BigInt(lamports);
+}
+
+function assertSupportedListingPrice(priceLamports: bigint) {
+  if (priceLamports !== 0n && priceLamports < MIN_SKILL_PRICE_LAMPORTS) {
+    throw new Error(
+      `priceLamports must be 0 or at least ${MIN_SKILL_PRICE_LAMPORTS.toString()} lamports.`
+    );
+  }
 }
 
 export class AgentVouchSolanaClient {
@@ -146,9 +202,9 @@ export class AgentVouchSolanaClient {
       };
     }
 
-    const lamports = Math.round(amountSol * LAMPORTS_PER_SOL);
+    const lamports = toStakeLamports(amountSol);
     const tx = await this.program.methods
-      .vouch(new BN(lamports))
+      .vouch(toLamportsBn(lamports, "stakeLamports"))
       .accounts({
         vouch,
         voucherProfile,
@@ -164,7 +220,7 @@ export class AgentVouchSolanaClient {
       tx,
       alreadyExists: false,
       vouch: vouch.toBase58(),
-      lamports,
+      lamports: Number(lamports),
     };
   }
 
@@ -204,8 +260,10 @@ export class AgentVouchSolanaClient {
     skillUri: string;
     name: string;
     description: string;
-    priceLamports: number;
+    priceLamports: number | bigint;
   }) {
+    const priceLamports = toLamportsBigInt(input.priceLamports, "priceLamports");
+    assertSupportedListingPrice(priceLamports);
     const skillListing = this.getSkillListingAddress(input.skillId);
     if (await this.accountExists(skillListing)) {
       return {
@@ -218,7 +276,7 @@ export class AgentVouchSolanaClient {
     const authorProfile = this.getAgentProfileAddress(this.authority);
     const config = this.getConfigAddress();
     const authorBond =
-      input.priceLamports === 0
+      priceLamports === 0n
         ? this.getAuthorBondAddress(this.authority)
         : null;
 
@@ -228,7 +286,7 @@ export class AgentVouchSolanaClient {
         input.skillUri,
         input.name,
         input.description,
-        new BN(input.priceLamports)
+        toLamportsBn(priceLamports, "priceLamports")
       )
       .accounts({
         skillListing,

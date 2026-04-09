@@ -6,19 +6,25 @@ import { resolveBaseUrl, resolveRpcUrl } from "./lib/config.js";
 import {
   AgentVouchApiClient,
   type ListSkillsOptions,
-  type SkillListResponse,
-  type SkillRecord,
 } from "./lib/http.js";
+import { formatSkillList, formatSkillSummary } from "./lib/format.js";
 import { installSkill } from "./lib/install.js";
 import { runCommand } from "./lib/output.js";
 import { addSkillVersion, publishSkill } from "./lib/publish.js";
 import { loadKeypair } from "./lib/signer.js";
 import { AgentVouchSolanaClient } from "./lib/solana.js";
 
+const MIN_SKILL_PRICE_LAMPORTS = 1_000_000;
+
 function parseLamports(value: string): number {
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  if (!Number.isFinite(parsed) || !Number.isSafeInteger(parsed) || parsed < 0) {
     throw new Error("Expected a non-negative integer lamport amount.");
+  }
+  if (parsed !== 0 && parsed < MIN_SKILL_PRICE_LAMPORTS) {
+    throw new Error(
+      `Expected 0 or at least ${MIN_SKILL_PRICE_LAMPORTS} lamports.`
+    );
   }
   return parsed;
 }
@@ -37,52 +43,6 @@ function parsePage(value: string): number {
     throw new Error("Expected a positive page number.");
   }
   return parsed;
-}
-
-function formatSkillSummary(skill: SkillRecord): string[] {
-  return [
-    `${skill.name}`,
-    `id: ${skill.id}`,
-    `skill_id: ${skill.skill_id}`,
-    `source: ${skill.source ?? "repo"}`,
-    `author: ${skill.author_pubkey}`,
-    `price_lamports: ${skill.price_lamports ?? 0}`,
-    `listing: ${skill.on_chain_address ?? "none"}`,
-    `registered: ${skill.author_trust?.isRegistered ? "yes" : "no"}`,
-    `active_author_disputes: ${skill.author_trust?.activeAuthorDisputes ?? 0}`,
-    `upheld_author_disputes: ${skill.author_trust?.upheldAuthorDisputes ?? 0}`,
-  ];
-}
-
-function formatSkillList(result: SkillListResponse): string[] {
-  if (result.skills.length === 0) {
-    return [
-      "no skills found",
-      `page: ${result.pagination.page}`,
-      `page_size: ${result.pagination.pageSize}`,
-      `total: ${result.pagination.total}`,
-      `total_pages: ${result.pagination.totalPages}`,
-    ];
-  }
-
-  const lines: string[] = [];
-
-  for (const [index, skill] of result.skills.entries()) {
-    lines.push(...formatSkillSummary(skill));
-    if (index < result.skills.length - 1) {
-      lines.push("");
-    }
-  }
-
-  lines.push(
-    "",
-    `page: ${result.pagination.page}`,
-    `page_size: ${result.pagination.pageSize}`,
-    `total: ${result.pagination.total}`,
-    `total_pages: ${result.pagination.totalPages}`
-  );
-
-  return lines;
 }
 
 function addBaseUrlOption(command: Command): Command {
@@ -121,7 +81,7 @@ addBaseUrlOption(
     .option("--json", "Print structured JSON output")
     .addHelpText(
       "after",
-      "\nExamples:\n  agentvouch skill list\n  agentvouch skill list --q calendar --sort trusted\n  agentvouch skill list --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --page 2 --json"
+      "\nExamples:\n  agentvouch skill list\n  agentvouch skill list --q calendar --sort trusted\n  agentvouch skill list --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --page 2 --json\n\nTrust contract:\n  author_trust_summary is the normalized machine-readable trust summary.\n  author_trust keeps the raw stake and bond fields."
     )
     .action(
       async (options: {
@@ -158,7 +118,7 @@ addBaseUrlOption(
     .option("--json", "Print structured JSON output")
     .addHelpText(
       "after",
-      "\nExamples:\n  agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe\n  agentvouch skill inspect chain-Eq35iaSKECtZAGMkPVSk18tqFDFe6L3hgEhJsUzkByFd --json"
+      "\nExamples:\n  agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe\n  agentvouch skill inspect chain-Eq35iaSKECtZAGMkPVSk18tqFDFe6L3hgEhJsUzkByFd --json\n\nTrust contract:\n  author_trust_summary matches GET /api/agents/{pubkey}/trust -> trust.\n  author_trust includes raw bond and total stake-at-risk fields."
     )
     .action(
       async (id: string, options: { baseUrl: string; json?: boolean }) => {

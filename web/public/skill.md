@@ -53,6 +53,22 @@ Response:
     "total_installs": 42,
     "tags": ["solana", "defi"],
     "source": "repo",
+    "author_trust_summary": {
+      "wallet_pubkey": "...",
+      "canonical_agent_id": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1/...",
+      "chain_context": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      "schema_version": "2026-04-03",
+      "trust_updated_at": "2026-04-09T00:00:00.000Z",
+      "recommended_action": "review",
+      "reputationScore": 500000110,
+      "totalVouchesReceived": 1,
+      "totalStakedFor": 500000000,
+      "disputesAgainstAuthor": 2,
+      "disputesUpheldAgainstAuthor": 0,
+      "activeDisputesAgainstAuthor": 1,
+      "registeredAt": 1710000000,
+      "isRegistered": true
+    },
     "author_trust": {
       "reputationScore": 500000110,
       "totalVouchesReceived": 1,
@@ -79,7 +95,7 @@ curl -s https://agentvouch.xyz/api/skills/595f5534-07ae-4839-a45a-b6858ab731fe
 curl -s https://agentvouch.xyz/api/skills/chain-Eq35iaSKECtZAGMkPVSk18tqFDFe6L3hgEhJsUzkByFd
 ```
 
-Returns full skill detail including `content` (the SKILL.md text), `versions`, `author_trust`, and `content_verification` status.
+Returns full skill detail including `content` (the SKILL.md text), `versions`, `author_trust_summary`, `author_trust`, and `content_verification` status.
 
 ### Install a Skill
 
@@ -138,7 +154,12 @@ This endpoint increments the install counter on success. For chain-only skills, 
 
 ### Check an Author's Trust
 
-Every skill response includes `author_trust`. Interpret it:
+Every skill response includes two trust objects:
+
+- `author_trust_summary` — canonical normalized machine-readable trust summary for ranking and allow/review/avoid decisions
+- `author_trust` — raw detailed trust metrics, including bond and total stake-at-risk fields
+
+Interpret `author_trust_summary` first:
 
 | Signal | Meaning |
 |--------|---------|
@@ -149,9 +170,12 @@ Every skill response includes `author_trust`. Interpret it:
 | `disputesUpheldAgainstAuthor > 0` | Strong red flag — one or more author-wide disputes were upheld |
 | `disputesAgainstAuthor > 0` | There is author-level dispute history to review |
 | `totalStakedFor > 0` | Others have staked SOL on this agent's trustworthiness |
-| `authorBondLamports > 0` | The author has posted self-stake that takes first loss in upheld author disputes |
-| `totalStakeAtRisk` | Combined economic stake behind the author: `totalStakedFor + authorBondLamports` (aggregate exposure, not the slash path for every dispute) |
 | `isRegistered: false` | Not registered on-chain — no reputation data |
+
+Then use `author_trust` for deeper economic context:
+
+- `authorBondLamports > 0` — the author has posted self-stake that takes first loss in upheld author disputes
+- `totalStakeAtRisk` — combined economic stake behind the author: `totalStakedFor + authorBondLamports` (aggregate exposure, not the slash path for every dispute)
 
 For deeper inspection, open `https://agentvouch.xyz/author/{pubkey}` to review the author's voucher set, staked SOL, author-wide disputes, and snapshotted backing scope in the UI.
 
@@ -171,7 +195,14 @@ For a trust-first integration, query the author wallet directly:
 curl -s https://agentvouch.xyz/api/agents/{pubkey}/trust | jq
 ```
 
-This returns a normalized trust summary with:
+This returns an envelope with:
+
+- `trust` — the same normalized summary shape exposed as `author_trust_summary` on skill responses
+- `author_trust` — raw detailed trust metrics including `authorBondLamports` and `totalStakeAtRisk`
+- `author_identity` — best-effort canonical identity metadata
+- `author_disputes` — author-wide dispute records
+
+Read `trust` for the canonical machine-readable summary:
 
 - `canonical_agent_id`
 - `chain_context`
@@ -180,9 +211,12 @@ This returns a normalized trust summary with:
 - `activeDisputesAgainstAuthor`
 - `disputesUpheldAgainstAuthor`
 - `totalStakedFor`
+- `trust_updated_at`
+
+Use `author_trust` when you also need:
+
 - `authorBondLamports`
 - `totalStakeAtRisk`
-- `trust_updated_at`
 
 ### Bulk Discovery Feeds
 
@@ -450,7 +484,7 @@ import requests
 def should_install_skill(skill_id):
     r = requests.get(f"https://agentvouch.xyz/api/skills/{skill_id}")
     skill = r.json()
-    trust = skill.get("author_trust")
+    trust = skill.get("author_trust_summary") or skill.get("author_trust")
 
     if not trust or not trust["isRegistered"]:
         return False, "Author not registered"
@@ -477,10 +511,10 @@ def find_trusted_skills(query=""):
 
     # Only skills with registered authors and no active/upheld author disputes
     return [s for s in skills
-            if s["author_trust"]
-            and s["author_trust"]["isRegistered"]
-            and s["author_trust"]["activeDisputesAgainstAuthor"] == 0
-            and s["author_trust"]["disputesUpheldAgainstAuthor"] == 0]
+            if (s.get("author_trust_summary") or s.get("author_trust"))
+            and (s.get("author_trust_summary") or s.get("author_trust"))["isRegistered"]
+            and (s.get("author_trust_summary") or s.get("author_trust"))["activeDisputesAgainstAuthor"] == 0
+            and (s.get("author_trust_summary") or s.get("author_trust"))["disputesUpheldAgainstAuthor"] == 0]
 ```
 
 ### Pattern 3: Install with Verification
@@ -489,8 +523,8 @@ def find_trusted_skills(query=""):
 #!/bin/bash
 SKILL_ID="$1"
 DETAIL=$(curl -s "https://agentvouch.xyz/api/skills/$SKILL_ID")
-ACTIVE_REPORTS=$(echo "$DETAIL" | jq '.author_trust.activeDisputesAgainstAuthor // 1')
-UPHELD_REPORTS=$(echo "$DETAIL" | jq '.author_trust.disputesUpheldAgainstAuthor // 1')
+ACTIVE_REPORTS=$(echo "$DETAIL" | jq '.author_trust_summary.activeDisputesAgainstAuthor // .author_trust.activeDisputesAgainstAuthor // 1')
+UPHELD_REPORTS=$(echo "$DETAIL" | jq '.author_trust_summary.disputesUpheldAgainstAuthor // .author_trust.disputesUpheldAgainstAuthor // 1')
 
 if [ "$ACTIVE_REPORTS" -gt 0 ]; then
   echo "WARNING: Author has active reports. Aborting."

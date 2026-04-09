@@ -23,6 +23,32 @@ describe("AgentVouchApiClient", () => {
               price_lamports: 0,
               total_installs: 4,
               source: "repo",
+              author_trust: {
+                isRegistered: true,
+                disputesAgainstAuthor: 1,
+                disputesUpheldAgainstAuthor: 0,
+                activeDisputesAgainstAuthor: 0,
+                totalStakedFor: 1000000,
+                authorBondLamports: 500000,
+                totalStakeAtRisk: 1500000,
+              },
+              author_trust_summary: {
+                wallet_pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+                canonical_agent_id:
+                  "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1/asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+                chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+                schema_version: "2026-04-03",
+                trust_updated_at: "2026-04-09T00:00:00.000Z",
+                recommended_action: "allow",
+                reputationScore: 10,
+                totalVouchesReceived: 2,
+                totalStakedFor: 1000000,
+                disputesAgainstAuthor: 1,
+                disputesUpheldAgainstAuthor: 0,
+                activeDisputesAgainstAuthor: 0,
+                registeredAt: 123,
+                isRegistered: true,
+              },
             },
           ],
           pagination: {
@@ -53,6 +79,10 @@ describe("AgentVouchApiClient", () => {
     );
     expect(result.pagination.totalPages).toBe(2);
     expect(result.skills[0]?.skill_id).toBe("calendar-agent");
+    expect(result.skills[0]?.author_trust?.authorBondLamports).toBe(500000);
+    expect(result.skills[0]?.author_trust_summary?.recommended_action).toBe(
+      "allow"
+    );
   });
 
   it("surfaces list errors as CliError", async () => {

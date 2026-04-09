@@ -9,9 +9,9 @@ describe("skill detail source", () => {
       "utf8"
     );
 
-    expect(source).toContain("Estimated Total");
-    expect(source).toContain("Creator Price");
-    expect(source).toContain("Receipt Rent");
+    expect(source).toContain("Estimated total");
+    expect(source).toContain("Creator price");
+    expect(source).toContain("Receipt rent");
     expect(source).toContain("Seller Needs SOL");
     expect(source).toContain("purchasePreflightMessage");
   });

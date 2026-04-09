@@ -1,6 +1,36 @@
 import type { AuthPayload, PaymentRequirement } from "@agentvouch/protocol";
 import { CliError } from "./errors.js";
 
+export interface SkillAuthorTrust {
+  isRegistered?: boolean;
+  reputationScore?: number;
+  totalVouchesReceived?: number;
+  totalStakedFor?: number;
+  disputesAgainstAuthor?: number;
+  disputesUpheldAgainstAuthor?: number;
+  activeDisputesAgainstAuthor?: number;
+  authorBondLamports?: number;
+  totalStakeAtRisk?: number;
+  registeredAt?: number;
+}
+
+export interface SkillAuthorTrustSummary {
+  wallet_pubkey: string;
+  canonical_agent_id: string;
+  chain_context: string;
+  schema_version: string;
+  trust_updated_at: string;
+  recommended_action: "allow" | "review" | "avoid";
+  reputationScore: number;
+  totalVouchesReceived: number;
+  totalStakedFor: number;
+  disputesAgainstAuthor: number;
+  disputesUpheldAgainstAuthor: number;
+  activeDisputesAgainstAuthor: number;
+  registeredAt: number;
+  isRegistered: boolean;
+}
+
 export interface SkillRecord {
   id: string;
   skill_id: string;
@@ -18,13 +48,8 @@ export interface SkillRecord {
   source?: "repo" | "chain";
   content?: string | null;
   buyerHasPurchased?: boolean;
-  author_trust?: {
-    isRegistered?: boolean;
-    reputationScore?: number;
-    activeAuthorDisputes?: number;
-    upheldAuthorDisputes?: number;
-  } | null;
-  author_trust_summary?: unknown;
+  author_trust?: SkillAuthorTrust | null;
+  author_trust_summary?: SkillAuthorTrustSummary | null;
   author_identity?: {
     name?: string | null;
   } | null;
