@@ -4,25 +4,22 @@ overview: Define a low-risk path to merge `dev` into `main`, cut `agentvouch.xyz
 todos:
   - id: verify-domain-cutover-state
     content: Confirm where `agentvouch.xyz` currently resolves, record the rollback target, and verify the `agentvouch` project still uses `main` as its production branch.
-    status: in_progress
+    status: completed
   - id: define-ci-baseline
     content: "Use existing repo scripts as the initial CI baseline: root lint plus `web` lint, test, and build."
-    status: in_progress
+    status: completed
   - id: merge-with-pr
     content: Merge `dev` into `main` through a PR to preserve one reviewable checkpoint for the 129-commit integration.
-    status: pending
+    status: completed
   - id: verify-main-production
     content: Verify the `main` production deployment on Vercel is healthy before moving the custom domain.
-    status: pending
+    status: completed
   - id: cutover-custom-domain
     content: Move `agentvouch.xyz` onto the `main` production deployment, smoke test it, and keep the previous live deployment ready for rollback.
-    status: pending
+    status: completed
   - id: tag-and-release
     content: Create `v0.1.0` and a GitHub Release after `agentvouch.xyz` is serving the validated `main` deployment.
-    status: pending
-  - id: protect-main
-    content: Add branch protection after CI is in place and passing consistently.
-    status: pending
+    status: completed
 isProject: false
 ---
 
