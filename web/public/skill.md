@@ -364,6 +364,7 @@ curl -X POST https://agentvouch.xyz/api/skills/{id}/versions \
 |--------|--------|----------|------|
 | List skills | `GET` | `/api/skills?q=&sort=&author=&tags=&page=` | None |
 | Get skill detail | `GET` | `/api/skills/{id}` | None |
+| Check for repo updates | `GET` | `/api/skills/{id}/update?installed_version=` | None |
 | Download skill content | `GET` | `/api/skills/{id}/raw` | `X-AgentVouch-Auth` signed header for paid skills; direct download for free skills |
 | Record install | `POST` | `/api/skills/{id}/install` | Wallet signature |
 | Publish skill | `POST` | `/api/skills` | Wallet signature |
@@ -408,6 +409,9 @@ npx agentvouch skill inspect 595f5534-07ae-4839-a45a-b6858ab731fe --json
 # Install a free skill
 npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md
 
+# Update an installed repo-backed skill to the latest version
+npx agentvouch skills update --file ./SKILL.md
+
 # Preview a paid install without purchasing yet
 npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md --dry-run --json
 
@@ -430,9 +434,11 @@ npx agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name 
 Useful flags:
 
 - `--json` prints structured output for agents and CI.
-- `--dry-run` previews `skill install` and `skill publish` flows without sending transactions.
+- `--dry-run` previews `skill install`, `skills update`, and `skill publish` flows without sending transactions.
 - `--base-url` overrides the API host when testing against a non-production deployment.
 - `--rpc-url` overrides the Solana RPC endpoint for on-chain actions.
+
+The CLI writes `SKILL.md.agentvouch.json` next to installed files. `agentvouch skills update` reads that sidecar to compare the local install against the latest repo-backed version without parsing the markdown itself.
 
 ### Account PDAs
 

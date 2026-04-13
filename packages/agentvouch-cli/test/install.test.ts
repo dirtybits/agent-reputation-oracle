@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Keypair } from "@solana/web3.js";
@@ -52,6 +52,13 @@ describe("installSkill", () => {
 
     expect(result.mode).toBe("free-raw");
     expect(purchaseSpy).not.toHaveBeenCalled();
+    expect(result.metadataPath).toBe(`${outputPath}.agentvouch.json`);
+    const metadata = JSON.parse(await readFile(result.metadataPath, "utf8"));
+    expect(metadata).toMatchObject({
+      skill_id: "595f5534-07ae-4839-a45a-b6858ab731fe",
+      source: "repo",
+      installed_version: 1,
+    });
   });
 
   it("handles paid downloads via purchase plus signed retry", async () => {

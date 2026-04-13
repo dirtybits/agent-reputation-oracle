@@ -41,6 +41,7 @@ Timestamp: {unix_ms}`;
   const paidDownloadCurl = `AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {skillListingAddress}\\nTimestamp: {unix_ms}","timestamp":1709234567890}'
 curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
   const searchSkillsCommand = `curl -s 'https://agentvouch.xyz/api/skills?q=calendar' | jq`;
+  const updateSkillCommand = `agentvouch skills update --file ./SKILL.md`;
   const authorRegisterCommand = `agentvouch author register --keypair ~/.config/solana/id.json --metadata-uri https://example.com/agent.json`;
   const publishSkillCommand = `agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json`;
   const addVersionCommand = `agentvouch skill version add {repoSkillId} --file ./SKILL.md --changelog "Fix env names" --keypair ~/.config/solana/id.json`;
@@ -224,6 +225,16 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
                 value={installSkillCommand}
                 language="bash"
                 copyLabel="Copy install skill command"
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Update an installed skill when a newer repo version is available:
+              </p>
+              <CopyCodeBlock
+                value={updateSkillCommand}
+                language="bash"
+                copyLabel="Copy update command"
               />
             </div>
             <div>

@@ -2,6 +2,11 @@ import path from "node:path";
 import { CliError } from "./errors.js";
 import { assertWritableOutputPath, writeUtf8File } from "./fs.js";
 import { type SkillRecord, AgentVouchApiClient } from "./http.js";
+import {
+  buildInstalledSkillMetadata,
+  getInstallMetadataPath,
+  writeInstalledSkillMetadata,
+} from "./metadata.js";
 import { createDownloadAuthPayload, loadKeypair } from "./signer.js";
 import { AgentVouchSolanaClient } from "./solana.js";
 
@@ -45,6 +50,7 @@ export async function installSkill(input: InstallSkillInput) {
   const api = new AgentVouchApiClient(input.baseUrl);
   const skill = await api.getSkill(input.id);
   const outputPath = path.resolve(input.out);
+  const metadataPath = getInstallMetadataPath(outputPath);
 
   if (!input.dryRun) {
     await assertWritableOutputPath(outputPath, input.force);
@@ -57,12 +63,17 @@ export async function installSkill(input: InstallSkillInput) {
     const content = await resolveChainSkillContent(skill, api);
     if (!input.dryRun) {
       await writeUtf8File(outputPath, content);
+      await writeInstalledSkillMetadata(
+        outputPath,
+        buildInstalledSkillMetadata(input.id, skill)
+      );
     }
     return {
       ok: true,
       mode: "chain-direct",
       skillId: input.id,
       outputPath,
+      metadataPath,
       priceLamports: skill.price_lamports ?? 0,
       dryRun: !!input.dryRun,
     };
@@ -72,12 +83,17 @@ export async function installSkill(input: InstallSkillInput) {
   if (initialDownload.ok && initialDownload.content !== undefined) {
     if (!input.dryRun) {
       await writeUtf8File(outputPath, initialDownload.content);
+      await writeInstalledSkillMetadata(
+        outputPath,
+        buildInstalledSkillMetadata(input.id, skill)
+      );
     }
     return {
       ok: true,
       mode: "free-raw",
       skillId: input.id,
       outputPath,
+      metadataPath,
       priceLamports: skill.price_lamports ?? 0,
       dryRun: !!input.dryRun,
     };
@@ -97,6 +113,7 @@ export async function installSkill(input: InstallSkillInput) {
       mode: "paid-raw-dry-run",
       skillId: input.id,
       outputPath,
+      metadataPath,
       priceLamports: initialDownload.requirement.amount,
       listingAddress: initialDownload.requirement.skillListingAddress,
       requirement: initialDownload.requirement,
@@ -138,12 +155,17 @@ export async function installSkill(input: InstallSkillInput) {
   }
 
   await writeUtf8File(outputPath, signedDownload.content);
+  await writeInstalledSkillMetadata(
+    outputPath,
+    buildInstalledSkillMetadata(input.id, skill)
+  );
 
   return {
     ok: true,
     mode: "paid-raw",
     skillId: input.id,
     outputPath,
+    metadataPath,
     priceLamports: initialDownload.requirement.amount,
     listingAddress: initialDownload.requirement.skillListingAddress,
     purchaseTx: purchase.tx,

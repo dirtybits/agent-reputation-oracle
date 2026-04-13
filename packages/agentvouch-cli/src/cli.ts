@@ -18,6 +18,7 @@ import { runCommand } from "./lib/output.js";
 import { addSkillVersion, publishSkill } from "./lib/publish.js";
 import { loadKeypair } from "./lib/signer.js";
 import { AgentVouchSolanaClient } from "./lib/solana.js";
+import { updateSkill } from "./lib/update.js";
 
 const MIN_SKILL_PRICE_LAMPORTS = 1_000_000;
 
@@ -189,6 +190,7 @@ addRpcUrlOption(
               `installed ${result.skillId}`,
               `mode: ${result.mode}`,
               `output: ${result.outputPath}`,
+              `metadata: ${result.metadataPath}`,
               `price_lamports: ${result.priceLamports}`,
               ...(result.listingAddress
                 ? [`listing: ${result.listingAddress}`]
@@ -198,6 +200,75 @@ addRpcUrlOption(
                 : []),
               ...(result.dryRun ? ["dry_run: true"] : []),
             ]
+          );
+        }
+      )
+  )
+);
+
+const skills = program
+  .command("skills")
+  .description("Update installed repo-backed skills.");
+
+addRpcUrlOption(
+  addBaseUrlOption(
+    skills
+      .command("update")
+      .requiredOption("--file <path>", "Path to the local SKILL.md file")
+      .option(
+        "--id <id>",
+        "Repo skill UUID for legacy installs that do not have local metadata"
+      )
+      .option("--keypair <file>", "Solana keypair JSON file for paid updates")
+      .option("--dry-run", "Check for updates without writing or purchasing")
+      .option("--json", "Print structured JSON output")
+      .addHelpText(
+        "after",
+        "\nExamples:\n  agentvouch skills update --file ./SKILL.md\n  agentvouch skills update --file ./SKILL.md --keypair ~/.config/solana/id.json\n  agentvouch skills update --file ./SKILL.md --id 595f5534-07ae-4839-a45a-b6858ab731fe --dry-run --json"
+      )
+      .action(
+        async (options: {
+          file: string;
+          id?: string;
+          keypair?: string;
+          dryRun?: boolean;
+          baseUrl: string;
+          rpcUrl: string;
+          json?: boolean;
+        }) => {
+          await runCommand(
+            options,
+            async () =>
+              updateSkill({
+                file: options.file,
+                id: options.id,
+                keypairPath: options.keypair,
+                dryRun: options.dryRun,
+                baseUrl: resolveBaseUrl(options.baseUrl),
+                rpcUrl: resolveRpcUrl(options.rpcUrl),
+              }),
+            (result) => {
+              const headline =
+                result.action === "noop" || result.dryRun
+                  ? `checked ${result.skillId}`
+                  : `updated ${result.skillId}`;
+              return [
+                headline,
+                `action: ${result.action}`,
+                `output: ${result.outputPath}`,
+                `metadata: ${result.metadataPath}`,
+                `installed_version: ${result.installedVersion ?? "unknown"}`,
+                `latest_version: ${result.latestVersion}`,
+                ...(result.listingAddress
+                  ? [`listing: ${result.listingAddress}`]
+                  : []),
+                `requires_purchase: ${result.requiresPurchase ? "yes" : "no"}`,
+                `listing_changed: ${result.listingChanged ? "yes" : "no"}`,
+                ...(result.mode ? [`mode: ${result.mode}`] : []),
+                ...(result.purchaseTx ? [`purchase_tx: ${result.purchaseTx}`] : []),
+                ...(result.dryRun ? ["dry_run: true"] : []),
+              ];
+            }
           );
         }
       )

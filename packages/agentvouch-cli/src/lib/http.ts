@@ -38,6 +38,7 @@ export interface SkillRecord {
   name: string;
   description: string | null;
   tags?: string[];
+  current_version?: number;
   chain_context?: string | null;
   on_chain_address: string | null;
   price_lamports?: number | null;
@@ -48,11 +49,27 @@ export interface SkillRecord {
   source?: "repo" | "chain";
   content?: string | null;
   buyerHasPurchased?: boolean;
+  created_at?: string;
+  updated_at?: string;
   author_trust?: SkillAuthorTrust | null;
   author_trust_summary?: SkillAuthorTrustSummary | null;
   author_identity?: {
     name?: string | null;
   } | null;
+}
+
+export interface SkillUpdateCheckResponse {
+  id: string;
+  skill_slug: string;
+  source: "repo";
+  status: "up_to_date" | "update_available" | "unknown_installed_version";
+  installed_version: number | null;
+  latest_version: number;
+  latest_updated_at: string;
+  on_chain_address: string | null;
+  price_lamports: number;
+  requires_purchase: boolean;
+  listing_changed: boolean;
 }
 
 export interface SkillListPagination {
@@ -346,6 +363,46 @@ export class AgentVouchApiClient {
     if (!response.ok || !payload || "error" in payload) {
       throw new CliError(
         `Failed to add skill version for ${skillId}: ${
+          payload?.error || response.statusText
+        }`,
+        { exitCode: 1, data: payload }
+      );
+    }
+
+    return payload;
+  }
+
+  async checkSkillUpdate(
+    skillId: string,
+    options: {
+      installedVersion?: number;
+      source?: "repo" | "chain";
+      listing?: string | null;
+    } = {}
+  ): Promise<SkillUpdateCheckResponse> {
+    const searchParams = new URLSearchParams();
+    if (options.installedVersion !== undefined) {
+      searchParams.set("installed_version", String(options.installedVersion));
+    }
+    if (options.source) {
+      searchParams.set("source", options.source);
+    }
+    if (options.listing) {
+      searchParams.set("listing", options.listing);
+    }
+
+    const query = searchParams.toString();
+    const response = await fetch(
+      this.url(`/api/skills/${skillId}/update${query ? `?${query}` : ""}`)
+    );
+    const payload = (await response.json().catch(() => null)) as
+      | SkillUpdateCheckResponse
+      | { error?: string }
+      | null;
+
+    if (!response.ok || !payload || "error" in payload) {
+      throw new CliError(
+        `Failed to check for updates for ${skillId}: ${
           payload?.error || response.statusText
         }`,
         { exitCode: 1, data: payload }

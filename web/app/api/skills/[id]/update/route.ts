@@ -1,0 +1,121 @@
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import {
+  buildPublicCacheControl,
+  PUBLIC_ROUTE_CACHE_SECONDS,
+  PUBLIC_ROUTE_STALE_SECONDS,
+} from "@/lib/cachePolicy";
+import { getErrorMessage } from "@/lib/errors";
+import { getOnChainPrice } from "@/lib/onchain";
+
+type SkillRow = {
+  id: string;
+  skill_id: string;
+  current_version: number;
+  updated_at: string;
+  on_chain_address: string | null;
+};
+
+const CHAIN_PREFIX = "chain-";
+
+function parseInstalledVersion(value: string | null): number | null {
+  if (value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new Error("installed_version must be a positive integer");
+  }
+
+  return parsed;
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    if (id.startsWith(CHAIN_PREFIX)) {
+      return NextResponse.json(
+        { error: "Chain-only skills do not support version-aware updates" },
+        { status: 400 }
+      );
+    }
+
+    const source = request.nextUrl.searchParams.get("source");
+    if (source && source !== "repo") {
+      return NextResponse.json(
+        { error: "Only repo-backed skills support version-aware updates" },
+        { status: 400 }
+      );
+    }
+
+    let installedVersion: number | null;
+    try {
+      installedVersion = parseInstalledVersion(
+        request.nextUrl.searchParams.get("installed_version")
+      );
+    } catch (error: unknown) {
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 400 }
+      );
+    }
+    const providedListing = request.nextUrl.searchParams.get("listing");
+
+    const rows = await sql()<SkillRow>`
+      SELECT id, skill_id, current_version, updated_at, on_chain_address
+      FROM skills
+      WHERE id = ${id}::uuid
+    `;
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "Skill not found" }, { status: 404 });
+    }
+
+    const skill = rows[0];
+    const listing = skill.on_chain_address
+      ? await getOnChainPrice(skill.on_chain_address)
+      : null;
+    const priceLamports = listing?.price ?? 0;
+
+    const status =
+      installedVersion === null
+        ? "unknown_installed_version"
+        : installedVersion < skill.current_version
+        ? "update_available"
+        : "up_to_date";
+
+    return NextResponse.json(
+      {
+        id: skill.id,
+        skill_slug: skill.skill_id,
+        source: "repo",
+        status,
+        installed_version: installedVersion,
+        latest_version: skill.current_version,
+        latest_updated_at: new Date(skill.updated_at).toISOString(),
+        on_chain_address: skill.on_chain_address,
+        price_lamports: priceLamports,
+        requires_purchase: priceLamports > 0,
+        listing_changed:
+          providedListing !== null && providedListing !== skill.on_chain_address,
+      },
+      {
+        headers: {
+          "Cache-Control": buildPublicCacheControl(
+            PUBLIC_ROUTE_CACHE_SECONDS.skillDetail,
+            PUBLIC_ROUTE_STALE_SECONDS.skillDetail
+          ),
+        },
+      }
+    );
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
+  }
+}

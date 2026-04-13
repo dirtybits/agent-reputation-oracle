@@ -218,6 +218,30 @@ var AgentVouchApiClient = class {
     }
     return payload;
   }
+  async checkSkillUpdate(skillId, options = {}) {
+    const searchParams = new URLSearchParams();
+    if (options.installedVersion !== void 0) {
+      searchParams.set("installed_version", String(options.installedVersion));
+    }
+    if (options.source) {
+      searchParams.set("source", options.source);
+    }
+    if (options.listing) {
+      searchParams.set("listing", options.listing);
+    }
+    const query = searchParams.toString();
+    const response = await fetch(
+      this.url(`/api/skills/${skillId}/update${query ? `?${query}` : ""}`)
+    );
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload || "error" in payload) {
+      throw new CliError(
+        `Failed to check for updates for ${skillId}: ${payload?.error || response.statusText}`,
+        { exitCode: 1, data: payload }
+      );
+    }
+    return payload;
+  }
 };
 
 // src/lib/format.ts
@@ -333,6 +357,63 @@ async function assertWritableOutputPath(filePath, force = false) {
 async function writeUtf8File(filePath, contents) {
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, contents, "utf8");
+}
+
+// src/lib/metadata.ts
+var INSTALL_METADATA_SCHEMA_VERSION = 1;
+function getInstallMetadataPath(skillFilePath) {
+  return `${skillFilePath}.agentvouch.json`;
+}
+function buildInstalledSkillMetadata(installedSkillId, skill2) {
+  return {
+    schema_version: INSTALL_METADATA_SCHEMA_VERSION,
+    installed_with: "agentvouch-cli",
+    skill_id: installedSkillId,
+    source: skill2.source === "chain" ? "chain" : "repo",
+    installed_version: skill2.current_version ?? 1,
+    on_chain_address: skill2.on_chain_address ?? null,
+    skill_slug: skill2.skill_id,
+    author_pubkey: skill2.author_pubkey,
+    price_lamports: skill2.price_lamports ?? 0,
+    installed_at: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+function isInstalledSkillMetadata(value) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value;
+  return candidate.schema_version === INSTALL_METADATA_SCHEMA_VERSION && candidate.installed_with === "agentvouch-cli" && typeof candidate.skill_id === "string" && (candidate.source === "repo" || candidate.source === "chain") && typeof candidate.installed_version === "number" && typeof candidate.skill_slug === "string" && typeof candidate.author_pubkey === "string" && typeof candidate.price_lamports === "number" && typeof candidate.installed_at === "string" && (typeof candidate.on_chain_address === "string" || candidate.on_chain_address === null);
+}
+async function writeInstalledSkillMetadata(skillFilePath, metadata) {
+  const metadataPath = getInstallMetadataPath(skillFilePath);
+  await writeUtf8File(metadataPath, `${JSON.stringify(metadata, null, 2)}
+`);
+  return metadataPath;
+}
+async function readInstalledSkillMetadata(skillFilePath) {
+  const metadataPath = getInstallMetadataPath(skillFilePath);
+  try {
+    const raw = await readUtf8File(metadataPath);
+    const parsed = JSON.parse(raw);
+    if (!isInstalledSkillMetadata(parsed)) {
+      throw new CliError(
+        `Install metadata at ${metadataPath} is invalid. Reinstall the skill or rerun update with --id to rewrite it.`
+      );
+    }
+    return parsed;
+  } catch (error) {
+    const nodeError = error;
+    if (nodeError?.code === "ENOENT") {
+      return null;
+    }
+    if (error instanceof SyntaxError) {
+      throw new CliError(
+        `Install metadata at ${metadataPath} is not valid JSON. Reinstall the skill or rerun update with --id to rewrite it.`
+      );
+    }
+    throw error;
+  }
 }
 
 // src/lib/signer.ts
@@ -3410,6 +3491,7 @@ async function installSkill(input) {
   const api = new AgentVouchApiClient(input.baseUrl);
   const skill2 = await api.getSkill(input.id);
   const outputPath = path2.resolve(input.out);
+  const metadataPath = getInstallMetadataPath(outputPath);
   if (!input.dryRun) {
     await assertWritableOutputPath(outputPath, input.force);
   }
@@ -3418,12 +3500,17 @@ async function installSkill(input) {
     const content = await resolveChainSkillContent(skill2, api);
     if (!input.dryRun) {
       await writeUtf8File(outputPath, content);
+      await writeInstalledSkillMetadata(
+        outputPath,
+        buildInstalledSkillMetadata(input.id, skill2)
+      );
     }
     return {
       ok: true,
       mode: "chain-direct",
       skillId: input.id,
       outputPath,
+      metadataPath,
       priceLamports: skill2.price_lamports ?? 0,
       dryRun: !!input.dryRun
     };
@@ -3432,12 +3519,17 @@ async function installSkill(input) {
   if (initialDownload.ok && initialDownload.content !== void 0) {
     if (!input.dryRun) {
       await writeUtf8File(outputPath, initialDownload.content);
+      await writeInstalledSkillMetadata(
+        outputPath,
+        buildInstalledSkillMetadata(input.id, skill2)
+      );
     }
     return {
       ok: true,
       mode: "free-raw",
       skillId: input.id,
       outputPath,
+      metadataPath,
       priceLamports: skill2.price_lamports ?? 0,
       dryRun: !!input.dryRun
     };
@@ -3453,6 +3545,7 @@ async function installSkill(input) {
       mode: "paid-raw-dry-run",
       skillId: input.id,
       outputPath,
+      metadataPath,
       priceLamports: initialDownload.requirement.amount,
       listingAddress: initialDownload.requirement.skillListingAddress,
       requirement: initialDownload.requirement,
@@ -3487,11 +3580,16 @@ async function installSkill(input) {
     );
   }
   await writeUtf8File(outputPath, signedDownload.content);
+  await writeInstalledSkillMetadata(
+    outputPath,
+    buildInstalledSkillMetadata(input.id, skill2)
+  );
   return {
     ok: true,
     mode: "paid-raw",
     skillId: input.id,
     outputPath,
+    metadataPath,
     priceLamports: initialDownload.requirement.amount,
     listingAddress: initialDownload.requirement.skillListingAddress,
     purchaseTx: purchase.tx,
@@ -3612,6 +3710,91 @@ async function addSkillVersion(input) {
   };
 }
 
+// src/lib/update.ts
+import path4 from "path";
+async function updateSkill(input) {
+  const outputPath = path4.resolve(input.file);
+  const metadataPath = getInstallMetadataPath(outputPath);
+  const metadata = await readInstalledSkillMetadata(outputPath);
+  if (metadata && input.id && input.id !== metadata.skill_id) {
+    throw new CliError(
+      `Local install metadata points to ${metadata.skill_id}, but --id was ${input.id}.`
+    );
+  }
+  const skillId = metadata?.skill_id ?? input.id;
+  if (!skillId) {
+    throw new CliError(
+      `No install metadata found for ${outputPath}. Re-run with --id <repo-skill-uuid> to adopt a legacy install.`
+    );
+  }
+  if ((metadata?.source ?? "repo") === "chain" || skillId.startsWith("chain-")) {
+    throw new CliError(
+      "Version-aware updates are only supported for repo-backed skills."
+    );
+  }
+  const api = new AgentVouchApiClient(input.baseUrl);
+  const check = await api.checkSkillUpdate(skillId, {
+    installedVersion: metadata?.installed_version,
+    source: metadata?.source ?? "repo",
+    listing: metadata?.on_chain_address ?? null
+  });
+  const needsRefresh = check.status !== "up_to_date" || check.listing_changed || !metadata;
+  if (!needsRefresh) {
+    return {
+      ok: true,
+      action: "noop",
+      skillId,
+      outputPath,
+      metadataPath,
+      installedVersion: check.installed_version,
+      latestVersion: check.latest_version,
+      listingAddress: check.on_chain_address,
+      listingChanged: check.listing_changed,
+      requiresPurchase: check.requires_purchase,
+      dryRun: !!input.dryRun
+    };
+  }
+  if (input.dryRun) {
+    return {
+      ok: true,
+      action: metadata ? "update" : "adopt",
+      skillId,
+      outputPath,
+      metadataPath,
+      installedVersion: check.installed_version,
+      latestVersion: check.latest_version,
+      listingAddress: check.on_chain_address,
+      listingChanged: check.listing_changed,
+      requiresPurchase: check.requires_purchase,
+      dryRun: true
+    };
+  }
+  const installResult = await installSkill({
+    id: skillId,
+    out: outputPath,
+    force: true,
+    dryRun: false,
+    keypairPath: input.keypairPath,
+    baseUrl: input.baseUrl,
+    rpcUrl: input.rpcUrl
+  });
+  return {
+    ok: true,
+    action: metadata ? "update" : "adopt",
+    skillId,
+    outputPath,
+    metadataPath: installResult.metadataPath,
+    installedVersion: check.installed_version,
+    latestVersion: check.latest_version,
+    listingAddress: check.on_chain_address,
+    listingChanged: check.listing_changed,
+    requiresPurchase: check.requires_purchase,
+    dryRun: false,
+    mode: installResult.mode,
+    purchaseTx: installResult.purchaseTx
+  };
+}
+
 // src/cli.ts
 var MIN_SKILL_PRICE_LAMPORTS2 = 1e6;
 function parseLamports(value) {
@@ -3723,11 +3906,55 @@ addRpcUrlOption(
             `installed ${result.skillId}`,
             `mode: ${result.mode}`,
             `output: ${result.outputPath}`,
+            `metadata: ${result.metadataPath}`,
             `price_lamports: ${result.priceLamports}`,
             ...result.listingAddress ? [`listing: ${result.listingAddress}`] : [],
             ...result.purchaseTx ? [`purchase_tx: ${result.purchaseTx}`] : [],
             ...result.dryRun ? ["dry_run: true"] : []
           ]
+        );
+      }
+    )
+  )
+);
+var skills = program.command("skills").description("Update installed repo-backed skills.");
+addRpcUrlOption(
+  addBaseUrlOption(
+    skills.command("update").requiredOption("--file <path>", "Path to the local SKILL.md file").option(
+      "--id <id>",
+      "Repo skill UUID for legacy installs that do not have local metadata"
+    ).option("--keypair <file>", "Solana keypair JSON file for paid updates").option("--dry-run", "Check for updates without writing or purchasing").option("--json", "Print structured JSON output").addHelpText(
+      "after",
+      "\nExamples:\n  agentvouch skills update --file ./SKILL.md\n  agentvouch skills update --file ./SKILL.md --keypair ~/.config/solana/id.json\n  agentvouch skills update --file ./SKILL.md --id 595f5534-07ae-4839-a45a-b6858ab731fe --dry-run --json"
+    ).action(
+      async (options) => {
+        await runCommand(
+          options,
+          async () => updateSkill({
+            file: options.file,
+            id: options.id,
+            keypairPath: options.keypair,
+            dryRun: options.dryRun,
+            baseUrl: resolveBaseUrl(options.baseUrl),
+            rpcUrl: resolveRpcUrl(options.rpcUrl)
+          }),
+          (result) => {
+            const headline = result.action === "noop" || result.dryRun ? `checked ${result.skillId}` : `updated ${result.skillId}`;
+            return [
+              headline,
+              `action: ${result.action}`,
+              `output: ${result.outputPath}`,
+              `metadata: ${result.metadataPath}`,
+              `installed_version: ${result.installedVersion ?? "unknown"}`,
+              `latest_version: ${result.latestVersion}`,
+              ...result.listingAddress ? [`listing: ${result.listingAddress}`] : [],
+              `requires_purchase: ${result.requiresPurchase ? "yes" : "no"}`,
+              `listing_changed: ${result.listingChanged ? "yes" : "no"}`,
+              ...result.mode ? [`mode: ${result.mode}`] : [],
+              ...result.purchaseTx ? [`purchase_tx: ${result.purchaseTx}`] : [],
+              ...result.dryRun ? ["dry_run: true"] : []
+            ];
+          }
         );
       }
     )
