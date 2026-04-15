@@ -1051,7 +1051,9 @@ export default function SkillDetailPage({
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {creatorPriceLamports > 0
-                    ? buyerHasPurchased
+                    ? isAuthor
+                      ? "This connected wallet is the author for this skill. Use the author actions below to manage the listing instead of purchasing it."
+                      : buyerHasPurchased
                       ? "This skill is already purchased for your connected wallet. Sign to download the file."
                       : "Complete the on-chain purchase, then use Sign & Download with your wallet signature."
                     : "Install with a wallet signature — no transaction fee."}
@@ -1077,6 +1079,13 @@ export default function SkillDetailPage({
                         </>
                       )}
                     </button>
+                  ) : isAuthor ? (
+                    <Link
+                      href="#author-actions"
+                      className={navButtonSecondaryInlineClass}
+                    >
+                      Manage Listing
+                    </Link>
                   ) : buyerHasPurchased ? (
                     <button
                       onClick={handleSignedDownload}

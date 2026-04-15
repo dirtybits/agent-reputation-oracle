@@ -9,8 +9,8 @@ todos:
     content: Show gentle 'set a price' note to authors of 0-price skills
     status: completed
   - id: todo-1772746691850-52pvop5nq
-    content: Change minimum listing price to 0.001
-    status: in_progress
+    content: Change minimum paid listing price to 0.001
+    status: completed
 isProject: false
 ---
 

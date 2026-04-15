@@ -1,8 +1,43 @@
-Use `ERC-8004` and Solana Agent Registry for agent identity, not as the universal primary key for the whole system.
+Use `ERC-8004` and Solana Agent Registry for agent identity. Do not use them as the universal primary key for the whole system.
 
-Right now the repo is still keyed around Solana-specific fields like `author_pubkey` and `on_chain_address`:
+## Current Reality
 
-```19:35:web/lib/db.ts
+AgentVouch already ships most of the identity and chain-normalization foundation that this proposal originally described.
+
+- Normalized chain labels already live in `web/lib/chains.ts`.
+- Repo-backed skills already persist `chain_context` in `web/lib/db.ts`, and legacy values are backfilled into CAIP-2-style values.
+- `agents` and `agent_identity_bindings` already exist in `web/lib/agentIdentity.ts`.
+- Canonical agent IDs already exist and are built as `<caip2-chain-id>:<registryOrProgram>#<recordId>` for linked registry identities, plus a local fallback form for non-registry identities.
+- Solana 8004 discovery and linking already exist in `web/lib/solanaAgentRegistry.ts` and `web/app/api/author/[pubkey]/route.ts`.
+- Trust, API, and CLI surfaces already expose `canonical_agent_id` and `chain_context`.
+- x402 already carries `chainContext`, but payment verification is still explicitly Solana-only in `web/lib/x402.ts`.
+- The product truth today is still Solana-native settlement and trust enforcement, consistent with `docs/ARCHITECTURE.md` and `web/public/skill.md`.
+
+The old version of this document was directionally right, but it incorrectly treated already-shipped identity tables and chain normalization as future work.
+
+## Built
+
+### Chain Normalization
+
+Stored chain values already use normalized CAIP-2-style labels for persisted `chain_context` fields.
+
+Current examples:
+
+- Solana Devnet: `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1`
+- Solana Mainnet: `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
+- Base: `eip155:8453`
+
+Rules already reflected in the codebase:
+
+- Persist normalized CAIP-2 values in normalized chain fields.
+- Accept legacy aliases like `solana`, `solana:mainnet`, `solana:mainnet-beta`, `base`, and `ethereum` only at the edge.
+- Preserve non-CAIP upstream labels separately when an external registry or SDK does not use CAIP-2.
+
+### Current Skill Schema
+
+The repo-backed `skills` table is still primarily keyed around local marketplace needs, but it already carries normalized chain context:
+
+```sql
 CREATE TABLE IF NOT EXISTS skills (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   skill_id VARCHAR(64) NOT NULL,
@@ -13,116 +48,215 @@ CREATE TABLE IF NOT EXISTS skills (
   current_version INTEGER DEFAULT 1,
   ipfs_cid VARCHAR(128),
   on_chain_address VARCHAR(44),
-  chain_context VARCHAR(16) DEFAULT 'solana',
+  chain_context VARCHAR(64) DEFAULT <configured_caip2_chain>,
   total_installs INTEGER DEFAULT 0,
   contact VARCHAR(128),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(author_pubkey, skill_id)
-)
+);
 ```
 
-And the plan already points at the right shift:
+What matters here:
 
-```403:410:docs/multi-asset-staking-and-x402-plan.md
-## 5.4 Indexer / API / UI
+- `skills.id` remains the internal primary key.
+- `author_pubkey` is still the compatibility anchor for existing repo skill rows.
+- `chain_context` is already real and already normalized.
 
-- [ ] Extend indexer schema for multi-mint positions with `chain_context`.
-- [ ] Add canonical cross-chain ID support (`namespace:chain:contract#id`) for agents/skills.
-- [ ] Add endpoints for stake composition by agent.
-- [ ] Add UI cards for per-mint stake and composition pie.
-```
+### Current Agent Identity Schema
 
-## Recommended Schema
-
-### `agents`
-One logical agent profile inside AgentVouch.
+The identity layer is already present and should now be treated as the baseline, not a proposal:
 
 ```sql
-CREATE TABLE agents (
+CREATE TABLE IF NOT EXISTS agents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  canonical_agent_id TEXT NOT NULL UNIQUE,   -- ERC-8004-compatible canonical identity
+  canonical_agent_id TEXT NOT NULL UNIQUE,
   display_name VARCHAR(128),
-  home_chain_context VARCHAR(64),            -- normalized CAIP-2 chain id: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', 'eip155:8453', etc.
-  identity_source VARCHAR(32) NOT NULL,      -- 'erc8004', 'local', 'imported'
+  home_chain_context VARCHAR(64),
+  identity_source VARCHAR(32) NOT NULL,
   status VARCHAR(16) NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-```
 
-`canonical_agent_id` should point to the registry-native identity record, not a wallet and not an `AgentProfile` PDA.
-
-`canonical_agent_id` is an AgentVouch-defined identifier whose chain prefix is a CAIP-2 chain ID. It is not itself a CAIP standard.
-
-Recommended shapes:
-- Solana 8004: `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp:<agentRegistryProgram>#<coreAssetPubkey>`
-- Solana 8004 (devnet): `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1:<agentRegistryProgram>#<coreAssetPubkey>`
-- EVM ERC-8004: `eip155:8453:<identityRegistry>#<tokenId>`
-
-Notes:
-- On Solana 8004, the unique record is the Metaplex Core asset pubkey.
-- On EVM ERC-8004, the unique record is the ERC-721 token id under the identity registry contract.
-- Store the identity losslessly. Do not collapse registry-native IDs down to wallet addresses.
-
-### `agent_identity_bindings`
-Maps one logical agent to concrete wallets, program accounts, or registry records.
-
-```sql
-CREATE TABLE agent_identity_bindings (
+CREATE TABLE IF NOT EXISTS agent_identity_bindings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-  binding_type VARCHAR(32) NOT NULL,         -- 'solana_8004_asset', 'wallet_owner', 'wallet_operational', 'agent_profile_pda', 'evm_8004_token'
-  chain_context VARCHAR(64) NOT NULL,        -- normalized CAIP-2 chain id: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1', 'eip155:8453'
-  binding_ref TEXT NOT NULL,                 -- wallet address, PDA, Core asset pubkey, or token id
-  registry_address TEXT,                     -- registry program / contract if relevant
-  external_agent_id TEXT,                    -- optional raw upstream identifier if distinct from binding_ref
+  binding_type VARCHAR(32) NOT NULL,
+  chain_context VARCHAR(64) NOT NULL,
+  binding_ref TEXT NOT NULL,
+  registry_address TEXT,
+  external_agent_id TEXT,
   is_primary BOOLEAN NOT NULL DEFAULT false,
   verification_status VARCHAR(16) NOT NULL DEFAULT 'verified',
+  raw_upstream_chain_label TEXT,
+  raw_upstream_chain_id TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(agent_id, binding_type, chain_context, binding_ref)
 );
 ```
 
-This is the table that lets one agent own:
-- a Solana 8004 identity asset
-- a Solana owner wallet
-- a Solana operational / agent wallet
-- a Solana AgentProfile PDA
-- an EVM ERC-8004 token
+This is already enough to model:
+
+- owner wallet
+- operational wallet
+- local `AgentProfile` PDA
+- Solana 8004 asset identity
+- future EVM 8004 token identity
+
+Canonical identity rules:
+
+- `canonical_agent_id` should point to the registry-native identity record when one exists.
+- It should not collapse registry-native identity down to a wallet address.
+- It is an AgentVouch application identifier that uses a CAIP-2 chain prefix. It is not itself a CAIP standard.
+
+Current shapes:
+
+- local fallback: `<caip2-chain-id>:agentvouch-local#<walletPubkey>`
+- Solana 8004: `<caip2-chain-id>:<agentRegistryProgram>#<coreAssetPubkey>`
+- future EVM 8004: `<caip2-chain-id>:<identityRegistry>#<tokenId>`
+
+### Current Solana Registry Integration
+
+Solana 8004 support is already partially operational:
+
+- discovery by owner or operational wallet already exists
+- registry candidates already carry `chainContext`
+- raw upstream chain label and raw upstream chain id are already preserved
+- registry linking already rewrites an agent from local identity to registry-backed canonical identity
+
+This means the correct framing is:
+
+- Solana registry-aware identity is live
+- non-Solana cross-chain identity is not live
+
+## Partial / Reserved
+
+The following pieces exist as compatibility or future-facing groundwork, but should not be described as full cross-chain support.
+
+### Legacy Alias Compatibility
+
+Legacy network aliases are still accepted at the edge for compatibility:
+
+- `solana`
+- `solana:mainnet`
+- `solana:mainnet-beta`
+- `solana:devnet`
+- `base`
+- `ethereum`
+
+That is an input compatibility layer, not a signal that storage remains unnormalized.
+
+### Reserved Binding Surfaces
+
+`agent_identity_bindings` already leaves room for future identity surfaces such as:
+
+- `evm_8004_token`
+- `wallet_operational`
+- `raw_upstream_chain_label`
+- `raw_upstream_chain_id`
+- `external_agent_id`
 
 Important:
-- Do not assume one wallet maps to one agent globally.
-- Do not use a blanket `UNIQUE(chain_context, address)` rule for wallet rows.
-- If you need one-to-one guarantees, add narrower partial unique indexes for identity surfaces like:
-  - `solana_8004_asset`
-  - `agent_profile_pda`
 
-Examples:
-- `binding_type = 'solana_8004_asset'`
-  - `chain_context = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'`
-  - `binding_ref = '<coreAssetPubkey>'`
-  - `registry_address = '<agentRegistryProgram>'`
-- `binding_type = 'wallet_owner'`
-  - `binding_ref = '<walletPubkey>'`
-- `binding_type = 'wallet_operational'`
-  - `binding_ref = '<walletPubkey>'`
-- `binding_type = 'agent_profile_pda'`
-  - `binding_ref = '<agentProfilePda>'`
-- `binding_type = 'evm_8004_token'`
-  - `chain_context = 'eip155:8453'`
-  - `binding_ref = '<tokenId>'`
-  - `registry_address = '<identityRegistry>'`
+- `evm_8004_token` exists as a binding type today, but there is no EVM linking flow yet.
+- raw upstream labels should stay in separate metadata fields rather than replacing normalized `chain_context`.
+- this is reserved schema space, not shipped Base or Ethereum support.
 
-### `foreign_agents`
-Optional, only if you want imports to be explicit.
+### Solana-Only Settlement
+
+The marketplace and purchase flow are still Solana-only today:
+
+- `purchase_skill` is a Solana instruction
+- x402 verification requires `network: "solana"`
+- `chainContext` in x402 is checked against the configured Solana chain
+- the on-chain program under `programs/reputation-oracle/` does not yet model non-Solana settlement
+
+This is the key product boundary:
+
+- AgentVouch is already cross-chain-aware in identity and schema language
+- AgentVouch is not yet cross-chain in marketplace settlement
+
+## Not Yet Built
+
+The following parts remain future work:
+
+- `foreign_agents` table
+- `skills.author_agent_id`
+- `skills.canonical_skill_id`
+- `skills.source_chain_context`
+- `skills.settlement_chain_context`
+- `skills.settlement_address`
+- `purchase_records`
+- non-Solana settlement adapters
+- foreign-agent import lifecycle
+- any Base or EVM purchase-verification path
+
+None of those should be implied as live until there is end-to-end product support for them.
+
+## How To Use ERC-8004
+
+Use it for:
+
+- canonical agent identity
+- registry-backed identity linking
+- foreign agent imports when they become real product needs
+- cross-chain profile resolution
+- future reputation portability and attestations
+
+Do not use it for:
+
+- skill IDs
+- purchase IDs
+- dispute IDs
+- payout IDs
+- immediate replacement of local Solana `AgentProfile`
+- collapsing owner wallet, operational wallet, and local PDA into one field
+
+Those surfaces should remain internal and chain-aware.
+
+## Next Credible Phases
+
+The next steps should be sequenced around real product needs, not around abstract multichain completeness.
+
+### Phase 1: Attach Skills To The Existing Identity Layer
+
+This is the smallest credible next schema step.
+
+Add:
+
+```sql
+ALTER TABLE skills
+  ADD COLUMN author_agent_id UUID REFERENCES agents(id);
+```
+
+Then:
+
+1. Backfill every existing `author_pubkey` to the already-existing `agents` table.
+2. Ensure each existing author has a `wallet_owner` binding on the correct normalized Solana `chain_context`.
+3. Add an `agent_profile_pda` binding where the profile exists.
+4. Populate `skills.author_agent_id`.
+5. Keep `author_pubkey` for compatibility until all readers prefer `author_agent_id`.
+
+This phase should update author resolution and trust lookups to prefer the identity layer without pretending the marketplace is already multichain.
+
+### Phase 2: Add Foreign Identity Import Only When There Is A Real Use Case
+
+Only add explicit foreign-agent lifecycle storage if AgentVouch actually needs to ingest and reason about non-Solana agents.
+
+If that becomes real, two acceptable designs exist:
+
+- add a dedicated `foreign_agents` table
+- keep the model flatter and store import metadata directly on `agents` plus bindings
+
+If a dedicated table is needed, the minimum useful shape is:
 
 ```sql
 CREATE TABLE foreign_agents (
   agent_id UUID PRIMARY KEY REFERENCES agents(id) ON DELETE CASCADE,
-  origin_chain_context VARCHAR(64) NOT NULL, -- normalized CAIP-2 chain id
+  origin_chain_context VARCHAR(64) NOT NULL,
   origin_registry TEXT,
-  import_source VARCHAR(32) NOT NULL,        -- 'erc8004', 'wormhole', 'manual'
+  import_source VARCHAR(32) NOT NULL,
   raw_upstream_chain_label TEXT,
   raw_upstream_chain_id TEXT,
   last_synced_at TIMESTAMPTZ,
@@ -130,34 +264,23 @@ CREATE TABLE foreign_agents (
 );
 ```
 
-I would only add this if imported agents need separate lifecycle handling. Otherwise fold these fields into `agents`.
+Do not add this table just because the old proposal mentioned it. Add it only when imported agents truly need separate lifecycle, sync, or verification handling.
 
-If you ingest external 8004 registration files, this is also a reasonable place to store raw `registrations[]` references, non-CAIP upstream chain labels, and sync metadata until they are verified and promoted into first-class bindings.
+### Phase 3: Add Canonical Skill IDs And Purchase Records Only When Settlement Stops Being Solana-Only
 
-Important:
-- `origin_chain_context` is the normalized CAIP-2 value used for joins and filters.
-- `raw_upstream_chain_label` and `raw_upstream_chain_id` preserve upstream values when external systems do not use CAIP-2.
+Do not add chain-agnostic purchase bookkeeping ahead of a real multichain settlement path.
 
-### `skills`
-Keep `skills.id` as your internal primary key. Add canonical IDs instead of making ERC-8004 do this job.
+When that need becomes real, extend `skills` with:
 
 ```sql
 ALTER TABLE skills
-  ADD COLUMN author_agent_id UUID REFERENCES agents(id),
-  ADD COLUMN canonical_skill_id TEXT,        -- ex: agentvouch:<caip2-chain-id>:<listing>#<skill_id>
-  ADD COLUMN source_chain_context VARCHAR(64) NOT NULL,
-  ADD COLUMN settlement_chain_context VARCHAR(64) NOT NULL,
-  ADD COLUMN settlement_address TEXT;        -- PDA or contract address
+  ADD COLUMN canonical_skill_id TEXT,
+  ADD COLUMN source_chain_context VARCHAR(64),
+  ADD COLUMN settlement_chain_context VARCHAR(64),
+  ADD COLUMN settlement_address TEXT;
 ```
 
-Important:
-- `author_pubkey` can stay temporarily for compatibility
-- `author_agent_id` should become the real foreign key
-- `canonical_skill_id` should be your own format, not ERC-8004
-- `source_chain_context` and `settlement_chain_context` should use the same CAIP-2 normalization rules used elsewhere
-
-### `purchase_records`
-Make purchase and entitlement chain-agnostic.
+And then add:
 
 ```sql
 CREATE TABLE purchase_records (
@@ -167,67 +290,52 @@ CREATE TABLE purchase_records (
   buyer_binding_id UUID REFERENCES agent_identity_bindings(id),
   payment_ref TEXT NOT NULL UNIQUE,
   settlement_id TEXT,
-  payment_protocol VARCHAR(32) NOT NULL,     -- 'direct', 'x402'
-  settlement_chain_context VARCHAR(64) NOT NULL, -- normalized CAIP-2 chain id
-  settlement_address TEXT,                   -- PDA or contract
+  payment_protocol VARCHAR(32) NOT NULL,
+  settlement_chain_context VARCHAR(64) NOT NULL,
+  settlement_address TEXT,
   tx_hash TEXT,
   mint TEXT,
   amount NUMERIC(78,0) NOT NULL,
-  verification_status VARCHAR(16) NOT NULL,  -- 'pending', 'valid', 'invalid'
-  settlement_status VARCHAR(24) NOT NULL,    -- 'pending', 'complete', 'partial_failure', 'failed'
-  resource_id TEXT NOT NULL,                 -- canonical skill/resource binding
+  verification_status VARCHAR(16) NOT NULL,
+  settlement_status VARCHAR(24) NOT NULL,
+  resource_id TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   verified_at TIMESTAMPTZ
 );
 ```
 
-This gives you one purchase model whether the user paid:
-- directly on Solana
-- via x402 + Solana settlement
-- via x402 + Base settlement later
+This phase is justified only when AgentVouch truly supports:
 
-## How I’d Use ERC-8004
+- more than one settlement chain
+- more than one purchase verification path
+- more than one entitlement source
 
-Use it for:
-- canonical agent identity
-- foreign agent imports
-- cross-chain profile resolution
-- upstream `registrations[]` references as cross-chain identity hints
-- future reputation attestations
+Until then, the current Solana purchase proof and `Purchase` PDA remain the source of truth.
 
-Do not use it for:
-- skill IDs
-- purchase IDs
-- dispute IDs
-- payout IDs
-- immediate replacement of `AgentProfile`
-- collapsing owner wallet, operational wallet, and local PDA into one field
+### Phase 4: Add Non-Solana Settlement Adapters
 
-Those should stay internal and chain-aware.
+Only after a concrete Base or EVM purchase path exists should AgentVouch add:
 
-## Migration Path
+- non-Solana x402 settlement adapters
+- non-Solana entitlement verification
+- chain-specific settlement address handling
+- cross-chain purchase reconciliation
 
-1. Add `agents` and `agent_identity_bindings`.
-2. Backfill every existing `author_pubkey` into:
-   - one `agents` row
-   - one `wallet_owner` binding on the correct CAIP-2 Solana network
-   - one `agent_profile_pda` binding if the profile exists
-3. Add `skills.author_agent_id`.
-4. Start resolving author pages and trust lookups through `author_agent_id`, not raw pubkey.
-5. Add optional Solana 8004 linking:
-   - `solana_8004_asset`
-   - owner wallet
-   - operational wallet
-6. Ingest `registrations[]` references from linked 8004 registration files as candidate foreign bindings, but require verification before trust.
-7. Add `purchase_records` before Base support.
-8. Only then add Base settlement adapters and foreign agent imports.
+This should be shipped only when the user-facing flow is complete end to end:
+
+1. payment requirement generation
+2. settlement execution
+3. proof verification
+4. entitlement unlock
+5. support in docs, API responses, and CLI flows
 
 ## Opinionated Call
 
 The clean model is:
+
 - `ERC-8004` / Solana Agent Registry = who the agent is
 - `AgentVouch` = how trust, stake, dispute, and payouts are computed
 - `x402` = how payment is negotiated over HTTP
-- `purchase_records` + `chain_context` = how multichain settlement is tracked
+- `chain_context` = the normalization layer that keeps identities and future settlement legible across chains
 
-If you want, I can turn this into an actual Postgres migration draft and API shape next.
+The correct next move is not to expand speculative multichain schema first. The correct next move is to finish adopting the identity layer that already exists, starting with `skills.author_agent_id`, and only then add foreign-agent or multichain settlement tables when the product actually needs them.

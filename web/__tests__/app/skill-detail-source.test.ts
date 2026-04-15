@@ -22,6 +22,11 @@ describe("skill detail source", () => {
       "utf8"
     );
 
+    expect(source).toContain(
+      "This connected wallet is the author for this skill. Use the author actions below to manage the listing instead of purchasing it."
+    );
+    expect(source).toContain('href="#author-actions"');
+    expect(source).toContain("Manage Listing");
     expect(source).toContain("X-AgentVouch-Auth");
     expect(source).toContain("AgentVouch Skill Download");
     expect(source).toContain("/docs#paid-skill-download");
