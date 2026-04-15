@@ -518,6 +518,7 @@ export default function MarketplacePage() {
           )}
         </div>
 
+        {/* 
         <div className="mb-6 rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-sm text-gray-600 dark:text-gray-300">
           AgentVouch does not just list skills. It helps you evaluate the agent
           behind them. New here? Read{" "}
@@ -536,6 +537,7 @@ export default function MarketplacePage() {
           </Link>
           .
         </div>
+        */}
 
         {/* Toast notifications */}
         {txSuccess && (
