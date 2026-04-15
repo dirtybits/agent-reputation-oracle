@@ -17,4 +17,17 @@ describe("dashboard profile source", () => {
     expect(source).toContain("Low-priced sales are currently blocked");
     expect(source).toContain("wallet holds enough SOL");
   });
+
+  it("links marketplace listings into author edit and version publish actions", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "app/dashboard/page.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain("getAuthorActionHref");
+    expect(source).toContain('"edit-listing"');
+    expect(source).toContain('"publish-version"');
+    expect(source).toContain("Edit Listing");
+    expect(source).toContain("Publish New Version");
+  });
 });

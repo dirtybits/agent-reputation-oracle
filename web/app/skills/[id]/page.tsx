@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, use, useCallback } from "react";
+import { useState, useEffect, use, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AgentIdentityPanel } from "@/components/AgentIdentityPanel";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { SolAmount } from "@/components/SolAmount";
-import { buildDownloadRawMessage } from "@/lib/auth";
+import { buildDownloadRawMessage, buildSignMessage } from "@/lib/auth";
 import { encodeBase64 } from "@/lib/base64";
 import {
   buildPaidSkillDownloadRequiredMessage,
@@ -116,6 +117,13 @@ function isBlockingPurchaseStatus(
   );
 }
 
+function buildCanonicalSkillUri(skillId: string): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  return `${window.location.origin}/api/skills/${skillId}/raw`;
+}
+
 function stripMarkdown(value: string): string {
   return value
     .replace(/^[-*+]\s+/, "")
@@ -186,6 +194,7 @@ export default function SkillDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
   const { wallet, status } = useWalletConnection();
   const connected = status === "connected" && !!wallet;
   const walletAddress = wallet?.account.address ?? null;
@@ -229,11 +238,21 @@ export default function SkillDetailPage({
     success: boolean;
     message: string;
   } | null>(null);
+  const [versionDraft, setVersionDraft] = useState("");
+  const [versionChangelog, setVersionChangelog] = useState("");
+  const [versionComposerOpen, setVersionComposerOpen] = useState(false);
+  const [publishingVersion, setPublishingVersion] = useState(false);
+  const [versionResult, setVersionResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+  const handledAuthorActionRef = useRef<string | null>(null);
   const capabilitySummary = extractCapabilitySummary(
     content,
     skill?.description ?? null
   );
   const capabilityBullets = extractCapabilityBullets(content);
+  const requestedAuthorAction = searchParams.get("authorAction");
 
   const refreshSkill = useCallback(async () => {
     try {
@@ -547,8 +566,12 @@ export default function SkillDetailPage({
     }
   };
 
-  const startEditing = () => {
+  const startEditing = useCallback(() => {
     if (!skill) return;
+    const canonicalUri =
+      skill.source !== "chain"
+        ? buildCanonicalSkillUri(skill.id)
+        : skill.skill_uri ?? "";
     setEditName(skill.name);
     setEditDescription(skill.description ?? "");
     setEditPrice(
@@ -556,16 +579,25 @@ export default function SkillDetailPage({
         ? fromLamports(skill.price_lamports).toString()
         : String(PRICING.SOL.defaultPrice)
     );
-    setEditUri(skill.skill_uri ?? "");
+    setEditUri(canonicalUri);
     setUpdateResult(null);
     setEditing(true);
-  };
+  }, [skill]);
+
+  const openVersionComposer = useCallback(() => {
+    setVersionDraft(content ?? "");
+    setVersionChangelog("");
+    setVersionResult(null);
+    setVersionComposerOpen(true);
+  }, [content]);
 
   const handleUpdateListing = async () => {
     if (!connected || !walletAddress || !skill) return;
     setUpdating(true);
     setUpdateResult(null);
     try {
+      const nextSkillUri =
+        skill.source !== "chain" ? buildCanonicalSkillUri(skill.id) : editUri;
       const priceLamports = toLamports(parseFloat(editPrice || "0"));
       if (!isValidListingPriceLamports(priceLamports)) {
         setUpdateResult({
@@ -577,7 +609,7 @@ export default function SkillDetailPage({
       }
       await oracle.updateSkillListing(
         skill.skill_id,
-        editUri,
+        nextSkillUri,
         editName,
         editDescription,
         priceLamports
@@ -590,7 +622,7 @@ export default function SkillDetailPage({
               name: editName,
               description: editDescription,
               price_lamports: priceLamports,
-              skill_uri: editUri,
+              skill_uri: nextSkillUri,
             }
           : s
       );
@@ -606,7 +638,98 @@ export default function SkillDetailPage({
     }
   };
 
+  const handlePublishVersion = async () => {
+    if (!skill || skill.source === "chain") return;
+    if (!connected || !walletAddress || !signMessage) {
+      setVersionResult({
+        success: false,
+        message: "Connect your wallet to publish a new version.",
+      });
+      return;
+    }
+    if (!versionDraft.trim()) {
+      setVersionResult({
+        success: false,
+        message: "Updated skill content is required.",
+      });
+      return;
+    }
+
+    setPublishingVersion(true);
+    setVersionResult(null);
+    try {
+      const timestamp = Date.now();
+      const message = buildSignMessage("publish-skill", timestamp);
+      const signatureBytes = await signMessage(new TextEncoder().encode(message));
+      const signature = encodeBase64(signatureBytes);
+      const response = await fetch(`/api/skills/${skill.id}/versions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auth: { pubkey: walletAddress, signature, message, timestamp },
+          content: versionDraft,
+          changelog: versionChangelog.trim() || undefined,
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to publish new version");
+      }
+
+      await refreshSkill();
+      setContent(versionDraft);
+      setVersionResult({
+        success: true,
+        message: `Published version v${data?.version ?? "new"}.`,
+      });
+      setVersionComposerOpen(false);
+    } catch (error: unknown) {
+      setVersionResult({
+        success: false,
+        message: getErrorMessage(error, "Failed to publish new version"),
+      });
+    } finally {
+      setPublishingVersion(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!skill || !walletAddress || walletAddress !== skill.author_pubkey) {
+      handledAuthorActionRef.current = null;
+      return;
+    }
+    if (
+      !requestedAuthorAction ||
+      requestedAuthorAction === handledAuthorActionRef.current
+    ) {
+      return;
+    }
+
+    if (requestedAuthorAction === "edit-listing" && skill.on_chain_address) {
+      startEditing();
+      handledAuthorActionRef.current = requestedAuthorAction;
+      return;
+    }
+
+    if (
+      requestedAuthorAction === "publish-version" &&
+      skill.source !== "chain" &&
+      content !== null
+    ) {
+      openVersionComposer();
+      handledAuthorActionRef.current = requestedAuthorAction;
+    }
+  }, [
+    content,
+    openVersionComposer,
+    requestedAuthorAction,
+    skill,
+    startEditing,
+    walletAddress,
+  ]);
+
   const isChainOnly = skill?.source === "chain";
+  const isAuthor = !!skill && !!walletAddress && walletAddress === skill.author_pubkey;
   const CANONICAL_ORIGIN =
     process.env.NEXT_PUBLIC_APP_URL ?? "https://agentvouch.xyz";
   const paidSkillDocsHref = "/docs#paid-skill-download";
@@ -1343,33 +1466,43 @@ export default function SkillDetailPage({
 
         {/* On-chain listing section */}
         {skill.on_chain_address ? (
-          <div className="rounded-sm border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-4 mb-6">
+          <div
+            id="author-actions"
+            className="rounded-sm border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-4 mb-6"
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
                 <FiCheckCircle className="w-4 h-4" />
                 Listed on-chain
               </div>
-              {connected &&
-                walletAddress === skill.author_pubkey &&
-                !editing && (
-                  <div className="flex items-center gap-2">
+              {isAuthor && !editing && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={startEditing}
+                    className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
+                  >
+                    <FiEdit2 className="w-3.5 h-3.5" />
+                    Edit Listing
+                  </button>
+                  {!isChainOnly && (
                     <button
-                      onClick={startEditing}
+                      onClick={openVersionComposer}
                       className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
                     >
-                      <FiEdit2 className="w-3.5 h-3.5" />
-                      Edit Listing
+                      <FiGitCommit className="w-3.5 h-3.5" />
+                      Publish New Version
                     </button>
-                    <button
-                      onClick={handleRemoveListing}
-                      disabled={removing}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/60 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                    >
-                      <FiTrash2 className="w-3.5 h-3.5" />
-                      {removing ? "Removing…" : "Remove"}
-                    </button>
-                  </div>
-                )}
+                  )}
+                  <button
+                    onClick={handleRemoveListing}
+                    disabled={removing}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/60 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                  >
+                    <FiTrash2 className="w-3.5 h-3.5" />
+                    {removing ? "Removing…" : "Remove"}
+                  </button>
+                </div>
+              )}
             </div>
             {updateResult && !editing && (
               <p
@@ -1437,12 +1570,27 @@ export default function SkillDetailPage({
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                       Skill URI
                     </label>
-                    <input
-                      type="text"
-                      value={editUri}
-                      onChange={(e) => setEditUri(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
-                    />
+                    {isChainOnly ? (
+                      <input
+                        type="text"
+                        value={editUri}
+                        onChange={(e) => setEditUri(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                      />
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={editUri}
+                          readOnly
+                          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm text-sm text-gray-500 dark:text-gray-400"
+                        />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Repo-backed listings stay pinned to the canonical raw
+                          endpoint.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
                 {updateResult && (
@@ -1552,6 +1700,32 @@ export default function SkillDetailPage({
           )
         )}
 
+        {isAuthor && !isChainOnly && !skill.on_chain_address && (
+          <div
+            id="author-actions"
+            className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Author Actions
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Publish a new repo version without changing the on-chain listing
+                  metadata.
+                </p>
+              </div>
+              <button
+                onClick={openVersionComposer}
+                className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
+              >
+                <FiGitCommit className="w-3.5 h-3.5" />
+                Publish New Version
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Skill URI */}
         {skill.skill_uri && (
           <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 mb-6">
@@ -1598,49 +1772,146 @@ export default function SkillDetailPage({
         )}
 
         {/* Version History */}
-        {skill.versions?.length > 0 && (
+        {(skill.versions?.length > 0 || (isAuthor && !isChainOnly)) && (
           <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
-              <FiGitCommit className="w-4 h-4 text-gray-400" />
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Version History
-              </span>
-            </div>
-            <div className="space-y-3">
-              {skill.versions.map((ver) => (
-                <div
-                  key={ver.id}
-                  className="flex items-start justify-between p-3 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+            <div className="flex items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <FiGitCommit className="w-4 h-4 text-gray-400" />
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Version History
+                </span>
+              </div>
+              {isAuthor && !isChainOnly && !versionComposerOpen && (
+                <button
+                  onClick={openVersionComposer}
+                  className={`${navButtonSecondaryInlineClass} gap-1.5 font-medium`}
                 >
+                  <FiGitCommit className="w-3.5 h-3.5" />
+                  Publish New Version
+                </button>
+              )}
+            </div>
+            {isAuthor && !isChainOnly && versionComposerOpen && (
+              <div className="mb-4 p-4 rounded-sm border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)]">
+                <div className="flex items-center justify-between gap-4 mb-3">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gray-900 dark:text-white">
-                        v{ver.version}
-                      </span>
-                      {ver.version === skill.current_version && (
-                        <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs">
-                          latest
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Publish New Version
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      This publishes updated repo-backed skill content and
+                      changelog only. Listing edits stay on the on-chain path.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setVersionComposerOpen(false)}
+                    disabled={publishingVersion}
+                    className={`${navButtonSizeClass} text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      Updated SKILL.md content
+                    </label>
+                    <textarea
+                      value={versionDraft}
+                      onChange={(e) => setVersionDraft(e.target.value)}
+                      rows={14}
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      Changelog
+                    </label>
+                    <input
+                      type="text"
+                      value={versionChangelog}
+                      onChange={(e) => setVersionChangelog(e.target.value)}
+                      placeholder="Summarize what changed in this version"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                    />
+                  </div>
+                  {versionResult && (
+                    <p
+                      className={`text-xs ${
+                        versionResult.success
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {versionResult.message}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePublishVersion}
+                      disabled={publishingVersion}
+                      className={navButtonPrimaryInlineClass}
+                    >
+                      {publishingVersion ? (
+                        <>
+                          <FiLoader className="w-4 h-4 animate-spin" />
+                          Publishing…
+                        </>
+                      ) : (
+                        <>
+                          <FiGitCommit className="w-4 h-4" />
+                          Publish New Version
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {skill.versions?.length > 0 ? (
+              <div className="space-y-3">
+                {skill.versions.map((ver) => (
+                  <div
+                    key={ver.id}
+                    className="flex items-start justify-between p-3 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          v{ver.version}
+                        </span>
+                        {ver.version === skill.current_version && (
+                          <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs">
+                            latest
+                          </span>
+                        )}
+                      </div>
+                      {ver.changelog && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {ver.changelog}
+                        </p>
+                      )}
+                      {ver.ipfs_cid && (
+                        <span className="text-xs font-mono text-gray-400 dark:text-gray-500 mt-1 block">
+                          CID: {ver.ipfs_cid.slice(0, 16)}...
                         </span>
                       )}
                     </div>
-                    {ver.changelog && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {ver.changelog}
-                      </p>
-                    )}
-                    {ver.ipfs_cid && (
-                      <span className="text-xs font-mono text-gray-400 dark:text-gray-500 mt-1 block">
-                        CID: {ver.ipfs_cid.slice(0, 16)}...
-                      </span>
-                    )}
+                    <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                      <FiClock className="w-3 h-3" />
+                      {formatDate(ver.created_at)}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                    <FiClock className="w-3 h-3" />
-                    {formatDate(ver.created_at)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              isAuthor &&
+              !isChainOnly && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Publish the first repo-backed version update for this skill.
+                </p>
+              )
+            )}
           </div>
         )}
       </div>

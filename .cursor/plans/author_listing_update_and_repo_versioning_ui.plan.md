@@ -4,16 +4,16 @@ overview: Add author-facing UI entry points on `/skills` and `/dashboard` for on
 todos:
   - id: ui-scope-author-surfaces
     content: Add author update entry points on `/skills` and `/dashboard` and keep them aligned with the existing detail-page flow
-    status: pending
+    status: completed
   - id: ui-refactor-listing-editor
     content: Reuse or extract the existing on-chain listing editor from the skill detail page and lock repo-backed `skillUri` to the canonical raw endpoint
-    status: pending
+    status: completed
   - id: ui-repo-version-publish
     content: Add a browser `Publish New Version` flow for repo-backed skills using the existing signed versions API
-    status: pending
+    status: completed
   - id: ui-tests-and-verification
     content: Add source/API regression coverage for the new author flows and verify with focused tests plus `npm run build`
-    status: pending
+    status: completed
 isProject: false
 ---
 

@@ -34,6 +34,8 @@ import {
   FiCheckCircle,
   FiClock,
   FiDownload,
+  FiEdit2,
+  FiGitCommit,
   FiLoader,
   FiPackage,
   FiPlus,
@@ -135,6 +137,13 @@ function isBlockingPurchaseStatus(
 function getCapabilityFallback(tags: string[]): string | null {
   if (!tags.length) return null;
   return `Capabilities: ${tags.slice(0, 3).join(", ")}`;
+}
+
+function getAuthorActionHref(
+  detailId: string,
+  action: "edit-listing" | "publish-version"
+): string {
+  return `/skills/${detailId}?authorAction=${action}#author-actions`;
 }
 
 export default function MarketplacePage() {
@@ -959,6 +968,9 @@ export default function MarketplacePage() {
                   const listingDetail = myListingDetails.get(
                     String(listing.publicKey)
                   );
+                  const detailId =
+                    listingDetail?.id ?? `chain-${String(listing.publicKey)}`;
+                  const canPublishVersion = !!listingDetail && detailId.indexOf("chain-") !== 0;
                   const price = Number(listing.account.priceLamports);
                   const downloads = Number(listing.account.totalDownloads);
                   const revenue = Number(listing.account.totalRevenue);
@@ -1021,6 +1033,24 @@ export default function MarketplacePage() {
                             {formatSol(authorEarnings)} your share)
                           </span>
                         </span>
+                      </div>
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <Link
+                          href={getAuthorActionHref(detailId, "edit-listing")}
+                          className={navButtonInlineClass}
+                        >
+                          <FiEdit2 className="w-3.5 h-3.5" />
+                          Edit Listing
+                        </Link>
+                        {canPublishVersion && (
+                          <Link
+                            href={getAuthorActionHref(detailId, "publish-version")}
+                            className={navButtonInlineClass}
+                          >
+                            <FiGitCommit className="w-3.5 h-3.5" />
+                            Publish New Version
+                          </Link>
+                        )}
                       </div>
                     </div>
                   );

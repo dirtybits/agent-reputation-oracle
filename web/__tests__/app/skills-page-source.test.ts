@@ -34,4 +34,17 @@ describe("skills page source", () => {
       /will fail until this payout wallet\s+holds enough SOL/
     );
   });
+
+  it("links author listing cards into edit and repo version actions", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "app/skills/page.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain("getAuthorActionHref");
+    expect(source).toContain('"edit-listing"');
+    expect(source).toContain('"publish-version"');
+    expect(source).toContain("Edit Listing");
+    expect(source).toContain("Publish New Version");
+  });
 });

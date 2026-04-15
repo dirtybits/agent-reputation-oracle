@@ -22,7 +22,9 @@ import {
   FiAlertTriangle,
   FiCalendar,
   FiDollarSign,
+  FiEdit2,
   FiExternalLink,
+  FiGitCommit,
   FiSearch,
   FiShield,
   FiUser,
@@ -70,6 +72,13 @@ type OracleAuthorDisputeRow = Awaited<
 
 function getSolanaFmTxUrl(tx: string): string {
   return getConfiguredSolanaFmTxUrl(tx);
+}
+
+function getAuthorActionHref(
+  detailId: string,
+  action: "edit-listing" | "publish-version"
+): string {
+  return `/skills/${detailId}?authorAction=${action}#author-actions`;
 }
 
 export default function DashboardPage() {
@@ -921,6 +930,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-3">
                     {marketplaceListings.map((listing) => {
+                      const canPublishVersion = !listing.id.startsWith("chain-");
                       const sellerRentBlocked =
                         listing.purchasePreflightStatus ===
                         "authorPayoutRentBlocked";
@@ -987,12 +997,36 @@ export default function DashboardPage() {
                                 </span>
                               </div>
                             </div>
-                            <Link
-                              href={`/skills/${listing.id}`}
-                              className={navButtonSecondaryInlineClass}
-                            >
-                              View
-                            </Link>
+                            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              <Link
+                                href={getAuthorActionHref(
+                                  listing.id,
+                                  "edit-listing"
+                                )}
+                                className={navButtonSecondaryInlineClass}
+                              >
+                                <FiEdit2 className="w-3.5 h-3.5" />
+                                Edit Listing
+                              </Link>
+                              {canPublishVersion && (
+                                <Link
+                                  href={getAuthorActionHref(
+                                    listing.id,
+                                    "publish-version"
+                                  )}
+                                  className={navButtonSecondaryInlineClass}
+                                >
+                                  <FiGitCommit className="w-3.5 h-3.5" />
+                                  Publish New Version
+                                </Link>
+                              )}
+                              <Link
+                                href={`/skills/${listing.id}`}
+                                className={navButtonSecondaryInlineClass}
+                              >
+                                View
+                              </Link>
+                            </div>
                           </div>
                         </div>
                       );

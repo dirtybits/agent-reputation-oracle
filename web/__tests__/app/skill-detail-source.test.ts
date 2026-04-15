@@ -34,4 +34,18 @@ describe("skill detail source", () => {
     expect(source).toContain("buildSignedDownloadErrorMessage");
     expect(source).not.toContain("Buy & Install");
   });
+
+  it("keeps repo-backed listing edits and repo version publishing as separate author actions", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "app/skills/[id]/page.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain("Repo-backed listings stay pinned to the canonical raw");
+    expect(source).toContain("endpoint.");
+    expect(source).toContain("Publish New Version");
+    expect(source).toContain("buildSignMessage");
+    expect(source).toContain('requestedAuthorAction === "publish-version"');
+    expect(source).toContain("Listing edits stay on the on-chain path.");
+  });
 });
