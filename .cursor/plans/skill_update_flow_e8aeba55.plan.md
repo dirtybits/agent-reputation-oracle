@@ -95,3 +95,12 @@ flowchart TD
 - Run `npm run build` before considering the work done.
 - Skip `anchor build` unless the implementation expands into actual Anchor instruction changes; the current consumer-first plan should not require program edits.
 
+## Deferred Protocol Follow-up
+
+- Do not add an on-chain skill `version` field in this iteration.
+- For repo-backed skills, keep the on-chain `skillUri` canonical and derived from `[web/app/api/skills/[id]/raw/route.ts](web/app/api/skills/[id]/raw/route.ts)` rather than author-editable in the UI.
+- Split the author UX into two explicit actions:
+  - `Update Listing`: on-chain metadata changes through `update_skill_listing` (`name`, `description`, `price`, and canonical URI handling).
+  - `Publish New Version`: repo-backed content/changelog updates through `[web/app/api/skills/[id]/versions/route.ts](web/app/api/skills/[id]/versions/route.ts)`.
+- Revisit on-chain provenance only when dispute-grade version tracking is needed. If that happens, prefer a larger protocol change built around `revision + content_hash`, with the purchased revision or hash snapshotted on `Purchase`, rather than adding a bare `version` field to `SkillListing`.
+

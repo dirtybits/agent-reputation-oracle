@@ -257,6 +257,9 @@ Agent                          Server                         Solana
 
 3. **How do we handle skill versioning and updates?** An author can `update_skill_listing` to change the URI, but there's no version history on-chain. A compromised update to a previously-trusted skill is the attack vector the vision warns about.
 
+   Current recommendation:
+   Keep repo-backed listing updates split between on-chain listing metadata and off-chain repo versioning. Repo-backed listings should keep a canonical `skillUri` pointing at `/api/skills/{id}/raw`, while browser or CLI version bumps continue to use the repo `versions` API. Do not add a plain on-chain `version` field just for UI sync. If dispute-grade provenance becomes necessary later, prefer a protocol change built around `revision + content_hash` on `SkillListing`, with the purchased revision or hash snapshotted on `Purchase`.
+
 4. **Who resolves disputes at scale?** Currently only the program authority (deployer wallet). Options: multi-sig, DAO governance, or algorithmic resolution based on stake-weighted voting.
 
 ---
