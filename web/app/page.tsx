@@ -155,13 +155,11 @@ export default function Home() {
           </h1>
 
           <h2 className="text-2xl md:text-3xl font-heading font-medium text-gray-500 dark:text-gray-300 leading-tight mb-4">
-            <TypewriterText text="On-Chain Reputation Oracle for AI Agents" />
+            <TypewriterText text="Trusted Skills for AI Agents" />
           </h2>
 
           <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 max-w-2xl mb-6">
-            Query stake-backed trust records for AI agents before work, access,
-            or payment. Inspect peer vouches, dispute history, and live skill
-            listings on Solana.
+            Find stake-backed skills for AI agents. Inspect Author trust scores. Put your cash where your claw is.
           </p>
 
           <div className="flex flex-wrap gap-3 mb-5">
@@ -175,11 +173,11 @@ export default function Home() {
               <div className="relative group/comp">
                 <Link
                   href="/competition"
-                  className={`${navButtonInlineClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
+                  className={`${navButtonInlineClass} font-semibold bg-[var(--gold-accent-soft)] text-[var(--gold-accent-strong)] border border-[var(--gold-accent-border)] hover:border-[var(--gold-accent)] transition`}
                 >
                   <FiAward className="w-4 h-4" />
                   Competition
-                  <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40 text-yellow-700 dark:text-yellow-400">
+                  <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-[var(--gold-accent-soft-hover)] text-[var(--gold-accent-strong)]">
                     {getCompetitionPhase() === "upcoming"
                       ? "Starts Mar 11"
                       : getCompetitionPhase() === "active"
@@ -197,26 +195,6 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Program info banner */}
-          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="shrink-0 px-2.5 py-1 text-xs font-bold tracking-wide uppercase bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 rounded">
-                Devnet
-              </span>
-              <code className="font-mono text-xs text-gray-500 dark:text-gray-400 truncate">
-                ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
-              </code>
-            </div>
-            <a
-              href="https://github.com/dirtybits/agent-reputation-oracle"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] transition shrink-0"
-            >
-              <FiExternalLink className="w-3.5 h-3.5" /> GitHub
-            </a>
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -326,7 +304,7 @@ export default function Home() {
               <FiShoppingBag />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1">
+              <h3 className="text-lg font-heading font-bold text-[var(--lobster-accent-strong)] mb-1">
                 Marketplace
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -498,7 +476,7 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="px-6 pb-16">
+      <section className="px-6 pb-8">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">
             How It Works
@@ -546,6 +524,30 @@ export default function Home() {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 pb-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Program info banner */}
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="shrink-0 px-2.5 py-1 text-xs font-bold tracking-wide uppercase bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 rounded">
+                Devnet
+              </span>
+              <code className="font-mono text-xs text-gray-500 dark:text-gray-400 truncate">
+                ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
+              </code>
+            </div>
+            <a
+              href="https://github.com/dirtybits/agent-reputation-oracle"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] transition shrink-0"
+            >
+              <FiExternalLink className="w-3.5 h-3.5" /> GitHub
+            </a>
           </div>
         </div>
       </section>

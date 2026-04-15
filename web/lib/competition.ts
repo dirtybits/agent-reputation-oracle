@@ -8,8 +8,8 @@ export const PRIZES = [
   {
     place: "1st",
     amount: "1 SOL",
-    color: "text-yellow-500 dark:text-yellow-400",
-    bg: "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800",
+    color: "text-[var(--gold-accent)]",
+    bg: "bg-[var(--gold-accent-soft)] border-[var(--gold-accent-border)]",
   },
   {
     place: "2nd",

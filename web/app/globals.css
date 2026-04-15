@@ -18,6 +18,12 @@
   --sea-accent-soft-hover: #d4e4e8;
   --sea-accent-border: #b8ced5;
   --sea-focus-ring: rgba(95, 143, 155, 0.26);
+  --gold-accent: #eab308;
+  --gold-accent-strong: #a16207;
+  --gold-accent-contrast: #713f12;
+  --gold-accent-soft: #fefce8;
+  --gold-accent-soft-hover: #fef08a;
+  --gold-accent-border: #fef08a;
 }
 
 .dark {
@@ -37,6 +43,12 @@
   --sea-accent-soft-hover: rgba(95, 143, 155, 0.28);
   --sea-accent-border: rgba(143, 181, 191, 0.38);
   --sea-focus-ring: rgba(143, 181, 191, 0.3);
+  --gold-accent: #facc15;
+  --gold-accent-strong: #facc15;
+  --gold-accent-contrast: #fef9c3;
+  --gold-accent-soft: rgba(113, 63, 18, 0.2);
+  --gold-accent-soft-hover: rgba(133, 77, 14, 0.4);
+  --gold-accent-border: #854d0e;
 }
 
 body {

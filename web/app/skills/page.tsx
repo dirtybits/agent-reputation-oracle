@@ -502,11 +502,11 @@ export default function MarketplacePage() {
             <div className="flex shrink-0 items-center gap-3 self-start whitespace-nowrap">
               <Link
                 href="/competition"
-                className={`${navButtonFlexClass} font-semibold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700 transition`}
+                className={`${navButtonFlexClass} font-semibold bg-[var(--gold-accent-soft)] text-[var(--gold-accent-strong)] border border-[var(--gold-accent-border)] hover:border-[var(--gold-accent)] transition`}
               >
                 <FiAward className="w-4 h-4" />
                 <span className="hidden sm:inline">Competition</span>
-                <span className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-yellow-200 dark:bg-yellow-800/40">
+                <span className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[var(--gold-accent-soft-hover)] text-[var(--gold-accent-strong)]">
                   {getCompetitionPhase() === "upcoming"
                     ? "Mar 11"
                     : getCompetitionPhase() === "active"
