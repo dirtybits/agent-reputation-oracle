@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { Command } from "commander";
 import cliPackage from "../package.json";
 import { resolveBaseUrl, resolveRpcUrl } from "./lib/config.js";
@@ -11,6 +9,8 @@ import {
 import {
   formatAgentTrust,
   formatAuthorList,
+  formatCreateVouchResult,
+  formatRegisterAgentResult,
   formatSkillList,
   formatSkillSummary,
 } from "./lib/format.js";
@@ -21,9 +21,9 @@ import { loadKeypair } from "./lib/signer.js";
 import { AgentVouchSolanaClient } from "./lib/solana.js";
 import { updateSkill } from "./lib/update.js";
 
-const MIN_SKILL_PRICE_LAMPORTS = 1_000_000;
+export const MIN_SKILL_PRICE_LAMPORTS = 1_000_000;
 
-function parseLamports(value: string): number {
+export function parseLamports(value: string): number {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || !Number.isSafeInteger(parsed) || parsed < 0) {
     throw new Error("Expected a non-negative integer lamport amount.");
@@ -36,7 +36,7 @@ function parseLamports(value: string): number {
   return parsed;
 }
 
-function parseAmountSol(value: string): number {
+export function parseAmountSol(value: string): number {
   const parsed = Number.parseFloat(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     throw new Error("Expected a positive SOL amount.");
@@ -44,7 +44,7 @@ function parseAmountSol(value: string): number {
   return parsed;
 }
 
-function parsePage(value: string): number {
+export function parsePage(value: string): number {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
     throw new Error("Expected a positive page number.");
@@ -64,7 +64,129 @@ function addRpcUrlOption(command: Command): Command {
   return command.option("--rpc-url <url>", "Solana RPC URL", resolveRpcUrl());
 }
 
-const program = new Command()
+function getDeprecatedAliasNotice(
+  groupName: "agent" | "author",
+  preferredCommand: string
+) {
+  return groupName === "author"
+    ? `\nDeprecated alias: use \`${preferredCommand}\`.\n`
+    : "\n";
+}
+
+function registerAgentListCommand(
+  group: Command,
+  groupName: "agent" | "author"
+) {
+  addBaseUrlOption(
+    group
+      .command("list")
+      .option(
+        "--trusted",
+        "Only return authors whose recommended action is allow"
+      )
+      .option("--json", "Print structured JSON output")
+      .addHelpText(
+        "after",
+        `${getDeprecatedAliasNotice(
+          groupName,
+          "agent list"
+        )}Examples:\n  agentvouch ${groupName} list\n  agentvouch ${groupName} list --trusted\n  agentvouch ${groupName} list --json`
+      )
+      .action(
+        async (options: {
+          trusted?: boolean;
+          baseUrl: string;
+          json?: boolean;
+        }) => {
+          await runCommand(
+            options,
+            async () =>
+              new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listAuthors(
+                {
+                  trusted: options.trusted,
+                } satisfies ListAuthorsOptions
+              ),
+            formatAuthorList
+          );
+        }
+      )
+  );
+}
+
+function registerAgentRegisterCommand(
+  group: Command,
+  groupName: "agent" | "author"
+) {
+  addRpcUrlOption(
+    group
+      .command("register")
+      .requiredOption("--keypair <file>", "Solana keypair JSON file")
+      .option("--metadata-uri <uri>", "Metadata URI for the agent profile", "")
+      .option("--json", "Print structured JSON output")
+      .addHelpText(
+        "after",
+        `${getDeprecatedAliasNotice(
+          groupName,
+          "agent register"
+        )}Examples:\n  agentvouch ${groupName} register --keypair ~/.config/solana/id.json --metadata-uri https://example.com/agent.json`
+      )
+      .action(
+        async (options: {
+          keypair: string;
+          metadataUri: string;
+          rpcUrl: string;
+          json?: boolean;
+        }) => {
+          await runCommand(
+            options,
+            async () => {
+              const keypair = loadKeypair(options.keypair);
+              const solana = new AgentVouchSolanaClient(
+                keypair,
+                resolveRpcUrl(options.rpcUrl)
+              );
+              return solana.registerAgent(options.metadataUri);
+            },
+            formatRegisterAgentResult
+          );
+        }
+      )
+  );
+}
+
+function registerAgentTrustCommand(
+  group: Command,
+  groupName: "agent" | "author"
+) {
+  addBaseUrlOption(
+    group
+      .command("trust")
+      .argument("<pubkey>", "Agent wallet pubkey")
+      .option("--json", "Print structured JSON output")
+      .addHelpText(
+        "after",
+        `${getDeprecatedAliasNotice(
+          groupName,
+          "agent trust"
+        )}Examples:\n  agentvouch ${groupName} trust asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw\n  agentvouch ${groupName} trust asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --json`
+      )
+      .action(
+        async (pubkey: string, options: { baseUrl: string; json?: boolean }) => {
+          await runCommand(
+            options,
+            async () =>
+              new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).getAgentTrust(
+                pubkey
+              ),
+            formatAgentTrust
+          );
+        }
+      )
+  );
+}
+
+export function buildProgram(): Command {
+  const program = new Command()
   .name("agentvouch")
   .description("Headless CLI for AgentVouch skill install and publish flows.")
   .version(cliPackage.version);
@@ -407,131 +529,6 @@ addBaseUrlOption(
     )
 );
 
-function getDeprecatedAliasNotice(
-  groupName: "agent" | "author",
-  preferredCommand: string
-) {
-  return groupName === "author"
-    ? `\nDeprecated alias: use \`${preferredCommand}\`.\n`
-    : "\n";
-}
-
-function registerAgentListCommand(
-  group: Command,
-  groupName: "agent" | "author"
-) {
-  addBaseUrlOption(
-    group
-      .command("list")
-      .option(
-        "--trusted",
-        "Only return authors whose recommended action is allow"
-      )
-      .option("--json", "Print structured JSON output")
-      .addHelpText(
-        "after",
-        `${getDeprecatedAliasNotice(
-          groupName,
-          "agent list"
-        )}Examples:\n  agentvouch ${groupName} list\n  agentvouch ${groupName} list --trusted\n  agentvouch ${groupName} list --json`
-      )
-      .action(
-        async (options: {
-          trusted?: boolean;
-          baseUrl: string;
-          json?: boolean;
-        }) => {
-          await runCommand(
-            options,
-            async () =>
-              new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).listAuthors(
-                {
-                  trusted: options.trusted,
-                } satisfies ListAuthorsOptions
-              ),
-            formatAuthorList
-          );
-        }
-      )
-  );
-}
-
-function registerAgentRegisterCommand(
-  group: Command,
-  groupName: "agent" | "author"
-) {
-  addRpcUrlOption(
-    group
-      .command("register")
-      .requiredOption("--keypair <file>", "Solana keypair JSON file")
-      .option("--metadata-uri <uri>", "Metadata URI for the agent profile", "")
-      .option("--json", "Print structured JSON output")
-      .addHelpText(
-        "after",
-        `${getDeprecatedAliasNotice(
-          groupName,
-          "agent register"
-        )}Examples:\n  agentvouch ${groupName} register --keypair ~/.config/solana/id.json --metadata-uri https://example.com/agent.json`
-      )
-      .action(
-        async (options: {
-          keypair: string;
-          metadataUri: string;
-          rpcUrl: string;
-          json?: boolean;
-        }) => {
-          await runCommand(
-            options,
-            async () => {
-              const keypair = loadKeypair(options.keypair);
-              const solana = new AgentVouchSolanaClient(
-                keypair,
-                resolveRpcUrl(options.rpcUrl)
-              );
-              return solana.registerAgent(options.metadataUri);
-            },
-            (result) => [
-              `agent: ${result.agentProfile}`,
-              `already_registered: ${result.alreadyRegistered ? "yes" : "no"}`,
-              ...(result.tx ? [`tx: ${result.tx}`] : []),
-            ]
-          );
-        }
-      )
-  );
-}
-
-function registerAgentTrustCommand(
-  group: Command,
-  groupName: "agent" | "author"
-) {
-  addBaseUrlOption(
-    group
-      .command("trust")
-      .argument("<pubkey>", "Agent wallet pubkey")
-      .option("--json", "Print structured JSON output")
-      .addHelpText(
-        "after",
-        `${getDeprecatedAliasNotice(
-          groupName,
-          "agent trust"
-        )}Examples:\n  agentvouch ${groupName} trust asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw\n  agentvouch ${groupName} trust asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --json`
-      )
-      .action(
-        async (pubkey: string, options: { baseUrl: string; json?: boolean }) => {
-          await runCommand(
-            options,
-            async () =>
-              new AgentVouchApiClient(resolveBaseUrl(options.baseUrl)).getAgentTrust(
-                pubkey
-              ),
-            formatAgentTrust
-          );
-        }
-      )
-  );
-}
-
 const agent = program
   .command("agent")
   .description("Manage agent profile and trust actions.");
@@ -585,15 +582,11 @@ addRpcUrlOption(
             );
             return solana.vouch(options.author, options.amountSol);
           },
-          (result) => [
-            `vouch: ${result.vouch}`,
-            `already_exists: ${result.alreadyExists ? "yes" : "no"}`,
-            ...(result.lamports ? [`lamports: ${result.lamports}`] : []),
-            ...(result.tx ? [`tx: ${result.tx}`] : []),
-          ]
+          formatCreateVouchResult
         );
       }
     )
 );
 
-await program.parseAsync(process.argv);
+  return program;
+}

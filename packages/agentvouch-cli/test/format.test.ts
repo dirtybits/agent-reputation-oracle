@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatAgentTrust,
   formatAuthorSummary,
+  formatRegisterAgentResult,
   formatSkillSummary,
 } from "../src/lib/format.js";
 import type {
@@ -202,5 +203,55 @@ describe("formatAgentTrust", () => {
     expect(lines).toContain("author_bond_lamports: 500000");
     expect(lines).toContain("total_stake_at_risk: 1500000");
     expect(lines).toContain("author_dispute_count: 2");
+  });
+
+  it("falls back cleanly when author_trust and identity are missing", () => {
+    const lines = formatAgentTrust(
+      buildAgentTrust({
+        author_trust: null,
+        author_identity: null,
+        author_disputes: undefined,
+      })
+    );
+
+    expect(lines[0]).not.toBe("Calendar Agent");
+    expect(lines).toContain("author_bond_lamports: 0");
+    expect(lines).toContain("total_stake_at_risk: 0");
+    expect(lines).toContain("author_dispute_count: 0");
+  });
+});
+
+describe("formatRegisterAgentResult", () => {
+  it("emits agent: label (not author:)", () => {
+    const lines = formatRegisterAgentResult({
+      agentProfile: "PDA111",
+      alreadyRegistered: false,
+      tx: "tx111",
+    });
+
+    expect(lines).toContain("agent: PDA111");
+    expect(lines).not.toContain("author: PDA111");
+    expect(lines).toContain("already_registered: no");
+    expect(lines).toContain("tx: tx111");
+  });
+
+  it("omits tx when none is returned", () => {
+    const lines = formatRegisterAgentResult({
+      agentProfile: "PDA111",
+      alreadyRegistered: true,
+    });
+
+    expect(lines).toContain("already_registered: yes");
+    expect(lines.some((l) => l.startsWith("tx:"))).toBe(false);
+  });
+
+  it("omits tx when it is null", () => {
+    const lines = formatRegisterAgentResult({
+      agentProfile: "PDA111",
+      alreadyRegistered: true,
+      tx: null,
+    });
+
+    expect(lines.some((l) => l.startsWith("tx:"))).toBe(false);
   });
 });

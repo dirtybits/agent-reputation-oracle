@@ -14,4 +14,15 @@ describe("docs page source", () => {
     expect(source).toContain("X-AgentVouch-Auth");
     expect(source).toContain("purchaseSkill on-chain");
   });
+
+  it("prefers agent vocabulary in the publish flow", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "app/docs/page.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain("agentvouch agent register");
+    expect(source).toContain("Agent Publish");
+    expect(source).not.toMatch(/agentvouch author register/);
+  });
 });

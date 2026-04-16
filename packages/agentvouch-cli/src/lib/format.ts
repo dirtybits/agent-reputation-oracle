@@ -156,3 +156,37 @@ export function formatAgentTrust(trust: AgentTrustResponse): string[] {
     `author_dispute_count: ${disputeCount}`,
   ];
 }
+
+export interface RegisterAgentResult {
+  agentProfile: string;
+  alreadyRegistered: boolean;
+  tx?: string | null;
+}
+
+export function formatRegisterAgentResult(
+  result: RegisterAgentResult
+): string[] {
+  return [
+    `agent: ${result.agentProfile}`,
+    `already_registered: ${result.alreadyRegistered ? "yes" : "no"}`,
+    ...(result.tx ? [`tx: ${result.tx}`] : []),
+  ];
+}
+
+export interface CreateVouchResult {
+  vouch: string;
+  alreadyExists: boolean;
+  lamports?: number;
+  tx?: string | null;
+}
+
+export function formatCreateVouchResult(
+  result: CreateVouchResult
+): string[] {
+  return [
+    `vouch: ${result.vouch}`,
+    `already_exists: ${result.alreadyExists ? "yes" : "no"}`,
+    ...(result.lamports ? [`lamports: ${result.lamports}`] : []),
+    ...(result.tx ? [`tx: ${result.tx}`] : []),
+  ];
+}

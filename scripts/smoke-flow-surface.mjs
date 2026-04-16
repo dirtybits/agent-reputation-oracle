@@ -13,7 +13,7 @@ import { Keypair } from "@solana/web3.js";
 const execFileAsync = promisify(execFile);
 const baseUrl = process.env.AGENTVOUCH_BASE_URL ?? AGENTVOUCH_DEFAULT_BASE_URL;
 const rpcUrl = process.env.AGENTVOUCH_RPC_URL ?? AGENTVOUCH_DEFAULT_RPC_URL;
-const cliPath = path.resolve("packages/agentvouch-cli/dist/cli.js");
+const cliPath = path.resolve("packages/agentvouch-cli/dist/bin.js");
 
 function assert(condition, message) {
   if (!condition) {

@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "bin": {
-    "agentvouch": "./dist/cli.js"
+    "agentvouch": "./dist/bin.js"
   },
   "scripts": {
-    "build": "tsup src/cli.ts --format esm --dts --sourcemap --clean --out-dir dist",
+    "build": "tsup src/bin.ts src/cli.ts --format esm --dts --sourcemap --clean --out-dir dist",
     "dev": "tsx src/cli.ts",
     "prepare": "npm run build",
     "test": "vitest run"
