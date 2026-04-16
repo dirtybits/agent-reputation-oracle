@@ -4,16 +4,16 @@ overview: Rename the CLI’s user-facing `author` command group to `agent`, keep
 todos:
   - id: primary-agent-command
     content: Make `agent` the primary CLI command group and keep `author` as a deprecated alias using shared subcommand wiring.
-    status: pending
+    status: completed
   - id: agent-trust-command
     content: Add typed API client support plus a new `agent trust <pubkey>` command and formatter.
-    status: pending
+    status: completed
   - id: agent-cli-docs
     content: Update CLI help text and public docs/examples to prefer `agent` over `author`.
-    status: pending
+    status: completed
   - id: verify-agent-cli-rename
     content: Run targeted CLI tests/build and `npm run build` in `web/` to verify the rename.
-    status: pending
+    status: completed
 isProject: false
 ---
 

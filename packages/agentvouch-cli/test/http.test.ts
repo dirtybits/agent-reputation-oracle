@@ -182,4 +182,54 @@ describe("AgentVouchApiClient", () => {
     );
     expect(result.total).toBe(0);
   });
+
+  it("fetches agent trust from the direct trust endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+          trust: {
+            wallet_pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+            canonical_agent_id:
+              "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1/asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+            chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            schema_version: "2026-04-03",
+            trust_updated_at: "2026-04-09T00:00:00.000Z",
+            recommended_action: "allow",
+            reputationScore: 123,
+            totalVouchesReceived: 2,
+            totalStakedFor: 1000000,
+            disputesAgainstAuthor: 1,
+            disputesUpheldAgainstAuthor: 0,
+            activeDisputesAgainstAuthor: 0,
+            registeredAt: 123,
+            isRegistered: true,
+          },
+          author_trust: {
+            authorBondLamports: 500000,
+            totalStakeAtRisk: 1500000,
+          },
+          author_identity: {
+            displayName: "Calendar Agent",
+          },
+          author_disputes: [{ id: "d1" }],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    );
+    const client = new AgentVouchApiClient("https://agentvouch.xyz");
+
+    const result = await client.getAgentTrust(
+      "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw"
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://agentvouch.xyz/api/agents/asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw/trust"
+    );
+    expect(result.trust.reputationScore).toBe(123);
+    expect(result.author_trust?.authorBondLamports).toBe(500000);
+  });
 });

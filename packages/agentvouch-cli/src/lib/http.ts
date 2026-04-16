@@ -106,6 +106,18 @@ export interface AuthorListResponse {
   authors: AuthorRecord[];
 }
 
+export interface AgentTrustResponse {
+  pubkey: string;
+  trust: SkillAuthorTrustSummary;
+  author_trust: SkillAuthorTrust | null;
+  author_identity?: {
+    name?: string | null;
+    displayName?: string | null;
+    canonicalAgentId?: string | null;
+  } | null;
+  author_disputes?: Array<Record<string, unknown>>;
+}
+
 export interface ListSkillsOptions {
   q?: string;
   sort?: "newest" | "trusted" | "installs" | "name";
@@ -250,6 +262,25 @@ export class AgentVouchApiClient {
     ) {
       throw new CliError(
         `Failed to list authors: ${body?.error || response.statusText}`,
+        { exitCode: 1, data: body }
+      );
+    }
+
+    return body;
+  }
+
+  async getAgentTrust(pubkey: string): Promise<AgentTrustResponse> {
+    const response = await fetch(this.url(`/api/agents/${pubkey}/trust`));
+    const body = (await response.json().catch(() => null)) as
+      | AgentTrustResponse
+      | { error?: string }
+      | null;
+
+    if (!response.ok || !body || "error" in body) {
+      throw new CliError(
+        `Failed to fetch agent trust for ${pubkey}: ${
+          body?.error || response.statusText
+        }`,
         { exitCode: 1, data: body }
       );
     }

@@ -22,6 +22,7 @@
     "lint:check": "npm run format:check && npm run lint --workspaces --if-present",
     "migrate:config": "ts-node scripts/migrate-config.ts",
     "migrate:agents": "ts-node scripts/migrate-agent-profiles.ts",
+    "postinstall": "npm run build:cli",
     "repair:registered-at": "ts-node scripts/repair-agent-registered-at.ts",
     "smoke:flow-surface": "node scripts/smoke-flow-surface.mjs",
     "test": "npm run test --workspaces --if-present",

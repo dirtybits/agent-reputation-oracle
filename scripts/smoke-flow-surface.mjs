@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { access, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -21,6 +22,12 @@ function assert(condition, message) {
 }
 
 async function ensureCliBuilt() {
+  if (!existsSync(cliPath)) {
+    throw new Error(
+      `[smoke] missing ${cliPath}. Run \`npm run build:cli\` (or \`npm ci\` which triggers the prepare hook) first.`
+    );
+  }
+
   await access(cliPath);
 }
 

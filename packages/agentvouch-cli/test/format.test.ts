@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { formatAuthorSummary, formatSkillSummary } from "../src/lib/format.js";
-import type { AuthorRecord, SkillRecord } from "../src/lib/http.js";
+import {
+  formatAgentTrust,
+  formatAuthorSummary,
+  formatSkillSummary,
+} from "../src/lib/format.js";
+import type {
+  AgentTrustResponse,
+  AuthorRecord,
+  SkillRecord,
+} from "../src/lib/http.js";
 
 function buildSkill(overrides: Partial<SkillRecord> = {}): SkillRecord {
   return {
@@ -42,6 +50,40 @@ function buildAuthor(overrides: Partial<AuthorRecord> = {}): AuthorRecord {
       registeredAt: 123,
       isRegistered: true,
     },
+    ...overrides,
+  };
+}
+
+function buildAgentTrust(
+  overrides: Partial<AgentTrustResponse> = {}
+): AgentTrustResponse {
+  return {
+    pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+    trust: {
+      wallet_pubkey: "asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+      canonical_agent_id:
+        "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1/asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw",
+      chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      schema_version: "2026-04-03",
+      trust_updated_at: "2026-04-09T00:00:00.000Z",
+      recommended_action: "allow",
+      reputationScore: 321,
+      totalVouchesReceived: 4,
+      totalStakedFor: 1000000,
+      disputesAgainstAuthor: 2,
+      disputesUpheldAgainstAuthor: 1,
+      activeDisputesAgainstAuthor: 1,
+      registeredAt: 123,
+      isRegistered: true,
+    },
+    author_trust: {
+      authorBondLamports: 500000,
+      totalStakeAtRisk: 1500000,
+    },
+    author_identity: {
+      displayName: "Calendar Agent",
+    },
+    author_disputes: [{ id: "d1" }, { id: "d2" }],
     ...overrides,
   };
 }
@@ -143,5 +185,22 @@ describe("formatAuthorSummary", () => {
     expect(lines).toContain("author_reputation: 0");
     expect(lines).toContain("recommended_action: unknown");
     expect(lines).toContain("skill_count: 0");
+  });
+});
+
+describe("formatAgentTrust", () => {
+  it("shows a compact agent trust summary", () => {
+    const lines = formatAgentTrust(buildAgentTrust());
+
+    expect(lines).toContain("Calendar Agent");
+    expect(lines).toContain(
+      "agent: asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw"
+    );
+    expect(lines).toContain("agent_reputation: 321");
+    expect(lines).toContain("recommended_action: allow");
+    expect(lines).toContain("registered: yes");
+    expect(lines).toContain("author_bond_lamports: 500000");
+    expect(lines).toContain("total_stake_at_risk: 1500000");
+    expect(lines).toContain("author_dispute_count: 2");
   });
 });

@@ -42,7 +42,7 @@ Timestamp: {unix_ms}`;
 curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
   const searchSkillsCommand = `curl -s 'https://agentvouch.xyz/api/skills?q=calendar' | jq`;
   const updateSkillCommand = `agentvouch skills update --file ./SKILL.md`;
-  const authorRegisterCommand = `agentvouch author register --keypair ~/.config/solana/id.json --metadata-uri https://example.com/agent.json`;
+  const agentRegisterCommand = `agentvouch agent register --keypair ~/.config/solana/id.json --metadata-uri https://example.com/agent.json`;
   const publishSkillCommand = `agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json`;
   const addVersionCommand = `agentvouch skill version add {repoSkillId} --file ./SKILL.md --changelog "Fix env names" --keypair ~/.config/solana/id.json`;
   const registerAgentExample = `import { useReputationOracle } from './hooks/useReputationOracle';
@@ -71,8 +71,8 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
         <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             AgentVouch is a reputation oracle for AI agents. Use these docs to
-            discover skills, inspect author trust, verify paid downloads, and
-            query the stake-backed trust record behind an author before giving
+            discover skills, inspect agent trust, verify paid downloads, and
+            query the stake-backed trust record behind an agent before giving
             them work, access, or payment.
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -342,18 +342,18 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
 
         <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-4">
           <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <FiPackage className="text-[var(--sea-accent)]" /> Author Publish
+            <FiPackage className="text-[var(--sea-accent)]" /> Agent Publish
             Flow
           </h2>
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                Register the author profile:
+                Register the agent profile:
               </p>
               <CopyCodeBlock
-                value={authorRegisterCommand}
+                value={agentRegisterCommand}
                 language="bash"
-                copyLabel="Copy author register command"
+                copyLabel="Copy agent register command"
               />
             </div>
             <div>

@@ -1,4 +1,5 @@
 import type {
+  AgentTrustResponse,
   AuthorListResponse,
   AuthorRecord,
   SkillListResponse,
@@ -123,4 +124,35 @@ export function formatAuthorList(result: AuthorListResponse): string[] {
   lines.push("", `total: ${result.total}`);
 
   return lines;
+}
+
+function getAgentName(trust: AgentTrustResponse): string {
+  return (
+    trust.author_identity?.displayName ??
+    trust.author_identity?.name ??
+    trust.trust.canonical_agent_id ??
+    trust.pubkey
+  );
+}
+
+export function formatAgentTrust(trust: AgentTrustResponse): string[] {
+  const rawTrust = trust.author_trust;
+  const disputeCount = trust.author_disputes?.length ?? 0;
+
+  return [
+    getAgentName(trust),
+    `agent: ${trust.pubkey}`,
+    `agent_reputation: ${trust.trust.reputationScore}`,
+    `recommended_action: ${trust.trust.recommended_action}`,
+    `registered: ${trust.trust.isRegistered ? "yes" : "no"}`,
+    `canonical_agent_id: ${trust.trust.canonical_agent_id}`,
+    `chain_context: ${trust.trust.chain_context}`,
+    `total_vouches_received: ${trust.trust.totalVouchesReceived}`,
+    `total_staked_for: ${trust.trust.totalStakedFor}`,
+    `author_bond_lamports: ${rawTrust?.authorBondLamports ?? 0}`,
+    `total_stake_at_risk: ${rawTrust?.totalStakeAtRisk ?? 0}`,
+    `active_author_disputes: ${trust.trust.activeDisputesAgainstAuthor}`,
+    `upheld_author_disputes: ${trust.trust.disputesUpheldAgainstAuthor}`,
+    `author_dispute_count: ${disputeCount}`,
+  ];
 }

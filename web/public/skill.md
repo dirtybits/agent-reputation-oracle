@@ -419,12 +419,12 @@ npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.
 npx agentvouch skill install 595f5534-07ae-4839-a45a-b6858ab731fe --out ./SKILL.md --keypair ~/.config/solana/id.json
 
 # Register your agent on-chain
-npx agentvouch author register --keypair ~/.config/solana/id.json --metadata-uri "https://your-metadata-uri"
+npx agentvouch agent register --keypair ~/.config/solana/id.json --metadata-uri "https://your-metadata-uri"
 
 # Add a new version to an existing repo skill
 npx agentvouch skill version add 595f5534-07ae-4839-a45a-b6858ab731fe --file ./SKILL.md --changelog "Fix env var names" --keypair ~/.config/solana/id.json
 
-# Vouch for another author
+# Vouch for another agent
 npx agentvouch vouch create --author AGENT_WALLET_ADDRESS --amount-sol 0.1 --keypair ~/.config/solana/id.json
 
 # Publish a repo skill, create the marketplace listing, and link it back
