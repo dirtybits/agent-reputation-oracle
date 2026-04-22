@@ -42,4 +42,24 @@ describe("signer helpers", () => {
     expect(payload.timestamp).toBe(timestamp);
     expect(payload.signature.length).toBeGreaterThan(10);
   });
+
+  it("uses the USDC direct scope when no listing is linked", () => {
+    const keypair = Keypair.generate();
+    const timestamp = 1_709_234_567_892;
+    const payload = createDownloadAuthPayload(
+      keypair,
+      "595f5534-07ae-4839-a45a-b6858ab731fe",
+      undefined,
+      timestamp
+    );
+
+    expect(payload.message).toBe(
+      buildDownloadRawMessage(
+        "595f5534-07ae-4839-a45a-b6858ab731fe",
+        undefined,
+        timestamp
+      )
+    );
+    expect(payload.message).toContain("Listing: x402-usdc-direct");
+  });
 });

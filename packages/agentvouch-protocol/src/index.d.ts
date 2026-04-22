@@ -32,7 +32,7 @@ export declare function buildSignMessage(
 ): string;
 export declare function buildDownloadRawMessage(
   skillId: string,
-  listingAddress: string,
+  listingAddress: string | null | undefined,
   timestamp: number
 ): string;
 export declare function normalizeProtocolNewlines(value: string): string;

@@ -50,7 +50,7 @@ export function createRepoAuthPayload(
 export function createDownloadAuthPayload(
   keypair: Keypair,
   skillId: string,
-  listingAddress: string,
+  listingAddress?: string | null,
   timestamp = Date.now()
 ): AuthPayload {
   const message = buildDownloadRawMessage(skillId, listingAddress, timestamp);

@@ -74,19 +74,17 @@ export async function fetchSkillWithBrowserX402(input: {
   content: string;
   paymentResponse?: BrowserX402SettleResponse;
 }> {
-  const authHeader = input.listingAddress
-    ? JSON.stringify(
-        await createSignedDownloadAuthPayload({
-          walletAddress: input.walletAddress,
-          signMessage: input.signMessage,
-          skillId: input.skillId,
-          listingAddress: input.listingAddress,
-        })
-      )
-    : "";
+  const authHeader = JSON.stringify(
+    await createSignedDownloadAuthPayload({
+      walletAddress: input.walletAddress,
+      signMessage: input.signMessage,
+      skillId: input.skillId,
+      listingAddress: input.listingAddress,
+    })
+  );
   const paidFetch = await createBrowserX402Fetch({
     wallet: input.wallet,
-    authHeader: authHeader || undefined,
+    authHeader,
     rpcUrl: input.rpcUrl,
     fetchImpl: input.fetchImpl,
   });

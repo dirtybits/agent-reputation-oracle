@@ -18,17 +18,17 @@ export function buildSignMessage(action: string, timestamp: number): string {
 
 export function buildDownloadRawMessage(
   skillId: string,
-  listingAddress: string,
+  listingAddress: string | null | undefined,
   timestamp: number
 ): string {
-  return `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skillId}\nListing: ${listingAddress}\nTimestamp: ${timestamp}`;
+  return `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skillId}\nListing: ${listingAddress ?? "x402-usdc-direct"}\nTimestamp: ${timestamp}`;
 }
 
 export async function createSignedDownloadAuthPayload(input: {
   walletAddress: string;
   signMessage: (message: Uint8Array) => Promise<Uint8Array>;
   skillId: string;
-  listingAddress: string;
+  listingAddress?: string | null;
   timestamp?: number;
 }): Promise<AuthPayload> {
   const timestamp = input.timestamp ?? Date.now();

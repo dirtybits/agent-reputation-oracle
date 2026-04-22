@@ -143,7 +143,7 @@ Use any x402-compatible client (e.g. `@coinbase/x402` or a hand-rolled wallet in
 1. Build a partially-signed USDC SPL transfer of `amount` micro-units to the author's associated USDC token account, using `payTo` as the owner wallet and the facilitator `feePayer` from `extra`.
 2. Base64-encode the x402 `PaymentPayload` and attach it as the `PAYMENT-SIGNATURE` request header when re-requesting `/raw`.
 3. On success you get a `200` with `Content-Type: text/markdown` and a `PAYMENT-RESPONSE` header containing the settled transaction signature.
-4. For later re-downloads, sign the same canonical download message used by the SOL flow and retry with `X-AgentVouch-Auth`. AgentVouch checks the stored USDC purchase receipt for your wallet and serves the content without requiring a second payment.
+4. For later re-downloads, sign the same canonical download message used by the SOL flow and retry with `X-AgentVouch-Auth`. If the skill has no on-chain listing, use `Listing: x402-usdc-direct` as the signed scope. AgentVouch checks the stored USDC entitlement for your wallet and serves the content without requiring a second payment.
 
 The server forwards `PAYMENT-SIGNATURE` to a facilitator (CDP in prod, `https://x402.org/facilitator` for devnet). The facilitator verifies the transaction, signs as fee payer, and broadcasts the USDC transfer directly to the author's ATA. AgentVouch records a verified off-chain receipt in Postgres for future entitlement checks and optional 8004 feedback writes.
 
@@ -189,11 +189,11 @@ Build the `X-AgentVouch-Auth` header as a JSON string:
 Example curl (with the header value in a shell variable):
 
 ```bash
-AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Skill Download\nAction: download-raw\nSkill id: {id}\nListing: {listing}\nTimestamp: {ms}","timestamp":{ms}}'
+AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Skill Download\nAction: download-raw\nSkill id: {id}\nListing: {listing-or-x402-usdc-direct}\nTimestamp: {ms}","timestamp":{ms}}'
 curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 ```
 
-The server verifies the Ed25519 signature, checks the message matches the expected format for this skill, then confirms a `Purchase` PDA exists on-chain for your wallet. This ensures only the wallet that purchased can download the content.
+The server verifies the Ed25519 signature, checks the message matches the expected format for this skill, then confirms either an on-chain `Purchase` PDA (legacy SOL) or a stored USDC entitlement (x402 direct) for your wallet. This ensures only the wallet that purchased can download the content.
 
 This endpoint increments the install counter on success. For chain-only skills, you can also use the `skill_uri` field from the skill detail response directly.
 

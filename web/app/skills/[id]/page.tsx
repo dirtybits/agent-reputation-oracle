@@ -553,12 +553,7 @@ export default function SkillDetailPage({
   };
 
   const handleSignedDownload = async () => {
-    if (
-      !connected ||
-      !walletAddress ||
-      !signMessage ||
-      !skill?.on_chain_address
-    ) {
+    if (!connected || !walletAddress || !signMessage || !skill) {
       return;
     }
 
@@ -580,7 +575,7 @@ export default function SkillDetailPage({
           walletAddress,
           signMessage,
           skillId: skill.id,
-          listingAddress: skill.on_chain_address,
+          listingAddress: skill.on_chain_address ?? undefined,
         })
       );
 
@@ -837,7 +832,7 @@ export default function SkillDetailPage({
   const isPaidSkill = hasUsdcPrimary || hasSolFallback;
   const browserUsesLegacySolFallback = hasUsdcPrimary && hasSolFallback;
   const browserCanUseUsdc = hasUsdcPrimary;
-  const signedRedownloadAvailable = Boolean(skill.on_chain_address);
+  const signedRedownloadAvailable = hasUsdcPrimary || Boolean(skill.on_chain_address);
   const buyerHasPurchased = Boolean(skill.buyerHasPurchased);
   const apiPath = `/api/skills/${skill.id}/raw`;
   const installUrl =
@@ -847,7 +842,7 @@ export default function SkillDetailPage({
   const usdcPriceLabel = primaryUsdcPrice ? `${primaryUsdcPrice} USDC` : "USDC";
   const signedDownloadMessage = buildDownloadRawMessage(
     skill.id,
-    skill.on_chain_address ?? "{skillListingAddress}",
+    skill.on_chain_address ? "{skillListingAddress}" : undefined,
     1709234567890
   ).replace("1709234567890", "{unix_ms}");
   const signedDownloadHeader = `{
@@ -881,14 +876,12 @@ export default function SkillDetailPage({
     : buyerHasPurchased
     ? signedRedownloadAvailable
       ? "This skill is already purchased for your connected wallet. Sign to download the file."
-      : "This skill is already purchased for your connected wallet. The file is delivered at checkout; signed re-downloads require the listing to be linked on-chain."
+      : "This skill is already purchased for your connected wallet. The file is delivered at checkout."
     : primaryUsdcPrice
     ? browserCanUseUsdc
       ? browserUsesLegacySolFallback
         ? `Pay ${usdcPriceLabel} from this page. The SOL path remains available below as an explicit fallback.`
-        : signedRedownloadAvailable
-        ? `Pay ${usdcPriceLabel} from this page. After checkout, SKILL.md downloads immediately and future re-downloads use Sign & Download.`
-        : `Pay ${usdcPriceLabel} from this page. After checkout, SKILL.md downloads immediately; signed re-downloads turn on once the listing is linked on-chain.`
+        : `Pay ${usdcPriceLabel} from this page. After checkout, SKILL.md downloads immediately and future re-downloads use Sign & Download.`
       : `This listing is priced in ${usdcPriceLabel}. Use the agent/API x402 flow below.`
     : "Complete the on-chain purchase, then use Sign & Download with your wallet signature.";
   const connectWalletLabel = primaryUsdcPrice
@@ -1365,9 +1358,7 @@ export default function SkillDetailPage({
               <p className="text-xs mt-2 text-gray-500 dark:text-gray-400">
                 {browserUsesLegacySolFallback
                   ? "USDC is the default app-layer price. The button above settles x402 directly, while SOL remains available only as a legacy fallback."
-                  : signedRedownloadAvailable
-                  ? "USDC is the default app-layer price. The button above settles the x402 flow directly."
-                  : "USDC is the default app-layer price. The button above completes checkout now; signed re-downloads turn on once the listing is linked on-chain."}
+                  : "USDC is the default app-layer price. The button above settles the x402 flow directly and signed re-downloads stay wallet-bound."}
               </p>
             )}
             {skill.purchasePreflightMessage && creatorPriceLamports > 0 && (

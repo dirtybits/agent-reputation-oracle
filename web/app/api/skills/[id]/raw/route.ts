@@ -114,7 +114,7 @@ function buildPaymentResponseHeaders(value: X402SettleResponse) {
 function validateDownloadAuth(
   authHeader: string,
   skillDbId: string,
-  listingAddress: string
+  listingAddress?: string | null
 ): { buyerPubkey: string } | { response: NextResponse } {
   let auth: AuthPayload;
   try {
@@ -149,7 +149,7 @@ function validateDownloadAuth(
         {
           error: "Message scope mismatch",
           expected_format:
-            "AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {listing}\\nTimestamp: {ms}",
+            "AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {listing|x402-usdc-direct}\\nTimestamp: {ms}",
         },
         { status: 401 }
       ),
@@ -209,13 +209,6 @@ async function handleUsdcDirect(
 
   const authHeader = request.headers.get("x-agentvouch-auth");
   if (authHeader) {
-    if (!skill.on_chain_address) {
-      return NextResponse.json(
-        { error: "USDC entitlements require a linked on-chain listing" },
-        { status: 500 }
-      );
-    }
-
     const authResult = validateDownloadAuth(
       authHeader,
       skillDbId,

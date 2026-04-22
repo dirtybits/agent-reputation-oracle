@@ -23,8 +23,29 @@ vi.mock("@/lib/auth", async () => {
 });
 
 vi.mock("@/lib/x402", () => ({
+  buildX402PaymentRequiredBody: vi.fn((input) => input),
+  decodeX402PaymentSignatureHeader: vi.fn(),
+  encodeX402PaymentRequiredHeader: vi
+    .fn()
+    .mockReturnValue("encoded-payment-required"),
+  encodeX402PaymentResponseHeader: vi
+    .fn()
+    .mockReturnValue("encoded-payment-response"),
   generatePaymentRequirement: vi.fn(),
+  generateX402UsdcRequirement: vi.fn().mockResolvedValue({
+    scheme: "exact",
+    network: "solana",
+    amount: "1000000",
+  }),
   hasOnChainPurchase: vi.fn(),
+  settleX402Payment: vi.fn(),
+  verifySettledUsdcTransfer: vi.fn(),
+  verifyX402Payment: vi.fn(),
+}));
+
+vi.mock("@/lib/usdcPurchases", () => ({
+  hasUsdcPurchaseEntitlement: vi.fn(),
+  recordUsdcPurchaseReceipt: vi.fn(),
 }));
 
 import { GET } from "@/app/api/skills/[id]/raw/route";
@@ -32,6 +53,7 @@ import { sql } from "@/lib/db";
 import { getOnChainPrice } from "@/lib/onchain";
 import { verifyWalletSignature, buildDownloadRawMessage } from "@/lib/auth";
 import { generatePaymentRequirement, hasOnChainPurchase } from "@/lib/x402";
+import { hasUsdcPurchaseEntitlement } from "@/lib/usdcPurchases";
 
 const mockSql = sql as unknown as ReturnType<typeof vi.fn>;
 const mockOnChain = getOnChainPrice as unknown as ReturnType<typeof vi.fn>;
@@ -45,6 +67,9 @@ const mockGenerate = generatePaymentRequirement as unknown as ReturnType<
   typeof vi.fn
 >;
 const mockHasPurchase = hasOnChainPurchase as unknown as ReturnType<
+  typeof vi.fn
+>;
+const mockHasUsdcEntitlement = hasUsdcPurchaseEntitlement as unknown as ReturnType<
   typeof vi.fn
 >;
 
@@ -62,6 +87,17 @@ const PAID_SKILL = {
   author_pubkey: "Author1",
   skill_id: "s-paid",
   content: SKILL_CONTENT,
+};
+
+const USDC_SKILL = {
+  id: "uuid-usdc",
+  on_chain_address: null,
+  author_pubkey: "11111111111111111111111111111111",
+  skill_id: "s-usdc",
+  name: "USDC Skill",
+  content: SKILL_CONTENT,
+  price_usdc_micros: "1000000",
+  currency_mint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
 };
 
 function validAuthHeader(
@@ -332,6 +368,43 @@ describe("GET /api/skills/[id]/raw", () => {
     expect(mockHasPurchase).not.toHaveBeenCalledWith(
       "ClientClaimedPubkey",
       expect.anything()
+    );
+  });
+
+  it("serves USDC entitlement downloads without an on-chain listing", async () => {
+    const dbQuery = vi
+      .fn()
+      .mockResolvedValueOnce([USDC_SKILL])
+      .mockResolvedValueOnce([]);
+    mockSql.mockReturnValue(dbQuery);
+    mockVerifySig.mockReturnValue({ valid: true, pubkey: "BuyerPubkey1" });
+    mockBuildMsg.mockImplementation(
+      (
+        skillId: string,
+        listingAddress: string | null | undefined,
+        timestamp: number
+      ) =>
+        `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skillId}\nListing: ${listingAddress ?? "x402-usdc-direct"}\nTimestamp: ${timestamp}`
+    );
+    mockHasUsdcEntitlement.mockResolvedValue(true);
+
+    const auth = JSON.stringify({
+      pubkey: "BuyerPubkey1",
+      signature: "sig",
+      message:
+        "AgentVouch Skill Download\nAction: download-raw\nSkill id: uuid-usdc\nListing: x402-usdc-direct\nTimestamp: 1709234567890",
+      timestamp: 1709234567890,
+    });
+    const { req, params } = makeRequest("uuid-usdc", {
+      "x-agentvouch-auth": auth,
+    });
+    const res = await GET(req, { params });
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe(SKILL_CONTENT);
+    expect(mockHasUsdcEntitlement).toHaveBeenCalledWith(
+      "uuid-usdc",
+      "BuyerPubkey1"
     );
   });
 

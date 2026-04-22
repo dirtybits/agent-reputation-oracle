@@ -172,16 +172,13 @@ export async function installSkill(input: InstallSkillInput) {
   }
 
   if (initialDownload.x402PaymentRequired) {
-    const authHeader =
-      skill.on_chain_address !== null
-        ? JSON.stringify(
-            createDownloadAuthPayload(
-              loadKeypair(input.keypairPath),
-              input.id,
-              skill.on_chain_address
-            )
-          )
-        : undefined;
+    const authHeader = JSON.stringify(
+      createDownloadAuthPayload(
+        loadKeypair(input.keypairPath),
+        input.id,
+        skill.on_chain_address ?? undefined
+      )
+    );
 
     const paidFetch = await createX402Fetch({
       authHeader,
