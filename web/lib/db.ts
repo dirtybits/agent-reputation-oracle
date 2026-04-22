@@ -16,6 +16,7 @@ type SqlQuery = {
 };
 
 let _sql: ReturnType<typeof neon> | null = null;
+let _initializePromise: Promise<void> | null = null;
 
 export function sql(): SqlQuery {
   if (!_sql) {
@@ -34,6 +35,11 @@ function sqlStringLiteral(db: SqlQuery, value: string) {
 }
 
 export async function initializeDatabase() {
+  if (_initializePromise) {
+    return _initializePromise;
+  }
+
+  _initializePromise = (async () => {
   const db = sql();
   const configuredSolanaChainContext = getConfiguredSolanaChainContext();
   const chainContextDefault = sqlStringLiteral(
@@ -109,6 +115,37 @@ export async function initializeDatabase() {
   `;
 
   await db`
+    ALTER TABLE skills
+    ADD COLUMN IF NOT EXISTS price_usdc_micros BIGINT
+  `;
+
+  await db`
+    ALTER TABLE skills
+    ADD COLUMN IF NOT EXISTS currency_mint VARCHAR(44)
+  `;
+
+  await db`
+    CREATE TABLE IF NOT EXISTS usdc_purchase_receipts (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      skill_db_id UUID NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+      buyer_pubkey VARCHAR(44) NOT NULL,
+      payment_tx_signature VARCHAR(128) NOT NULL UNIQUE,
+      recipient_ata VARCHAR(44) NOT NULL,
+      currency_mint VARCHAR(44) NOT NULL,
+      amount_micros BIGINT NOT NULL,
+      verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(skill_db_id, buyer_pubkey)
+    )
+  `;
+
+  await db`
+    CREATE INDEX IF NOT EXISTS idx_usdc_purchase_receipts_skill_buyer
+    ON usdc_purchase_receipts(skill_db_id, buyer_pubkey)
+  `;
+
+  await db`
     CREATE INDEX IF NOT EXISTS idx_skills_search ON skills
     USING GIN (to_tsvector('english', name || ' ' || COALESCE(description, '')))
   `;
@@ -142,4 +179,10 @@ export async function initializeDatabase() {
   await db`
     CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys(key_prefix)
   `;
+  })().catch((error) => {
+    _initializePromise = null;
+    throw error;
+  });
+
+  return _initializePromise;
 }

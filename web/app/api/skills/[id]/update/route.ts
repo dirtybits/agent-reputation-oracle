@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { initializeDatabase, sql } from "@/lib/db";
 import {
   buildPublicCacheControl,
   PUBLIC_ROUTE_CACHE_SECONDS,
@@ -14,6 +14,8 @@ type SkillRow = {
   current_version: number;
   updated_at: string;
   on_chain_address: string | null;
+  price_usdc_micros: string | null;
+  currency_mint: string | null;
 };
 
 const CHAIN_PREFIX = "chain-";
@@ -37,6 +39,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    await initializeDatabase();
     if (id.startsWith(CHAIN_PREFIX)) {
       return NextResponse.json(
         { error: "Chain-only skills do not support version-aware updates" },
@@ -67,6 +70,7 @@ export async function GET(
 
     const rows = await sql()<SkillRow>`
       SELECT id, skill_id, current_version, updated_at, on_chain_address
+      , price_usdc_micros, currency_mint
       FROM skills
       WHERE id = ${id}::uuid
     `;
@@ -76,7 +80,7 @@ export async function GET(
     }
 
     const skill = rows[0];
-    const listing = skill.on_chain_address
+    const listing = skill.on_chain_address && !skill.price_usdc_micros
       ? await getOnChainPrice(skill.on_chain_address)
       : null;
     const priceLamports = listing?.price ?? 0;
@@ -99,7 +103,14 @@ export async function GET(
         latest_updated_at: new Date(skill.updated_at).toISOString(),
         on_chain_address: skill.on_chain_address,
         price_lamports: priceLamports,
-        requires_purchase: priceLamports > 0,
+        price_usdc_micros: skill.price_usdc_micros,
+        currency_mint: skill.currency_mint,
+        payment_flow: skill.price_usdc_micros
+          ? "x402-usdc"
+          : priceLamports > 0
+          ? "legacy-sol"
+          : "free",
+        requires_purchase: Boolean(skill.price_usdc_micros) || priceLamports > 0,
         listing_changed:
           providedListing !== null && providedListing !== skill.on_chain_address,
       },

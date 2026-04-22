@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../../../../generated/reputation-oracle/src/generated/programs";
 import { getConfiguredSolanaChainContext } from "@/lib/chains";
+import { getConfiguredUsdcMint, getFacilitatorUrl } from "@/lib/x402";
 
 const SOL_NATIVE_MINT = "So11111111111111111111111111111111111111112";
 
@@ -8,25 +9,36 @@ export async function GET() {
   const chainContext = getConfiguredSolanaChainContext();
   return NextResponse.json({
     schemes: ["exact"],
-    networks: ["solana"],
+    networks: [chainContext],
     chain_contexts: [chainContext],
-    mints: [
+    assets: [
+      {
+        address: getConfiguredUsdcMint(),
+        symbol: "USDC",
+        decimals: 6,
+        name: "USD Coin",
+        flow: "x402-usdc-direct",
+      },
       {
         address: SOL_NATIVE_MINT,
         symbol: "SOL",
         decimals: 9,
         name: "Wrapped SOL",
+        flow: "legacy-purchase-skill",
       },
     ],
     program: {
       id: REPUTATION_ORACLE_PROGRAM_ADDRESS,
       instructions: ["purchaseSkill"],
     },
-    facilitator_endpoints: {
-      verify: "/api/x402/verify",
-      settle: "/api/x402/settle",
-      supported: "/api/x402/supported",
+    facilitator: {
+      url: getFacilitatorUrl(),
+      endpoints: {
+        supported: "/supported",
+        verify: "/verify",
+        settle: "/settle",
+      },
     },
-    version: "2.1.0",
+    version: "2.3.0-x402-usdc-direct",
   });
 }

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { initializeDatabase, sql } from "@/lib/db";
 import { resolveAuthorTrust } from "@/lib/trust";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { resolveAgentIdentityByWallet } from "@/lib/agentIdentity";
 import { hasOnChainPurchase } from "@/lib/x402";
+import { hasUsdcPurchaseEntitlement } from "@/lib/usdcPurchases";
 import { buildAgentTrustSummary } from "@/lib/agentDiscovery";
 import {
   getConfiguredSolanaChainContext,
@@ -43,6 +44,8 @@ type SkillRow = {
   total_installs: number;
   total_downloads?: number;
   price_lamports?: number;
+  price_usdc_micros?: string | null;
+  currency_mint?: string | null;
   contact?: string | null;
   created_at: string;
   updated_at: string;
@@ -63,6 +66,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    await initializeDatabase();
     const { searchParams } = request.nextUrl;
     const includeTrust = searchParams.get("include") !== "none";
     const buyer = searchParams.get("buyer");
@@ -149,6 +153,10 @@ export async function GET(
           total_installs: 0,
           total_downloads: Number(listing.data.totalDownloads),
           price_lamports: Number(listing.data.priceLamports),
+          price_usdc_micros: null,
+          currency_mint: null,
+          payment_flow:
+            Number(listing.data.priceLamports) > 0 ? "legacy-sol" : "free",
           contact: null,
           created_at: new Date(
             Number(listing.data.createdAt) * 1000
@@ -191,7 +199,7 @@ export async function GET(
     const skill = rows[0];
     skill.chain_context = normalizePersistedChainContext(skill.chain_context);
 
-    if (skill.on_chain_address) {
+    if (skill.on_chain_address && !skill.price_usdc_micros) {
       const listing = await getOnChainPrice(skill.on_chain_address);
       if (listing) {
         skill.price_lamports = listing.price;
@@ -252,19 +260,26 @@ export async function GET(
     const preflight = serializePurchasePreflight(
       assessPurchasePreflight({
         context: preflightContext,
-        priceLamports: BigInt(skill.price_lamports ?? 0),
-        author: isAddress(skill.author_pubkey)
+        priceLamports: skill.price_usdc_micros
+          ? 0n
+          : BigInt(skill.price_lamports ?? 0),
+        author: !skill.price_usdc_micros && isAddress(skill.author_pubkey)
           ? address(skill.author_pubkey)
           : null,
       })
     );
-    const buyerHasPurchased =
-      buyerAddress && skill.on_chain_address && (skill.price_lamports ?? 0) > 0
+    const buyerHasPurchased = buyerAddress
+      ? skill.price_usdc_micros
+        ? await hasUsdcPurchaseEntitlement(id, String(buyerAddress)).catch(
+            () => false
+          )
+        : skill.on_chain_address && (skill.price_lamports ?? 0) > 0
         ? await hasOnChainPurchase(
             String(buyerAddress),
             String(skill.on_chain_address)
           ).catch(() => false)
-        : false;
+        : false
+      : false;
     const author_trust_summary = author_trust
       ? buildAgentTrustSummary({
           walletPubkey: skill.author_pubkey,
@@ -276,6 +291,11 @@ export async function GET(
     return NextResponse.json(
       {
         ...skill,
+        payment_flow: skill.price_usdc_micros
+          ? "x402-usdc"
+          : (skill.price_lamports ?? 0) > 0
+          ? "legacy-sol"
+          : "free",
         content: latestContent,
         versions: versionsWithoutContent,
         author_trust,

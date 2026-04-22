@@ -33,6 +33,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { listOnChainSkillListings } from "@/lib/onchain";
 import { DEFAULT_SOLANA_RPC_URL } from "@/lib/solanaRpc";
 import { address, createSolanaRpc, isAddress } from "@solana/kit";
+import { getConfiguredUsdcMint } from "@/lib/x402";
 
 const PAGE_SIZE = 20;
 const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
@@ -54,6 +55,8 @@ type RepoSkillRow = {
   total_downloads?: number | null;
   total_revenue?: number | null;
   price_lamports?: number | null;
+  price_usdc_micros?: string | null;
+  currency_mint?: string | null;
   contact?: string | null;
   created_at: string;
   updated_at: string;
@@ -73,6 +76,8 @@ type ChainSkillRow = Omit<
   total_downloads: number;
   total_revenue: number;
   price_lamports: number;
+  price_usdc_micros: null;
+  currency_mint: null;
   skill_uri: string | null;
   source: "chain";
 };
@@ -98,6 +103,8 @@ async function fetchOnChainListings(): Promise<ChainSkillRow[]> {
       total_installs: 0,
       total_downloads: Number(listing.data.totalDownloads),
       price_lamports: Number(listing.data.priceLamports),
+      price_usdc_micros: null,
+      currency_mint: null,
       total_revenue: Number(listing.data.totalRevenue),
       created_at: new Date(Number(listing.data.createdAt) * 1000).toISOString(),
       updated_at: new Date(Number(listing.data.updatedAt) * 1000).toISOString(),
@@ -135,8 +142,39 @@ function mergeSkills(
   return merged;
 }
 
+function normalizePriceUsdcMicros(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error("price_usdc_micros must be a positive integer string");
+  }
+
+  if (BigInt(normalized) <= 0n) {
+    throw new Error("price_usdc_micros must be greater than zero");
+  }
+
+  return normalized;
+}
+
+function normalizeCurrencyMint(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized || !isAddress(normalized)) {
+    throw new Error("currency_mint must be a valid Solana mint address");
+  }
+
+  return normalized;
+}
+
 export async function GET(request: NextRequest) {
   try {
+    await initializeDatabase();
     const { searchParams } = request.nextUrl;
     const q = searchParams.get("q");
     const sort = searchParams.get("sort") || "newest";
@@ -229,6 +267,11 @@ export async function GET(request: NextRequest) {
 
       return {
         ...skill,
+        payment_flow: skill.price_usdc_micros
+          ? "x402-usdc"
+          : (skill.price_lamports ?? 0) > 0
+          ? "legacy-sol"
+          : "free",
         author_trust: authorTrust,
         author_trust_summary: authorTrust
           ? buildAgentTrustSummary({
@@ -271,18 +314,22 @@ export async function GET(request: NextRequest) {
       rpc,
       buyer: buyerAddress,
       authors: paged
-        .filter((skill) => (skill.price_lamports ?? 0) > 0)
+        .filter(
+          (skill) => !skill.price_usdc_micros && (skill.price_lamports ?? 0) > 0
+        )
         .map((skill) => skill.author_pubkey)
         .filter(isAddress)
         .map((pubkey) => address(pubkey)),
     });
     const pagedWithPricing = paged.map((skill) => {
-      const creatorPriceLamports = BigInt(skill.price_lamports ?? 0);
+      const creatorPriceLamports = skill.price_usdc_micros
+        ? 0n
+        : BigInt(skill.price_lamports ?? 0);
       const preflight = serializePurchasePreflight(
         assessPurchasePreflight({
           context: preflightContext,
           priceLamports: creatorPriceLamports,
-          author: isAddress(skill.author_pubkey)
+          author: !skill.price_usdc_micros && isAddress(skill.author_pubkey)
             ? address(skill.author_pubkey)
             : null,
         })
@@ -326,7 +373,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { auth, skill_id, name, description, tags, content, contact } =
+    const {
+      auth,
+      skill_id,
+      name,
+      description,
+      tags,
+      content,
+      contact,
+      price_usdc_micros,
+      currency_mint,
+    } =
       body as {
         auth: AuthPayload;
         skill_id: string;
@@ -336,6 +393,8 @@ export async function POST(request: NextRequest) {
         content: string;
         contact?: string;
         chain_context?: string;
+        price_usdc_micros?: string | number;
+        currency_mint?: string;
       };
 
     if (!auth || !skill_id || !name || !content) {
@@ -362,6 +421,19 @@ export async function POST(request: NextRequest) {
     const normalizedChainContext = body.chain_context
       ? normalizeInputChainContext(body.chain_context)
       : configuredSolanaChainContext;
+    let normalizedPriceUsdcMicros: string | null = null;
+    let normalizedCurrencyMint: string | null = null;
+    try {
+      normalizedPriceUsdcMicros = normalizePriceUsdcMicros(price_usdc_micros);
+      normalizedCurrencyMint = normalizedPriceUsdcMicros
+        ? normalizeCurrencyMint(currency_mint) ?? getConfiguredUsdcMint()
+        : null;
+    } catch (error: unknown) {
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 400 }
+      );
+    }
 
     if (!normalizedName) {
       return NextResponse.json(
@@ -417,7 +489,19 @@ export async function POST(request: NextRequest) {
     }
 
     const [skill] = await sql()<RepoSkillRow>`
-      INSERT INTO skills (skill_id, author_pubkey, name, description, tags, current_version, ipfs_cid, contact, chain_context)
+      INSERT INTO skills (
+        skill_id,
+        author_pubkey,
+        name,
+        description,
+        tags,
+        current_version,
+        ipfs_cid,
+        contact,
+        chain_context,
+        price_usdc_micros,
+        currency_mint
+      )
       VALUES (
         ${skill_id},
         ${authorPubkey},
@@ -427,7 +511,9 @@ export async function POST(request: NextRequest) {
         1,
         ${pinResult.success ? pinResult.cid : null},
         ${normalizedContact || null},
-        ${normalizedChainContext}
+        ${normalizedChainContext},
+        ${normalizedPriceUsdcMicros},
+        ${normalizedCurrencyMint}
       )
       RETURNING *
     `;
