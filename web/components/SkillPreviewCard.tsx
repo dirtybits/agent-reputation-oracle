@@ -32,6 +32,8 @@ interface SkillPreviewCardSkill {
   current_version: number;
   source?: "repo" | "chain";
   author_trust: TrustData | null;
+  price_usdc_micros?: string | null;
+  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
   purchasePreflightMessage?: string | null;
   purchaseBlockError?: {
     code: "buyerInsufficientBalance" | "authorPayoutRentBlocked";
@@ -84,6 +86,19 @@ function shortAddr(addr: string): string {
 
 function formatSol(lamports: number): string {
   return `${formatSolAmount(lamports)} SOL`;
+}
+
+function formatUsdcMicros(micros: string | null | undefined): string | null {
+  if (!micros) return null;
+  try {
+    const amount = Number(BigInt(micros)) / 1_000_000;
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 6,
+    }).format(amount);
+  } catch {
+    return null;
+  }
 }
 
 function getToneClass(tone: MetricCellProps["tone"] = "default"): string {
@@ -168,6 +183,9 @@ export default function SkillPreviewCard({
     ? truncateAtWord(description, 64)
     : null;
   const trust = skill.author_trust;
+  const primaryUsdcPrice = formatUsdcMicros(skill.price_usdc_micros);
+  const hasUsdcPrimary =
+    Boolean(primaryUsdcPrice) || skill.payment_flow === "x402-usdc";
   const authorReports = trust
     ? getAuthorReportStatus(
         trust.disputesAgainstAuthor,
@@ -175,8 +193,11 @@ export default function SkillPreviewCard({
         trust.activeDisputesAgainstAuthor
       )
     : null;
-  const priceTooltip =
-    creatorPriceLamports > 0
+  const priceTooltip = hasUsdcPrimary
+    ? primaryUsdcPrice
+      ? `Primary price: ${primaryUsdcPrice} USDC via x402.`
+      : "Primary price is settled in USDC via x402."
+    : creatorPriceLamports > 0
       ? estimatedTotalLamports === creatorPriceLamports
         ? "Estimated buyer total for this paid skill."
         : `Estimated buyer total includes network rent. Creator price: ${formatSol(
@@ -298,7 +319,14 @@ export default function SkillPreviewCard({
               </span>
             ))}
           </div>
-          {creatorPriceLamports > 0 ? (
+          {hasUsdcPrimary ? (
+            <span
+              className="shrink-0 inline-flex rounded-sm border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--lobster-accent-strong)]"
+              title={priceTooltip}
+            >
+              {primaryUsdcPrice ? `${primaryUsdcPrice} USDC` : "USDC"}
+            </span>
+          ) : creatorPriceLamports > 0 ? (
             <span
               className="shrink-0 inline-flex rounded-sm border border-green-200 bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400"
               title={priceTooltip}
@@ -327,6 +355,14 @@ export default function SkillPreviewCard({
             >
               Your Skill
             </div>
+          ) : hasUsdcPrimary ? (
+            <Link
+              href={`/skills/${skill.id}`}
+              className={`w-full border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] text-center font-medium text-[var(--lobster-accent-strong)] transition hover:bg-[var(--lobster-accent-soft-hover)] ${navButtonFlexClass}`}
+            >
+              <FiDownload className="h-3 w-3" />
+              {connected ? "Pay with USDC" : "Connect Wallet to Pay"}
+            </Link>
           ) : creatorPriceLamports === 0 ? (
             <Link
               href={`/skills/${skill.id}`}

@@ -65,6 +65,9 @@ interface SkillRow {
   total_downloads?: number;
   total_revenue?: number;
   price_lamports?: number;
+  price_usdc_micros?: string | null;
+  currency_mint?: string | null;
+  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
   on_chain_address?: string;
   skill_uri?: string | null;
   source?: "repo" | "chain";

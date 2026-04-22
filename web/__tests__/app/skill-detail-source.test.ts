@@ -10,7 +10,7 @@ describe("skill detail source", () => {
     );
 
     expect(source).toContain("Estimated total");
-    expect(source).toContain("Creator price");
+    expect(source).toContain("Legacy fallback");
     expect(source).toContain("Receipt rent");
     expect(source).toContain("Seller Needs SOL");
     expect(source).toContain("purchasePreflightMessage");
@@ -28,13 +28,15 @@ describe("skill detail source", () => {
     expect(source).toContain('href="#author-actions"');
     expect(source).toContain("Manage Listing");
     expect(source).toContain("X-AgentVouch-Auth");
-    expect(source).toContain("AgentVouch Skill Download");
     expect(source).toContain("/docs#paid-skill-download");
     expect(source).toContain("Call purchaseSkill on-chain");
     expect(source).toContain("buyerHasPurchased");
+    expect(source).toContain("Pay with USDC");
+    expect(source).toContain("Use SOL Fallback");
     expect(source).toContain("Buy & Unlock");
     expect(source).toContain("Sign & Download");
     expect(source).toContain("buildDownloadRawMessage");
+    expect(source).toContain("createSignedDownloadAuthPayload");
     expect(source).toContain("buildPaidSkillDownloadRequiredMessage");
     expect(source).toContain("buildSignedDownloadErrorMessage");
     expect(source).not.toContain("Buy & Install");

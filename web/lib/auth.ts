@@ -1,5 +1,6 @@
 import { getAddressCodec, type Address } from "@solana/kit";
 import nacl from "tweetnacl";
+import { encodeBase64 } from "@/lib/base64";
 import { getErrorMessage } from "@/lib/errors";
 
 const AUTH_PAYLOAD_MAX_AGE_MS = 5 * 60_000;
@@ -21,6 +22,31 @@ export function buildDownloadRawMessage(
   timestamp: number
 ): string {
   return `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${skillId}\nListing: ${listingAddress}\nTimestamp: ${timestamp}`;
+}
+
+export async function createSignedDownloadAuthPayload(input: {
+  walletAddress: string;
+  signMessage: (message: Uint8Array) => Promise<Uint8Array>;
+  skillId: string;
+  listingAddress: string;
+  timestamp?: number;
+}): Promise<AuthPayload> {
+  const timestamp = input.timestamp ?? Date.now();
+  const message = buildDownloadRawMessage(
+    input.skillId,
+    input.listingAddress,
+    timestamp
+  );
+  const signatureBytes = await input.signMessage(
+    new TextEncoder().encode(message)
+  );
+
+  return {
+    pubkey: input.walletAddress,
+    signature: encodeBase64(signatureBytes),
+    message,
+    timestamp,
+  };
 }
 
 export function normalizeProtocolNewlines(value: string): string {

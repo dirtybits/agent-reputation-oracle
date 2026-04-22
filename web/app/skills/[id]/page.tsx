@@ -7,7 +7,11 @@ import { AgentIdentityPanel } from "@/components/AgentIdentityPanel";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { SolAmount } from "@/components/SolAmount";
-import { buildDownloadRawMessage, buildSignMessage } from "@/lib/auth";
+import {
+  buildDownloadRawMessage,
+  buildSignMessage,
+  createSignedDownloadAuthPayload,
+} from "@/lib/auth";
 import { encodeBase64 } from "@/lib/base64";
 import {
   buildPaidSkillDownloadRequiredMessage,
@@ -31,6 +35,8 @@ import {
 } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getErrorMessage } from "@/lib/errors";
+import { fetchSkillWithBrowserX402 } from "@/lib/browserX402";
+import { getConfiguredSolanaExplorerTxUrl } from "@/lib/chains";
 import { BsCoin } from "react-icons/bs";
 import { SiSolana } from "react-icons/si";
 import {
@@ -235,6 +241,8 @@ export default function SkillDetailPage({
     message: string;
   } | null>(null);
   const [installing, setInstalling] = useState(false);
+  const [purchasingUsdc, setPurchasingUsdc] = useState(false);
+  const [usdcPurchaseTx, setUsdcPurchaseTx] = useState<string | null>(null);
   const [installResult, setInstallResult] = useState<{
     success: boolean;
     message: string;
@@ -298,6 +306,18 @@ export default function SkillDetailPage({
     setCopied(label);
     setTimeout(() => setCopied(null), 2000);
   };
+
+  const downloadSkillFile = useCallback((filename: string, text: string) => {
+    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = `${filename || "SKILL"}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(href);
+  }, []);
 
   const handleListOnMarketplace = async () => {
     if (!connected || !walletAddress || !signMessage || !skill) return;
@@ -501,6 +521,49 @@ export default function SkillDetailPage({
     }
   };
 
+  const handleUsdcPurchase = async () => {
+    if (!connected || !wallet || !walletAddress || !signMessage || !skill) {
+      return;
+    }
+
+    setPurchasingUsdc(true);
+    setInstallResult(null);
+    setDownloadResult(null);
+    setUsdcPurchaseTx(null);
+
+    try {
+      const purchaseResult = await fetchSkillWithBrowserX402({
+        wallet,
+        walletAddress,
+        signMessage,
+        skillId: skill.id,
+        listingAddress: skill.on_chain_address ?? undefined,
+        rawPath: `/api/skills/${id}/raw`,
+      });
+
+      downloadSkillFile(skill.skill_id, purchaseResult.content);
+      await refreshSkill();
+      setSkill((current) =>
+        current ? { ...current, buyerHasPurchased: true } : current
+      );
+      setInstallResult({
+        success: true,
+        message: purchaseResult.paymentResponse
+          ? "USDC payment complete. Downloaded SKILL.md."
+          : "USDC entitlement already active. Downloaded SKILL.md.",
+      });
+      setUsdcPurchaseTx(purchaseResult.paymentResponse?.transaction ?? null);
+    } catch (error: unknown) {
+      setInstallResult({
+        success: false,
+        message: getErrorMessage(error, "USDC purchase failed"),
+      });
+      setUsdcPurchaseTx(null);
+    } finally {
+      setPurchasingUsdc(false);
+    }
+  };
+
   const handleSignedDownload = async () => {
     if (
       !connected ||
@@ -524,22 +587,14 @@ export default function SkillDetailPage({
     setDownloading(true);
     setDownloadResult(null);
     try {
-      const timestamp = Date.now();
-      const message = buildDownloadRawMessage(
-        skill.id,
-        skill.on_chain_address,
-        timestamp
+      const authHeader = JSON.stringify(
+        await createSignedDownloadAuthPayload({
+          walletAddress,
+          signMessage,
+          skillId: skill.id,
+          listingAddress: skill.on_chain_address,
+        })
       );
-      const msgBytes = new TextEncoder().encode(message);
-      const sigBytes = await signMessage(msgBytes);
-      const signature = encodeBase64(sigBytes);
-
-      const authHeader = JSON.stringify({
-        pubkey: walletAddress,
-        signature,
-        message,
-        timestamp,
-      });
 
       const res = await fetch(`/api/skills/${id}/raw`, {
         headers: {
@@ -562,16 +617,8 @@ export default function SkillDetailPage({
         return;
       }
 
-      const content = await res.text();
-      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
-      const href = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = href;
-      link.download = `${skill.skill_id || "SKILL"}.md`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(href);
+      const markdown = await res.text();
+      downloadSkillFile(skill.skill_id, markdown);
 
       setDownloadResult({
         success: true,
@@ -801,33 +848,68 @@ export default function SkillDetailPage({
   const hasSolFallback = creatorPriceLamports > 0;
   const isPaidSkill = hasUsdcPrimary || hasSolFallback;
   const browserUsesLegacySolFallback = hasUsdcPrimary && hasSolFallback;
-  const browserPurchaseUnavailable = hasUsdcPrimary && !hasSolFallback;
+  const browserCanUseUsdc = hasUsdcPrimary;
+  const signedRedownloadAvailable = Boolean(skill.on_chain_address);
   const buyerHasPurchased = Boolean(skill.buyerHasPurchased);
   const apiPath = `/api/skills/${skill.id}/raw`;
   const installUrl =
     isChainOnly && skill?.skill_uri
       ? skill.skill_uri
       : `${CANONICAL_ORIGIN}${apiPath}`;
-  const signedDownloadMessage = `AgentVouch Skill Download\nAction: download-raw\nSkill id: ${
-    skill.id
-  }\nListing: ${
-    skill.on_chain_address ?? "{skillListingAddress}"
-  }\nTimestamp: {unix_ms}`;
+  const usdcPriceLabel = primaryUsdcPrice ? `${primaryUsdcPrice} USDC` : "USDC";
+  const signedDownloadMessage = buildDownloadRawMessage(
+    skill.id,
+    skill.on_chain_address ?? "{skillListingAddress}",
+    1709234567890
+  ).replace("1709234567890", "{unix_ms}");
   const signedDownloadHeader = `{
   "pubkey": "YOUR_PUBKEY",
   "signature": "BASE64_ED25519_SIGNATURE",
   "message": ${JSON.stringify(signedDownloadMessage)},
   "timestamp": 1709234567890
 }`;
-  const installCommand = browserPurchaseUnavailable
-    ? `# Primary price: ${primaryUsdcPrice} USDC via x402\n# This listing has no SOL fallback for the browser purchase button.\n# Use the AgentVouch CLI or an x402-compatible client against:\ncurl -sL ${installUrl}`
+  const installCommand = hasUsdcPrimary
+    ? `# Primary price: ${usdcPriceLabel} via x402\n# Browser checkout is available on this page.\n# Agents can call the raw endpoint directly and respond to PAYMENT-REQUIRED / PAYMENT-SIGNATURE.\ncurl -sL ${installUrl}`
     : isPaidSkill
     ? `# ${
-        browserUsesLegacySolFallback
-          ? `Primary price: ${primaryUsdcPrice} USDC via x402; browser button uses the SOL fallback`
-          : "Legacy SOL purchase flow"
+        browserUsesLegacySolFallback ? `Primary price: ${usdcPriceLabel} via x402` : "Legacy SOL purchase flow"
       }\n# 1) GET ${installUrl} to receive 402 + X-Payment\n# 2) Call purchaseSkill on-chain\n# 3) Retry with X-AgentVouch-Auth\ncurl -sL -H "X-AgentVouch-Auth: $AUTH" ${installUrl} -o SKILL.md`
     : `curl -sL ${installUrl} -o SKILL.md`;
+  const purchaseTitle = primaryUsdcPrice
+    ? "USDC primary pricing"
+    : isPaidSkill
+    ? "Paid Skill"
+    : "Free Skill";
+  const purchaseDescription = !isPaidSkill
+    ? "Install with a wallet signature — no transaction fee."
+    : isAuthor
+    ? primaryUsdcPrice
+      ? browserUsesLegacySolFallback
+        ? `This listing is priced at ${usdcPriceLabel} via x402, with ${fromLamports(
+            creatorPriceLamports
+          ).toFixed(4)} SOL still available as the legacy fallback.`
+        : `This listing is priced at ${usdcPriceLabel} via x402.`
+      : "This connected wallet is the author for this skill. Use the author actions below to manage the listing instead of purchasing it."
+    : buyerHasPurchased
+    ? signedRedownloadAvailable
+      ? "This skill is already purchased for your connected wallet. Sign to download the file."
+      : "This skill is already purchased for your connected wallet. The file is delivered at checkout; signed re-downloads require the listing to be linked on-chain."
+    : primaryUsdcPrice
+    ? browserCanUseUsdc
+      ? browserUsesLegacySolFallback
+        ? `Pay ${usdcPriceLabel} from this page. The SOL path remains available below as an explicit fallback.`
+        : signedRedownloadAvailable
+        ? `Pay ${usdcPriceLabel} from this page. After checkout, SKILL.md downloads immediately and future re-downloads use Sign & Download.`
+        : `Pay ${usdcPriceLabel} from this page. After checkout, SKILL.md downloads immediately; signed re-downloads turn on once the listing is linked on-chain.`
+      : `This listing is priced in ${usdcPriceLabel}. Use the agent/API x402 flow below.`
+    : "Complete the on-chain purchase, then use Sign & Download with your wallet signature.";
+  const connectWalletLabel = primaryUsdcPrice
+    ? browserUsesLegacySolFallback
+      ? "Connect wallet to pay with USDC or use the SOL fallback"
+      : "Connect wallet to pay with USDC"
+    : isPaidSkill
+    ? "Connect wallet to buy and unlock"
+    : "Connect wallet to install";
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
@@ -1095,28 +1177,10 @@ export default function SkillDetailPage({
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                  {primaryUsdcPrice
-                    ? "USDC primary pricing"
-                    : isPaidSkill
-                    ? "Paid Skill"
-                    : "Free Skill"}
+                  {purchaseTitle}
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {primaryUsdcPrice
-                    ? isAuthor
-                      ? `This listing is priced at ${primaryUsdcPrice} USDC for x402 purchases, with ${fromLamports(
-                          creatorPriceLamports
-                        ).toFixed(4)} SOL kept as the legacy fallback.`
-                      : browserUsesLegacySolFallback
-                      ? `AgentVouch now treats ${primaryUsdcPrice} USDC as the primary price. This browser action uses the legacy SOL fallback path.`
-                      : `AgentVouch now treats ${primaryUsdcPrice} USDC as the primary price. This browser page can verify an existing entitlement, but new purchases should use the CLI or an x402-compatible client.`
-                    : isPaidSkill
-                    ? isAuthor
-                      ? "This connected wallet is the author for this skill. Use the author actions below to manage the listing instead of purchasing it."
-                      : buyerHasPurchased
-                      ? "This skill is already purchased for your connected wallet. Sign to download the file."
-                      : "Complete the on-chain purchase, then use Sign & Download with your wallet signature."
-                    : "Install with a wallet signature — no transaction fee."}
+                  {purchaseDescription}
                 </p>
               </div>
               {connected ? (
@@ -1147,30 +1211,74 @@ export default function SkillDetailPage({
                       Manage Listing
                     </Link>
                   ) : buyerHasPurchased ? (
-                    <button
-                      onClick={handleSignedDownload}
-                      disabled={downloading}
-                      className={navButtonPrimaryInlineClass}
-                    >
-                      {downloading ? (
-                        <>
-                          <FiLoader className="w-4 h-4 animate-spin" />
-                          Signing…
-                        </>
-                      ) : (
-                        <>
-                          <FiDownload className="w-4 h-4" />
-                          Sign & Download
-                        </>
+                    signedRedownloadAvailable ? (
+                      <button
+                        onClick={handleSignedDownload}
+                        disabled={downloading}
+                        className={navButtonPrimaryInlineClass}
+                      >
+                        {downloading ? (
+                          <>
+                            <FiLoader className="w-4 h-4 animate-spin" />
+                            Signing…
+                          </>
+                        ) : (
+                          <>
+                            <FiDownload className="w-4 h-4" />
+                            Sign & Download
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        Purchased. Signed re-downloads require an on-chain link.
+                      </span>
+                    )
+                  ) : primaryUsdcPrice && browserCanUseUsdc ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleUsdcPurchase}
+                        disabled={purchasingUsdc}
+                        className={navButtonPrimaryInlineClass}
+                      >
+                        {purchasingUsdc ? (
+                          <>
+                            <FiLoader className="w-4 h-4 animate-spin" />
+                            Processing…
+                          </>
+                        ) : (
+                          <>
+                            <BsCoin className="w-4 h-4" />
+                            Pay with USDC
+                          </>
+                        )}
+                      </button>
+                      {hasSolFallback && (
+                        <button
+                          onClick={handlePaidInstall}
+                          disabled={installing || purchasingUsdc || purchaseBlocked}
+                          className={navButtonSecondaryInlineClass}
+                        >
+                          {installing ? (
+                            <>
+                              <FiLoader className="w-4 h-4 animate-spin" />
+                              Installing…
+                            </>
+                          ) : purchaseBlocked ? (
+                            purchasePreflightStatus === "authorPayoutRentBlocked" ? (
+                              "Seller Needs SOL"
+                            ) : (
+                              "Need More SOL"
+                            )
+                          ) : (
+                            <>
+                              <SiSolana className="w-4 h-4" />
+                              Use SOL Fallback
+                            </>
+                          )}
+                        </button>
                       )}
-                    </button>
-                  ) : browserPurchaseUnavailable ? (
-                    <Link
-                      href="#agent-api-access"
-                      className={navButtonSecondaryInlineClass}
-                    >
-                      Use x402 Flow
-                    </Link>
+                    </div>
                   ) : (
                     <button
                       onClick={handlePaidInstall}
@@ -1200,13 +1308,7 @@ export default function SkillDetailPage({
                 </div>
               ) : (
                 <span className="text-xs text-gray-400 dark:text-gray-500">
-                  {primaryUsdcPrice
-                    ? browserUsesLegacySolFallback
-                      ? "Connect wallet to buy via the browser's SOL fallback flow"
-                      : "Connect wallet to verify entitlement or use x402 via CLI"
-                    : isPaidSkill
-                    ? "Connect wallet to buy and unlock"
-                    : "Connect wallet to install"}
+                  {connectWalletLabel}
                 </span>
               )}
             </div>
@@ -1274,8 +1376,10 @@ export default function SkillDetailPage({
             {primaryUsdcPrice && (
               <p className="text-xs mt-2 text-gray-500 dark:text-gray-400">
                 {browserUsesLegacySolFallback
-                  ? "USDC is the default app-layer price. The browser purchase button currently settles through the SOL fallback path."
-                  : "USDC is the default app-layer price. This listing has no SOL fallback, so new purchases should use the CLI or an x402-compatible agent client."}
+                  ? "USDC is the default app-layer price. The button above settles x402 directly, while SOL remains available only as a legacy fallback."
+                  : signedRedownloadAvailable
+                  ? "USDC is the default app-layer price. The button above settles the x402 flow directly."
+                  : "USDC is the default app-layer price. The button above completes checkout now; signed re-downloads turn on once the listing is linked on-chain."}
               </p>
             )}
             {skill.purchasePreflightMessage && creatorPriceLamports > 0 && (
@@ -1300,6 +1404,19 @@ export default function SkillDetailPage({
                 }`}
               >
                 {installResult.message}
+              </p>
+            )}
+            {usdcPurchaseTx && (
+              <p className="text-xs mt-2 text-green-600 dark:text-green-400">
+                Settlement tx:{" "}
+                <a
+                  href={getConfiguredSolanaExplorerTxUrl(usdcPurchaseTx)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-mono"
+                >
+                  {usdcPurchaseTx.slice(0, 8)}...{usdcPurchaseTx.slice(-8)}
+                </a>
               </p>
             )}
             {downloadResult && (
@@ -1346,17 +1463,16 @@ export default function SkillDetailPage({
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
             {isPaidSkill ? (
               primaryUsdcPrice ? (
-                browserUsesLegacySolFallback ? (
+                browserCanUseUsdc ? (
                   <>
-                    This listing is USDC-primary. The browser command below
-                    still documents the older SOL fallback flow. Use the CLI or
-                    an x402-compatible client for direct USDC purchases.
+                    This listing is USDC-primary. The button above handles the
+                    browser checkout flow, while the command below documents the
+                    agent/API path against the same raw endpoint.
                   </>
                 ) : (
                   <>
-                    This listing is USDC-primary and has no browser SOL
-                    fallback. Use the CLI or an x402-compatible client for the
-                    direct x402 flow.
+                    This listing is USDC-primary. Use the agent/API x402 flow
+                    below if you are not checking out through the browser UI.
                   </>
                 )
               ) : (
