@@ -25,6 +25,10 @@ async function main() {
   const rootIndexPath = path.join(outputPath, "src/generated/index.ts");
   const rootIndex = fs.readFileSync(rootIndexPath, "utf-8");
   const programsIndexPath = path.join(outputPath, "src/generated/programs/index.ts");
+  const generatedProgramPluginPath = path.join(
+    outputPath,
+    "src/generated/programs/reputationOracle.ts"
+  );
   const instructionsBarrel = [
     'export * from "./instructions/adminMigrateAgent";',
     'export * from "./instructions/claimVoucherRevenue";',
@@ -71,6 +75,10 @@ async function main() {
       "",
     ].join("\n")
   );
+
+  if (fs.existsSync(generatedProgramPluginPath)) {
+    fs.rmSync(generatedProgramPluginPath);
+  }
 
   console.log("Client generated at:", outputPath);
 }
