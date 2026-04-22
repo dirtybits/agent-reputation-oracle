@@ -26,7 +26,6 @@ import {
   hashResource,
   paymentRefFromProof,
   verifyPaymentProof,
-  settlePayment,
   type PaymentRequirement,
   type PaymentProof,
 } from "@/lib/x402";
@@ -269,33 +268,5 @@ describe("verifyPaymentProof", () => {
     const result = await verifyPaymentProof(proof);
     expect(result.status).toBe("pending");
     expect(result.error).toContain("network timeout");
-  });
-});
-
-describe("settlePayment", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("returns failed when buyer is missing", async () => {
-    const proof = makeProof({ buyer: "" });
-    const result = await settlePayment(proof);
-    expect(result.status).toBe("failed");
-  });
-
-  it("returns complete when Purchase PDA exists", async () => {
-    mockFetchMaybePurchase.mockResolvedValue({
-      exists: true,
-      data: {
-        buyer: FAKE_BUYER,
-        skillListing: FAKE_SKILL_LISTING,
-        pricePaid: 100_000_000n,
-      },
-    });
-
-    const proof = makeProof();
-    const result = await settlePayment(proof);
-    expect(result.status).toBe("complete");
-    expect(result.settlementId).toBeTruthy();
   });
 });

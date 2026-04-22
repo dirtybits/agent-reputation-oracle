@@ -250,34 +250,6 @@ export async function verifyPaymentProof(proof: PaymentProof): Promise<{
   }
 }
 
-export async function settlePayment(proof: PaymentProof): Promise<{
-  settlementId: string;
-  status: "complete" | "pending" | "failed";
-}> {
-  const paymentRef = paymentRefFromProof(proof);
-
-  const existing = VERIFICATION_CACHE.get(paymentRef);
-  if (existing?.status === "complete" || existing?.status === "valid") {
-    return { settlementId: paymentRef, status: "complete" };
-  }
-
-  const verification = await verifyPaymentProof(proof);
-
-  if (verification.status === "valid") {
-    VERIFICATION_CACHE.set(paymentRef, {
-      status: "complete",
-      verifiedAt: Date.now(),
-    });
-    return { settlementId: paymentRef, status: "complete" };
-  }
-
-  if (verification.status === "pending") {
-    return { settlementId: paymentRef, status: "pending" };
-  }
-
-  return { settlementId: paymentRef, status: "failed" };
-}
-
 type FacilitatorSupportedKind = {
   x402Version: number;
   scheme: string;

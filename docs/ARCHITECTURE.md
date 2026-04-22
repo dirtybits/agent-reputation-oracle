@@ -4,7 +4,7 @@
 **Program ID:** `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`
 **Network:** Solana Devnet
 
-This document maps [VISION.md](VISION.md) to what's actually built, explains how the pieces fit together, and identifies what's next.
+This document maps [VISION.md](../VISION.md) to what's actually built, explains how the pieces fit together, and identifies what's next.
 
 ---
 
@@ -281,7 +281,7 @@ Agent                          Server                         Solana
 | **Trust threshold ("mutawatir")** | Medium | No formal definition of when a skill is "verified." Could be: N vouches from M unique stakers totaling X SOL. |
 | **Code signing / content integrity** | High | VISION.md's #1 problem. Skills are unsigned. Content hash on-chain (IPFS CID) is a partial solution but doesn't verify safety. |
 | **Audit trail** | Medium | No record of what a skill accesses at runtime. Out of scope for on-chain, but could be an off-chain attestation layer. |
-| **Multi-asset staking (USDC)** | Medium | Phase 2 of the x402 + USDC plan. Extends Vouch/Report to carry an `asset_mint` field and adds USDC-denominated slashing. See `.cursor/plans/x402_usdc_compliance_*.plan.md`. |
+| **Multi-asset staking (USDC)** | Medium | A future phase of the x402 + USDC roadmap. Extends Vouch/Report to carry an `asset_mint` field and adds USDC-denominated slashing. |
 | **Oracle-based USD normalization** | Low | Needed if multi-asset staking ships. Deferred to v2.2. |
 | **Marketplace payout escrow** | High | Current purchases pay author proceeds directly to the author wallet, which can fail for cheap listings if the recipient wallet is empty and below rent minimum. Preferred redesign: route proceeds into a program-controlled listing proceeds PDA and add an author-signed withdraw flow. |
 

@@ -26,19 +26,19 @@ curl -s https://agentvouch.xyz/api/index/skills | jq '.skills[:3]'
 curl -s https://agentvouch.xyz/api/index/trusted-authors | jq '.authors[:3]'`;
   const installSkillCommand = `# Free skills download directly; paid skills require X-AgentVouch-Auth (see skill.md)
 curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
-  const paidDownloadFlow = `1. GET /api/skills/{id}/raw\n2. If response is 402, read the X-Payment requirement and call purchaseSkill on-chain\n3. Sign the canonical download message and retry with X-AgentVouch-Auth`;
+  const paidDownloadFlow = `1. GET /api/skills/{id}/raw\n2. If response is 402 with PAYMENT-REQUIRED, complete the x402 USDC payment flow and retry with PAYMENT-SIGNATURE\n3. Legacy SOL listings still return X-Payment; call purchaseSkill on-chain, then retry with X-AgentVouch-Auth\n4. For re-downloads, sign the canonical download message and retry with X-AgentVouch-Auth`;
   const paidDownloadMessage = `AgentVouch Skill Download
 Action: download-raw
 Skill id: {id}
-Listing: {skillListingAddress}
+Listing: {skillListingAddress-or-x402-usdc-direct}
 Timestamp: {unix_ms}`;
   const paidDownloadHeader = `{
   "pubkey": "YOUR_PUBKEY",
   "signature": "BASE64_ED25519_SIGNATURE",
-  "message": "AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {skillListingAddress}\\nTimestamp: {unix_ms}",
+  "message": "AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {skillListingAddress-or-x402-usdc-direct}\\nTimestamp: {unix_ms}",
   "timestamp": 1709234567890
 }`;
-  const paidDownloadCurl = `AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {skillListingAddress}\\nTimestamp: {unix_ms}","timestamp":1709234567890}'
+  const paidDownloadCurl = `AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Skill Download\\nAction: download-raw\\nSkill id: {id}\\nListing: {skillListingAddress-or-x402-usdc-direct}\\nTimestamp: {unix_ms}","timestamp":1709234567890}'
 curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
   const searchSkillsCommand = `curl -s 'https://agentvouch.xyz/api/skills?q=calendar' | jq`;
   const updateSkillCommand = `agentvouch skills update --file ./SKILL.md`;
@@ -292,9 +292,12 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
             Download
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Paid skills require two steps: purchase on-chain, then retry the raw
-            download with a signed <code>X-AgentVouch-Auth</code> header that
-            proves the buyer controls the wallet.
+            Paid skills are USDC-first: the primary path is x402 with{" "}
+            <code>PAYMENT-REQUIRED</code> and <code>PAYMENT-SIGNATURE</code>.
+            Older SOL listings still use <code>purchaseSkill</code> on-chain,
+            then retry the raw download with a signed{" "}
+            <code>X-AgentVouch-Auth</code> header that proves the buyer controls
+            the wallet.
           </p>
           <div className="space-y-4">
             <div>
