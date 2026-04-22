@@ -6,7 +6,6 @@ import {
   getUtf8Encoder,
   type Address,
 } from "@solana/kit";
-import { Connection, type TokenBalance } from "@solana/web3.js";
 import {
   getConfiguredSolanaChainContext,
   normalizeInputChainContext,
@@ -20,12 +19,32 @@ const SOL_NATIVE_MINT = "So11111111111111111111111111111111111111112";
 export const USDC_DEVNET_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 export const USDC_MAINNET_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const FACILITATOR_SUPPORTED_CACHE_TTL_MS = 5 * 60_000;
-const confirmedConnection = new Connection(DEFAULT_SOLANA_RPC_URL, "confirmed");
 
 const VERIFICATION_CACHE = new Map<
   string,
   { status: string; verifiedAt: number }
 >();
+
+type RpcTokenBalance = {
+  accountIndex?: number;
+  mint?: string;
+  uiTokenAmount?: {
+    amount?: string;
+  };
+};
+
+type RpcParsedTransaction = {
+  meta?: {
+    err?: unknown;
+    preTokenBalances?: RpcTokenBalance[];
+    postTokenBalances?: RpcTokenBalance[];
+  };
+  transaction?: {
+    message?: {
+      accountKeys?: Array<string | { pubkey?: string }>;
+    };
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Legacy AgentVouch payment requirement shape (SOL path, pre-x402-spec).
@@ -539,8 +558,47 @@ export async function settleX402Payment(
   });
 }
 
-function getTokenBalanceAmount(balance: TokenBalance | undefined): bigint {
-  return BigInt(balance?.uiTokenAmount.amount ?? "0");
+function getTokenBalanceAmount(balance: RpcTokenBalance | undefined): bigint {
+  return BigInt(balance?.uiTokenAmount?.amount ?? "0");
+}
+
+async function getConfirmedParsedTransaction(
+  signature: string
+): Promise<RpcParsedTransaction | null> {
+  const response = await fetch(DEFAULT_SOLANA_RPC_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: `x402-${signature}`,
+      method: "getTransaction",
+      params: [
+        signature,
+        {
+          commitment: "confirmed",
+          encoding: "jsonParsed",
+          maxSupportedTransactionVersion: 0,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`RPC getTransaction failed with status ${response.status}`);
+  }
+
+  const json = (await response.json()) as {
+    result?: RpcParsedTransaction | null;
+    error?: { message?: string };
+  };
+
+  if (json.error) {
+    throw new Error(json.error.message || "RPC getTransaction failed");
+  }
+
+  return json.result ?? null;
 }
 
 export async function verifySettledUsdcTransfer(opts: {
@@ -549,13 +607,7 @@ export async function verifySettledUsdcTransfer(opts: {
   currencyMint: string;
   minimumAmountMicros: bigint;
 }): Promise<{ settledAmountMicros: bigint }> {
-  const transaction = await confirmedConnection.getParsedTransaction(
-    opts.signature,
-    {
-      commitment: "confirmed",
-      maxSupportedTransactionVersion: 0,
-    }
-  );
+  const transaction = await getConfirmedParsedTransaction(opts.signature);
 
   if (!transaction?.meta) {
     throw new Error("Facilitator settlement transaction was not found on RPC");
@@ -565,8 +617,13 @@ export async function verifySettledUsdcTransfer(opts: {
     throw new Error("Facilitator settlement transaction failed on-chain");
   }
 
-  const accountKeys = transaction.transaction.message.accountKeys.map((key) =>
-    typeof key === "string" ? key : key.pubkey.toBase58()
+  const messageAccountKeys = transaction.transaction?.message?.accountKeys;
+  if (!messageAccountKeys) {
+    throw new Error("Settled transaction is missing account key metadata");
+  }
+
+  const accountKeys = messageAccountKeys.map((key) =>
+    typeof key === "string" ? key : (key.pubkey ?? "")
   );
   const destinationIndex = accountKeys.findIndex(
     (accountKey) => accountKey === opts.destinationAta
