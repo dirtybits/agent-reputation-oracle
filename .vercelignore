@@ -1,0 +1,29 @@
+# Anchor / Solana local artifacts
+.anchor
+target
+test-ledger
+**/*.rs.bk
+
+# Rust build
+Cargo.lock
+
+# Local env
+.env
+.env.local
+.env*.local
+
+# Agent keys (never upload)
+.agent-keys/
+**/keypair*.json
+*.pem
+
+# Tests / misc
+tests
+**/__tests__
+coverage
+.DS_Store
+
+# Tooling caches
+.firecrawl
+.cursor/hooks/
+.claude/worktrees/
