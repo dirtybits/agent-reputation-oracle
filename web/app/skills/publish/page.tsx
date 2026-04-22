@@ -4,6 +4,7 @@ import { Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { useWalletConnection } from "@solana/react-hooks";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { BsCoin } from "react-icons/bs";
 import { AgentProfileSetupCard } from "@/components/AgentProfileSetupCard";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { encodeBase64 } from "@/lib/base64";
@@ -24,6 +25,7 @@ import {
   PRICING,
   formatMinPrice,
   isValidListingPriceLamports,
+  fromLamports,
   toLamports,
 } from "@/lib/pricing";
 import { getErrorMessage } from "@/lib/errors";
@@ -47,6 +49,29 @@ type AgentProfileData = NonNullable<
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseUsdcPriceToMicros(value: string): string | null {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (!/^\d+(\.\d{1,6})?$/.test(normalized)) {
+    return null;
+  }
+
+  const [wholePart, fractionalPart = ""] = normalized.split(".");
+  const micros = `${wholePart}${fractionalPart.padEnd(6, "0")}`.replace(
+    /^0+(?=\d)/,
+    ""
+  );
+
+  if (!micros || BigInt(micros) <= 0n) {
+    return null;
+  }
+
+  return micros;
 }
 
 function PublishReadiness({
@@ -132,6 +157,7 @@ function PublishSkillPageInner() {
   });
   const [tagInput, setTagInput] = useState("");
   const [contact, setContact] = useState("");
+  const [usdcPrice, setUsdcPrice] = useState("1");
   const [price, setPrice] = useState(String(PRICING.SOL.defaultPrice));
   const [showPreview, setShowPreview] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -229,10 +255,19 @@ function PublishSkillPageInner() {
     }
 
     const priceLamports = toLamports(parseFloat(price || "0"));
+    const usdcPriceMicros = parseUsdcPriceToMicros(usdcPrice);
+    if (!usdcPriceMicros) {
+      setResult({
+        success: false,
+        message: "USDC price must be a positive amount with up to 6 decimals.",
+      });
+      return;
+    }
+
     if (!isValidListingPriceLamports(priceLamports)) {
       setResult({
         success: false,
-        message: `Price must be 0 for a free listing or at least ${formatMinPrice()}.`,
+        message: `Legacy SOL fallback must be 0 for a free listing or at least ${formatMinPrice()}.`,
       });
       return;
     }
@@ -272,6 +307,7 @@ function PublishSkillPageInner() {
           tags,
           content,
           contact: cleanContact || undefined,
+          price_usdc_micros: usdcPriceMicros,
         }),
       });
 
@@ -347,7 +383,9 @@ function PublishSkillPageInner() {
 
       setResult({
         success: true,
-        message: "Skill published and listed on-chain!",
+        message: `Skill published with ${usdcPriceMicros} USDC micros as the primary x402 price and ${fromLamports(
+          priceLamports
+        ).toFixed(3)} SOL as the legacy fallback listing price.`,
         id: skillDbId,
       });
 
@@ -527,8 +565,9 @@ function PublishSkillPageInner() {
               Publish a Skill
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Upload a SKILL.md file. It will be pinned to IPFS and stored in
-              the repository.
+              Upload a SKILL.md file. New buyers will pay in USDC through x402
+              by default, while the on-chain SOL listing remains available as a
+              legacy fallback during migration.
             </p>
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -833,32 +872,85 @@ function PublishSkillPageInner() {
 
           {/* Price + publish */}
           <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
-            <div className="flex items-center gap-2 mb-1">
-              <FiDollarSign className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                Marketplace Price
-              </span>
+            <div className="mb-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <BsCoin className="w-4 h-4 text-[var(--lobster-accent)]" />
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Payment Mode
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                AgentVouch is moving to USDC as the default marketplace
+                currency. New agents should buy through x402 USDC. The SOL
+                price below stays as a legacy fallback for older clients and
+                direct on-chain compatibility.
+              </p>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Every skill is listed on-chain so it can be vouched for and
-              disputed. Set 0 for a free listing if your author bond meets the
-              on-chain floor. Free-skill disputes cap slashing at author bond;
-              paid listings may continue into vouchers after author bond.
-              Otherwise the minimum paid price is {formatMinPrice()}.
-            </p>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                step={PRICING.SOL.step}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0"
-                className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
-              />
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                SOL
-              </span>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <BsCoin className="w-4 h-4 text-[var(--lobster-accent)]" />
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Primary price
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Used for the x402 USDC flow on the raw download endpoint.
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0.000001"
+                    step="0.000001"
+                    value={usdcPrice}
+                    onChange={(e) => setUsdcPrice(e.target.value)}
+                    placeholder="1"
+                    className="w-32 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                  />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    USDC
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
+                  Stored as{" "}
+                  <span className="font-mono">
+                    {parseUsdcPriceToMicros(usdcPrice) ?? "invalid"}
+                  </span>{" "}
+                  micros.
+                </p>
+              </div>
+
+              <div className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <FiDollarSign className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Legacy fallback
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Kept on-chain for the older SOL `purchaseSkill` path. Do not
+                  set this to `0` unless you intentionally want the listing to
+                  be free for legacy SOL clients.
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    step={PRICING.SOL.step}
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0"
+                    className="w-32 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
+                  />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    SOL
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
+                  Minimum paid fallback is {formatMinPrice()}.
+                </p>
+              </div>
             </div>
           </div>
 

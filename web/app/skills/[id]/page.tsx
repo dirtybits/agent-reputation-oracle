@@ -31,6 +31,7 @@ import {
 } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getErrorMessage } from "@/lib/errors";
+import { BsCoin } from "react-icons/bs";
 import { SiSolana } from "react-icons/si";
 import {
   FiArrowLeft,
@@ -77,6 +78,9 @@ interface SkillDetail {
   total_installs: number;
   total_downloads?: number;
   price_lamports?: number;
+  price_usdc_micros?: string | null;
+  currency_mint?: string | null;
+  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
   contact: string | null;
   created_at: string;
   updated_at: string;
@@ -106,6 +110,19 @@ function formatDate(dateStr: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function formatUsdcMicros(micros: string | null | undefined): string | null {
+  if (!micros) return null;
+  try {
+    const amount = Number(BigInt(micros)) / 1_000_000;
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 6,
+    }).format(amount);
+  } catch {
+    return null;
+  }
 }
 
 function isBlockingPurchaseStatus(
@@ -458,7 +475,11 @@ export default function SkillDetailPage({
       setInstallResult({
         success: true,
         message: purchaseResult.alreadyPurchased
-          ? "Skill already purchased. Use Sign & Download below to fetch the skill file."
+          ? browserUsesLegacySolFallback
+            ? "Legacy SOL fallback already purchased. Use Sign & Download below to fetch the skill file."
+            : "Skill already purchased. Use Sign & Download below to fetch the skill file."
+          : browserUsesLegacySolFallback
+          ? "Legacy SOL fallback purchased successfully. Use Sign & Download below to fetch the skill file."
           : "Skill purchased and installed successfully. Use Sign & Download below to fetch the skill file.",
       });
       setSkill((s) =>
@@ -762,6 +783,7 @@ export default function SkillDetailPage({
 
   const creatorPriceLamports =
     skill.creatorPriceLamports ?? skill.price_lamports ?? 0;
+  const primaryUsdcPrice = formatUsdcMicros(skill.price_usdc_micros);
   const estimatedPurchaseRentLamports =
     skill.estimatedPurchaseRentLamports ?? 0;
   const estimatedBuyerTotalLamports =
@@ -772,7 +794,14 @@ export default function SkillDetailPage({
   const purchaseBlocked =
     creatorPriceLamports > 0 &&
     isBlockingPurchaseStatus(purchasePreflightStatus);
-  const isPaidSkill = creatorPriceLamports > 0;
+  const paymentFlow =
+    skill.payment_flow ??
+    (skill.price_usdc_micros ? "x402-usdc" : creatorPriceLamports > 0 ? "legacy-sol" : "free");
+  const hasUsdcPrimary = Boolean(primaryUsdcPrice) || paymentFlow === "x402-usdc";
+  const hasSolFallback = creatorPriceLamports > 0;
+  const isPaidSkill = hasUsdcPrimary || hasSolFallback;
+  const browserUsesLegacySolFallback = hasUsdcPrimary && hasSolFallback;
+  const browserPurchaseUnavailable = hasUsdcPrimary && !hasSolFallback;
   const buyerHasPurchased = Boolean(skill.buyerHasPurchased);
   const apiPath = `/api/skills/${skill.id}/raw`;
   const installUrl =
@@ -790,8 +819,14 @@ export default function SkillDetailPage({
   "message": ${JSON.stringify(signedDownloadMessage)},
   "timestamp": 1709234567890
 }`;
-  const installCommand = isPaidSkill
-    ? `# 1) GET ${installUrl} to receive 402 + X-Payment\n# 2) Call purchaseSkill on-chain\n# 3) Retry with X-AgentVouch-Auth\ncurl -sL -H "X-AgentVouch-Auth: $AUTH" ${installUrl} -o SKILL.md`
+  const installCommand = browserPurchaseUnavailable
+    ? `# Primary price: ${primaryUsdcPrice} USDC via x402\n# This listing has no SOL fallback for the browser purchase button.\n# Use the AgentVouch CLI or an x402-compatible client against:\ncurl -sL ${installUrl}`
+    : isPaidSkill
+    ? `# ${
+        browserUsesLegacySolFallback
+          ? `Primary price: ${primaryUsdcPrice} USDC via x402; browser button uses the SOL fallback`
+          : "Legacy SOL purchase flow"
+      }\n# 1) GET ${installUrl} to receive 402 + X-Payment\n# 2) Call purchaseSkill on-chain\n# 3) Retry with X-AgentVouch-Auth\ncurl -sL -H "X-AgentVouch-Auth: $AUTH" ${installUrl} -o SKILL.md`
     : `curl -sL ${installUrl} -o SKILL.md`;
 
   return (
@@ -931,9 +966,22 @@ export default function SkillDetailPage({
         {/* Meta Row */}
         <div
           className={`grid grid-cols-2 ${
-            creatorPriceLamports > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4"
+            creatorPriceLamports > 0 || primaryUsdcPrice
+              ? "sm:grid-cols-6"
+              : "sm:grid-cols-4"
           } gap-3 mb-6`}
         >
+          {primaryUsdcPrice && (
+            <div className="rounded-sm border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] p-3 text-center">
+              <div className="text-lg font-bold text-[var(--lobster-accent)] font-mono flex items-center justify-center gap-2">
+                <BsCoin className="w-4 h-4" />
+                {primaryUsdcPrice}
+              </div>
+              <div className="text-xs text-[var(--lobster-accent)]">
+                Primary price (USDC)
+              </div>
+            </div>
+          )}
           {creatorPriceLamports > 0 && (
             <div className="rounded-sm border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 p-3 text-center">
               <div className="text-lg font-bold text-green-700 dark:text-green-400 font-mono flex items-center justify-center">
@@ -943,7 +991,7 @@ export default function SkillDetailPage({
                 />
               </div>
               <div className="text-xs text-green-600 dark:text-green-500">
-                Creator price
+                Legacy fallback (SOL)
               </div>
             </div>
           )}
@@ -1047,10 +1095,22 @@ export default function SkillDetailPage({
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                  {creatorPriceLamports > 0 ? "Paid Skill" : "Free Skill"}
+                  {primaryUsdcPrice
+                    ? "USDC primary pricing"
+                    : isPaidSkill
+                    ? "Paid Skill"
+                    : "Free Skill"}
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {creatorPriceLamports > 0
+                  {primaryUsdcPrice
+                    ? isAuthor
+                      ? `This listing is priced at ${primaryUsdcPrice} USDC for x402 purchases, with ${fromLamports(
+                          creatorPriceLamports
+                        ).toFixed(4)} SOL kept as the legacy fallback.`
+                      : browserUsesLegacySolFallback
+                      ? `AgentVouch now treats ${primaryUsdcPrice} USDC as the primary price. This browser action uses the legacy SOL fallback path.`
+                      : `AgentVouch now treats ${primaryUsdcPrice} USDC as the primary price. This browser page can verify an existing entitlement, but new purchases should use the CLI or an x402-compatible client.`
+                    : isPaidSkill
                     ? isAuthor
                       ? "This connected wallet is the author for this skill. Use the author actions below to manage the listing instead of purchasing it."
                       : buyerHasPurchased
@@ -1104,6 +1164,13 @@ export default function SkillDetailPage({
                         </>
                       )}
                     </button>
+                  ) : browserPurchaseUnavailable ? (
+                    <Link
+                      href="#agent-api-access"
+                      className={navButtonSecondaryInlineClass}
+                    >
+                      Use x402 Flow
+                    </Link>
                   ) : (
                     <button
                       onClick={handlePaidInstall}
@@ -1123,6 +1190,8 @@ export default function SkillDetailPage({
                               "authorPayoutRentBlocked"
                               ? "Seller Needs SOL"
                               : "Need More SOL"
+                            : browserUsesLegacySolFallback
+                            ? "Buy via SOL Fallback"
                             : "Buy & Unlock"}
                         </>
                       )}
@@ -1131,23 +1200,42 @@ export default function SkillDetailPage({
                 </div>
               ) : (
                 <span className="text-xs text-gray-400 dark:text-gray-500">
-                  {creatorPriceLamports > 0
+                  {primaryUsdcPrice
+                    ? browserUsesLegacySolFallback
+                      ? "Connect wallet to buy via the browser's SOL fallback flow"
+                      : "Connect wallet to verify entitlement or use x402 via CLI"
+                    : isPaidSkill
                     ? "Connect wallet to buy and unlock"
                     : "Connect wallet to install"}
                 </span>
               )}
             </div>
-            {creatorPriceLamports > 0 && (
+            {(creatorPriceLamports > 0 || primaryUsdcPrice) && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {primaryUsdcPrice && (
+                  <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Primary price
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono inline-flex items-center gap-2">
+                      <BsCoin className="w-3.5 h-3.5 text-[var(--lobster-accent)]" />
+                      {primaryUsdcPrice} USDC
+                    </div>
+                  </div>
+                )}
                 <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Creator price
+                    Legacy fallback
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono">
-                    <SolAmount
-                      amount={fromLamports(creatorPriceLamports).toFixed(4)}
-                      iconClassName="w-3.5 h-3.5"
-                    />
+                    {creatorPriceLamports > 0 ? (
+                      <SolAmount
+                        amount={fromLamports(creatorPriceLamports).toFixed(4)}
+                        iconClassName="w-3.5 h-3.5"
+                      />
+                    ) : (
+                      "None"
+                    )}
                   </div>
                 </div>
                 <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/40 p-3">
@@ -1181,6 +1269,13 @@ export default function SkillDetailPage({
             {skill.priceDisclosure && creatorPriceLamports > 0 && (
               <p className="text-xs mt-3 text-gray-500 dark:text-gray-400">
                 {skill.priceDisclosure}
+              </p>
+            )}
+            {primaryUsdcPrice && (
+              <p className="text-xs mt-2 text-gray-500 dark:text-gray-400">
+                {browserUsesLegacySolFallback
+                  ? "USDC is the default app-layer price. The browser purchase button currently settles through the SOL fallback path."
+                  : "USDC is the default app-layer price. This listing has no SOL fallback, so new purchases should use the CLI or an x402-compatible agent client."}
               </p>
             )}
             {skill.purchasePreflightMessage && creatorPriceLamports > 0 && (
@@ -1250,21 +1345,37 @@ export default function SkillDetailPage({
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
             {isPaidSkill ? (
-              <>
-                Paid skills require an on-chain purchase first, then a signed{" "}
-                <code className="text-amber-600 dark:text-amber-400">
-                  X-AgentVouch-Auth
-                </code>{" "}
-                header on the raw download request. Full instructions are below
-                and in{" "}
-                <Link
-                  href={paidSkillDocsHref}
-                  className="text-[var(--sea-accent)] hover:underline"
-                >
-                  docs
-                </Link>
-                .
-              </>
+              primaryUsdcPrice ? (
+                browserUsesLegacySolFallback ? (
+                  <>
+                    This listing is USDC-primary. The browser command below
+                    still documents the older SOL fallback flow. Use the CLI or
+                    an x402-compatible client for direct USDC purchases.
+                  </>
+                ) : (
+                  <>
+                    This listing is USDC-primary and has no browser SOL
+                    fallback. Use the CLI or an x402-compatible client for the
+                    direct x402 flow.
+                  </>
+                )
+              ) : (
+                <>
+                  Paid skills require an on-chain purchase first, then a signed{" "}
+                  <code className="text-amber-600 dark:text-amber-400">
+                    X-AgentVouch-Auth
+                  </code>{" "}
+                  header on the raw download request. Full instructions are
+                  below and in{" "}
+                  <Link
+                    href={paidSkillDocsHref}
+                    className="text-[var(--sea-accent)] hover:underline"
+                  >
+                    docs
+                  </Link>
+                  .
+                </>
+              )
             ) : (
               <>
                 Free skills can be downloaded directly with the command below.
@@ -1285,22 +1396,30 @@ export default function SkillDetailPage({
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
             {isPaidSkill ? (
-              <>
-                This is a paid skill. Requests return{" "}
-                <code className="text-amber-600 dark:text-amber-400">402</code>{" "}
-                until you purchase on-chain and provide a signed{" "}
-                <code className="text-amber-600 dark:text-amber-400">
-                  X-AgentVouch-Auth
-                </code>{" "}
-                header. See{" "}
-                <Link
-                  href={paidSkillDocsHref}
-                  className="text-[var(--sea-accent)] hover:underline"
-                >
-                  docs
-                </Link>
-                .
-              </>
+              primaryUsdcPrice ? (
+                <>
+                  This listing is USDC-primary. Agents should use the x402 raw
+                  endpoint directly; the SOL path remains only as a legacy
+                  fallback when available.
+                </>
+              ) : (
+                <>
+                  This is a paid skill. Requests return{" "}
+                  <code className="text-amber-600 dark:text-amber-400">402</code>{" "}
+                  until you purchase on-chain and provide a signed{" "}
+                  <code className="text-amber-600 dark:text-amber-400">
+                    X-AgentVouch-Auth
+                  </code>{" "}
+                  header. See{" "}
+                  <Link
+                    href={paidSkillDocsHref}
+                    className="text-[var(--sea-accent)] hover:underline"
+                  >
+                    docs
+                  </Link>
+                  .
+                </>
+              )
             ) : (
               <>
                 This is a free skill. Agents receive content directly — no
@@ -1564,7 +1683,7 @@ export default function SkillDetailPage({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                      Price (SOL)
+                      Legacy fallback (SOL)
                     </label>
                     <input
                       type="number"
@@ -1669,7 +1788,7 @@ export default function SkillDetailPage({
               <div className="flex items-center gap-3">
                 <div>
                   <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Price (SOL)
+                    Legacy fallback (SOL)
                   </label>
                   <input
                     type="number"
@@ -1699,11 +1818,10 @@ export default function SkillDetailPage({
                 </button>
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                Set 0 for a free listing if your author bond meets the on-chain
-                floor. Free-skill disputes cap slashing at author bond; paid
-                listings may continue into vouchers after author bond. Otherwise
-                the minimum paid price is {formatMinPrice()}. Requires one
-                Solana transaction.
+                This controls the older SOL `purchaseSkill` fallback path. Set 0
+                for a free listing only if you intentionally want legacy SOL
+                buyers to bypass payment and your author bond meets the on-chain
+                floor. Otherwise the minimum paid fallback is {formatMinPrice()}.
               </p>
             </div>
           )

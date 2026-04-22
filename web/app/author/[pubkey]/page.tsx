@@ -24,7 +24,10 @@ import {
   countsTowardAuthorWideReportSnapshot,
   getVouchStatusLabel,
 } from "@/lib/disputes";
-import { AuthorDisputeReason } from "@/generated/reputation-oracle/src/generated";
+import {
+  AuthorDisputeReason,
+  VouchStatus,
+} from "@/generated/reputation-oracle/src/generated";
 import type { SolanaRegistryCandidate } from "@/lib/solanaAgentRegistry";
 import { SolAmount } from "@/components/SolAmount";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
@@ -102,6 +105,9 @@ type AgentProfileData = NonNullable<
 type VouchRecord = Awaited<
   ReturnType<ReputationOracle["getAllVouchesForAgent"]>
 >[number];
+type SkillListingRecord = Awaited<
+  ReturnType<ReputationOracle["getSkillListingsByAuthor"]>
+>[number];
 
 export default function AuthorProfilePage() {
   const params = useParams();
@@ -119,6 +125,9 @@ export default function AuthorProfilePage() {
   const [vouchesGiven, setVouchesGiven] = useState<VouchRecord[]>([]);
   const [repoSkills, setRepoSkills] = useState<RepoSkill[]>([]);
   const [chainSkills, setChainSkills] = useState<RepoSkill[]>([]);
+  const [authorSkillListings, setAuthorSkillListings] = useState<
+    SkillListingRecord[]
+  >([]);
   const [authorTrust, setAuthorTrust] = useState<TrustData | null>(null);
   const [authorIdentity, setAuthorIdentity] =
     useState<AgentIdentitySummary | null>(null);
@@ -172,6 +181,14 @@ export default function AuthorProfilePage() {
     message: string;
   } | null>(null);
   const [claimTx, setClaimTx] = useState<string | null>(null);
+  const [claimingRevenueListing, setClaimingRevenueListing] = useState<
+    string | null
+  >(null);
+  const [claimRevenueStatus, setClaimRevenueStatus] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+  const [claimRevenueTx, setClaimRevenueTx] = useState<string | null>(null);
   const myProfileFetchId = useRef(0);
 
   const isOwnProfile = myPubkey === pubkey;
@@ -180,17 +197,19 @@ export default function AuthorProfilePage() {
     setLoading(true);
     try {
       const agentAddr = address(pubkey);
-      const [prof, received, given, repoRes, authorRes] = await Promise.all([
+      const [prof, received, given, onChainListings, repoRes, authorRes] =
+        await Promise.all([
         oracle.getAgentProfile(agentAddr).catch(() => null),
         oracle.getAllVouchesReceivedByAgent(agentAddr).catch(() => []),
         oracle.getAllVouchesForAgent(agentAddr).catch(() => []),
+        oracle.getSkillListingsByAuthor(agentAddr).catch(() => []),
         fetch(`/api/skills?author=${pubkey}`)
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
-        fetch(`/api/author/${pubkey}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null),
-      ]);
+          fetch(`/api/author/${pubkey}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+        ]);
       const relatedProfileKeys = Array.from(
         new Set(
           [
@@ -219,6 +238,7 @@ export default function AuthorProfilePage() {
       setProfile(prof);
       setVouchesReceived(received);
       setVouchesGiven(given);
+      setAuthorSkillListings(onChainListings);
       const apiSkills = (repoRes?.skills ?? []) as RepoSkill[];
       setRepoSkills(apiSkills.filter((skill) => skill.source !== "chain"));
       setChainSkills(apiSkills.filter((skill) => skill.source === "chain"));
@@ -581,6 +601,63 @@ export default function AuthorProfilePage() {
   const authorWideBackingVouches = vouchesReceived.filter((vouch) =>
     countsTowardAuthorWideReportSnapshot(vouch.account.status)
   );
+  const viewerVouch = useMemo(() => {
+    if (!myPubkey) return null;
+    return (
+      vouchesReceived.find(
+        (vouch) => profileAuthorityByPda[String(vouch.account.voucher)] === myPubkey
+      ) ?? null
+    );
+  }, [myPubkey, profileAuthorityByPda, vouchesReceived]);
+  const viewerVouchIsActive =
+    viewerVouch?.account.status === VouchStatus.Active;
+  const claimableVoucherRevenue = useMemo(() => {
+    if (!viewerVouch || !viewerVouchIsActive || !profile) {
+      return [];
+    }
+
+    const totalStaked = BigInt(profile.totalStakedFor ?? 0);
+    const voucherStake = BigInt(viewerVouch.account.stakeAmount ?? 0);
+
+    return authorSkillListings
+      .map((listing) => {
+        const listingAddress = String(listing.publicKey);
+        const unclaimedRevenueLamports = BigInt(
+          listing.account.unclaimedVoucherRevenue ?? 0
+        );
+        const estimatedShareLamports =
+          totalStaked > 0n
+            ? (unclaimedRevenueLamports * voucherStake) / totalStaked
+            : 0n;
+        const matchedSkill =
+          repoSkills.find(
+            (skill) => skill.on_chain_address === listingAddress
+          ) ??
+          chainSkills.find((skill) => skill.on_chain_address === listingAddress);
+
+        return {
+          listingAddress,
+          name:
+            matchedSkill?.name ??
+            listing.account.name ??
+            `Skill ${shortAddr(listingAddress)}`,
+          listingLamports: listing.lamports,
+          unclaimedRevenueLamports: Number(unclaimedRevenueLamports),
+          estimatedShareLamports: Number(estimatedShareLamports),
+          accountingMismatch:
+            Number(unclaimedRevenueLamports) > listing.lamports ||
+            Number(estimatedShareLamports) > listing.lamports,
+        };
+      })
+      .filter((listing) => listing.unclaimedRevenueLamports > 0);
+  }, [
+    authorSkillListings,
+    chainSkills,
+    profile,
+    repoSkills,
+    viewerVouch,
+    viewerVouchIsActive,
+  ]);
   const claimSkillOptions = useMemo(
     () => [
       ...repoSkills
@@ -636,6 +713,48 @@ export default function AuthorProfilePage() {
     if (claiming) return;
     setShowClaimModal(false);
   };
+
+  const handleClaimVoucherRevenue = useCallback(
+    async (skillListingAddress: string) => {
+      if (!connected) {
+        setClaimRevenueStatus({
+          success: false,
+          message: "Connect your wallet to claim voucher revenue.",
+        });
+        setClaimRevenueTx(null);
+        return;
+      }
+
+      setClaimingRevenueListing(skillListingAddress);
+      setClaimRevenueStatus(null);
+      setClaimRevenueTx(null);
+
+      try {
+        const { tx } = await oracle.claimVoucherRevenue(
+          address(skillListingAddress),
+          address(pubkey)
+        );
+        setClaimRevenueStatus({
+          success: true,
+          message: "Voucher revenue claimed.",
+        });
+        setClaimRevenueTx(tx);
+        setTimeout(loadData, 2000);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error, "Failed to claim voucher revenue.");
+        setClaimRevenueStatus({
+          success: false,
+          message: /Insufficient funds in skill listing/i.test(message)
+            ? "This listing's recorded voucher revenue is higher than its actual on-chain balance, so the claim would fail. This looks like stale devnet accounting on an older listing."
+            : message,
+        });
+        setClaimRevenueTx(null);
+      } finally {
+        setClaimingRevenueListing(null);
+      }
+    },
+    [connected, loadData, oracle, pubkey]
+  );
 
   const handleSubmitClaim = async () => {
     if (!connected) {
@@ -1372,6 +1491,125 @@ export default function AuthorProfilePage() {
                     <FiExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isOwnProfile && connected && viewerVouch && (
+          <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
+            <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <FiTrendingUp className="text-[var(--lobster-accent)]" /> Voucher
+              Revenue
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              You are backing this author with{" "}
+              {formatSol(Number(viewerVouch.account.stakeAmount))} SOL.
+              Claiming uses the existing on-chain `claim_voucher_revenue`
+              instruction and only applies to legacy SOL purchases.
+            </p>
+
+            {!viewerVouchIsActive ? (
+              <div className="rounded-sm border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-900/20 p-4">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  This backing vouch is not active, so it is not eligible to
+                  claim voucher revenue.
+                </p>
+              </div>
+            ) : claimableVoucherRevenue.length === 0 ? (
+              <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No claimable SOL voucher revenue is available for this
+                  author&apos;s listings right now.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {claimableVoucherRevenue.map((listing) => (
+                  <div
+                    key={listing.listingAddress}
+                    className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {listing.name}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
+                          Listing: {listing.listingAddress}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Unclaimed pool:{" "}
+                          <span className="font-mono text-gray-900 dark:text-white">
+                            {formatSol(listing.unclaimedRevenueLamports)} SOL
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Your estimated share:{" "}
+                          <span className="font-mono text-gray-900 dark:text-white">
+                            {formatSol(listing.estimatedShareLamports)} SOL
+                          </span>
+                        </div>
+                        {listing.accountingMismatch && (
+                          <div className="text-xs text-amber-700 dark:text-amber-300">
+                            This listing's stored voucher revenue exceeds its
+                            actual on-chain balance. Claiming would fail until
+                            the devnet listing accounting is repaired.
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          handleClaimVoucherRevenue(listing.listingAddress)
+                        }
+                        disabled={
+                          claimingRevenueListing === listing.listingAddress ||
+                          listing.estimatedShareLamports <= 0 ||
+                          listing.accountingMismatch
+                        }
+                        className={navButtonPrimaryInlineClass}
+                      >
+                        {claimingRevenueListing === listing.listingAddress
+                          ? "Claiming..."
+                          : "Claim revenue"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {claimRevenueStatus && (
+              <div
+                className={`mt-4 rounded-sm border p-4 ${
+                  claimRevenueStatus.success
+                    ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
+                    : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
+                }`}
+              >
+                <div className="space-y-1">
+                  <p
+                    className={`text-sm ${
+                      claimRevenueStatus.success
+                        ? "text-green-700 dark:text-green-300"
+                        : "text-red-700 dark:text-red-300"
+                    }`}
+                  >
+                    {claimRevenueStatus.message}
+                  </p>
+                  {claimRevenueTx && (
+                    <a
+                      href={getSolanaFmTxUrl(claimRevenueTx)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+                    >
+                      View transaction on Solana FM
+                      <FiExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
               </div>
             )}
           </div>

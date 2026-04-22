@@ -1,4 +1,9 @@
 import type { AuthPayload, PaymentRequirement } from "@agentvouch/protocol";
+import {
+  decodePaymentResponseHeader,
+  type PaymentRequired as X402PaymentRequired,
+  type SettleResponse as X402SettleResponse,
+} from "@x402/fetch";
 import { CliError } from "./errors.js";
 
 export interface SkillAuthorTrust {
@@ -42,6 +47,9 @@ export interface SkillRecord {
   chain_context?: string | null;
   on_chain_address: string | null;
   price_lamports?: number | null;
+  price_usdc_micros?: string | null;
+  currency_mint?: string | null;
+  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
   total_installs: number;
   total_downloads?: number | null;
   total_revenue?: number | null;
@@ -68,6 +76,9 @@ export interface SkillUpdateCheckResponse {
   latest_updated_at: string;
   on_chain_address: string | null;
   price_lamports: number;
+  price_usdc_micros?: string | null;
+  currency_mint?: string | null;
+  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
   requires_purchase: boolean;
   listing_changed: boolean;
 }
@@ -142,6 +153,8 @@ export interface DownloadResponse {
   content?: string;
   error?: string;
   requirement?: PaymentRequirement;
+  x402PaymentRequired?: X402PaymentRequired;
+  paymentResponse?: X402SettleResponse;
 }
 
 function getJsonContentType(response: Response): boolean {
@@ -167,6 +180,20 @@ function parsePaymentRequirement(response: Response, body?: unknown) {
     body.requirement
   ) {
     return body.requirement as PaymentRequirement;
+  }
+
+  return undefined;
+}
+
+function parseX402PaymentRequired(body?: unknown): X402PaymentRequired | undefined {
+  if (
+    body &&
+    typeof body === "object" &&
+    "x402Version" in body &&
+    "accepts" in body &&
+    Array.isArray((body as { accepts?: unknown[] }).accepts)
+  ) {
+    return body as X402PaymentRequired;
   }
 
   return undefined;
@@ -298,16 +325,36 @@ export class AgentVouchApiClient {
     return response.text();
   }
 
-  async downloadRaw(id: string, auth?: AuthPayload): Promise<DownloadResponse> {
-    const response = await fetch(this.url(`/api/skills/${id}/raw`), {
-      headers: auth ? { "X-AgentVouch-Auth": JSON.stringify(auth) } : undefined,
-    });
+  async downloadRaw(
+    id: string,
+    options?: {
+      auth?: AuthPayload;
+      fetchImpl?: typeof fetch;
+    }
+  ): Promise<DownloadResponse> {
+    const headers: Record<string, string> = {};
+    if (options?.auth) {
+      headers["X-AgentVouch-Auth"] = JSON.stringify(options.auth);
+    }
+
+    const response = await (options?.fetchImpl ?? fetch)(
+      this.url(`/api/skills/${id}/raw`),
+      {
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+      }
+    );
+
+    const paymentResponseHeader = response.headers.get("PAYMENT-RESPONSE");
+    const paymentResponse = paymentResponseHeader
+      ? decodePaymentResponseHeader(paymentResponseHeader)
+      : undefined;
 
     if (response.ok) {
       return {
         ok: true,
         status: response.status,
         content: await response.text(),
+        paymentResponse,
       };
     }
 
@@ -323,6 +370,8 @@ export class AgentVouchApiClient {
         (await response.text().catch(() => response.statusText)) ||
         response.statusText,
       requirement: parsePaymentRequirement(response, body),
+      x402PaymentRequired: parseX402PaymentRequired(body),
+      paymentResponse,
     };
   }
 

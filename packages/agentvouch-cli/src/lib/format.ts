@@ -30,6 +30,13 @@ function getTrustFields(skill: SkillRecord) {
 
 export function formatSkillSummary(skill: SkillRecord): string[] {
   const trust = getTrustFields(skill);
+  const paymentFlow =
+    skill.payment_flow ??
+    (skill.price_usdc_micros
+      ? "x402-usdc"
+      : (skill.price_lamports ?? 0) > 0
+      ? "legacy-sol"
+      : "free");
 
   return [
     `${skill.name}`,
@@ -38,7 +45,9 @@ export function formatSkillSummary(skill: SkillRecord): string[] {
     `source: ${skill.source ?? "repo"}`,
     `author: ${skill.author_pubkey}`,
     `author_reputation: ${trust.reputation}`,
+    `payment_flow: ${paymentFlow}`,
     `price_lamports: ${skill.price_lamports ?? 0}`,
+    `price_usdc_micros: ${skill.price_usdc_micros ?? "none"}`,
     `listing: ${skill.on_chain_address ?? "none"}`,
     `registered: ${trust.isRegistered ? "yes" : "no"}`,
     ...(trust.recommendedAction

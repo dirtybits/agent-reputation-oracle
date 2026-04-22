@@ -47,6 +47,7 @@ import {
   getCreateSkillListingInstructionAsync,
   getUpdateSkillListingInstructionAsync,
   getPurchaseSkillInstructionAsync,
+  getClaimVoucherRevenueInstructionAsync,
   getSkillListingDecoder,
   getVouchDecoder,
   getPurchaseDecoder,
@@ -1368,6 +1369,7 @@ export function useReputationOracle() {
       const decoder = getSkillListingDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
+        lamports: Number(a.account.lamports),
         account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch (e) {
@@ -1402,6 +1404,7 @@ export function useReputationOracle() {
       const decoder = getSkillListingDecoder();
       return accounts.map((a) => ({
         publicKey: a.pubkey,
+        lamports: Number(a.account.lamports),
         account: decoder.decode(decodeBase64(a.account.data[0])),
       }));
     } catch {
@@ -1780,6 +1783,23 @@ export function useReputationOracle() {
     [signer, walletAddress, sendIx]
   );
 
+  const claimVoucherRevenue = useCallback(
+    async (skillListingKey: Address, authorKey: Address) => {
+      if (!signer || !walletAddress) throw new Error("Wallet not connected");
+      const authorProfile = await getAgentPDA(authorKey);
+      const ix = await getClaimVoucherRevenueInstructionAsync({
+        skillListing: skillListingKey,
+        authorProfile,
+        voucher: signer,
+      });
+      const tx = await sendIx(ix);
+      const voucherProfile = await getAgentPDA(walletAddress);
+      const vouch = await getVouchPDA(voucherProfile, authorProfile);
+      return { tx, vouch, voucherProfile, authorProfile };
+    },
+    [signer, walletAddress, sendIx]
+  );
+
   return useMemo(
     () => ({
       connected: !!connected,
@@ -1814,6 +1834,7 @@ export function useReputationOracle() {
       removeSkillListing,
       closeSkillListing,
       purchaseSkill,
+      claimVoucherRevenue,
       getAgentPDA,
       getAuthorBondPDA,
       getVouchPDA,
@@ -1856,6 +1877,7 @@ export function useReputationOracle() {
       removeSkillListing,
       closeSkillListing,
       purchaseSkill,
+      claimVoucherRevenue,
     ]
   );
 }

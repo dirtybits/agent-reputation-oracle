@@ -1,4 +1,7 @@
 import path from "node:path";
+import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { wrapFetchWithPayment, x402Client, x402HTTPClient } from "@x402/fetch";
+import { ExactSvmScheme, toClientSvmSigner } from "@x402/svm";
 import { CliError } from "./errors.js";
 import { assertWritableOutputPath, writeUtf8File } from "./fs.js";
 import { type SkillRecord, AgentVouchApiClient } from "./http.js";
@@ -44,6 +47,33 @@ async function resolveChainSkillContent(
   throw new CliError(
     `Skill ${skill.id} does not expose downloadable content through the API.`
   );
+}
+
+async function createX402Fetch(options: {
+  authHeader?: string;
+  rpcUrl: string;
+  keypairPath: string;
+}) {
+  const keypair = loadKeypair(options.keypairPath);
+  const signer = toClientSvmSigner(
+    await createKeyPairSignerFromBytes(Uint8Array.from(keypair.secretKey))
+  );
+  const client = new x402HTTPClient(
+    new x402Client().register(
+      "solana:*",
+      new ExactSvmScheme(signer, { rpcUrl: options.rpcUrl })
+    )
+  );
+
+  if (options.authHeader) {
+    client.onPaymentRequired(async () => ({
+      headers: {
+        "X-AgentVouch-Auth": options.authHeader,
+      },
+    }));
+  }
+
+  return wrapFetchWithPayment(fetch, client);
 }
 
 export async function installSkill(input: InstallSkillInput) {
@@ -99,7 +129,10 @@ export async function installSkill(input: InstallSkillInput) {
     };
   }
 
-  if (initialDownload.status !== 402 || !initialDownload.requirement) {
+  if (
+    initialDownload.status !== 402 ||
+    (!initialDownload.requirement && !initialDownload.x402PaymentRequired)
+  ) {
     throw new CliError(
       `Failed to download skill ${input.id}: ${
         initialDownload.error || "unexpected response"
@@ -110,21 +143,86 @@ export async function installSkill(input: InstallSkillInput) {
   if (input.dryRun) {
     return {
       ok: true,
-      mode: "paid-raw-dry-run",
+      mode: initialDownload.x402PaymentRequired
+        ? "x402-usdc-dry-run"
+        : "paid-raw-dry-run",
       skillId: input.id,
       outputPath,
       metadataPath,
-      priceLamports: initialDownload.requirement.amount,
-      listingAddress: initialDownload.requirement.skillListingAddress,
-      requirement: initialDownload.requirement,
+      priceLamports:
+        initialDownload.requirement?.amount ?? (skill.price_lamports ?? 0),
+      priceUsdcMicros:
+        initialDownload.x402PaymentRequired?.accepts[0]?.amount ??
+        skill.price_usdc_micros ??
+        null,
+      listingAddress:
+        initialDownload.requirement?.skillListingAddress ??
+        skill.on_chain_address ??
+        null,
+      requirement:
+        initialDownload.x402PaymentRequired ?? initialDownload.requirement,
       dryRun: true,
     };
   }
 
   if (!input.keypairPath) {
     throw new CliError(
-      "Paid installs require --keypair so the CLI can purchase on-chain and sign the canonical X-AgentVouch-Auth payload."
+      "Paid installs require --keypair so the CLI can either reuse a prior entitlement or complete the required payment flow."
     );
+  }
+
+  if (initialDownload.x402PaymentRequired) {
+    const authHeader =
+      skill.on_chain_address !== null
+        ? JSON.stringify(
+            createDownloadAuthPayload(
+              loadKeypair(input.keypairPath),
+              input.id,
+              skill.on_chain_address
+            )
+          )
+        : undefined;
+
+    const paidFetch = await createX402Fetch({
+      authHeader,
+      rpcUrl: input.rpcUrl,
+      keypairPath: input.keypairPath,
+    });
+    const paidDownload = await api.downloadRaw(input.id, {
+      fetchImpl: paidFetch,
+    });
+
+    if (!paidDownload.ok || paidDownload.content === undefined) {
+      throw new CliError(
+        `USDC x402 payment completed but download failed: ${
+          paidDownload.error || "unexpected response"
+        }`
+      );
+    }
+
+    await writeUtf8File(outputPath, paidDownload.content);
+    await writeInstalledSkillMetadata(
+      outputPath,
+      buildInstalledSkillMetadata(input.id, skill)
+    );
+
+    return {
+      ok: true,
+      mode: "x402-usdc",
+      skillId: input.id,
+      outputPath,
+      metadataPath,
+      priceLamports: skill.price_lamports ?? 0,
+      priceUsdcMicros:
+        paidDownload.paymentResponse?.amount ??
+        initialDownload.x402PaymentRequired.accepts[0]?.amount ??
+        skill.price_usdc_micros ??
+        null,
+      listingAddress: skill.on_chain_address ?? null,
+      purchaseTx: paidDownload.paymentResponse?.transaction ?? null,
+      alreadyPurchased: !paidDownload.paymentResponse,
+      dryRun: false,
+    };
   }
 
   if (!skill.on_chain_address) {
@@ -144,7 +242,7 @@ export async function installSkill(input: InstallSkillInput) {
     input.id,
     initialDownload.requirement.skillListingAddress
   );
-  const signedDownload = await api.downloadRaw(input.id, auth);
+  const signedDownload = await api.downloadRaw(input.id, { auth });
 
   if (!signedDownload.ok || signedDownload.content === undefined) {
     throw new CliError(
@@ -167,6 +265,7 @@ export async function installSkill(input: InstallSkillInput) {
     outputPath,
     metadataPath,
     priceLamports: initialDownload.requirement.amount,
+    priceUsdcMicros: skill.price_usdc_micros ?? null,
     listingAddress: initialDownload.requirement.skillListingAddress,
     purchaseTx: purchase.tx,
     alreadyPurchased: purchase.alreadyPurchased,

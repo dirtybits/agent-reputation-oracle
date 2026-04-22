@@ -14,6 +14,8 @@ export interface InstalledSkillMetadata {
   skill_slug: string;
   author_pubkey: string;
   price_lamports: number;
+  price_usdc_micros?: string | null;
+  currency_mint?: string | null;
   installed_at: string;
 }
 
@@ -35,6 +37,8 @@ export function buildInstalledSkillMetadata(
     skill_slug: skill.skill_id,
     author_pubkey: skill.author_pubkey,
     price_lamports: skill.price_lamports ?? 0,
+    price_usdc_micros: skill.price_usdc_micros ?? null,
+    currency_mint: skill.currency_mint ?? null,
     installed_at: new Date().toISOString(),
   };
 }
@@ -57,6 +61,12 @@ function isInstalledSkillMetadata(
     typeof candidate.author_pubkey === "string" &&
     typeof candidate.price_lamports === "number" &&
     typeof candidate.installed_at === "string" &&
+    (typeof candidate.price_usdc_micros === "string" ||
+      candidate.price_usdc_micros === null ||
+      candidate.price_usdc_micros === undefined) &&
+    (typeof candidate.currency_mint === "string" ||
+      candidate.currency_mint === null ||
+      candidate.currency_mint === undefined) &&
     (typeof candidate.on_chain_address === "string" ||
       candidate.on_chain_address === null)
   );

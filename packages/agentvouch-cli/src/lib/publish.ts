@@ -12,6 +12,7 @@ export interface PublishSkillInput {
   contact?: string;
   tags: string[];
   priceLamports: number;
+  priceUsdcMicros: string;
   baseUrl: string;
   rpcUrl: string;
   keypairPath: string;
@@ -45,6 +46,7 @@ export async function publishSkill(input: PublishSkillInput) {
         description: input.description,
         tags: input.tags,
         contact: input.contact,
+        price_usdc_micros: input.priceUsdcMicros,
       },
       onChainListing: {
         address: listingAddress,
@@ -62,6 +64,7 @@ export async function publishSkill(input: PublishSkillInput) {
     tags: input.tags,
     contact: input.contact,
     content,
+    price_usdc_micros: input.priceUsdcMicros,
   });
 
   const skillUri = `${input.baseUrl}/api/skills/${repoSkill.id}/raw`;
@@ -85,6 +88,7 @@ export async function publishSkill(input: PublishSkillInput) {
     skillId: input.skillId,
     skillUri,
     listingAddress,
+    priceUsdcMicros: input.priceUsdcMicros,
     repoIpfsCid: repoSkill.ipfs_cid,
     createListingTx: chainListing.tx,
     listingAlreadyExisted: chainListing.alreadyExists,

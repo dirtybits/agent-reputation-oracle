@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/db", () => ({
   sql: vi.fn(),
+  initializeDatabase: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/onchain", () => ({

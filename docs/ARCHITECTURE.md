@@ -81,7 +81,7 @@ The isnad chain analogy from the vision maps as follows:
 ### Three Ways to Interact
 
 1. **Web UI** — Humans browse skills, vouch, publish, and manage disputes at agentvouch.xyz
-2. **x402 API** — Agents buy skills programmatically. `GET /api/skills/{id}/raw` returns 402 for paid skills with instructions to call `purchaseSkill` on-chain, then retry with proof.
+2. **x402 API** — Agents buy skills programmatically. `GET /api/skills/{id}/raw` returns a direct-pay x402 402 for USDC-priced listings and the legacy `purchaseSkill` flow for SOL-only listings.
 3. **Direct RPC** — Any client can interact with the program directly using the generated TypeScript client or raw Anchor calls.
 
 ---
@@ -99,7 +99,7 @@ The isnad chain analogy from the vision maps as follows:
 | `AuthorDispute` | `["author_dispute", author, dispute_id]` | First-class dispute against an author tied to a specific skill listing, with purchase evidence and snapshotted liability scope |
 | `AuthorDisputeVouchLink` | `["author_dispute_vouch_link", author_dispute, vouch]` | Snapshot link from one author dispute to one backing vouch in the author-wide liability set |
 | `SkillListing` | `["skill", author, skill_id]` | Published skill with price, metadata, revenue tracking |
-| `Purchase` | `["purchase", buyer, skill_listing]` | Receipt of a skill purchase by a specific buyer |
+| `Purchase` | `["purchase", buyer, skill_listing]` | Receipt of a SOL-path skill purchase by a specific buyer |
 
 ### Instructions
 
@@ -134,8 +134,8 @@ The isnad chain analogy from the vision maps as follows:
 | `update_skill_listing` | Skill author | Updates price, name, description, URI; moving to free re-checks the AuthorBond floor |
 | `remove_skill_listing` | Skill author | Marks a listing removed and decrements the author's free-listing count when applicable |
 | `close_skill_listing` | Skill author | Closes a removed listing after voucher revenue is drained |
-| `purchase_skill` | Any wallet | Pays price: 60% to author, 40% to skill's voucher pool |
-| `claim_voucher_revenue` | Voucher of skill author | Claims proportional share of unclaimed voucher revenue |
+| `purchase_skill` | Any wallet | SOL path: pays price on-chain, 60% to author, 40% to skill's voucher pool |
+| `claim_voucher_revenue` | Voucher of skill author | Claims proportional share of unclaimed voucher revenue (SOL only in Phase 1) |
 
 **Admin:**
 
@@ -196,7 +196,43 @@ This design keeps seller wallet state from affecting buyer purchase success and 
 
 ## x402 Payment Flow
 
-The x402 protocol gates paid skill content behind on-chain purchases. Free skills can download directly. Paid downloads must go through `purchaseSkill`, then attach a signed `X-AgentVouch-Auth` header.
+AgentVouch supports two payment paths for paid skill content, keyed by the repo skill's pricing:
+
+1. **USDC via x402 (default for new listings)** — listings with `price_usdc_micros` + `currency_mint` in Postgres. Single HTTP round-trip, one wallet signature, facilitator-mediated settlement direct to the author's ATA. AgentVouch records a verified DB receipt for future entitlement checks.
+2. **SOL via legacy `purchaseSkill`** — listings with only `price_lamports`. Two round-trips, two signatures (on-chain `purchaseSkill` + signed `X-AgentVouch-Auth` header). Kept for back-compat with `kung-fu-v2` and other pre-USDC listings.
+
+### Path 1: USDC x402 (preferred for new listings)
+
+```
+Agent                     Server                 Facilitator (CDP or x402.org)        Solana
+  │                         │                              │                              │
+  │─ GET /api/skills/{id}/raw (no PAYMENT-SIGNATURE) ─▶      │                              │
+  │                         │── lookup price_usdc_micros ──│                              │
+  │◀─ 402 + PaymentRequired (x402 v2: resource + accepts) │                              │
+  │   payTo=author_wallet, amount=price_usdc_micros,      │                              │
+  │   extra.feePayer=facilitator signer                   │                              │
+  │                         │                              │                              │
+  │─ sign USDC transfer payload, retry with PAYMENT-SIGNATURE ─▶                           │
+  │                         │── POST /verify (payload, reqs) ──▶                           │
+  │                         │◀── { isValid: true, payer } ─                               │
+  │                         │── POST /settle (payload, reqs) ──▶                           │
+  │                         │                              │── broadcast SPL transfer ──▶ │
+  │                         │                              │             USDC →            │
+  │                         │                              │             author_usdc_ata   │
+  │                         │◀── { success, transaction: sig } ───                         │
+  │                         │── verify tx credits author ATA ────────────────────────────▶ │
+  │                         │── upsert usdc_purchase_receipts ──▶ Postgres                 │
+  │◀─ 200 + SKILL.md + PAYMENT-RESPONSE (tx signature) ─│                              │
+```
+
+Key properties of the USDC path:
+
+- Uses the current x402 v2 Solana exact flow (`PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`) with a facilitator-advertised `feePayer`.
+- The facilitator settles the USDC transfer directly from the buyer's ATA to the author's ATA, derived from the `payTo` owner wallet. The server never custodies USDC.
+- A successful settlement is verified on-chain against the expected author ATA and mint before the content is served.
+- AgentVouch stores a DB receipt keyed by skill + buyer so a buyer can re-download later with `X-AgentVouch-Auth` without paying again.
+
+### Path 2: Legacy SOL `purchaseSkill` (existing listings)
 
 ```
 Agent                          Server                         Solana
@@ -209,9 +245,9 @@ Agent                          Server                         Solana
   │     amount, instruction)     │                              │
   │                              │                              │
   │─── call purchaseSkill ───────────────────────────────────────▶
-  │                              │           60% → author       │
-  │                              │           40% → voucher pool │
-  │                              │           Purchase PDA created│
+  │                              │           60% SOL → author   │
+  │                              │           40% SOL → voucher  │
+  │                              │           Purchase PDA       │
   │                              │                              │
   │─── GET /raw + X-AgentVouch-Auth ───────────────▶           │
   │                              │── verify signed download msg ─▶
@@ -232,7 +268,7 @@ Agent                          Server                         Solana
 - [x] Skill marketplace (list, update, purchase, claim revenue)
 - [x] Free listings gated by minimum AuthorBond
 - [x] 60/40 revenue split enforced on-chain
-- [x] x402 API payment flow routed through `purchaseSkill`
+- [x] x402 API payment flow with direct-pay USDC plus legacy SOL fallback
 - [x] Dispute economics (100% slash to challenger + bond return)
 - [x] Web UI with trust signals, marketplace, competition page
 - [x] Test suites (Anchor program tests, Vitest API/unit tests)
@@ -245,8 +281,8 @@ Agent                          Server                         Solana
 | **Trust threshold ("mutawatir")** | Medium | No formal definition of when a skill is "verified." Could be: N vouches from M unique stakers totaling X SOL. |
 | **Code signing / content integrity** | High | VISION.md's #1 problem. Skills are unsigned. Content hash on-chain (IPFS CID) is a partial solution but doesn't verify safety. |
 | **Audit trail** | Medium | No record of what a skill accesses at runtime. Out of scope for on-chain, but could be an off-chain attestation layer. |
-| **Multi-asset staking (USDC)** | Low | Planned in [docs/multi-asset-staking-and-x402-plan.md](docs/multi-asset-staking-and-x402-plan.md). Deferred. |
-| **Oracle-based USD normalization** | Low | Needed if multi-asset staking ships. Deferred to v2.1. |
+| **Multi-asset staking (USDC)** | Medium | Phase 2 of the x402 + USDC plan. Extends Vouch/Report to carry an `asset_mint` field and adds USDC-denominated slashing. See `.cursor/plans/x402_usdc_compliance_*.plan.md`. |
+| **Oracle-based USD normalization** | Low | Needed if multi-asset staking ships. Deferred to v2.2. |
 | **Marketplace payout escrow** | High | Current purchases pay author proceeds directly to the author wallet, which can fail for cheap listings if the recipient wallet is empty and below rent minimum. Preferred redesign: route proceeds into a program-controlled listing proceeds PDA and add an author-signed withdraw flow. |
 
 ### Open Design Questions

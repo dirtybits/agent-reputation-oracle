@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { initializeDatabase, sql } from "@/lib/db";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { getOnChainPrice } from "@/lib/onchain";
 import { hasOnChainPurchase } from "@/lib/x402";
 import { getErrorMessage } from "@/lib/errors";
+import { hasUsdcPurchaseEntitlement } from "@/lib/usdcPurchases";
 
 const CHAIN_PREFIX = "chain-";
 
 type InstallSkillRow = {
   id: string;
   on_chain_address: string | null;
+  price_usdc_micros?: string | null;
   total_installs?: number;
 };
 
@@ -19,6 +21,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    await initializeDatabase();
     const body = await request.json();
     const { auth } = body as { auth: AuthPayload };
 
@@ -77,7 +80,7 @@ export async function POST(
     }
 
     const rows = await sql()<InstallSkillRow>`
-      SELECT id, on_chain_address FROM skills
+      SELECT id, on_chain_address, price_usdc_micros FROM skills
       WHERE id = ${id}::uuid
     `;
 
@@ -86,6 +89,35 @@ export async function POST(
     }
 
     const skill = rows[0];
+
+    if (skill.price_usdc_micros) {
+      const purchased = await hasUsdcPurchaseEntitlement(
+        id,
+        verification.pubkey
+      ).catch(() => false);
+      if (purchased) {
+        const [updated] = await sql()<
+          Required<Pick<InstallSkillRow, "id" | "total_installs">>
+        >`
+          UPDATE skills
+          SET total_installs = total_installs + 1, updated_at = NOW()
+          WHERE id = ${id}::uuid
+          RETURNING id, total_installs
+        `;
+
+        return NextResponse.json({
+          success: true,
+          skill_id: updated.id,
+          total_installs: updated.total_installs,
+          installed_by: verification.pubkey,
+        });
+      }
+
+      return NextResponse.json(
+        { error: "Paid skills require a verified USDC x402 purchase" },
+        { status: 402 }
+      );
+    }
 
     if (skill.on_chain_address) {
       const listing = await getOnChainPrice(skill.on_chain_address);

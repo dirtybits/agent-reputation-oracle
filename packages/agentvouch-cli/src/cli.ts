@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { convertToTokenAmount } from "@x402/svm";
 import cliPackage from "../package.json";
 import { resolveBaseUrl, resolveRpcUrl } from "./lib/config.js";
 import {
@@ -42,6 +43,20 @@ export function parseAmountSol(value: string): number {
     throw new Error("Expected a positive SOL amount.");
   }
   return parsed;
+}
+
+export function parseUsdcAmount(value: string): string {
+  const normalized = value.trim();
+  if (!/^\d+(\.\d{1,6})?$/.test(normalized)) {
+    throw new Error("Expected a positive USDC amount with up to 6 decimals.");
+  }
+
+  const micros = convertToTokenAmount(normalized, 6);
+  if (BigInt(micros) <= 0n) {
+    throw new Error("Expected a positive USDC amount.");
+  }
+
+  return micros;
 }
 
 export function parsePage(value: string): number {
@@ -315,6 +330,9 @@ addRpcUrlOption(
               `output: ${result.outputPath}`,
               `metadata: ${result.metadataPath}`,
               `price_lamports: ${result.priceLamports}`,
+              ...(result.priceUsdcMicros
+                ? [`price_usdc_micros: ${result.priceUsdcMicros}`]
+                : []),
               ...(result.listingAddress
                 ? [`listing: ${result.listingAddress}`]
                 : []),
@@ -410,8 +428,14 @@ addRpcUrlOption(
       .option("--contact <text>", "Optional author contact info")
       .option("--tags <csv>", "Comma-separated tags", "")
       .option(
+        "--price-usdc <amount>",
+        "USDC price for the primary x402 flow",
+        parseUsdcAmount,
+        parseUsdcAmount("1")
+      )
+      .option(
         "--price-lamports <lamports>",
-        "Listing price in lamports",
+        "Legacy SOL fallback listing price in lamports",
         parseLamports,
         1_000_000
       )
@@ -422,7 +446,7 @@ addRpcUrlOption(
       .option("--json", "Print structured JSON output")
       .addHelpText(
         "after",
-        '\nExamples:\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --price-lamports 0 --keypair ~/.config/solana/id.json --dry-run'
+        '\nExamples:\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --price-usdc 1 --keypair ~/.config/solana/id.json\n  agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --price-usdc 2.5 --price-lamports 1000000 --keypair ~/.config/solana/id.json --dry-run'
       )
       .action(
         async (options: {
@@ -433,6 +457,7 @@ addRpcUrlOption(
           keypair: string;
           contact?: string;
           tags: string;
+          priceUsdc: string;
           priceLamports: number;
           dryRun?: boolean;
           baseUrl: string;
@@ -453,6 +478,7 @@ addRpcUrlOption(
                   .split(",")
                   .map((tag) => tag.trim())
                   .filter(Boolean),
+                priceUsdcMicros: options.priceUsdc,
                 priceLamports: options.priceLamports,
                 dryRun: options.dryRun,
                 baseUrl: resolveBaseUrl(options.baseUrl),
@@ -464,6 +490,7 @@ addRpcUrlOption(
                 ? [
                     `repo_skill_id: ${result.repoRequest.skill_id}`,
                     `listing: ${result.onChainListing.address}`,
+                    `price_usdc_micros: ${result.repoRequest.price_usdc_micros}`,
                     `price_lamports: ${result.onChainListing.priceLamports}`,
                     "dry_run: true",
                   ]
@@ -471,6 +498,7 @@ addRpcUrlOption(
                     `repo_id: ${result.repoSkillId}`,
                     `listing: ${result.listingAddress}`,
                     `skill_uri: ${result.skillUri}`,
+                    `price_usdc_micros: ${result.priceUsdcMicros}`,
                     `price_ipfs_cid: ${result.repoIpfsCid ?? "none"}`,
                     ...(result.createListingTx
                       ? [`create_listing_tx: ${result.createListingTx}`]
@@ -583,6 +611,54 @@ addRpcUrlOption(
             return solana.vouch(options.author, options.amountSol);
           },
           formatCreateVouchResult
+        );
+      }
+    )
+);
+
+addRpcUrlOption(
+  vouch
+    .command("claim")
+    .requiredOption("--author <pubkey>", "Author wallet pubkey you vouched for")
+    .requiredOption(
+      "--skill-listing <address>",
+      "Skill listing PDA that holds unclaimed voucher revenue"
+    )
+    .requiredOption("--keypair <file>", "Solana keypair JSON file")
+    .option("--json", "Print structured JSON output")
+    .addHelpText(
+      "after",
+      "\nExamples:\n  agentvouch vouch claim --author asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw --skill-listing Eq35iaSKECtZAGMkPVSk18tqFDFe6L3hgEhJsUzkByFd --keypair ~/.config/solana/id.json"
+    )
+    .action(
+      async (options: {
+        author: string;
+        skillListing: string;
+        keypair: string;
+        rpcUrl: string;
+        json?: boolean;
+      }) => {
+        await runCommand(
+          options,
+          async () => {
+            const keypair = loadKeypair(options.keypair);
+            const solana = new AgentVouchSolanaClient(
+              keypair,
+              resolveRpcUrl(options.rpcUrl)
+            );
+            return solana.claimVoucherRevenue(
+              options.skillListing,
+              options.author
+            );
+          },
+          (result) => [
+            `claimed voucher revenue`,
+            `listing: ${result.skillListing}`,
+            `vouch: ${result.vouch}`,
+            `voucher_profile: ${result.voucherProfile}`,
+            `author_profile: ${result.authorProfile}`,
+            `tx: ${result.tx}`,
+          ]
         );
       }
     )

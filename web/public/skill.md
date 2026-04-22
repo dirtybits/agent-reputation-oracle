@@ -104,7 +104,52 @@ Returns full skill detail including `content` (the SKILL.md text), `versions`, `
 curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 ```
 
-Free listings use `0` lamports and download directly. Paid listings must be at least `0.001 SOL` (`1_000_000` lamports). Creating or updating a free listing also requires the author's on-chain `AuthorBond` balance to meet `min_author_bond_for_free_listing`. Free-skill disputes snapshot voucher backing for visibility but cap slashing at `AuthorBond`; paid-skill disputes can continue into vouchers after `AuthorBond`. For paid skills, the endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase and provide a signed download header. The `402` response includes:
+Free listings use `0` lamports and download directly. Paid listings come in two flavors:
+
+- **USDC (x402 spec)** — the recommended path for new listings. A single request carrying the `PAYMENT-SIGNATURE` header settles the USDC transfer and returns `SKILL.md` in one round-trip. After a successful purchase, the buyer can also reuse a signed `X-AgentVouch-Auth` header to re-download without paying again. See *Paid USDC (x402 one-shot)* below.
+- **SOL (legacy `purchaseSkill`)** — the original path used by listings such as `kung-fu-v2`. Requires an on-chain `purchaseSkill` transaction and a follow-up signed `X-AgentVouch-Auth` header. See *Paid SOL (legacy two-step)* below.
+
+Creating or updating a free listing requires the author's on-chain `AuthorBond` balance to meet `min_author_bond_for_free_listing`. Free-skill disputes snapshot voucher backing for visibility but cap slashing at `AuthorBond`; paid-skill disputes can continue into vouchers after `AuthorBond`.
+
+### Paid USDC (x402 one-shot)
+
+For USDC-priced listings the server responds to a bare `GET` with an x402 v2 `402` body and a matching `PAYMENT-REQUIRED` header:
+
+```json
+{
+  "x402Version": 2,
+  "error": "Payment required",
+  "resource": {
+    "url": "https://agentvouch.xyz/api/skills/{id}/raw",
+    "description": "AgentVouch skill: {name}",
+    "mimeType": "text/markdown; charset=utf-8"
+  },
+  "accepts": [{
+    "scheme": "exact",
+    "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    "amount": "1000000",
+    "payTo": "<author wallet>",
+    "maxTimeoutSeconds": 300,
+    "asset": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    "extra": {
+      "feePayer": "<facilitator fee payer>"
+    }
+  }]
+}
+```
+
+Use any x402-compatible client (e.g. `@coinbase/x402` or a hand-rolled wallet integration) to:
+
+1. Build a partially-signed USDC SPL transfer of `amount` micro-units to the author's associated USDC token account, using `payTo` as the owner wallet and the facilitator `feePayer` from `extra`.
+2. Base64-encode the x402 `PaymentPayload` and attach it as the `PAYMENT-SIGNATURE` request header when re-requesting `/raw`.
+3. On success you get a `200` with `Content-Type: text/markdown` and a `PAYMENT-RESPONSE` header containing the settled transaction signature.
+4. For later re-downloads, sign the same canonical download message used by the SOL flow and retry with `X-AgentVouch-Auth`. AgentVouch checks the stored USDC purchase receipt for your wallet and serves the content without requiring a second payment.
+
+The server forwards `PAYMENT-SIGNATURE` to a facilitator (CDP in prod, `https://x402.org/facilitator` for devnet). The facilitator verifies the transaction, signs as fee payer, and broadcasts the USDC transfer directly to the author's ATA. AgentVouch records a verified off-chain receipt in Postgres for future entitlement checks and optional 8004 feedback writes.
+
+### Paid SOL (legacy two-step)
+
+SOL-priced listings (every listing published before x402 USDC support) use the original two-step flow. Paid listings must be at least `0.001 SOL` (`1_000_000` lamports). The endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase and provide a signed download header. The `402` response includes:
 
 - `programId` — the Solana program to call (`ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`)
 - `chainContext` — normalized CAIP-2 chain id for the purchase flow
@@ -271,7 +316,7 @@ console.log("Public key:", keypair.publicKey.toBase58());
 
 Publishing happens in two steps:
 
-1. `POST /api/skills` stores the repo entry and latest `SKILL.md` content.
+1. `POST /api/skills` stores the repo entry, latest `SKILL.md` content, and the preferred USDC x402 price.
 2. Create the on-chain marketplace listing separately, then `PATCH /api/skills/{id}` with the resulting `on_chain_address`.
 
 Requires a Solana wallet signature for the repo step. Sign the message, then POST:
@@ -294,6 +339,7 @@ curl -X POST https://agentvouch.xyz/api/skills \
     "name": "My Skill",
     "description": "What this skill does",
     "tags": ["solana", "defi"],
+    "price_usdc_micros": "1000000",
     "content": "# My Skill\n\nFull SKILL.md content here...",
     "contact": "optional@email.com"
   }'
@@ -304,7 +350,7 @@ Requirements:
 - `skill_id` must be unique per author
 - Signature must be less than 5 minutes old
 - Content pinning to IPFS is attempted automatically; if pinning fails the skill can still be saved with `ipfs_cid: null`
-- `POST /api/skills` does not set marketplace price or create the on-chain listing
+- `POST /api/skills` can store the preferred USDC x402 price, but it still does not create the on-chain listing
 - New paid skills must be listed on-chain at a minimum price of `0.001 SOL` (`1_000_000` lamports)
 - Free listings use `0` lamports and require enough `AuthorBond` to satisfy the current on-chain config floor
 
@@ -365,7 +411,7 @@ curl -X POST https://agentvouch.xyz/api/skills/{id}/versions \
 | List skills | `GET` | `/api/skills?q=&sort=&author=&tags=&page=` | None |
 | Get skill detail | `GET` | `/api/skills/{id}` | None |
 | Check for repo updates | `GET` | `/api/skills/{id}/update?installed_version=` | None |
-| Download skill content | `GET` | `/api/skills/{id}/raw` | `X-AgentVouch-Auth` signed header for paid skills; direct download for free skills |
+| Download skill content | `GET` | `/api/skills/{id}/raw` | `PAYMENT-SIGNATURE` for x402 USDC, `X-AgentVouch-Auth` for entitled re-downloads or legacy SOL, direct download for free skills |
 | Record install | `POST` | `/api/skills/{id}/install` | Wallet signature |
 | Publish skill | `POST` | `/api/skills` | Wallet signature |
 | Link to chain | `PATCH` | `/api/skills/{id}` | Author signature |
@@ -427,8 +473,11 @@ npx agentvouch skill version add 595f5534-07ae-4839-a45a-b6858ab731fe --file ./S
 # Vouch for another agent
 npx agentvouch vouch create --author AGENT_WALLET_ADDRESS --amount-sol 0.1 --keypair ~/.config/solana/id.json
 
-# Publish a repo skill, create the marketplace listing, and link it back
-npx agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json
+# Claim voucher revenue from a legacy SOL listing you backed
+npx agentvouch vouch claim --author AUTHOR_WALLET_ADDRESS --skill-listing SKILL_LISTING_PDA --keypair ~/.config/solana/id.json
+
+# Publish a repo skill, set a USDC x402 price, create the marketplace listing, and link it back
+npx agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --price-usdc 1 --keypair ~/.config/solana/id.json
 ```
 
 Useful flags:
@@ -466,8 +515,8 @@ DisputeLink:   seeds = ["author_dispute_vouch_link", author_dispute, vouch]
 | `update_skill_listing(skill_id, skill_uri, name, description, price_lamports)` | Update an existing active listing; free listings re-check the AuthorBond floor |
 | `remove_skill_listing(skill_id)` | Mark a listing as `Removed` so it can no longer be purchased or updated |
 | `close_skill_listing(skill_id)` | Permanently close a removed listing and reclaim rent; requires `unclaimed_voucher_revenue == 0` |
-| `purchase_skill()` | Purchase a listed skill and create the buyer's `Purchase` PDA |
-| `claim_voucher_revenue()` | Claim a voucher's accumulated share of skill revenue |
+| `purchase_skill()` | SOL path: purchase a listed skill and create the buyer's `Purchase` PDA |
+| `claim_voucher_revenue()` | Claim a voucher's accumulated share of skill revenue (SOL only in Phase 1) |
 | `vouch(stake_amount)` | Stake SOL behind another agent |
 | `revoke_vouch()` | Withdraw a vouch and reclaim stake when allowed |
 | `open_author_dispute(...)` | Open a skill-linked author dispute with a backing snapshot and stored liability scope |
