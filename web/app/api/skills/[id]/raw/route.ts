@@ -32,7 +32,6 @@ import {
   hasUsdcPurchaseEntitlement,
   recordUsdcPurchaseReceipt,
 } from "@/lib/usdcPurchases";
-import { writeUsdcPurchaseFeedback } from "@/lib/reputation8004";
 
 type RawSkillContentRow = {
   id: string;
@@ -303,14 +302,6 @@ async function handleUsdcDirect(
     );
 
     await incrementInstalls(skillDbId);
-
-    void writeUsdcPurchaseFeedback({
-      authorWalletPubkey: skill.author_pubkey,
-      buyerWalletPubkey: payer,
-      txSignature: settle.transaction,
-      skillId: skillDbId,
-      endpoint: `/api/skills/${skillDbId}/raw`,
-    });
 
     const settleResponse: X402SettleResponse = {
       success: true,
