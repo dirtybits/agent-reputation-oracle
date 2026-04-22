@@ -24,6 +24,7 @@ async function main() {
 
   const rootIndexPath = path.join(outputPath, "src/generated/index.ts");
   const rootIndex = fs.readFileSync(rootIndexPath, "utf-8");
+  const programsIndexPath = path.join(outputPath, "src/generated/programs/index.ts");
   const instructionsBarrel = [
     'export * from "./instructions/adminMigrateAgent";',
     'export * from "./instructions/claimVoucherRevenue";',
@@ -58,6 +59,17 @@ async function main() {
   fs.writeFileSync(
     rootIndexPath,
     rootIndex.replace('export * from "./instructions";', instructionsBarrel)
+  );
+
+  fs.writeFileSync(
+    programsIndexPath,
+    [
+      'import type { Address } from "@solana/kit";',
+      "",
+      'export const REPUTATION_ORACLE_PROGRAM_ADDRESS =',
+      '  "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf" as Address<"ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf">;',
+      "",
+    ].join("\n")
   );
 
   console.log("Client generated at:", outputPath);
