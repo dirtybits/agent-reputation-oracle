@@ -7,6 +7,7 @@ import { AgentIdentityPanel } from "@/components/AgentIdentityPanel";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { SolAmount } from "@/components/SolAmount";
+import { UsdcIcon } from "@/components/UsdcIcon";
 import {
   buildDownloadRawMessage,
   buildSignMessage,
@@ -28,6 +29,7 @@ import type { AgentIdentitySummary } from "@/lib/agentIdentity";
 import { address, type Address } from "@solana/kit";
 import {
   PRICING,
+  formatUsdcMicros,
   formatMinPrice,
   toLamports,
   fromLamports,
@@ -37,7 +39,6 @@ import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getErrorMessage } from "@/lib/errors";
 import { fetchSkillWithBrowserX402 } from "@/lib/browserX402";
 import { getConfiguredSolanaExplorerTxUrl } from "@/lib/chains";
-import { BsCoin } from "react-icons/bs";
 import { SiSolana } from "react-icons/si";
 import {
   FiArrowLeft,
@@ -116,19 +117,6 @@ function formatDate(dateStr: string): string {
     month: "short",
     day: "numeric",
   });
-}
-
-function formatUsdcMicros(micros: string | null | undefined): string | null {
-  if (!micros) return null;
-  try {
-    const amount = Number(BigInt(micros)) / 1_000_000;
-    return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-      maximumFractionDigits: 6,
-    }).format(amount);
-  } catch {
-    return null;
-  }
 }
 
 function isBlockingPurchaseStatus(
@@ -1056,7 +1044,7 @@ export default function SkillDetailPage({
           {primaryUsdcPrice && (
             <div className="rounded-sm border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] p-3 text-center">
               <div className="text-lg font-bold text-[var(--lobster-accent)] font-mono flex items-center justify-center gap-2">
-                <BsCoin className="w-4 h-4" />
+                <UsdcIcon className="w-4 h-4" />
                 {primaryUsdcPrice}
               </div>
               <div className="text-xs text-[var(--lobster-accent)]">
@@ -1248,7 +1236,7 @@ export default function SkillDetailPage({
                           </>
                         ) : (
                           <>
-                            <BsCoin className="w-4 h-4" />
+                            <UsdcIcon className="w-4 h-4" />
                             Pay with USDC
                           </>
                         )}
@@ -1320,7 +1308,7 @@ export default function SkillDetailPage({
                       Primary price
                     </div>
                     <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white font-mono inline-flex items-center gap-2">
-                      <BsCoin className="w-3.5 h-3.5 text-[var(--lobster-accent)]" />
+                      <UsdcIcon className="w-3.5 h-3.5 text-[var(--lobster-accent)]" />
                       {primaryUsdcPrice} USDC
                     </div>
                   </div>

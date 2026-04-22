@@ -11,8 +11,12 @@ describe("SkillPreviewCard source", () => {
 
     expect(source).toContain("price_usdc_micros");
     expect(source).toContain('skill.payment_flow === "x402-usdc"');
+    expect(source).toContain("UsdcIcon");
     expect(source).toContain("Pay with USDC");
     expect(source).toContain("Connect Wallet to Pay");
     expect(source).toContain("USDC");
+    expect(source.indexOf(") : hasPurchased ? (")).toBeLessThan(
+      source.indexOf(") : hasUsdcPrimary ? (")
+    );
   });
 });

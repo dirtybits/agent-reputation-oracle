@@ -31,6 +31,7 @@ describe("skill detail source", () => {
     expect(source).toContain("/docs#paid-skill-download");
     expect(source).toContain("Call purchaseSkill on-chain");
     expect(source).toContain("buyerHasPurchased");
+    expect(source).toContain("UsdcIcon");
     expect(source).toContain("Pay with USDC");
     expect(source).toContain("Use SOL Fallback");
     expect(source).toContain("Buy & Unlock");

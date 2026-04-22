@@ -46,6 +46,21 @@ export function formatSolAmount(
   }).format(fromLamports(lamports));
 }
 
+export function formatUsdcMicros(
+  micros: string | null | undefined
+): string | null {
+  if (!micros) return null;
+  try {
+    const amount = Number(BigInt(micros)) / 1_000_000;
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 6,
+    }).format(amount);
+  } catch {
+    return null;
+  }
+}
+
 export function toLamports(sol: number): number {
   return Math.round(sol * 10 ** PRICING.SOL.decimals);
 }

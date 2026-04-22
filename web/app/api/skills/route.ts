@@ -32,6 +32,8 @@ import {
 import { getErrorMessage } from "@/lib/errors";
 import { listOnChainSkillListings } from "@/lib/onchain";
 import { DEFAULT_SOLANA_RPC_URL } from "@/lib/solanaRpc";
+import { hasUsdcPurchaseEntitlement } from "@/lib/usdcPurchases";
+import { hasOnChainPurchase } from "@/lib/x402";
 import { address, createSolanaRpc, isAddress } from "@solana/kit";
 import { getConfiguredUsdcMint } from "@/lib/x402";
 
@@ -321,24 +323,42 @@ export async function GET(request: NextRequest) {
         .filter(isAddress)
         .map((pubkey) => address(pubkey)),
     });
-    const pagedWithPricing = paged.map((skill) => {
-      const creatorPriceLamports = skill.price_usdc_micros
-        ? 0n
-        : BigInt(skill.price_lamports ?? 0);
-      const preflight = serializePurchasePreflight(
-        assessPurchasePreflight({
-          context: preflightContext,
-          priceLamports: creatorPriceLamports,
-          author: !skill.price_usdc_micros && isAddress(skill.author_pubkey)
-            ? address(skill.author_pubkey)
-            : null,
-        })
-      );
-      return {
-        ...skill,
-        ...preflight,
-      };
-    });
+    const pagedWithPricing = await Promise.all(
+      paged.map(async (skill) => {
+        const creatorPriceLamports = skill.price_usdc_micros
+          ? 0n
+          : BigInt(skill.price_lamports ?? 0);
+        const preflight = serializePurchasePreflight(
+          assessPurchasePreflight({
+            context: preflightContext,
+            priceLamports: creatorPriceLamports,
+            author: !skill.price_usdc_micros && isAddress(skill.author_pubkey)
+              ? address(skill.author_pubkey)
+              : null,
+          })
+        );
+        const buyerHasPurchased = buyerAddress
+          ? skill.price_usdc_micros
+            ? skill.source === "repo"
+              ? await hasUsdcPurchaseEntitlement(
+                  skill.id,
+                  String(buyerAddress)
+                ).catch(() => false)
+              : false
+            : skill.on_chain_address && (skill.price_lamports ?? 0) > 0
+              ? await hasOnChainPurchase(
+                  String(buyerAddress),
+                  String(skill.on_chain_address)
+                ).catch(() => false)
+              : false
+          : false;
+        return {
+          ...skill,
+          ...preflight,
+          buyerHasPurchased,
+        };
+      })
+    );
 
     return NextResponse.json(
       {

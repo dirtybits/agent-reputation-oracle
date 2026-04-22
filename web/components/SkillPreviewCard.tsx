@@ -14,13 +14,14 @@ import {
 } from "react-icons/fi";
 import { LiaCoinsSolid } from "react-icons/lia";
 import { SolAmount } from "@/components/SolAmount";
+import { UsdcIcon } from "@/components/UsdcIcon";
 import { getAuthorReportStatus, type TrustData } from "@/components/TrustBadge";
 import {
   navButtonFlexClass,
   navButtonPrimaryFlexClass,
   navButtonSizeClass,
 } from "@/lib/buttonStyles";
-import { formatSolAmount } from "@/lib/pricing";
+import { formatSolAmount, formatUsdcMicros } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 
 interface SkillPreviewCardSkill {
@@ -86,19 +87,6 @@ function shortAddr(addr: string): string {
 
 function formatSol(lamports: number): string {
   return `${formatSolAmount(lamports)} SOL`;
-}
-
-function formatUsdcMicros(micros: string | null | undefined): string | null {
-  if (!micros) return null;
-  try {
-    const amount = Number(BigInt(micros)) / 1_000_000;
-    return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-      maximumFractionDigits: 6,
-    }).format(amount);
-  } catch {
-    return null;
-  }
 }
 
 function getToneClass(tone: MetricCellProps["tone"] = "default"): string {
@@ -321,9 +309,10 @@ export default function SkillPreviewCard({
           </div>
           {hasUsdcPrimary ? (
             <span
-              className="shrink-0 inline-flex rounded-sm border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--lobster-accent-strong)]"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-sm border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--lobster-accent-strong)]"
               title={priceTooltip}
             >
+              <UsdcIcon className="h-3.5 w-3.5" />
               {primaryUsdcPrice ? `${primaryUsdcPrice} USDC` : "USDC"}
             </span>
           ) : creatorPriceLamports > 0 ? (
@@ -355,12 +344,21 @@ export default function SkillPreviewCard({
             >
               Your Skill
             </div>
+          ) : hasPurchased ? (
+            <div
+              className={`w-full border border-green-200 bg-green-50 text-center font-medium text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 ${navButtonSizeClass}`}
+            >
+              <span className="inline-flex items-center gap-1">
+                <FiCheckCircle className="h-3 w-3" />
+                Purchased
+              </span>
+            </div>
           ) : hasUsdcPrimary ? (
             <Link
               href={`/skills/${skill.id}`}
               className={`w-full border border-[var(--lobster-accent-border)] bg-[var(--lobster-accent-soft)] text-center font-medium text-[var(--lobster-accent-strong)] transition hover:bg-[var(--lobster-accent-soft-hover)] ${navButtonFlexClass}`}
             >
-              <FiDownload className="h-3 w-3" />
+              <UsdcIcon className="h-3.5 w-3.5" />
               {connected ? "Pay with USDC" : "Connect Wallet to Pay"}
             </Link>
           ) : creatorPriceLamports === 0 ? (
@@ -371,15 +369,6 @@ export default function SkillPreviewCard({
               <FiDownload className="h-3 w-3" />
               Free - View & Install
             </Link>
-          ) : hasPurchased ? (
-            <div
-              className={`w-full border border-green-200 bg-green-50 text-center font-medium text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 ${navButtonSizeClass}`}
-            >
-              <span className="inline-flex items-center gap-1">
-                <FiCheckCircle className="h-3 w-3" />
-                Purchased
-              </span>
-            </div>
           ) : purchaseBlocked ? (
             <div
               className="relative"

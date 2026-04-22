@@ -4,9 +4,9 @@ import { Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { useWalletConnection } from "@solana/react-hooks";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { BsCoin } from "react-icons/bs";
 import { AgentProfileSetupCard } from "@/components/AgentProfileSetupCard";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
+import { UsdcIcon } from "@/components/UsdcIcon";
 import { encodeBase64 } from "@/lib/base64";
 import {
   navButtonPrimaryInlineClass,
@@ -874,7 +874,7 @@ function PublishSkillPageInner() {
           <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 mb-6">
             <div className="mb-4 space-y-2">
               <div className="flex items-center gap-2">
-                <BsCoin className="w-4 h-4 text-[var(--lobster-accent)]" />
+                <UsdcIcon className="w-4 h-4 text-[var(--lobster-accent)]" />
                 <span className="text-sm font-semibold text-gray-900 dark:text-white">
                   Payment Mode
                 </span>
@@ -890,7 +890,7 @@ function PublishSkillPageInner() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-sm border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <BsCoin className="w-4 h-4 text-[var(--lobster-accent)]" />
+                  <UsdcIcon className="w-4 h-4 text-[var(--lobster-accent)]" />
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     Primary price
                   </span>

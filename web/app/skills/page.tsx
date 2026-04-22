@@ -13,13 +13,14 @@ import { type Address } from "@solana/kit";
 import Link from "next/link";
 import { useMarketplaceOracle } from "@/hooks/useMarketplaceOracle";
 import { getConfiguredSolanaExplorerTxUrl } from "@/lib/chains";
+import { UsdcIcon } from "@/components/UsdcIcon";
 import {
   navButtonFlexClass,
   navButtonInlineClass,
   navButtonPrimaryFlexClass,
   navButtonPrimaryInlineClass,
 } from "@/lib/buttonStyles";
-import { formatSolAmount } from "@/lib/pricing";
+import { formatSolAmount, formatUsdcMicros } from "@/lib/pricing";
 import SkillPreviewCard from "@/components/SkillPreviewCard";
 import { SolAmount } from "@/components/SolAmount";
 import type { TrustData } from "@/components/TrustBadge";
@@ -80,6 +81,7 @@ interface SkillRow {
   purchasePreflightStatus?: PurchasePreflightStatus;
   purchasePreflightMessage?: string | null;
   priceDisclosure?: string | null;
+  buyerHasPurchased?: boolean;
 }
 
 interface ApiResponse {
@@ -94,16 +96,44 @@ interface ApiResponse {
 
 type SkillListingData = { publicKey: Address; account: SkillListing };
 type PurchaseData = { publicKey: Address; account: Purchase };
+type ActivityRepoListing = {
+  id: string;
+  name: string;
+  author_pubkey: string;
+  on_chain_address: string | null;
+  price_lamports: number | null;
+  price_usdc_micros: string | null;
+  currency_mint: string | null;
+  payment_flow: "free" | "legacy-sol" | "x402-usdc";
+};
+type ActivityUsdcPurchase = {
+  payment_tx_signature: string;
+  buyer_pubkey: string;
+  currency_mint: string;
+  amount_micros: string;
+  verified_at: string;
+  skill_db_id: string;
+  skill_name: string;
+  author_pubkey: string;
+  on_chain_address: string | null;
+  price_usdc_micros: string | null;
+  price_lamports: number | null;
+};
+type ActivityResponse = {
+  repoListings: ActivityRepoListing[];
+  usdcPurchases: ActivityUsdcPurchase[];
+};
 type FeedItem = {
+  id: string;
   type: "purchase" | "listing";
-  publicKey: Address;
-  actor: Address;
-  skillListing: Address;
+  actor: string;
+  skillListing: string | null;
   skillName: string;
   skillRepoId: string | null;
-  author: Address;
+  author: string | null;
   timestamp: number;
-  priceLamports: number;
+  priceLamports: number | null;
+  priceUsdcMicros: string | null;
 };
 
 type SortOption = "newest" | "installs" | "trusted" | "name";
@@ -222,42 +252,85 @@ export default function MarketplacePage() {
   }, [page, publicKey, search, sort]);
 
   const loadFeed = useCallback(
-    async (
-      resolvedListings: SkillListingData[],
-      repoMap: Map<string, string>
-    ) => {
+    async (resolvedListings: SkillListingData[]) => {
       setFeedLoading(true);
       try {
-        const purchases = await oracle.getAllPurchases();
+        const [purchases, activityRes] = await Promise.all([
+          oracle.getAllPurchases(),
+          fetch("/api/skills/activity"),
+        ]);
+        if (!activityRes.ok) {
+          throw new Error("Failed to fetch marketplace activity");
+        }
+        const activity = (await activityRes.json()) as ActivityResponse;
         const listingMap = new Map(
           resolvedListings.map((l) => [l.publicKey as string, l])
         );
-        const purchaseItems: FeedItem[] = purchases.map((p) => {
-          const listing = listingMap.get(p.account.skillListing as string);
+        const repoListingMap = new Map(
+          activity.repoListings
+            .filter(
+              (listing): listing is ActivityRepoListing & {
+                on_chain_address: string;
+              } => Boolean(listing.on_chain_address)
+            )
+            .map((listing) => [listing.on_chain_address, listing])
+        );
+        const purchaseItems: FeedItem[] = purchases.map((purchase) => {
+          const skillListing = String(purchase.account.skillListing);
+          const listing = listingMap.get(skillListing);
+          const repoListing = repoListingMap.get(skillListing);
           return {
+            id: String(purchase.publicKey),
             type: "purchase",
-            publicKey: p.publicKey,
-            actor: p.account.buyer,
-            skillListing: p.account.skillListing,
-            skillName: listing?.account.name ?? "Unknown Skill",
-            skillRepoId: repoMap.get(p.account.skillListing as string) ?? null,
-            author: listing?.account.author ?? ("" as Address),
-            timestamp: Number(p.account.purchasedAt),
-            priceLamports: Number(p.account.pricePaid),
+            actor: String(purchase.account.buyer),
+            skillListing,
+            skillName: repoListing?.name ?? listing?.account.name ?? "Unknown Skill",
+            skillRepoId: repoListing?.id ?? null,
+            author: repoListing?.author_pubkey ?? String(listing?.account.author ?? ""),
+            timestamp: Number(purchase.account.purchasedAt),
+            priceLamports: Number(purchase.account.pricePaid),
+            priceUsdcMicros: null,
           };
         });
-        const listingItems: FeedItem[] = resolvedListings.map((listing) => ({
-          type: "listing",
-          publicKey: listing.publicKey,
-          actor: listing.account.author,
-          skillListing: listing.publicKey,
-          skillName: listing.account.name,
-          skillRepoId: repoMap.get(listing.publicKey as string) ?? null,
-          author: listing.account.author,
-          timestamp: Number(listing.account.createdAt),
-          priceLamports: Number(listing.account.priceLamports),
-        }));
-        const items: FeedItem[] = [...purchaseItems, ...listingItems]
+        const listingItems: FeedItem[] = resolvedListings.map((listing) => {
+          const skillListing = String(listing.publicKey);
+          const repoListing = repoListingMap.get(skillListing);
+          return {
+            id: skillListing,
+            type: "listing",
+            actor: repoListing?.author_pubkey ?? String(listing.account.author),
+            skillListing,
+            skillName: repoListing?.name ?? listing.account.name,
+            skillRepoId: repoListing?.id ?? null,
+            author: repoListing?.author_pubkey ?? String(listing.account.author),
+            timestamp: Number(listing.account.createdAt),
+            priceLamports: repoListing?.price_usdc_micros
+              ? null
+              : Number(listing.account.priceLamports),
+            priceUsdcMicros: repoListing?.price_usdc_micros ?? null,
+          };
+        });
+        const usdcPurchaseItems: FeedItem[] = activity.usdcPurchases.map(
+          (purchase) => ({
+            id: `usdc-${purchase.payment_tx_signature}`,
+            type: "purchase",
+            actor: purchase.buyer_pubkey,
+            skillListing: purchase.on_chain_address,
+            skillName: purchase.skill_name,
+            skillRepoId: purchase.skill_db_id,
+            author: purchase.author_pubkey,
+            timestamp: Math.floor(
+              new Date(purchase.verified_at).getTime() / 1000
+            ),
+            priceLamports: null,
+            priceUsdcMicros: purchase.amount_micros,
+          })
+        );
+        const items: FeedItem[] = [
+          ...purchaseItems,
+          ...listingItems,
+          ...usdcPurchaseItems,
+        ]
           .sort((a, b) => b.timestamp - a.timestamp)
           .slice(0, 20);
         setFeedItems(items);
@@ -273,17 +346,8 @@ export default function MarketplacePage() {
   const loadListings = useCallback(async () => {
     try {
       const all = await oracle.getAllSkillListings();
-      const UUID_RE = /\/api\/skills\/([0-9a-f-]{36})\/raw/i;
-      const repoMap = new Map<string, string>(
-        all
-          .map((l) => {
-            const match = l.account.skillUri?.match(UUID_RE);
-            return match ? [l.publicKey as string, match[1]] : null;
-          })
-          .filter((entry): entry is [string, string] => entry !== null)
-      );
       setListings(all);
-      void loadFeed(all, repoMap);
+      void loadFeed(all);
     } catch (e) {
       console.error("Failed to load listings:", e);
     }
@@ -689,11 +753,13 @@ export default function MarketplacePage() {
                         (skill.total_installs ?? 0) +
                         (skill.total_downloads ?? 0);
                       const listing = getListingForSkill(skill);
-                      const hasPurchased = listing
-                        ? purchasedSkillListingKeys.has(
-                            String(listing.publicKey)
-                          )
-                        : false;
+                      const hasPurchased =
+                        Boolean(skill.buyerHasPurchased) ||
+                        (listing
+                          ? purchasedSkillListingKeys.has(
+                              String(listing.publicKey)
+                            )
+                          : false);
                       const isOwn =
                         publicKey &&
                         skill.author_pubkey === (publicKey as string);
@@ -794,7 +860,7 @@ export default function MarketplacePage() {
                   <ul className="divide-y divide-gray-50 dark:divide-gray-800/50 max-h-[520px] overflow-y-auto">
                     {feedItems.map((item) => (
                       <li
-                        key={item.publicKey}
+                        key={item.id}
                         className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition"
                       >
                         <p className="text-xs text-gray-900 dark:text-gray-100 leading-relaxed">
@@ -834,14 +900,19 @@ export default function MarketplacePage() {
                             <FiClock className="w-3 h-3" />
                             {timeAgo(item.timestamp)}
                           </span>
-                          {item.priceLamports > 0 && (
+                          {item.priceUsdcMicros ? (
+                            <span className="text-xs font-mono text-[var(--lobster-accent)] inline-flex items-center gap-1">
+                              <UsdcIcon className="w-3 h-3" />
+                              {formatUsdcMicros(item.priceUsdcMicros)} USDC
+                            </span>
+                          ) : item.priceLamports && item.priceLamports > 0 ? (
                             <span className="text-xs font-mono text-green-600 dark:text-green-400">
                               <SolAmount
                                 amount={formatSol(item.priceLamports)}
                                 iconClassName="w-3 h-3"
                               />
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       </li>
                     ))}
