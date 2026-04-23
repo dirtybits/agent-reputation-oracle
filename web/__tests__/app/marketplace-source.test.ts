@@ -13,5 +13,7 @@ describe("marketplace source", () => {
     expect(source).toContain("priceUsdcMicros");
     expect(source).toContain("UsdcIcon");
     expect(source).toContain("buyerHasPurchased");
+    expect(source).toContain('skill.source === "repo" || Boolean(listing)');
+    expect(source).toContain("hasAccessPath={hasAccessPath}");
   });
 });

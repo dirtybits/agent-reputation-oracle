@@ -779,11 +779,13 @@ export default function MarketplacePage() {
                       const purchaseBlocked =
                         creatorPrice > 0 &&
                         isBlockingPurchaseStatus(purchasePreflightStatus);
+                      const hasAccessPath =
+                        skill.source === "repo" || Boolean(listing);
                       return (
                         <SkillPreviewCard
                           key={skill.id}
                           skill={skill}
-                          hasListing={Boolean(listing)}
+                          hasAccessPath={hasAccessPath}
                           creatorPriceLamports={creatorPrice}
                           estimatedTotalLamports={estimatedTotal}
                           downloads={downloads}

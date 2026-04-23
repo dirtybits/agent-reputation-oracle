@@ -44,7 +44,7 @@ interface SkillPreviewCardSkill {
 
 interface SkillPreviewCardProps {
   skill: SkillPreviewCardSkill;
-  hasListing: boolean;
+  hasAccessPath: boolean;
   creatorPriceLamports: number;
   estimatedTotalLamports: number;
   downloads: number;
@@ -151,7 +151,7 @@ function AuthorMetricRow({ authorPubkey }: { authorPubkey: string }) {
 
 export default function SkillPreviewCard({
   skill,
-  hasListing,
+  hasAccessPath,
   creatorPriceLamports,
   estimatedTotalLamports,
   downloads,
@@ -325,7 +325,7 @@ export default function SkillPreviewCard({
                 iconClassName="h-3 w-3"
               />
             </span>
-          ) : hasListing ? (
+          ) : hasAccessPath ? (
             <span
               className="shrink-0 rounded-full bg-[var(--sea-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--sea-accent-strong)]"
               title={priceTooltip}
@@ -336,7 +336,7 @@ export default function SkillPreviewCard({
         </div>
       </div>
 
-      {hasListing && (
+      {hasAccessPath && (
         <div className="mt-4 border-t border-gray-100 pt-3 dark:border-gray-800">
           {isOwn ? (
             <div
