@@ -34,6 +34,8 @@ describe("skill detail source", () => {
     expect(source).toContain("UsdcIcon");
     expect(source).toContain("Pay with USDC");
     expect(source).toContain("Use SOL Fallback");
+    expect(source).toContain("getConfiguredSolanaExplorerAddressUrl");
+    expect(source).toContain("View PDA");
     expect(source).toContain("Buy & Unlock");
     expect(source).toContain("Sign & Download");
     expect(source).toContain("buildDownloadRawMessage");

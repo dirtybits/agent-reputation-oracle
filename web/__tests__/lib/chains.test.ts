@@ -5,6 +5,7 @@ import {
   SOLANA_MAINNET_CHAIN_CONTEXT,
   getConfiguredSolanaChainDisplayLabel,
   getConfiguredSolanaChainContext,
+  getConfiguredSolanaExplorerAddressUrl,
   getConfiguredSolanaExplorerTxUrl,
   getConfiguredSolanaFmTxUrl,
   getConfiguredSolanaRpcTargetLabel,
@@ -60,6 +61,9 @@ describe("chains", () => {
     expect(getConfiguredSolanaExplorerTxUrl("abc")).toBe(
       "https://explorer.solana.com/tx/abc?cluster=devnet"
     );
+    expect(getConfiguredSolanaExplorerAddressUrl("abc")).toBe(
+      "https://explorer.solana.com/address/abc?cluster=devnet"
+    );
   });
 
   it("derives configured Solana labels and explorer URLs for mainnet", () => {
@@ -73,6 +77,9 @@ describe("chains", () => {
     );
     expect(getConfiguredSolanaExplorerTxUrl("abc")).toBe(
       "https://explorer.solana.com/tx/abc"
+    );
+    expect(getConfiguredSolanaExplorerAddressUrl("abc")).toBe(
+      "https://explorer.solana.com/address/abc"
     );
   });
 

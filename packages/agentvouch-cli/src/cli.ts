@@ -17,7 +17,11 @@ import {
 } from "./lib/format.js";
 import { installSkill } from "./lib/install.js";
 import { runCommand } from "./lib/output.js";
-import { addSkillVersion, publishSkill } from "./lib/publish.js";
+import {
+  addSkillVersion,
+  linkSkillListing,
+  publishSkill,
+} from "./lib/publish.js";
 import { loadKeypair } from "./lib/signer.js";
 import { AgentVouchSolanaClient } from "./lib/solana.js";
 import { updateSkill } from "./lib/update.js";
@@ -504,6 +508,71 @@ addRpcUrlOption(
                       ? [`create_listing_tx: ${result.createListingTx}`]
                       : []),
                   ]),
+            ]
+          );
+        }
+      )
+  )
+);
+
+addBaseUrlOption(
+  addRpcUrlOption(
+    skill
+      .command("link-listing")
+      .argument("<id>", "Repo skill UUID to link to an on-chain SkillListing")
+      .requiredOption("--keypair <file>", "Author Solana keypair JSON file")
+      .option(
+        "--price-lamports <lamports>",
+        "Legacy SOL fallback listing price in lamports",
+        parseLamports,
+        1_000_000
+      )
+      .option(
+        "--dry-run",
+        "Preview the on-chain listing and repo link without sending them"
+      )
+      .option("--json", "Print structured JSON output")
+      .addHelpText(
+        "after",
+        "\nExamples:\n  agentvouch skill link-listing 595f5534-07ae-4839-a45a-b6858ab731fe --price-lamports 1000000 --keypair ~/.config/solana/id.json\n  agentvouch skill link-listing 595f5534-07ae-4839-a45a-b6858ab731fe --dry-run --json --keypair ~/.config/solana/id.json"
+      )
+      .action(
+        async (
+          id: string,
+          options: {
+            keypair: string;
+            priceLamports: number;
+            dryRun?: boolean;
+            baseUrl: string;
+            rpcUrl: string;
+            json?: boolean;
+          }
+        ) => {
+          await runCommand(
+            options,
+            async () =>
+              linkSkillListing({
+                id,
+                keypairPath: options.keypair,
+                priceLamports: options.priceLamports,
+                dryRun: options.dryRun,
+                baseUrl: resolveBaseUrl(options.baseUrl),
+                rpcUrl: resolveRpcUrl(options.rpcUrl),
+              }),
+            (result) => [
+              `linked ${result.skillId}`,
+              `repo_id: ${result.repoSkillId}`,
+              `listing: ${result.listingAddress}`,
+              `skill_uri: ${result.skillUri}`,
+              `price_lamports: ${result.priceLamports}`,
+              ...(result.createListingTx
+                ? [`create_listing_tx: ${result.createListingTx}`]
+                : []),
+              ...(result.listingAlreadyExisted
+                ? ["listing_already_existed: true"]
+                : []),
+              ...(result.alreadyLinked ? ["already_linked: true"] : []),
+              ...(result.mode === "dry-run" ? ["dry_run: true"] : []),
             ]
           );
         }

@@ -1,8 +1,9 @@
 import path from "node:path";
 import { createRepoAuthPayload, loadKeypair } from "./signer.js";
 import { readUtf8File } from "./fs.js";
-import { AgentVouchApiClient } from "./http.js";
+import { AgentVouchApiClient, type SkillRecord } from "./http.js";
 import { AgentVouchSolanaClient } from "./solana.js";
+import { CliError, getErrorMessage } from "./errors.js";
 
 export interface PublishSkillInput {
   file: string;
@@ -25,6 +26,89 @@ export interface AddSkillVersionInput {
   changelog?: string;
   baseUrl: string;
   keypairPath: string;
+}
+
+export interface LinkSkillListingInput {
+  id: string;
+  priceLamports: number;
+  baseUrl: string;
+  rpcUrl: string;
+  keypairPath: string;
+  dryRun?: boolean;
+}
+
+async function linkRepoSkillListing(input: {
+  api: AgentVouchApiClient;
+  solana: AgentVouchSolanaClient;
+  keypairPath: string;
+  baseUrl: string;
+  priceLamports: number;
+  repoSkill: SkillRecord;
+  dryRun?: boolean;
+}) {
+  const authorPubkey = input.solana.authority.toBase58();
+  const { repoSkill } = input;
+  if (repoSkill.source === "chain") {
+    throw new CliError(`Skill ${repoSkill.id} is already an on-chain skill.`);
+  }
+  if (repoSkill.author_pubkey !== authorPubkey) {
+    throw new CliError(
+      `Connected keypair ${authorPubkey} is not the author of repo skill ${repoSkill.id}.`
+    );
+  }
+
+  const listingAddress = input.solana
+    .getSkillListingAddress(repoSkill.skill_id)
+    .toBase58();
+  if (repoSkill.on_chain_address && repoSkill.on_chain_address !== listingAddress) {
+    throw new CliError(
+      `Repo skill ${repoSkill.id} is linked to ${repoSkill.on_chain_address}, expected ${listingAddress}.`
+    );
+  }
+
+  const skillUri = `${input.baseUrl}/api/skills/${repoSkill.id}/raw`;
+  if (input.dryRun) {
+    return {
+      repoSkillId: repoSkill.id,
+      skillId: repoSkill.skill_id,
+      skillUri,
+      listingAddress,
+      priceLamports: input.priceLamports,
+      createListingTx: null as string | null,
+      listingAlreadyExisted: false,
+      alreadyLinked: repoSkill.on_chain_address === listingAddress,
+      mode: "dry-run" as const,
+    };
+  }
+
+  const chainListing = await input.solana.createSkillListing({
+    skillId: repoSkill.skill_id,
+    skillUri,
+    name: repoSkill.name,
+    description: repoSkill.description ?? "",
+    priceLamports: input.priceLamports,
+  });
+
+  const linkAuth = createRepoAuthPayload(
+    loadKeypair(input.keypairPath),
+    "publish-skill"
+  );
+  await input.api.linkSkillListing(repoSkill.id, {
+    auth: linkAuth,
+    on_chain_address: listingAddress,
+  });
+
+  return {
+    repoSkillId: repoSkill.id,
+    skillId: repoSkill.skill_id,
+    skillUri,
+    listingAddress,
+    priceLamports: input.priceLamports,
+    createListingTx: chainListing.tx,
+    listingAlreadyExisted: chainListing.alreadyExists,
+    alreadyLinked: repoSkill.on_chain_address === listingAddress,
+    mode: "linked" as const,
+  };
 }
 
 export async function publishSkill(input: PublishSkillInput) {
@@ -67,31 +151,68 @@ export async function publishSkill(input: PublishSkillInput) {
     price_usdc_micros: input.priceUsdcMicros,
   });
 
-  const skillUri = `${input.baseUrl}/api/skills/${repoSkill.id}/raw`;
-  const chainListing = await solana.createSkillListing({
-    skillId: input.skillId,
-    skillUri,
-    name: input.name,
-    description: input.description,
-    priceLamports: input.priceLamports,
-  });
-
-  const linkAuth = createRepoAuthPayload(keypair, "publish-skill");
-  await api.linkSkillListing(repoSkill.id, {
-    auth: linkAuth,
-    on_chain_address: listingAddress,
-  });
+  let linkResult: Awaited<ReturnType<typeof linkRepoSkillListing>>;
+  try {
+    linkResult = await linkRepoSkillListing({
+      api,
+      solana,
+      keypairPath: input.keypairPath,
+      baseUrl: input.baseUrl,
+      priceLamports: input.priceLamports,
+      repoSkill: {
+        ...repoSkill,
+        author_pubkey: keypair.publicKey.toBase58(),
+        name: input.name,
+        description: input.description,
+        on_chain_address: null,
+        total_installs: 0,
+      },
+    });
+  } catch (error) {
+    throw new CliError(
+      `Repo skill ${repoSkill.id} was published, but the on-chain listing was not linked: ${getErrorMessage(
+        error
+      )}\nRetry with: agentvouch skill link-listing ${repoSkill.id} --price-lamports ${
+        input.priceLamports
+      } --keypair ${input.keypairPath} --base-url ${input.baseUrl} --rpc-url ${
+        input.rpcUrl
+      }`,
+      { data: { repoSkillId: repoSkill.id, cause: error } }
+    );
+  }
 
   return {
     ok: true,
     repoSkillId: repoSkill.id,
     skillId: input.skillId,
-    skillUri,
-    listingAddress,
+    skillUri: linkResult.skillUri,
+    listingAddress: linkResult.listingAddress,
     priceUsdcMicros: input.priceUsdcMicros,
     repoIpfsCid: repoSkill.ipfs_cid,
-    createListingTx: chainListing.tx,
-    listingAlreadyExisted: chainListing.alreadyExists,
+    createListingTx: linkResult.createListingTx,
+    listingAlreadyExisted: linkResult.listingAlreadyExisted,
+  };
+}
+
+export async function linkSkillListing(input: LinkSkillListingInput) {
+  const keypair = loadKeypair(input.keypairPath);
+  const api = new AgentVouchApiClient(input.baseUrl);
+  const solana = new AgentVouchSolanaClient(keypair, input.rpcUrl);
+  const repoSkill = await api.getSkill(input.id);
+
+  const result = await linkRepoSkillListing({
+    api,
+    solana,
+    keypairPath: input.keypairPath,
+    baseUrl: input.baseUrl,
+    priceLamports: input.priceLamports,
+    repoSkill,
+    dryRun: input.dryRun,
+  });
+
+  return {
+    ok: true,
+    ...result,
   };
 }
 

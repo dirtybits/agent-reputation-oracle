@@ -1,11 +1,15 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { buildSignMessage } from "@agentvouch/protocol";
 import { Keypair } from "@solana/web3.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AgentVouchApiClient } from "../src/lib/http.js";
-import { addSkillVersion, publishSkill } from "../src/lib/publish.js";
+import {
+  addSkillVersion,
+  linkSkillListing,
+  publishSkill,
+} from "../src/lib/publish.js";
 import { AgentVouchSolanaClient } from "../src/lib/solana.js";
 
 async function createFixtureFiles() {
@@ -69,6 +73,7 @@ describe("publish flows", () => {
       description: "Books meetings",
       tags: ["calendar", "ops"],
       priceLamports: 1_000_000,
+      priceUsdcMicros: "1000000",
       baseUrl: "https://agentvouch.xyz",
       rpcUrl: "https://api.devnet.solana.com",
       keypairPath,
@@ -92,6 +97,62 @@ describe("publish flows", () => {
         (linkBody?.auth as { timestamp: number }).timestamp
       )
     );
+  });
+
+  it("links an existing repo skill to its deterministic on-chain listing", async () => {
+    const { keypairPath } = await createFixtureFiles();
+    const keypair = Keypair.fromSecretKey(
+      new Uint8Array(JSON.parse(await readFile(keypairPath, "utf8")))
+    );
+    let linkBody: Record<string, unknown> | null = null;
+
+    vi.spyOn(AgentVouchApiClient.prototype, "getSkill").mockResolvedValue({
+      id: "44e50012-b146-426a-ac0f-1056b14bd1fc",
+      skill_id: "usdc-regression-1776901822801",
+      author_pubkey: keypair.publicKey.toBase58(),
+      name: "USDC regression 1650b",
+      description: "Regression test listing",
+      on_chain_address: null,
+      price_usdc_micros: "1000000",
+      total_installs: 0,
+      source: "repo",
+    });
+    vi.spyOn(
+      AgentVouchApiClient.prototype,
+      "linkSkillListing"
+    ).mockImplementation(async (_id, body) => {
+      linkBody = body;
+      return {
+        id: "44e50012-b146-426a-ac0f-1056b14bd1fc",
+        skill_id: "usdc-regression-1776901822801",
+        author_pubkey: keypair.publicKey.toBase58(),
+        name: "USDC regression 1650b",
+        description: "Regression test listing",
+        on_chain_address: String(body.on_chain_address),
+        total_installs: 0,
+      };
+    });
+    vi.spyOn(
+      AgentVouchSolanaClient.prototype,
+      "createSkillListing"
+    ).mockResolvedValue({
+      tx: "mock-create-tx",
+      alreadyExists: false,
+      skillListing: "mock-listing",
+    });
+
+    const result = await linkSkillListing({
+      id: "44e50012-b146-426a-ac0f-1056b14bd1fc",
+      priceLamports: 1_000_000,
+      baseUrl: "https://agentvouch.xyz",
+      rpcUrl: "https://api.devnet.solana.com",
+      keypairPath,
+    });
+
+    expect(result.repoSkillId).toBe("44e50012-b146-426a-ac0f-1056b14bd1fc");
+    expect(result.skillId).toBe("usdc-regression-1776901822801");
+    expect(result.createListingTx).toBe("mock-create-tx");
+    expect(String(linkBody?.on_chain_address)).toBe(result.listingAddress);
   });
 
   it("assembles version update requests", async () => {

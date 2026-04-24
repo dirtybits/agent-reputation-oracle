@@ -164,3 +164,10 @@ export function getConfiguredSolanaExplorerTxUrl(tx: string): string {
   if (cluster) url.searchParams.set("cluster", cluster);
   return url.toString();
 }
+
+export function getConfiguredSolanaExplorerAddressUrl(address: string): string {
+  const url = new URL(`https://explorer.solana.com/address/${address}`);
+  const cluster = getConfiguredSolanaExplorerClusterParam();
+  if (cluster) url.searchParams.set("cluster", cluster);
+  return url.toString();
+}

@@ -38,7 +38,10 @@ import {
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getErrorMessage } from "@/lib/errors";
 import { fetchSkillWithBrowserX402 } from "@/lib/browserX402";
-import { getConfiguredSolanaExplorerTxUrl } from "@/lib/chains";
+import {
+  getConfiguredSolanaExplorerAddressUrl,
+  getConfiguredSolanaExplorerTxUrl,
+} from "@/lib/chains";
 import { SiSolana } from "react-icons/si";
 import {
   FiArrowLeft,
@@ -1697,6 +1700,18 @@ export default function SkillDetailPage({
               <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
                 <FiCheckCircle className="w-4 h-4" />
                 Listed on-chain
+                <a
+                  href={getConfiguredSolanaExplorerAddressUrl(
+                    skill.on_chain_address
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
+                  title={`View listing PDA ${skill.on_chain_address}`}
+                >
+                  View PDA
+                  <FiExternalLink className="w-3 h-3" />
+                </a>
               </div>
               {isAuthor && !editing && (
                 <div className="flex items-center gap-2">
