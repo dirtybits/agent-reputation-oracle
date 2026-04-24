@@ -15,4 +15,17 @@ describe("author page source", () => {
     expect(source).toContain("skill-linked author dispute");
     expect(source).toContain("Free-skill disputes cap slashing at author bond");
   });
+
+  it("clears report route state when dismissing the modal", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "app/author/[pubkey]/page.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain("clearClaimRouteParams");
+    expect(source).toContain('nextParams.delete("report")');
+    expect(source).toContain("claimRouteDismissed");
+    expect(source).toContain("onClick={closeClaimModal}");
+    expect(source).toContain('aria-label="Close report dialog"');
+  });
 });

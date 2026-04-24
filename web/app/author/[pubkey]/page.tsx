@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { useWalletConnection } from "@solana/react-hooks";
 import { address, type Address } from "@solana/kit";
 import Link from "next/link";
@@ -111,6 +116,8 @@ type SkillListingRecord = Awaited<
 
 export default function AuthorProfilePage() {
   const params = useParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const pubkey = params.pubkey as string;
 
@@ -180,6 +187,7 @@ export default function AuthorProfilePage() {
     success: boolean;
     message: string;
   } | null>(null);
+  const [claimRouteDismissed, setClaimRouteDismissed] = useState(false);
   const [claimTx, setClaimTx] = useState<string | null>(null);
   const [claimingRevenueListing, setClaimingRevenueListing] = useState<
     string | null
@@ -694,7 +702,22 @@ export default function AuthorProfilePage() {
     "";
   const registeredAt = Number(profile?.registeredAt ?? 0);
 
+  const clearClaimRouteParams = useCallback(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    const hadClaimRoute =
+      nextParams.has("report") || nextParams.has("skill");
+    if (!hadClaimRoute) return;
+
+    nextParams.delete("report");
+    nextParams.delete("skill");
+    const query = nextParams.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParams]);
+
   const openClaimModal = useCallback(() => {
+    setClaimRouteDismissed(false);
     const requestedSkill = searchParams.get("skill") ?? "";
     const nextSkill = claimSkillOptions.some(
       (skill) => skill.value === requestedSkill
@@ -709,10 +732,12 @@ export default function AuthorProfilePage() {
     setShowClaimModal(true);
   }, [claimSkillOptions, searchParams]);
 
-  const closeClaimModal = () => {
+  const closeClaimModal = useCallback(() => {
     if (claiming) return;
+    setClaimRouteDismissed(true);
     setShowClaimModal(false);
-  };
+    clearClaimRouteParams();
+  }, [claiming, clearClaimRouteParams]);
 
   const handleClaimVoucherRevenue = useCallback(
     async (skillListingAddress: string) => {
@@ -823,7 +848,9 @@ export default function AuthorProfilePage() {
         message: `Report opened${contextLabel}. Free-skill disputes snapshot voucher backing for transparency but cap slashing at author bond; paid-skill disputes can continue into vouchers after author bond.`,
       });
       setClaimTx(tx);
+      setClaimRouteDismissed(true);
       setShowClaimModal(false);
+      clearClaimRouteParams();
       setClaimReason("malicious-skill");
       setClaimSkillContext("");
       setClaimEvidenceUri("");
@@ -842,9 +869,23 @@ export default function AuthorProfilePage() {
   useEffect(() => {
     if (!profile || isOwnProfile) return;
     if (searchParams.get("report") !== "1") return;
+    if (claimRouteDismissed) return;
     if (showClaimModal) return;
     openClaimModal();
-  }, [isOwnProfile, openClaimModal, profile, searchParams, showClaimModal]);
+  }, [
+    claimRouteDismissed,
+    isOwnProfile,
+    openClaimModal,
+    profile,
+    searchParams,
+    showClaimModal,
+  ]);
+
+  useEffect(() => {
+    if (searchParams.get("report") !== "1") {
+      setClaimRouteDismissed(false);
+    }
+  }, [searchParams]);
 
   if (loading) {
     return (
@@ -893,17 +934,32 @@ export default function AuthorProfilePage() {
           )}
 
         {showClaimModal && !isOwnProfile && profile && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="relative w-full max-w-2xl rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-xl">
+          <div
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            role="presentation"
+            onClick={closeClaimModal}
+          >
+            <div
+              className="relative w-full max-w-2xl rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="report-author-title"
+              onClick={(event) => event.stopPropagation()}
+            >
               <button
+                type="button"
                 onClick={closeClaimModal}
+                aria-label="Close report dialog"
                 className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <FiX className="w-4 h-4" />
               </button>
 
               <div className="mb-5 pr-8">
-                <h2 className="text-xl font-heading font-bold text-gray-900 dark:text-white">
+                <h2
+                  id="report-author-title"
+                  className="text-xl font-heading font-bold text-gray-900 dark:text-white"
+                >
                   Report this author
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
@@ -1028,12 +1084,14 @@ export default function AuthorProfilePage() {
 
                   <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button
+                      type="button"
                       onClick={closeClaimModal}
                       className={navButtonSecondaryInlineClass}
                     >
                       Cancel
                     </button>
                     <button
+                      type="button"
                       onClick={handleSubmitClaim}
                       disabled={claiming}
                       className={`sm:min-w-[13rem] ${navButtonPrimaryFlexClass}`}
