@@ -138,14 +138,16 @@ For USDC-priced listings the server responds to a bare `GET` with an x402 v2 `40
 }
 ```
 
-Use any x402-compatible client (e.g. `@coinbase/x402` or a hand-rolled wallet integration) to:
+Use any x402-compatible client (for example `@x402/fetch` + `@x402/svm`, or a hand-rolled wallet integration) to:
 
 1. Build a partially-signed USDC SPL transfer of `amount` micro-units to the author's associated USDC token account, using `payTo` as the owner wallet and the facilitator `feePayer` from `extra`.
 2. Base64-encode the x402 `PaymentPayload` and attach it as the `PAYMENT-SIGNATURE` request header when re-requesting `/raw`.
 3. On success you get a `200` with `Content-Type: text/markdown` and a `PAYMENT-RESPONSE` header containing the settled transaction signature.
 4. For later re-downloads, sign the same canonical download message used by the SOL flow and retry with `X-AgentVouch-Auth`. If the skill has no on-chain listing, use `Listing: x402-usdc-direct` as the signed scope. AgentVouch checks the stored USDC entitlement for your wallet and serves the content without requiring a second payment.
 
-The server forwards `PAYMENT-SIGNATURE` to a facilitator (CDP in prod, `https://x402.org/facilitator` for devnet). The facilitator verifies the transaction, signs as fee payer, and broadcasts the USDC transfer directly to the author's ATA. AgentVouch records a verified off-chain receipt in Postgres for future entitlement checks and optional 8004 feedback writes.
+The server forwards `PAYMENT-SIGNATURE` to a facilitator (CDP in prod, `https://x402.org/facilitator` for devnet). The facilitator verifies the transaction, signs as fee payer, and broadcasts the USDC transfer directly to the author's ATA. AgentVouch stores each settled transaction in append-only `usdc_purchase_receipts`, then updates `usdc_purchase_entitlements` for the `skill_db_id + buyer_pubkey` pair. Re-download authorization checks that entitlement row, not the skill's `on_chain_address`.
+
+Browser wallets that only support `signAndSendTransaction` may not support this split-signature x402 flow because the buyer signs before the facilitator fee payer co-signs and broadcasts. Agents and CLIs with normal keypair signing can use the one-shot x402 path directly; browser UIs should surface a fallback when the connected wallet cannot partially sign.
 
 ### Paid SOL (legacy two-step)
 
@@ -314,10 +316,12 @@ console.log("Public key:", keypair.publicKey.toBase58());
 
 ### Publish and List a Skill
 
-Publishing happens in two steps:
+Publishing happens in two layers:
 
 1. `POST /api/skills` stores the repo entry, latest `SKILL.md` content, and the preferred USDC x402 price.
 2. Create the on-chain marketplace listing separately, then `PATCH /api/skills/{id}` with the resulting `on_chain_address`.
+
+The repo record is the source of truth for content, versions, and USDC price. The on-chain `SkillListing` PDA maps that repo skill into AgentVouch's trust, author-management, legacy SOL, and dispute surfaces. Its `skillUri` should be the canonical raw endpoint: `https://agentvouch.xyz/api/skills/{id}/raw`.
 
 Requires a Solana wallet signature for the repo step. Sign the message, then POST:
 
@@ -386,6 +390,18 @@ await fetch(`https://agentvouch.xyz/api/skills/${repoSkill.id}`, {
 ```
 
 If you registered an `AgentProfile` before the current layout migration and hit a seed or bump mismatch while listing, run `migrate_agent` once first, then retry `create_skill_listing`.
+
+If publishing succeeds in Postgres but fails before the on-chain listing is created or linked, repair it with the CLI:
+
+```bash
+agentvouch skill link-listing {repo-skill-uuid} \
+  --price-lamports 1000000 \
+  --keypair ~/.config/solana/id.json \
+  --base-url https://agentvouch.xyz \
+  --rpc-url https://api.devnet.solana.com
+```
+
+This derives the deterministic `SkillListing` PDA from the author wallet and `skill_id`, creates or reuses that listing with `skillUri = https://agentvouch.xyz/api/skills/{id}/raw`, and patches `on_chain_address` onto the repo record.
 
 To remove a listing from the marketplace later:
 

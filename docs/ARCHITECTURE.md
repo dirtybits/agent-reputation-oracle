@@ -198,7 +198,7 @@ This design keeps seller wallet state from affecting buyer purchase success and 
 
 AgentVouch supports two payment paths for paid skill content, keyed by the repo skill's pricing:
 
-1. **USDC via x402 (default for new listings)** — listings with `price_usdc_micros` + `currency_mint` in Postgres. Single HTTP round-trip, one wallet signature, facilitator-mediated settlement direct to the author's ATA. AgentVouch records a verified DB receipt for future entitlement checks.
+1. **USDC via x402 (default for new listings)** — listings with `price_usdc_micros` + `currency_mint` in Postgres. Single checkout flow, one buyer signature, facilitator-mediated settlement direct to the author's ATA. AgentVouch records append-only payment receipts and maintains a separate entitlement row for future download checks.
 2. **SOL via legacy `purchaseSkill`** — listings with only `price_lamports`. Two round-trips, two signatures (on-chain `purchaseSkill` + signed `X-AgentVouch-Auth` header). Kept for back-compat with `kung-fu-v2` and other pre-USDC listings.
 
 ### Path 1: USDC x402 (preferred for new listings)
@@ -221,7 +221,7 @@ Agent                     Server                 Facilitator (CDP or x402.org)  
   │                         │                              │             author_usdc_ata   │
   │                         │◀── { success, transaction: sig } ───                         │
   │                         │── verify tx credits author ATA ────────────────────────────▶ │
-  │                         │── upsert usdc_purchase_receipts ──▶ Postgres                 │
+  │                         │── append receipt + update entitlement ─▶ Postgres            │
   │◀─ 200 + SKILL.md + PAYMENT-RESPONSE (tx signature) ─│                              │
 ```
 
@@ -230,7 +230,23 @@ Key properties of the USDC path:
 - Uses the current x402 v2 Solana exact flow (`PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`) with a facilitator-advertised `feePayer`.
 - The facilitator settles the USDC transfer directly from the buyer's ATA to the author's ATA, derived from the `payTo` owner wallet. The server never custodies USDC.
 - A successful settlement is verified on-chain against the expected author ATA and mint before the content is served.
-- AgentVouch stores a DB receipt keyed by skill + buyer so a buyer can re-download later with `X-AgentVouch-Auth` without paying again.
+- `usdc_purchase_receipts` is the append-only payment history keyed by unique Solana transaction signature.
+- `usdc_purchase_entitlements` is the mutable access state keyed by `skill_db_id + buyer_pubkey`, pointing at the latest verified receipt.
+- USDC re-downloads check the entitlement row for the signed wallet, not the repo skill's `on_chain_address`. If a repo-backed USDC skill is not yet linked to a `SkillListing` PDA, the signed download scope uses `Listing: x402-usdc-direct`.
+- Browser x402 uses a split-signature Solana transaction: the buyer signs the USDC transfer, then the facilitator signs as fee payer and broadcasts. Wallets that only support `signAndSendTransaction` may need a fallback flow or clear UX because this is not a normal single-wallet send.
+
+### Repo Skill to On-Chain Listing Mapping
+
+Repo-backed skills keep content, versions, and USDC pricing in Postgres. The optional on-chain `SkillListing` PDA gives the same skill an auditable marketplace anchor for trust surfaces, author actions, legacy SOL fallback, and dispute context.
+
+Current mapping rules:
+
+- `skills.id` is the public web/API route segment for repo-backed skills.
+- `skills.skill_id` is the author-scoped stable slug used in publish payloads, CLI output, and `SkillListing` PDA seeds.
+- `skills.on_chain_address` stores the linked `SkillListing` PDA when one exists.
+- New CLI publishes create the repo record first, create or reuse the deterministic on-chain listing second, then patch `on_chain_address` back onto the repo record.
+- The on-chain `skillUri` should point at `https://agentvouch.xyz/api/skills/{id}/raw` so the PDA resolves through the current paid/free download gate.
+- If an earlier publish created a repo skill but failed before linking the PDA, authors can run `agentvouch skill link-listing <repo-skill-id> --keypair <file>` to create or reuse the deterministic listing and patch the repo record.
 
 ### Path 2: Legacy SOL `purchaseSkill` (existing listings)
 

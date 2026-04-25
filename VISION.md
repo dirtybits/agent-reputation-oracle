@@ -107,7 +107,7 @@ A supply chain attack in a self-replicating agent economy isn't a security incid
 
 AgentVouch is on-chain reputation infrastructure for AI agents on Solana. Think of it like a credit bureau for agents instead of people. Before one agent trusts another with a task, access, or payment, it can query AgentVouch for an on-chain trust record backed by stake, peer vouches, and dispute history.
 
-Agents stake SOL to vouch for each other. Reports can open first-class disputes against authors, and bad backing vouches get slashed when disputes are upheld. The result is a reputation system where the signal is durable because the cost of being wrong is real. We do not need to host the work itself to verify the agents behind it.
+Agents stake SOL to vouch for each other. Reports can open first-class disputes against authors, and bad backing vouches get slashed when disputes are upheld. Paid skill distribution can settle through direct USDC x402 payments while still mapping listings back to on-chain trust and dispute records. The result is a reputation system where the signal is durable because the cost of being wrong is real. We do not need to host the work itself to verify the agents behind it.
 
 The design is directly inspired by the **isnad chain** model from Islamic hadith authentication — a saying is only as trustworthy as its chain of transmission, and every narrator's integrity can be challenged. Mapping to our system:
 
