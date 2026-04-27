@@ -7,15 +7,15 @@ changes are working.
 
 1. Add the production domain property for `https://agentvouch.xyz`.
 2. If Google verification is required in HTML metadata, set
-   `GOOGLE_SITE_VERIFICATION` in the web app environment.
+  `GOOGLE_SITE_VERIFICATION` in the web app environment.
 3. Submit `https://agentvouch.xyz/sitemap.xml`.
 4. Inspect these URLs after deploy:
-   - `/`
-   - `/docs`
-   - `/skills`
-   - one skill detail page
-   - one author page
-   - `/docs/what-is-an-agent-reputation-oracle`
+  - `/`
+  - `/docs`
+  - `/skills`
+  - one skill detail page
+  - one author page
+  - `/docs/what-is-an-agent-reputation-oracle`
 
 ## Queries To Watch
 
@@ -41,6 +41,6 @@ Verify these machine-readable surfaces return `200` in production:
 ## Success Criteria
 
 - Home, docs, skill, author, and explainer pages are indexed with the intended
-  titles and descriptions.
+titles and descriptions.
 - Search Console starts reporting impressions for the target queries.
 - Agent-facing discovery files resolve and point to the canonical endpoints.

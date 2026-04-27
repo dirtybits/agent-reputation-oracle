@@ -48,14 +48,14 @@ PROGRAM_ID=ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
 solana program show "$PROGRAM_ID"
 ```
 
-2. Confirm the configured wallet matches the upgrade authority:
+1. Confirm the configured wallet matches the upgrade authority:
 
 ```bash
 solana config get
 solana-keygen pubkey "$ANCHOR_WALLET"
 ```
 
-3. Confirm the repo still points at the same program ID:
+1. Confirm the repo still points at the same program ID:
 
 ```bash
 rg "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf" Anchor.toml programs/reputation-oracle/src/lib.rs
@@ -116,19 +116,19 @@ Refresh local artifacts after every successful redeploy:
 shasum -a 256 target/idl/reputation_oracle.json web/reputation_oracle.json
 ```
 
-2. If the checked-in IDL differs, copy the built IDL into the web app copy:
+1. If the checked-in IDL differs, copy the built IDL into the web app copy:
 
 ```bash
 cp target/idl/reputation_oracle.json web/reputation_oracle.json
 ```
 
-3. Regenerate checked-in client artifacts:
+1. Regenerate checked-in client artifacts:
 
 ```bash
 npm run generate:client
 ```
 
-4. Check the diff:
+1. Check the diff:
 
 ```bash
 git status --short
