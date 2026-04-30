@@ -20,6 +20,26 @@ Implementation decision:
 - Preserve useful app/API/x402 code, but do not preserve `v0.1.0` account layouts or SOL purchase semantics in the new program.
 - Use native Circle USDC as the protocol settlement asset.
 
+Governance decision:
+
+- Devnet `v0.2.0` may use a controlled deployer key for iteration.
+- Mainnet `v1.0.0` must not launch with a single hot-wallet upgrade authority.
+- Mainnet upgrade authority, config authority, treasury authority, and settlement authority rotation must be controlled by a multisig or stronger governance setup before real user funds are accepted.
+- Governance-sensitive changes include `usdc_mint`, `token_program`, `protocol_treasury_vault`, `x402_settlement_authority`, `x402_settlement_vault`, economic floors, slash percentages, and any future protocol fee.
+- `v0.2.0` charges no protocol fee. The split remains `60%` author / `40%` voucher pool, but account layouts should leave room for an explicitly configured future protocol fee without changing historical accounting.
+
+Interop decision:
+
+- Use CAIP-2 as the canonical chain identifier across docs, schema, events, and indexer outputs (`solana:<genesis>` today; `eip155:<chain-id>` and other CAIP-2 strings for future deployments).
+- Align with ERC-8004 Trustless Agents and the Solana Agent Registry. AgentVouch is the slashing/economics layer on top of those identity and reputation registries, not a replacement for them.
+- v0.2.0 does not require an ERC-8004 binding, but accounts and events leave room for `agent_registry`, `agent_id`, and `agent_uri`-style linkage so reputation deltas can be published back to ERC-8004 / Solana Agent Registry surfaces.
+- Cross-chain redeployments inherit the same protocol semantics; only the chain context (CAIP-2), USDC mint, and token program change.
+
+Non-goals for v0.2.0:
+
+- AgentVouch does not introduce a new agent identity primitive. It links to ERC-8004 / Solana Agent Registry instead.
+- AgentVouch does not implement cross-chain reputation aggregation in v0.2.0; it only emits chain-tagged, registry-mappable events that a future indexer or bridge can aggregate.
+
 ## Current State
 
 ### USDC Already Implemented
@@ -80,29 +100,73 @@ Core principle:
 Token program and mints:
 
 - The program enforces classic SPL Token (`TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`).
-- Token-2022 mints, transfer-fee mints, and bridged USDC variants are rejected at the constraint level.
+- Token-2022 token accounts and bridged USDC variants are rejected at the constraint level because the protocol only accepts the configured native Circle USDC mint under the classic SPL Token program.
 - The expected USDC mint is stored on `ReputationConfig` so it is verifiable on-chain and configurable per cluster.
 - Reference mints:
   - devnet: `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`
   - mainnet-beta: `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
 - Chain context is recorded as CAIP-2 (`solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` for devnet, `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` for mainnet-beta).
 
+Identity and reputation interop:
+
+- Treat AgentVouch as the economic accountability layer that sits on top of agent identity, not a competing identity standard.
+- Align with ERC-8004 Trustless Agents (Identity, Reputation, Validation registries) and the Solana Agent Registry, which is interoperable with ERC-8004.
+- The protocol owns vouches, author bonds, listings, purchases, voucher rewards, and disputes in USDC. Identity and base reputation feed in from registries; AgentVouch contributes the economic, slashable side of trust.
+- Every protocol object (`AgentProfile`, `SkillListing`, `Vouch`, `AuthorBond`, `Purchase`, dispute accounts) and every event must carry enough fields to be mapped to its ERC-8004 equivalent (agent id, feedback id, validation id) and to a CAIP-2 chain context (`solana:<genesis>` today, `eip155:<chain-id>` later).
+- Where an `AgentProfile` corresponds to a registered agent, store enough registry linkage (`agent_registry`, `agent_id`, and/or `agent_uri`) alongside the protocol pubkey so AgentVouch reputation can be read back through ERC-8004 and the Solana Agent Registry.
+- Future deployments on EVM or stablecoin-native chains should reuse ERC-8004 identity/reputation surfaces directly rather than introducing a second identity primitive. AgentVouch contributes slashing and bond economics on whichever chain it is deployed.
+
 Vault custody model:
 
-The v0.2.0 spec must pick exactly one custody pattern per primitive before implementation. Defaults proposed below; revisit in Milestone 1.
+The v0.2.0 program uses one explicit custody pattern per primitive:
 
-- Author bond: per-author PDA-owned token vault (one ATA per author).
-- Vouch stake: per-vouch PDA-owned token vault (one ATA per `(voucher, target)`), funded by the voucher who also pays rent and reclaims rent on `revoke_vouch`.
+- Author bond: per-author PDA-owned token vault.
+- Vouch stake: per-vouch PDA-owned token vault, funded by the voucher who also pays rent and reclaims rent on `revoke_vouch`.
 - Listing reward pool: per-listing PDA-owned token vault, separate from the listing PDA's data account.
-- Dispute bond: held in the existing config-owned protocol vault until resolution.
-- Author payout on purchase: direct transfer to the author's existing USDC ATA, validated against the listing's stored author. The author must maintain the ATA; the program does not auto-create it.
-- Voucher revenue claim: transfers from the listing reward vault to the voucher's existing USDC ATA.
-- Slashed funds: routed to the dispute resolver / challenger ATA recorded on the dispute, with the protocol treasury vault as a documented fallback.
+- Dispute bond: per-dispute PDA-owned token vault until resolution.
+- Author payout on purchase: direct transfer to the author's canonical USDC ATA for `(author, config.usdc_mint)`.
+- Voucher revenue claim: transfers from the listing reward vault to the voucher's canonical USDC ATA.
+- Slashed funds: preserve v0.1.0 economics in USDC. If a dispute is upheld, the challenger receives their dispute bond plus slashed author/voucher funds. If dismissed, the challenger bond goes to the protocol treasury vault.
 
 ATA and rent rules:
 
 - The program never auto-creates a recipient ATA. Clients must ensure ATAs exist before submitting; the web hook layer handles `createAssociatedTokenAccountIdempotentInstruction` in the same transaction.
-- SOL is required only for transaction fees and PDA/ATA rent. The party that creates a PDA-owned vault pays its rent (voucher for vouch vault, author for author bond vault, author for listing reward vault). Rent is refunded on the matching close instruction.
+- Listing and purchase clients must create the author's canonical USDC ATA idempotently when needed. v0.2.0 does not support arbitrary author payout wallets.
+- SOL is required only for transaction fees and PDA/ATA rent. The party that creates a PDA-owned vault pays its rent (voucher for vouch vault, author for author bond vault, author for listing reward vault, challenger for dispute vault). Rent is refunded on the matching close instruction.
+
+Vault lifecycle rules:
+
+- Author bond vaults can close only after the author bond balance is zero and the author has no open disputes.
+- Vouch stake vaults can close only through `revoke_vouch` or final settlement after the vouch is no longer active and no linked dispute can slash it.
+- If a vouch is fully slashed, slashed USDC goes to the dispute payout path, but rent from closing the vouch PDA/token vault returns to the original rent payer unless the spec explicitly defines a punitive rent forfeiture. The default is no rent forfeiture.
+- Listing reward vaults cannot close while `unclaimed_voucher_revenue_usdc_micros > 0` or while any voucher has claimable rewards. Listing removal should freeze new purchases but keep the reward vault claimable until a permissionless claim/sweep path empties it.
+- Dispute bond vaults close on dispute resolution. If upheld, the challenger receives their dispute bond plus slashed USDC. If dismissed, the challenger bond goes to the protocol treasury vault. Rent returns to the original dispute vault rent payer unless the spec explicitly changes this.
+- `withdraw_author_bond` and `revoke_vouch` must fail while the target author has active disputes that can reach those funds.
+- If an author loses their wallet, v0.2.0 does not provide admin recovery by default. Funds remain controlled by the original author authority unless a later governance-approved migration instruction is specified.
+
+Purchase settlement principle:
+
+- Protocol-visible paid purchases must preserve the `60%` author / `40%` voucher split.
+- Direct app purchases call `purchase_skill` and split USDC inside the Anchor program.
+- x402 purchases for protocol-listed paid skills must not bypass voucher rewards. The intended v0.2.0 path is a POC-gated settlement bridge: x402 pays a protocol settlement vault, the backend verifies the settled transaction and memo, then a configured `settlement_authority` calls `settle_x402_purchase` to create the on-chain purchase and split funds.
+- If the bridge POC fails, x402 remains limited to repo-only/off-chain entitlement flows until a trustless custom x402 scheme or facilitator extension can call the protocol directly.
+
+x402 bridge POC pass/fail criteria:
+
+- Pass requires proof that `@x402/svm` and the selected facilitator can settle an exact USDC transfer into the intended protocol settlement vault pattern, including the PDA/off-curve owner case if that is the selected design.
+- Pass requires deterministic memo binding to `protocol_version`, chain context, listing address, skill database id, buyer, and nonce without storing PII or free-form user text on-chain.
+- Pass requires reliable buyer extraction (`settle.payer` or transaction authority) so the on-chain `Purchase` PDA is derived from the paying wallet, not the facilitator fee payer.
+- Pass requires idempotency: the same payment reference or transaction signature cannot create more than one `X402SettlementReceipt`, `Purchase`, entitlement, or reward split.
+- Pass requires a retry/refund path for the case where x402 settles but `settle_x402_purchase` fails after USDC lands in the settlement vault.
+- Fail means protocol-listed paid skills require direct `purchase_skill`; `/api/x402/supported` must advertise only repo-only/off-chain x402 support and return capability metadata explaining that protocol-listed paid skills require direct on-chain purchase.
+- Allowed x402 flows after bridge failure are: free downloads, existing legacy entitlements, and repo-only/off-chain paid skills that are explicitly marked as not protocol-visible.
+
+Settlement authority constraints:
+
+- `settlement_authority` can only settle verified x402 payments from the settlement vault into the normal purchase/reward accounting path.
+- It cannot set listing price, change author, change voucher split, mint USDC, bypass `Purchase` PDA uniqueness, or withdraw arbitrary settlement vault balances.
+- It must be rotatable and pausable by config authority, with every settlement emitting a versioned event for audit.
+- Production use requires monitoring for settlement failures, stuck settlement vault balances, duplicate attempts, and authority rotation events.
 
 ## Target Architecture
 
@@ -148,6 +212,39 @@ Current note:
 - `target/deploy/reputation_oracle_v01-keypair.json` is the archived `v0.1.0` keypair copy.
 - `target/deploy/reputation_oracle_v02-keypair.json` should be generated fresh when implementation starts.
 
+## Planned Implementation Process
+
+Treat `v0.2.0` as a fresh protocol that uses the existing codebase as scaffolding, not as a backwards-compatible patch set. There is no real usage or user money on the current devnet deployment, so the implementation should prefer a clean USDC-native model over compatibility shims.
+
+Recommended cadence:
+
+- Use a dedicated branch or worktree and keep `main` deploy-safe for the current `v0.1.0` devnet app until the `v0.2.0` smoke test passes.
+- Do one broad on-chain pass after the Pre-Milestone 3 gates close: rewrite accounts, fields, PDA seeds, token constraints, vault movement, and instruction signatures together so the IDL moves as one coherent protocol.
+- Do not migrate one instruction at a time while preserving SOL account layouts. That creates temporary compatibility layers that should not survive into the fresh program.
+- After the broad on-chain pass, iterate in tight compile/test loops: `anchor build`, IDL/client sync, unit tests, negative tests, and compute/account measurement.
+- Once the program and IDL are stable, integrate outward in layers: generated client, web hooks, API/indexing, x402 bridge path, UI copy, CLI, docs, and pitch deck.
+- Keep commits reviewable by milestone or subsystem, but do not require each commit to preserve a fully working hybrid SOL/USDC product. The branch only needs to become product-complete before devnet cutover.
+
+Rule of thumb:
+
+- Use broad rewrite passes for protocol shape and account layout decisions.
+- Use incremental passes for verification, UI/API integration, docs, and bug fixes after the core shape compiles.
+- If an implementation starts accumulating compatibility code for `v0.1.0`, stop and replace it with the simpler `v0.2.0` design unless it is explicitly needed for temporary read-only display.
+
+Planning structure:
+
+- Keep this document as the stable source-of-truth spec and roadmap. Do not turn it into a live task tracker.
+- Use separate milestone plans when execution starts. Each milestone plan should contain implementation steps, working TODOs, verification commands, blockers, and notes.
+- Update this document only when a decision changes protocol design, durable process, acceptance criteria, or a pre-Milestone gate.
+- Close TODOs in the milestone plan as work progresses; do not mirror every execution TODO back into this document.
+
+Example milestone plans:
+
+- `Milestone 1 - Protocol Spec`
+- `Milestone 2 - Fresh Program Identity`
+- `Milestone 3 - Anchor USDC Rewrite`
+- `Milestone 4 - Program Tests`
+
 ## Milestones
 
 ### Milestone 0: Freeze v0.1.0 Scope
@@ -180,13 +277,29 @@ Tasks:
 
 - Define all `v0.2.0` accounts and PDA seeds.
 - Define USDC vault ownership for vouches, author bonds, listing reward pools, and dispute bonds.
-- Define whether purchases pay the author directly, through a proceeds vault, or both.
+- Define canonical USDC ATA validation for direct author payouts.
+- Define x402 settlement vault ownership and the `settlement_authority` role for the bridge POC.
 - Define exact reward split, currently expected to remain `60%` author / `40%` voucher pool unless changed.
 - Define free listing requirements using `min_author_bond_usdc_micros`.
 - Define reputation formula using USDC-backed risk and non-money signals.
 - Define dispute liability order:
   - free listings: author bond first
   - paid listings: author bond first, then linked vouchers if needed
+- Preserve v0.1.0 dispute payout policy in USDC:
+  - upheld: challenger receives their dispute bond plus slashed funds
+  - dismissed: challenger bond goes to protocol treasury
+- Define upgrade authority, config authority, settlement authority, treasury authority, pause/rotation flow, and mainnet multisig requirements.
+- Define treasury withdrawal policy and confirm `v0.2.0` has zero protocol fee.
+- Define voucher reward accounting model and revenue eligibility rules before coding.
+- Define author wallet rotation policy. Default: listings are bound to the original author authority and canonical USDC ATA unless a future author-signed migration instruction is specified.
+- Define how free listings behave if `author_bond_usdc_micros` drops below `min_author_bond_for_free_listing_usdc_micros` after slash or withdrawal. Default: freeze new paid/free installs that require trust until the bond is restored or the listing is explicitly marked inactive.
+- Define dispute evidence semantics. Default: evidence URI and resolver/reviewer roles remain unchanged from v0.1.0 unless the spec explicitly changes them.
+- Define ERC-8004 / Solana Agent Registry interop fields:
+  - Optional `AgentProfile.agent_registry` plus `AgentProfile.agent_id` (or one opaque `registry_ref` if layout pressure matters) that links the on-chain profile to the registered agent in the Solana Agent Registry.
+  - Optional `AgentProfile.agent_uri` when the implementation needs to resolve the external registration file directly.
+  - Optional listing-level mirror of the same linkage for cross-chain reputation portability.
+  - Event payloads include `protocol_version`, CAIP-2 chain context, program id, and registry linkage fields where present, so indexers can publish reputation deltas back to ERC-8004-aligned surfaces.
+- Treat AgentVouch as a reputation-emitter into ERC-8004 / Solana Agent Registry, not an alternative identity layer. Avoid baking a competing identity primitive into v0.2.0 accounts.
 
 Candidate account fields:
 
@@ -204,23 +317,42 @@ Candidate account fields:
 - `ReputationConfig.min_author_bond_for_free_listing_usdc_micros`
 - `ReputationConfig.usdc_mint`
 - `ReputationConfig.token_program`
+- `ReputationConfig.protocol_treasury_vault`
+- `ReputationConfig.x402_settlement_authority`
+- `ReputationConfig.x402_settlement_vault`
+- Optional `AgentProfile.agent_registry` for ERC-8004 / Solana Agent Registry linkage.
+- Optional `AgentProfile.agent_id` for the registry-local agent identifier.
+- Optional `AgentProfile.agent_uri` for the external registration file when needed.
+- Optional `SkillListing.agent_registry` mirror for cross-chain reputation portability.
+- Optional `SkillListing.agent_id` mirror for cross-chain reputation portability.
 
 Floors and calibration to lock in:
 
 - Minimum listing price: replace the v0.1.0 `0.001 SOL` rule with `0.01 USDC` (`10_000` micros) or remove the floor entirely.
 - Minimum vouch stake, minimum author bond for free listings, and dispute bond all expressed in micro-USDC.
-- Reputation formula: keep the structure (`stake_weight × backed_capital + signals`) but recalibrate `stake_weight` so the unit shift from lamports to micro-USDC does not silently inflate scores by ~1000x. Either (a) normalize stake to whole USDC before weighting, or (b) divide the existing weight by `1_000` and document the new range.
+- Reputation formula: retune around USD economic value, not only the decimal shift from lamports to micro-USDC. Calibrate against the legacy v0.1.0 low-end trust scale (anchored to the `0.001 SOL` listing floor), not accidental lamport math. Lock exact score ranges, weights, caps, rounding behavior, and overflow limits before implementation.
 - Cooldowns, dispute holds, and revoke locks carry over from v0.1.0 unchanged; restate them in the spec so they are not dropped during the rewrite.
+
+Voucher reward accounting to lock in:
+
+- Use an explicit cumulative reward index or equivalent per-vouch accounting model so late vouches do not earn prior revenue.
+- A voucher keeps already-accrued claim rights after revoke or partial slash unless the spec explicitly defines forfeiture; default forfeiture is only forward-looking after the vouch is inactive or stake is reduced.
+- Partial slashes reduce future reward weight in proportion to remaining active stake.
+- Listing closure cannot strand unclaimed rewards. Either all claimable rewards must be claimed first, or a permissionless sweep/force-claim flow must preserve voucher ownership.
 
 Events and IDL break:
 
 - Every `emit!` event signature changes (`*_lamports` -> `*_usdc_micros`). List the new event schema in the spec so indexers and downstream consumers can plan.
+- Every v0.2.0 event should include `protocol_version` and enough keys for indexers to derive chain context, program id, listing, buyer/voucher/author, and affected vaults.
+- Reputation-relevant events (vouch, revoke, slash, dispute resolved, author bond change, purchase, voucher claim) should be shaped so an ERC-8004-aligned bridge can map them to Reputation Registry feedback or Validation Registry results without parsing free-form text.
 
 Acceptance criteria:
 
 - A reviewed spec exists before implementation.
 - Every `v0.1.0` lamport business field has an explicit `v0.2.0` replacement or is intentionally removed.
 - Token account ownership and mint constraints are specified for every money-moving instruction.
+- Protocol-listed paid purchase paths preserve the author/voucher split.
+- Economic floors, reputation ranges, reward-index math, freeze rules, treasury policy, and authority rotation rules are decided before Milestone 3 starts.
 
 Verification:
 
@@ -252,6 +384,29 @@ solana-keygen pubkey target/deploy/reputation_oracle_v02-keypair.json
 rg "<new-program-id>" Anchor.toml programs/reputation-oracle/src/lib.rs
 ```
 
+### Pre-Milestone 3 Gates
+
+Goal: resolve design questions that would be expensive to rewrite after the Anchor USDC implementation starts.
+
+Required gates:
+
+- x402 bridge POC pass/fail decision, including PDA settlement vault compatibility, memo binding, payer extraction, idempotency, retry, and refund behavior.
+- Governance and authority model for devnet and mainnet, including upgrade authority custody and config authority rotation.
+- Treasury policy, including who can withdraw treasury USDC, under what approval threshold, and whether withdrawals are disabled on devnet/mainnet.
+- Exact economic floors (provisional values to lock in before coding):
+  - Minimum listing price: 0.01 USDC (`10_000` micros).
+  - Minimum author bond for free listings and minimum vouch stake: 1 USDC.
+  - Dispute bond: 0.5 USDC.
+- Reputation score formula, score caps, rounding behavior, and USD-value calibration against the legacy v0.1.0 low-end trust scale (anchored to the `0.001 SOL` listing floor).
+- Voucher reward index model, revoke/slash eligibility rules, and listing close behavior with unclaimed rewards.
+- Compute/account ceiling review for every instruction, especially disputes that pass linked vouches and token accounts through `remaining_accounts`.
+- Toolchain pin: Anchor version, Solana CLI version, Rust/MSRV, `anchor-spl` version, and generated client command.
+
+Acceptance criteria:
+
+- No item above remains in the risk register as an unresolved implementation fork.
+- Milestone 3 can proceed without adding placeholder shims or compatibility layers for undecided economics.
+
 ### Milestone 3: Anchor USDC Rewrite
 
 Goal: replace SOL custody with SPL USDC custody.
@@ -265,6 +420,9 @@ Tasks:
 - Replace `system_program::transfer` business payments with checked token transfers.
 - Keep SOL only for rent and transaction fees.
 - Remove or rewrite `v0.1.0` migration instructions that only exist for old lamport account layouts.
+- Add post-transfer balance or state checks anywhere instruction logic depends on vault deltas.
+- Keep compute and account-count budgets visible in tests for high-account flows.
+- After every `anchor build` (or `anchor clean && anchor build` when IDLs look stale), copy `target/idl/reputation_oracle.json` → `web/reputation_oracle.json` and run `web/scripts/generate-client.ts`. The web client must remain Vercel-deploy-safe.
 
 Instruction areas to rewrite:
 
@@ -277,6 +435,7 @@ Instruction areas to rewrite:
 - `create_skill_listing`
 - `update_skill_listing`
 - `purchase_skill`
+- `settle_x402_purchase` after the bridge POC passes
 - `claim_voucher_revenue`
 - `open_author_dispute`
 - `resolve_author_dispute`
@@ -293,6 +452,7 @@ Acceptance criteria:
   - PDA authority signer seeds
   - token program
 - Program builds with the new ID.
+- No instruction requires an unbounded number of accounts. If dispute resolution can exceed account limits for highly vouched authors, the spec must define batching or capped linked-vouch processing.
 
 Verification:
 
@@ -306,6 +466,12 @@ rg "price_lamports|author_bond_lamports|unclaimed_voucher_revenue|system_program
 
 Goal: prove the USDC accounting works before touching the app.
 
+Testing strategy:
+
+- Use LiteSVM for fast unit tests of token transfers, vault accounting, reputation math, and edge cases (wrong mint, missing ATA, insufficient balance, active-dispute freezes).
+- Use Surfpool or devnet for integration tests that need RPC fidelity or live-cluster behavior. If a local validator is used, clone/import the required USDC mint and token accounts rather than assuming the real devnet mint exists locally.
+- Measure compute units and account counts on worst-case dispute paths (highly-vouched author) before devnet cutover.
+
 Tasks:
 
 - Use LiteSVM or Mollusk for fast unit and negative tests on token-account constraints; reserve `anchor test` / Surfpool for end-to-end flows.
@@ -314,9 +480,11 @@ Tasks:
 - Add tests for author bond deposit/withdraw.
 - Add tests for vouch/revoke (including rent refund on revoke).
 - Add tests for paid listing purchase and reward pool accounting.
+- Add tests that author proceeds are paid directly to the canonical author USDC ATA.
 - Add tests for voucher revenue claim.
 - Add tests for dispute open/resolve and slashing (slash routed to challenger ATA).
-- Add negative tests for: wrong mint, Token-2022 mint, transfer-fee mint, missing recipient ATA, wrong ATA owner, insufficient stake, self-vouch, and reputation overflow.
+- Add bridge POC tests before implementing `settle_x402_purchase`: x402 exact payment to protocol settlement vault, memo binding, payer extraction, duplicate payment ref rejection, and retry/refund behavior.
+- Add negative tests for: wrong mint, wrong token program, missing recipient ATA, wrong ATA owner, insufficient stake, self-vouch, and reputation overflow.
 
 Acceptance criteria:
 
@@ -435,22 +603,42 @@ Goal: align the existing USDC/x402 commerce path with `v0.2.0` protocol semantic
 
 Tasks:
 
-- Decide whether x402 direct purchases should:
-  - continue paying the author directly and only record off-chain entitlement, or
-  - settle through `v0.2.0` `purchase_skill` so rewards and on-chain purchase records update.
-- Prefer `v0.2.0` on-chain settlement for protocol-visible purchases and voucher rewards.
+- Treat direct `purchase_skill` as the canonical protocol-visible paid purchase path.
+- Require every protocol-listed paid purchase path to preserve the `60%` author / `40%` voucher split.
+- Run the x402 settlement bridge POC before making x402 primary for protocol-listed paid skills:
+  - x402 exact payment credits a protocol settlement vault
+  - `extra.memo` binds payment to skill, listing, chain context, and nonce
+  - server verifies settled token delta, memo, payer, mint, and amount
+  - backend calls `settle_x402_purchase` as `settlement_authority`
+  - program creates an idempotent `X402SettlementReceipt` PDA and the normal `Purchase` PDA
+  - program splits USDC from the settlement vault to author ATA and listing reward vault
+- Browser USDC x402 uses split-signature sponsored flow; gate it to wallets that support `partialSign` (route Phantom embedded/send-only wallets to direct `signAndSendTransaction` or agent fallback). Document this for the settlement bridge POC.
+- If the bridge POC fails, disable x402 for protocol-listed paid skills and require direct `purchase_skill`; keep x402 only for repo-only/off-chain entitlement flows.
 - Keep `usdc_purchase_receipts` and `usdc_purchase_entitlements` for raw download access.
-- Add a `protocol_version` column on `skills`, `usdc_purchase_receipts`, and `usdc_purchase_entitlements` (or equivalent v2 columns) so v0.1.0 and v0.2.0 rows do not collide on `on_chain_address`.
-- Mark existing v0.1.0 receipts/entitlements as legacy and stop writing to them from new flows.
+- Add active protocol metadata to `skills`:
+  - `on_chain_protocol_version`
+  - `on_chain_program_id`
+- Add a unique index on `(chain_context, on_chain_program_id, on_chain_address)` where `on_chain_address IS NOT NULL`.
+- v0.2.0 republish updates the existing `skills.id` row rather than creating a second skill row, so existing installs, versions, and entitlements remain attached to the same database skill.
+- Keep entitlement identity as `(skill_db_id, buyer_pubkey)` so download access survives v0.1.0 to v0.2.0 republish.
+- Add receipt audit fields such as `payment_flow` and nullable `protocol_version`; keep `payment_tx_signature` globally unique.
+- Mark existing v0.1.0 receipts as legacy and stop writing legacy receipt shapes from new flows.
+- Add a direct-purchase indexing path for raw download entitlement:
+  - Browser purchase flow submits the confirmed `purchase_skill` signature to an API endpoint.
+  - The API verifies the transaction, event, buyer, listing, price, mint, program id, and chain context before writing receipt/entitlement rows.
+  - A background reconciler or webhook backfills missed direct purchases from v0.2.0 events so DB state does not rely solely on client reporting.
 - Confirm `buildDownloadRawMessage` format is unchanged so existing CLI agents keep working; only the embedded `listing` value updates.
+- Confirm `Purchase` PDA derivation seeds and signed-download semantics are stable across the program-id change, with CLI updates limited to the generated client/program id unless the spec intentionally changes seeds.
 - Ensure signed download scope handles `v0.2.0` listing addresses.
-- Update `/api/x402/supported` to advertise `v0.2.0`.
+- Update `/api/x402/supported` to advertise the v0.2.0 bridge only after the POC passes; otherwise document that protocol-listed paid skills require direct `purchase_skill`.
+- Add observability for indexing lag, failed entitlement writes, stuck x402 settlement vault funds, direct-purchase verification failures, and config/authority rotation events.
 
 Acceptance criteria:
 
-- Paid purchases update the same reputation/reward accounting model.
-- Raw skill downloads still work for agents using x402.
+- Protocol-listed paid purchases update the same reputation/reward accounting model.
+- Raw skill downloads still work for agents using allowed x402 flows.
 - No duplicate entitlement path creates inconsistent purchase state.
+- Direct on-chain purchases grant download access after API verification, and background reconciliation can repair missed client callbacks.
 
 Verification:
 
@@ -471,8 +659,11 @@ Tasks:
 - Update `web/app/docs/page.tsx`.
 - Update `packages/agentvouch-cli` for USDC-native publish/list/install flows. CLI keeps read of v0.1.0 listings during the transition but writes only v0.2.0.
 - Remove claims that new listings require a SOL minimum price.
+- Document the first-time author cost shift: USDC author bond plus SOL for rent/fees/ATA creation, even though protocol accounting is USDC-native.
+- Document that x402 bridge memos must contain only protocol references (version, listing, skill id, nonce) and no PII or free-form buyer text.
 - Update `AGENTS.md` learned-facts to reflect USDC-native protocol, new program ID, vault model, and CAIP-2 conventions.
-- Co-version the pitch deck `pitch/AgentVouch_walkthrough.pptx` with the new account/instruction counts and currency model.
+- Co-version the pitch deck `pitch/AgentVouch_walkthrough.pptx` (and its paper sibling) with the new account/instruction counts, vault-per-primitive model, and USDC-native architecture slide. The deck pulls facts directly from the program; keep it in sync.
+- After every `anchor build`, copy `target/idl/reputation_oracle.json` to `web/reputation_oracle.json` and rerun `web/scripts/generate-client.ts` so the web client stays deploy-safe.
 
 Acceptance criteria:
 
@@ -495,6 +686,7 @@ Tasks:
 
 - Deploy `v0.2.0` to devnet with the fresh keypair.
 - Initialize config with devnet USDC mint (`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`).
+- Enable the v0.2.0 app path behind a feature flag while v0.1.0 remains readable.
 - Run a scripted batch re-registration for the internal devnet agents and republish their listings against `v0.2.0`.
 - Register test agents.
 - Create author bond.
@@ -505,12 +697,15 @@ Tasks:
 - Open and resolve a test dispute.
 - Confirm reputation score changes (and that the recalibrated scale matches expectations).
 - Confirm raw skill download still works for both freshly purchased v0.2.0 entitlements and any preserved legacy entitlements.
+- Confirm `/api/skills` and trust pages can dual-read v0.1.0 legacy data and v0.2.0 primary data during the cutover.
+- Hard-cut write actions to v0.2.0 only after direct purchase indexing, entitlement repair, and smoke tests pass.
 
 Acceptance criteria:
 
 - All core flows pass on devnet.
 - Program ID, IDL, generated client, web env, and docs agree.
 - No `v0.1.0` SOL write path is needed for the primary product flow.
+- Feature flag, dual-read fallback, and hard-cut criteria are documented before app traffic moves to v0.2.0.
 
 Verification:
 
@@ -535,6 +730,9 @@ Every USDC-moving instruction must validate:
 - amount is greater than zero
 - arithmetic overflow and underflow
 - dispute and withdrawal locks
+- x402 settlement authority, memo binding, payment-ref uniqueness, and settlement vault balance before any bridge settlement
+- post-transfer vault/account state when instruction logic depends on token deltas
+- no PII or free-form buyer content in emitted events or on-chain x402 memos
 
 Every client transaction flow must surface:
 
@@ -546,6 +744,12 @@ Every client transaction flow must surface:
 - fee payer
 - expected post-action state
 
+Spam and abuse checks:
+
+- Minimum stake, dispute bond, and listing author-bond floors should be high enough to make vouch spam, listing spam, and frivolous disputes uneconomic.
+- Any rate limit in the web/API layer is a supplement only. The on-chain protocol must rely on economic costs and account constraints, not hidden centralized throttles.
+- Compute and account-count ceilings should be measured for worst-case dispute and voucher-claim flows before devnet cutover.
+
 ## Branch And Worktree Convention
 
 - Land the rewrite on a dedicated branch (`feat/usdc-native-v0.2.0`) or git worktree, not directly on `main`.
@@ -556,14 +760,33 @@ Every client transaction flow must surface:
 
 Track decisions that the v0.2.0 spec must close before Milestone 3:
 
-- Vault custody pattern per primitive (per-vouch ATA vs shared vault) — affects rent cost and claim semantics.
-- Exact slashing destination policy (challenger ATA vs treasury vault vs split).
-- Whether `purchase_skill` pays the author directly or via a proceeds vault with author-signed withdraw — affects the empty-recipient rent failure mode seen on v0.1.0.
-- Whether to keep `init_if_needed` for any program-side ATA creation, or push all ATA creation to clients.
+- Exact x402 bridge POC outcome and whether x402 can be primary for protocol-listed paid skills in v0.2.0.
+- Whether the x402 settlement vault can safely use a PDA owner with the current facilitator implementation.
+- Whether `settle.payer` from the x402 facilitator is reliable enough to derive the on-chain `Purchase` PDA buyer.
+- Retry and refund policy when x402 settles but `settle_x402_purchase` fails.
 - Reputation `stake_weight` recalibration value and resulting score range.
 - Minimum listing price floor (`0.01 USDC` vs no floor).
-- Whether x402 direct purchases settle on-chain through `purchase_skill` or remain off-chain entitlement only.
-- DB migration shape: `protocol_version` column vs parallel `*_v2` tables.
+- Exact DB migration shape for active protocol metadata and receipt audit fields.
+- Upgrade authority custody, config authority rotation, and pause policy.
+- Treasury withdrawal policy and whether any treasury withdrawals are allowed before mainnet governance exists.
+- Author wallet rotation/dead-author policy.
+- Rent routing during slashing and force-close flows.
+- Listing removal behavior when voucher rewards remain unclaimed.
+- Direct purchase indexing reliability and backfill source.
+- Exact ERC-8004 / Solana Agent Registry binding shape: which fields the protocol stores on-chain (`agent_registry`, `agent_id`, `agent_uri`, or opaque `registry_ref`) and which it derives off-chain at the indexer layer.
+
+## v1.0.0 Mainnet Readiness
+
+The `v0.2.0` devnet migration is not mainnet-ready until these are complete:
+
+- External or senior internal security review of all USDC-moving instructions, authority controls, and dispute/slashing paths.
+- Mainnet upgrade authority controlled by multisig or stronger governance; no single hot wallet controls upgrades or config.
+- Mainnet config runbook for native USDC mint, token program, treasury vault, settlement authority, economic floors, and slash percentage.
+- Treasury policy documented, including withdrawal authority, approval threshold, accounting, and public reporting expectations.
+- Incident response runbook for stuck settlement vault funds, bad config, compromised authority, failed indexer, and erroneous dispute resolution.
+- Monitoring for program events, vault balances, indexing lag, x402 settlement failures, authority rotations, and unexpected treasury movement.
+- Mainnet launch checklist that confirms `web/public/skill.md`, docs, CLI, generated client, IDL, pitch deck, and Vercel env all reference the same program/config.
+- Decision on whether upgrade authority remains active, is time-locked, or is eventually frozen after sufficient production hardening.
 
 ## Non-Goals
 
@@ -583,9 +806,15 @@ The migration is complete when:
 - `v0.2.0` is deployed to devnet with a fresh program ID.
 - Every protocol money field is USDC-denominated; `rg "lamports|price_lamports|author_bond_lamports|stake_amount" programs/reputation-oracle/src` returns no business-logic hits (rent helpers excluded).
 - `rg "LAMPORTS_PER_SOL|formatSol|priceLamports|authorBondLamports" web/app web/components web/hooks` returns no hits outside legacy notices.
-- Every USDC-moving instruction has at least one positive and one negative test (wrong mint, Token-2022, missing ATA, wrong owner).
+- After `anchor build`, `web/reputation_oracle.json` and generated client artifacts are synced to the live `v0.2.0` IDL.
+- Every USDC-moving instruction has at least one positive and one negative test (wrong mint, wrong token program, missing ATA, wrong owner).
 - Vouching, author bonds, purchases, voucher rewards, disputes, and reputation all use USDC accounting.
 - Web primary flows no longer require `v0.1.0` SOL instructions.
-- x402 paid downloads still work for v0.2.0 entitlements.
+- Protocol-listed paid purchases preserve the `60%` author / `40%` voucher split. If the x402 bridge POC passes, x402 purchases do this through `settle_x402_purchase`; if it fails, x402 is disabled for protocol-listed paid skills until a later bridge or custom scheme ships.
+- x402 paid downloads still work for allowed v0.2.0 entitlement flows.
+- Direct on-chain purchases are indexed into download entitlements through verified API submission plus reconciliation.
+- Active-dispute freeze invariants, vault close/refund rules, reward-index math, and listing-removal behavior are covered by tests.
+- Governance, treasury, authority rotation, pause, and mainnet readiness policies are documented even if `v0.2.0` remains devnet-only.
 - `web/public/skill.md`, `docs/ARCHITECTURE.md`, `AGENTS.md`, and `pitch/AgentVouch_walkthrough.pptx` describe the live USDC-native protocol.
 - `NO_DNA=1 anchor build`, program tests, and `npm --workspace web run build` pass.
+
