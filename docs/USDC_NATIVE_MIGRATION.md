@@ -256,17 +256,20 @@ Tasks:
 - Mark the current program as legacy in docs.
 - Keep `v0.1.0` readable while `v0.2.0` is being built.
 - Do not add new trust features to `v0.1.0`.
+- Rewrite `AGENTS.md` learned workspace facts for the target USDC-native design before implementation starts, so agent guidance does not keep steering work back to legacy SOL-denominated patterns.
 - Decide whether the UI should hide `v0.1.0` write actions immediately or only after `v0.2.0` is usable.
 
 Acceptance criteria:
 
 - `docs/ARCHITECTURE.md` or follow-up docs clearly state that `v0.1.0` is SOL-denominated and legacy.
+- `AGENTS.md` reflects the target `v0.2.0` USDC-native protocol, fresh program ID plan, per-primitive vault model, CAIP-2 conventions, and x402 bridge gating.
 - New work items target `v0.2.0` unless explicitly marked as `v0.1.0` maintenance.
 
 Verification:
 
 ```bash
 rg "legacy|USDC-native|SOL-denominated|v0.2.0" docs
+rg "USDC-native|v0.2.0|per-primitive|CAIP-2|x402 bridge" AGENTS.md
 ```
 
 ### Milestone 1: v0.2.0 Protocol Spec
