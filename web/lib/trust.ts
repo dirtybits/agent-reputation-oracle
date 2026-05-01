@@ -5,8 +5,8 @@ import {
   getUtf8Encoder,
   type Address,
 } from "@solana/kit";
-import { fetchMaybeAgentProfile } from "../generated/reputation-oracle/src/generated";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
+import { fetchMaybeAgentProfile } from "../generated/agentvouch/src/generated";
+import { AGENTVOUCH_PROGRAM_ADDRESS } from "../generated/agentvouch/src/generated/programs";
 import {
   resolveAuthorDisputeMetrics,
   resolveMultipleAuthorDisputeMetrics,
@@ -50,7 +50,7 @@ type AgentProfileData = Extract<AgentProfileAccount, { exists: true }>["data"];
 
 async function getAgentPDA(agentKey: Address): Promise<Address> {
   const [derived] = await getProgramDerivedAddress({
-    programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+    programAddress: AGENTVOUCH_PROGRAM_ADDRESS,
     seeds: [textEncoder.encode("agent"), addressEncoder.encode(agentKey)],
   });
   return derived;

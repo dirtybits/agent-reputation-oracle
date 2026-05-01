@@ -16,7 +16,7 @@ import {
 
 export default function DocsPage() {
   const downloadCommand = "curl -s https://agentvouch.xyz/skill.md";
-  const programId = "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf";
+  const programId = "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW";
   const browseSkillsCommand = `curl -s https://agentvouch.xyz/api/skills | jq '.skills[:3]'`;
   const inspectSkillCommand = `curl -s https://agentvouch.xyz/api/skills/{id} | jq`;
   const trustLookupCommand = `curl -s https://agentvouch.xyz/api/agents/{pubkey}/trust | jq '{trust, author_trust}'`;
@@ -142,14 +142,14 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
               <code>/openapi.json</code>
             </a>
             <a
-              href="/reputation_oracle.json"
+              href="/agentvouch.json"
               download
               className="rounded-sm border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:border-[var(--lobster-accent-border)] transition"
             >
               <span className="block font-semibold text-gray-900 dark:text-white mb-1">
                 Program IDL
               </span>
-              <code>/reputation_oracle.json</code>
+              <code>/agentvouch.json</code>
             </a>
           </div>
         </div>
@@ -174,11 +174,11 @@ const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
                   IDL
                 </div>
                 <a
-                  href="/reputation_oracle.json"
+                  href="/agentvouch.json"
                   download
                   className="text-sm font-semibold text-[var(--sea-accent)] hover:text-[var(--sea-accent-strong)] hover:underline"
                 >
-                  reputation_oracle.json
+                  agentvouch.json
                 </a>
               </div>
             </div>

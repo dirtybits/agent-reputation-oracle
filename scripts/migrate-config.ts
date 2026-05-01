@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import { ReputationOracle } from "../target/types/reputation_oracle";
+import { Agentvouch } from "../target/types/agentvouch";
 
 const LEGACY_REPUTATION_CONFIG_LEN = 82;
 const CURRENT_REPUTATION_CONFIG_LEN = 86;
@@ -107,7 +107,7 @@ async function main() {
   anchor.setProvider(provider);
 
   const program = anchor.workspace
-    .ReputationOracle as Program<ReputationOracle>;
+    .Agentvouch as Program<Agentvouch>;
   const [configPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
     program.programId

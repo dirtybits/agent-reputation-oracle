@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../../../../generated/reputation-oracle/src/generated/programs";
+import { AGENTVOUCH_PROGRAM_ADDRESS } from "../../../../generated/agentvouch/src/generated/programs";
 import { getConfiguredSolanaChainContext } from "@/lib/chains";
 import { getConfiguredUsdcMint, getFacilitatorUrl } from "@/lib/x402";
 
@@ -28,7 +28,7 @@ export async function GET() {
       },
     ],
     program: {
-      id: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+      id: AGENTVOUCH_PROGRAM_ADDRESS,
       instructions: ["purchaseSkill"],
     },
     facilitator: {

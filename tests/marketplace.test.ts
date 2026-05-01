@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { ReputationOracle } from "../target/types/reputation_oracle";
+import { Agentvouch } from "../target/types/agentvouch";
 import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
@@ -9,7 +9,7 @@ describe("marketplace", () => {
   anchor.setProvider(provider);
 
   const program = anchor.workspace
-    .ReputationOracle as Program<ReputationOracle>;
+    .Agentvouch as Program<Agentvouch>;
 
   const [configPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("config")],

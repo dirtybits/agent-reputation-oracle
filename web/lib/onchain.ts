@@ -5,8 +5,8 @@ import {
   getSkillListingDecoder,
   SKILL_LISTING_DISCRIMINATOR,
   type SkillListing,
-} from "../generated/reputation-oracle/src/generated";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
+} from "../generated/agentvouch/src/generated";
+import { AGENTVOUCH_PROGRAM_ADDRESS } from "../generated/agentvouch/src/generated/programs";
 import { IN_MEMORY_CACHE_TTL_MS } from "./cachePolicy";
 import { DEFAULT_SOLANA_RPC_URL } from "./solanaRpc";
 import { getOrPopulateMemoryCache } from "./serverCache";
@@ -33,7 +33,7 @@ async function loadAllOnChainSkillListings(): Promise<
   OnChainSkillListingRecord[]
 > {
   const accounts = await rpc
-    .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+    .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
       encoding: "base64",
       filters: [
         {

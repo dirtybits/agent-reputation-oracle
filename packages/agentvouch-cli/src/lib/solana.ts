@@ -7,7 +7,7 @@ import {
   SystemProgram,
   type Commitment,
 } from "@solana/web3.js";
-import reputationOracleIdl from "../../../../web/reputation_oracle.json";
+import agentvouchIdl from "../../../../web/agentvouch.json";
 
 const { AnchorProvider, Program, Wallet, web3 } = anchor;
 const MIN_SKILL_PRICE_LAMPORTS = 1_000_000n;
@@ -86,7 +86,7 @@ export class AgentVouchSolanaClient {
       commitment,
     });
     this.program = new Program(
-      reputationOracleIdl as anchor.Idl,
+      agentvouchIdl as anchor.Idl,
       this.provider
     );
   }

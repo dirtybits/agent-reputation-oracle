@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { ReputationOracle } from "../target/types/reputation_oracle";
+import { Agentvouch } from "../target/types/agentvouch";
 import * as fs from "fs";
 import { Keypair } from "@solana/web3.js";
 
@@ -29,10 +29,10 @@ async function main() {
   });
 
   const idl = JSON.parse(
-    fs.readFileSync("./target/idl/reputation_oracle.json", "utf-8")
+    fs.readFileSync("./target/idl/agentvouch.json", "utf-8")
   );
 
-  const program = new Program(idl, provider) as Program<ReputationOracle>;
+  const program = new Program(idl, provider) as Program<Agentvouch>;
 
   console.log("Program ID:", program.programId.toString());
 

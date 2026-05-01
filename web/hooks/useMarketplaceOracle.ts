@@ -38,16 +38,16 @@ import {
   fetchMaybePurchase,
   getPurchaseDecoder,
   PURCHASE_DISCRIMINATOR,
-} from "../generated/reputation-oracle/src/generated/accounts/purchase";
+} from "../generated/agentvouch/src/generated/accounts/purchase";
 import {
   fetchMaybeSkillListing,
   getSkillListingDecoder,
   SKILL_LISTING_DISCRIMINATOR,
-} from "../generated/reputation-oracle/src/generated/accounts/skillListing";
-import { getPurchaseSkillInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/purchaseSkill";
+} from "../generated/agentvouch/src/generated/accounts/skillListing";
+import { getPurchaseSkillInstructionAsync } from "../generated/agentvouch/src/generated/instructions/purchaseSkill";
 
-const REPUTATION_ORACLE_PROGRAM_ADDRESS = address(
-  "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"
+const AGENTVOUCH_PROGRAM_ADDRESS = address(
+  "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW"
 );
 const ENDPOINT =
   process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
@@ -98,7 +98,7 @@ function buildTransactionSendRequest(
 
 async function deriveAddress(
   seeds: (string | Address)[],
-  programId: Address = REPUTATION_ORACLE_PROGRAM_ADDRESS
+  programId: Address = AGENTVOUCH_PROGRAM_ADDRESS
 ): Promise<Address> {
   const encodedSeeds = seeds.map((seed) =>
     isAddress(seed) ? addressEncoder.encode(seed) : textEncoder.encode(seed)
@@ -274,7 +274,7 @@ export function useMarketplaceOracle() {
   const getAllSkillListings = useCallback(async () => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -301,7 +301,7 @@ export function useMarketplaceOracle() {
   const getSkillListingsByAuthor = useCallback(async (author: Address) => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -334,7 +334,7 @@ export function useMarketplaceOracle() {
   const getAllPurchases = useCallback(async () => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -360,7 +360,7 @@ export function useMarketplaceOracle() {
   const getPurchasesByBuyer = useCallback(async (buyer: Address) => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {

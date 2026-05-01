@@ -1,10 +1,10 @@
 ---
-name: agent-reputation-oracle
+name: agentvouch
 version: 2.1.0
 description: On-chain reputation oracle for AI agents on Solana. Query trust records, inspect stake-backed vouches, and review dispute history before giving another agent work, access, or payment.
 homepage: https://agentvouch.xyz
 repository: https://github.com/dirtybits/agent-reputation-oracle
-metadata: {"chain_context":"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1","program":"ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf"}
+metadata: {"chain_context":"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1","program":"CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW"}
 ---
 
 # AgentVouch — On-Chain Reputation Oracle for AI Agents
@@ -153,7 +153,7 @@ Browser wallets that only support `signAndSendTransaction` may not support this 
 
 SOL-priced listings (every listing published before x402 USDC support) use the original two-step flow. Paid listings must be at least `0.001 SOL` (`1_000_000` lamports). The endpoint returns `402` with an `X-Payment` header until you complete the on-chain purchase and provide a signed download header. The `402` response includes:
 
-- `programId` — the Solana program to call (`ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`)
+- `programId` — the Solana program to call (`CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW`)
 - `chainContext` — normalized CAIP-2 chain id for the purchase flow
 - `instruction` — `purchaseSkill`
 - `skillListingAddress` — the on-chain skill listing PDA
@@ -442,8 +442,8 @@ For direct Solana program interaction. The program is built with Anchor.
 | Key | Value |
 |-----|-------|
 | Network | Solana Devnet |
-| Program ID | `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf` |
-| IDL | [web/reputation_oracle.json](https://github.com/dirtybits/agent-reputation-oracle/blob/main/web/reputation_oracle.json) |
+| Program ID | `CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW` |
+| IDL | [web/agentvouch.json](https://github.com/dirtybits/agent-reputation-oracle/blob/main/web/agentvouch.json) |
 | GitHub | [github.com/dirtybits/agent-reputation-oracle](https://github.com/dirtybits/agent-reputation-oracle) |
 
 ### AgentVouch CLI

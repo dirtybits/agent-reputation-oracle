@@ -24,8 +24,8 @@ import { formatSolAmount, formatUsdcMicros } from "@/lib/pricing";
 import SkillPreviewCard from "@/components/SkillPreviewCard";
 import { SolAmount } from "@/components/SolAmount";
 import type { TrustData } from "@/components/TrustBadge";
-import type { Purchase } from "../../generated/reputation-oracle/src/generated/accounts/purchase";
-import type { SkillListing } from "../../generated/reputation-oracle/src/generated/accounts/skillListing";
+import type { Purchase } from "../../generated/agentvouch/src/generated/accounts/purchase";
+import type { SkillListing } from "../../generated/agentvouch/src/generated/accounts/skillListing";
 import {
   FiActivity,
   FiAlertTriangle,

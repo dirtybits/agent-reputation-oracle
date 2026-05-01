@@ -12,13 +12,13 @@ vi.mock("@solana/kit", () => ({
 }));
 
 const mockFetchMaybePurchase = vi.fn();
-vi.mock("../../generated/reputation-oracle/src/generated", () => ({
+vi.mock("../../generated/agentvouch/src/generated", () => ({
   fetchMaybePurchase: (...args: unknown[]) => mockFetchMaybePurchase(...args),
 }));
 
-vi.mock("../../generated/reputation-oracle/src/generated/programs", () => ({
-  REPUTATION_ORACLE_PROGRAM_ADDRESS:
-    "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf",
+vi.mock("../../generated/agentvouch/src/generated/programs", () => ({
+  AGENTVOUCH_PROGRAM_ADDRESS:
+    "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
 }));
 
 import {
@@ -40,7 +40,7 @@ function makeRequirement(
   return {
     scheme: "exact",
     network: "solana",
-    programId: "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf",
+    programId: "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
     instruction: "purchaseSkill",
     skillListingAddress: FAKE_SKILL_LISTING,
     mint: "So11111111111111111111111111111111111111112",
@@ -73,7 +73,7 @@ describe("generatePaymentRequirement", () => {
     expect(req.scheme).toBe("exact");
     expect(req.network).toBe("solana");
     expect(req.chainContext).toBe(SOLANA_DEVNET_CHAIN_CONTEXT);
-    expect(req.programId).toBe("ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf");
+    expect(req.programId).toBe("CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW");
     expect(req.instruction).toBe("purchaseSkill");
     expect(req.skillListingAddress).toBe("SkillAddr123");
     expect(req.mint).toBe("So11111111111111111111111111111111111111112");

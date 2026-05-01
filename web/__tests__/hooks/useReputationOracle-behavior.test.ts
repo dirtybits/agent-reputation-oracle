@@ -5,7 +5,7 @@ import {
   getCreateSkillListingInstructionAsync,
   getRevokeVouchInstructionAsync,
   getVouchInstructionAsync,
-} from "@/generated/reputation-oracle/src/generated";
+} from "@/generated/agentvouch/src/generated";
 import {
   buildTransactionSendRequest,
   getConnectedAuthorAddress,

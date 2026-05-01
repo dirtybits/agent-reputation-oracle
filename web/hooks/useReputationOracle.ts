@@ -63,13 +63,13 @@ import {
   VouchStatus,
   type AgentProfile,
   type ReputationConfig,
-} from "../generated/reputation-oracle/src/generated";
-import { getMigrateAgentInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/migrateAgent";
-import { getDepositAuthorBondInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/depositAuthorBond";
-import { getWithdrawAuthorBondInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/withdrawAuthorBond";
-import { getRemoveSkillListingInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/removeSkillListing";
-import { getCloseSkillListingInstructionAsync } from "../generated/reputation-oracle/src/generated/instructions/closeSkillListing";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
+} from "../generated/agentvouch/src/generated";
+import { getMigrateAgentInstructionAsync } from "../generated/agentvouch/src/generated/instructions/migrateAgent";
+import { getDepositAuthorBondInstructionAsync } from "../generated/agentvouch/src/generated/instructions/depositAuthorBond";
+import { getWithdrawAuthorBondInstructionAsync } from "../generated/agentvouch/src/generated/instructions/withdrawAuthorBond";
+import { getRemoveSkillListingInstructionAsync } from "../generated/agentvouch/src/generated/instructions/removeSkillListing";
+import { getCloseSkillListingInstructionAsync } from "../generated/agentvouch/src/generated/instructions/closeSkillListing";
+import { AGENTVOUCH_PROGRAM_ADDRESS } from "../generated/agentvouch/src/generated/programs";
 import {
   getConfiguredSolanaChainDisplayLabel,
   getConfiguredSolanaRpcTargetLabel,
@@ -379,7 +379,7 @@ function encodeU64LE(value: number | bigint): Uint8Array {
 
 async function deriveAddress(
   seeds: (string | Address)[],
-  programId: Address = REPUTATION_ORACLE_PROGRAM_ADDRESS
+  programId: Address = AGENTVOUCH_PROGRAM_ADDRESS
 ): Promise<Address> {
   const encodedSeeds = seeds.map((s) =>
     isAddress(s) ? addressEncoder.encode(s) : textEncoder.encode(s)
@@ -415,7 +415,7 @@ async function getAuthorDisputePDA(
   disputeId: number | bigint
 ): Promise<Address> {
   const [derived] = await getProgramDerivedAddress({
-    programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+    programAddress: AGENTVOUCH_PROGRAM_ADDRESS,
     seeds: [
       textEncoder.encode("author_dispute"),
       addressEncoder.encode(author),
@@ -430,7 +430,7 @@ async function getAuthorDisputeVouchLinkPDA(
   vouch: Address
 ): Promise<Address> {
   const [derived] = await getProgramDerivedAddress({
-    programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+    programAddress: AGENTVOUCH_PROGRAM_ADDRESS,
     seeds: [
       textEncoder.encode("author_dispute_vouch_link"),
       addressEncoder.encode(authorDispute),
@@ -450,7 +450,7 @@ async function getSkillListingPDA(
     textEncoder.encode(skillId),
   ];
   const [derived] = await getProgramDerivedAddress({
-    programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+    programAddress: AGENTVOUCH_PROGRAM_ADDRESS,
     seeds: encodedSeeds,
   });
   return derived;
@@ -1074,7 +1074,7 @@ export function useReputationOracle() {
   const getAllAuthorDisputes = useCallback(async () => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -1253,7 +1253,7 @@ export function useReputationOracle() {
   const getAllAgents = useCallback(async () => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -1283,7 +1283,7 @@ export function useReputationOracle() {
     try {
       const agentProfile = await getAgentPDA(agentKey);
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -1318,7 +1318,7 @@ export function useReputationOracle() {
       try {
         const agentProfile = await getAgentPDA(agentKey);
         const accounts = await rpc
-          .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+          .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
             encoding: "base64",
             filters: [
               {
@@ -1353,7 +1353,7 @@ export function useReputationOracle() {
   const getAllSkillListings = useCallback(async () => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -1381,7 +1381,7 @@ export function useReputationOracle() {
   const getSkillListingsByAuthor = useCallback(async (author: Address) => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -1415,7 +1415,7 @@ export function useReputationOracle() {
   const getAllPurchases = useCallback(async () => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -1441,7 +1441,7 @@ export function useReputationOracle() {
   const getPurchasesByBuyer = useCallback(async (buyer: Address) => {
     try {
       const accounts = await rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {

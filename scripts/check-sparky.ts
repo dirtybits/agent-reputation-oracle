@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { ReputationOracle } from "../target/types/reputation_oracle";
+import { Agentvouch } from "../target/types/agentvouch";
 import * as fs from "fs";
 import { PublicKey } from "@solana/web3.js";
 
@@ -11,7 +11,7 @@ async function main() {
   );
 
   const idl = JSON.parse(
-    fs.readFileSync("./target/idl/reputation_oracle.json", "utf-8")
+    fs.readFileSync("./target/idl/agentvouch.json", "utf-8")
   );
 
   const programId = new PublicKey(idl.address);
@@ -23,7 +23,7 @@ async function main() {
     commitment: "confirmed",
   });
 
-  const program = new Program(idl, provider) as Program<ReputationOracle>;
+  const program = new Program(idl, provider) as Program<Agentvouch>;
 
   const sparkyKey = new PublicKey(
     "DRu2fqNcrieKtaAox2cFQSers1HJTyPj5ggv8nsryZxJ"

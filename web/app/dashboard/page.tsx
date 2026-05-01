@@ -17,7 +17,7 @@ import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getConfiguredSolanaFmTxUrl } from "@/lib/chains";
 import { getAuthorDisputeLiabilityScopeLabel } from "@/lib/authorDisputes";
 import Link from "next/link";
-import { AuthorDisputeRuling } from "@/generated/reputation-oracle/src/generated";
+import { AuthorDisputeRuling } from "@/generated/agentvouch/src/generated";
 import {
   FiAlertTriangle,
   FiCalendar,

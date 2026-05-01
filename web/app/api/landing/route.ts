@@ -7,8 +7,8 @@ import {
   getAgentProfileDecoder,
   AGENT_PROFILE_DISCRIMINATOR,
   SkillStatus,
-} from "../../../generated/reputation-oracle/src/generated";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../../../generated/reputation-oracle/src/generated/programs";
+} from "../../../generated/agentvouch/src/generated";
+import { AGENTVOUCH_PROGRAM_ADDRESS } from "../../../generated/agentvouch/src/generated/programs";
 import { resolveManyAgentIdentitiesByWallet } from "@/lib/agentIdentity";
 import {
   buildPublicCacheControl,
@@ -26,7 +26,7 @@ export async function GET() {
   try {
     const [skillAccounts, agentAccounts] = await Promise.all([
       rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {
@@ -40,7 +40,7 @@ export async function GET() {
         })
         .send(),
       rpc
-        .getProgramAccounts(REPUTATION_ORACLE_PROGRAM_ADDRESS, {
+        .getProgramAccounts(AGENTVOUCH_PROGRAM_ADDRESS, {
           encoding: "base64",
           filters: [
             {

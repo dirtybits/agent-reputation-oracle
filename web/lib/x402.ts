@@ -12,8 +12,8 @@ import {
 } from "./chains";
 import { getErrorMessage } from "./errors";
 import { DEFAULT_SOLANA_RPC_URL } from "./solanaRpc";
-import { fetchMaybePurchase } from "../generated/reputation-oracle/src/generated";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
+import { fetchMaybePurchase } from "../generated/agentvouch/src/generated";
+import { AGENTVOUCH_PROGRAM_ADDRESS } from "../generated/agentvouch/src/generated/programs";
 
 const SOL_NATIVE_MINT = "So11111111111111111111111111111111111111112";
 export const USDC_DEVNET_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
@@ -85,7 +85,7 @@ export function generatePaymentRequirement(opts: {
     scheme: "exact",
     network: "solana",
     chainContext: getConfiguredSolanaChainContext(),
-    programId: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+    programId: AGENTVOUCH_PROGRAM_ADDRESS,
     instruction: "purchaseSkill",
     skillListingAddress: opts.skillListingAddress,
     mint: SOL_NATIVE_MINT,
@@ -120,7 +120,7 @@ async function derivePurchasePda(
   const utf8Encoder = getUtf8Encoder();
 
   const [pda] = await getProgramDerivedAddress({
-    programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+    programAddress: AGENTVOUCH_PROGRAM_ADDRESS,
     seeds: [
       utf8Encoder.encode("purchase"),
       addressEncoder.encode(buyer as Address),

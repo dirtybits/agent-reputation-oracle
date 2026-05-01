@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { ReputationOracle } from "../target/types/reputation_oracle";
+import { Agentvouch } from "../target/types/agentvouch";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import fs from "fs";
 
@@ -29,7 +29,7 @@ async function main() {
   anchor.setProvider(provider);
 
   const program = anchor.workspace
-    .ReputationOracle as Program<ReputationOracle>;
+    .Agentvouch as Program<Agentvouch>;
 
   console.log("Voucher:", voucherKeypair.publicKey.toBase58());
   console.log("Vouchee:", vouchee.toBase58());

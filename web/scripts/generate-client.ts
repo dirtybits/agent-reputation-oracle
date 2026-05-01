@@ -8,12 +8,12 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const idlPath = path.join(__dirname, "../reputation_oracle.json");
+const idlPath = path.join(__dirname, "../agentvouch.json");
 const idl = JSON.parse(fs.readFileSync(idlPath, "utf-8"));
 
 const codama = createFromRoot(rootNodeFromAnchor(idl));
 
-const outputPath = path.join(__dirname, "../generated/reputation-oracle");
+const outputPath = path.join(__dirname, "../generated/agentvouch");
 
 if (fs.existsSync(outputPath)) {
   fs.rmSync(outputPath, { recursive: true });
@@ -27,7 +27,7 @@ async function main() {
   const programsIndexPath = path.join(outputPath, "src/generated/programs/index.ts");
   const generatedProgramPluginPath = path.join(
     outputPath,
-    "src/generated/programs/reputationOracle.ts"
+    "src/generated/programs/agentvouch.ts"
   );
   const instructionsBarrel = [
     'export * from "./instructions/adminMigrateAgent";',
@@ -70,8 +70,8 @@ async function main() {
     [
       'import type { Address } from "@solana/kit";',
       "",
-      'export const REPUTATION_ORACLE_PROGRAM_ADDRESS =',
-      '  "ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf" as Address<"ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf">;',
+      'export const AGENTVOUCH_PROGRAM_ADDRESS =',
+      '  "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW" as Address<"CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW">;',
       "",
     ].join("\n")
   );

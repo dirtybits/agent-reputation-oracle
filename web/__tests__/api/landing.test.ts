@@ -15,10 +15,10 @@ vi.mock("@solana/kit", () => {
 vi.mock("@solana/rpc-types", () => ({}));
 
 vi.mock(
-  "@/generated/reputation-oracle/src/generated",
+  "@/generated/agentvouch/src/generated",
   async (importOriginal) => {
     const actual = await importOriginal<
-      typeof import("@/generated/reputation-oracle/src/generated")
+      typeof import("@/generated/agentvouch/src/generated")
     >();
 
     return {
@@ -48,8 +48,8 @@ vi.mock(
   }
 );
 
-vi.mock("@/generated/reputation-oracle/src/generated/programs", () => ({
-  REPUTATION_ORACLE_PROGRAM_ADDRESS: "FakeProgramAddr",
+vi.mock("@/generated/agentvouch/src/generated/programs", () => ({
+  AGENTVOUCH_PROGRAM_ADDRESS: "FakeProgramAddr",
 }));
 
 import { GET } from "@/app/api/landing/route";

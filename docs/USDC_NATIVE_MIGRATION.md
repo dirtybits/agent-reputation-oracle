@@ -203,9 +203,10 @@ Use a fresh deploy keypair for the USDC-native `v0.2.0` migration.
 Recommended naming:
 
 ```text
-target/deploy/reputation_oracle-keypair.json       # Anchor default for current active local program
+target/deploy/reputation_oracle-keypair.json       # legacy Anchor default for current v0.1.0 local program
 target/deploy/reputation_oracle_v01-keypair.json   # archived v0.1.0 SOL devnet program key
-target/deploy/reputation_oracle_v02-keypair.json   # fresh v0.2.0 USDC-native devnet program key
+target/deploy/agentvouch-keypair.json              # Anchor default for v0.2.0 USDC-native program
+target/deploy/agentvouch_v02-keypair.json          # archived v0.2.0 keypair copy
 ```
 
 Version rules:
@@ -218,7 +219,9 @@ Current note:
 
 - `target/deploy/reputation_oracle-keypair.json` maps to the active `v0.1.0` devnet program.
 - `target/deploy/reputation_oracle_v01-keypair.json` is the archived `v0.1.0` keypair copy.
-- `target/deploy/reputation_oracle_v02-keypair.json` should be generated fresh when implementation starts.
+- `target/deploy/agentvouch-keypair.json` was generated for the fresh `v0.2.0` program identity.
+- `target/deploy/agentvouch_v02-keypair.json` is the archived `v0.2.0` keypair copy.
+- `v0.2.0` program pubkey: `CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW`.
 
 ## Planned Implementation Process
 
@@ -377,22 +380,24 @@ Goal: create and wire a new devnet program identity for `v0.2.0`.
 
 Tasks:
 
-- Generate `target/deploy/reputation_oracle_v02-keypair.json`.
+- Generate `target/deploy/agentvouch-keypair.json` and mirror a versioned `target/deploy/agentvouch_v02-keypair.json` copy.
 - Record the new pubkey in the migration notes.
 - Update `declare_id!`.
 - Update `Anchor.toml` devnet/localnet program IDs.
-- Decide whether the crate remains `reputation-oracle` or gets renamed after the `v0.2.0` logic is stable.
+- Rename the crate/lib from `reputation-oracle` / `reputation_oracle` to `agentvouch`.
+- Rename the Anchor program identity to `agentvouch`, including the crate/lib name and `programs/agentvouch/` folder.
+- Move the checked-in web IDL/client paths to `web/agentvouch.json` and `web/generated/agentvouch`.
 
 Acceptance criteria:
 
-- `solana-keygen pubkey target/deploy/reputation_oracle_v02-keypair.json` returns a new ID distinct from `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`.
-- `programs/reputation-oracle/src/lib.rs` and `Anchor.toml` agree on the `v0.2.0` program ID.
+- `solana-keygen pubkey target/deploy/agentvouch-keypair.json` returns `CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW`, distinct from the legacy `v0.1.0` program ID.
+- `programs/agentvouch/src/lib.rs` and `Anchor.toml` agree on the `v0.2.0` program ID.
 
 Verification:
 
 ```bash
-solana-keygen pubkey target/deploy/reputation_oracle_v02-keypair.json
-rg "<new-program-id>" Anchor.toml programs/reputation-oracle/src/lib.rs
+solana-keygen pubkey target/deploy/agentvouch-keypair.json
+rg "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW" Anchor.toml programs/agentvouch/src/lib.rs
 ```
 
 ### Pre-Milestone 3 Gates
@@ -433,7 +438,7 @@ Tasks:
 - Remove or rewrite `v0.1.0` migration instructions that only exist for old lamport account layouts.
 - Add post-transfer balance or state checks anywhere instruction logic depends on vault deltas.
 - Keep compute and account-count budgets visible in tests for high-account flows.
-- After every `anchor build` (or `anchor clean && anchor build` when IDLs look stale), copy `target/idl/reputation_oracle.json` → `web/reputation_oracle.json` and run `web/scripts/generate-client.ts`. The web client must remain Vercel-deploy-safe.
+- After every `anchor build` (or `anchor clean && anchor build` when IDLs look stale), copy `target/idl/agentvouch.json` -> `web/agentvouch.json` and run `web/scripts/generate-client.ts`. The web client must remain Vercel-deploy-safe.
 
 Instruction areas to rewrite:
 
@@ -469,8 +474,8 @@ Verification:
 
 ```bash
 NO_DNA=1 anchor build
-cargo check --manifest-path programs/reputation-oracle/Cargo.toml
-rg "price_lamports|author_bond_lamports|unclaimed_voucher_revenue|system_program::transfer" programs/reputation-oracle/src
+cargo check --manifest-path programs/agentvouch/Cargo.toml
+rg "price_lamports|author_bond_lamports|unclaimed_voucher_revenue|system_program::transfer" programs/agentvouch/src
 ```
 
 ### Milestone 4: Program Tests
@@ -516,24 +521,24 @@ Goal: refresh generated artifacts after the `v0.2.0` program compiles.
 Tasks:
 
 - Run `anchor build`.
-- Sync the generated IDL to `web/reputation_oracle.json`.
+- Sync the generated IDL to `web/agentvouch.json`.
 - Regenerate the web client.
 - Confirm generated program constants point to the `v0.2.0` program ID.
 - Remove stale generated references to lamport-only fields.
 
 Acceptance criteria:
 
-- `web/reputation_oracle.json` has the `v0.2.0` address.
-- `web/generated/reputation-oracle` has USDC field names.
+- `web/agentvouch.json` has the `v0.2.0` address.
+- `web/generated/agentvouch` has USDC field names.
 - TypeScript compile errors identify all remaining app integration points.
 
 Verification:
 
 ```bash
 NO_DNA=1 anchor build
-cp target/idl/reputation_oracle.json web/reputation_oracle.json
+cp target/idl/agentvouch.json web/agentvouch.json
 npm --workspace web run generate-client
-rg "ELmVnLSN|priceLamports|authorBondLamports|LAMPORTS_PER_SOL" web/generated web/reputation_oracle.json
+rg "ELmVnLSN|priceLamports|authorBondLamports|LAMPORTS_PER_SOL" web/generated web/agentvouch.json
 ```
 
 ### Milestone 6: Web Hook Integration
@@ -674,7 +679,7 @@ Tasks:
 - Document that x402 bridge memos must contain only protocol references (version, listing, skill id, nonce) and no PII or free-form buyer text.
 - Update `AGENTS.md` learned-facts to reflect USDC-native protocol, new program ID, vault model, and CAIP-2 conventions.
 - Co-version the pitch deck `pitch/AgentVouch_walkthrough.pptx` (and its paper sibling) with the new account/instruction counts, vault-per-primitive model, and USDC-native architecture slide. The deck pulls facts directly from the program; keep it in sync.
-- After every `anchor build`, copy `target/idl/reputation_oracle.json` to `web/reputation_oracle.json` and rerun `web/scripts/generate-client.ts` so the web client stays deploy-safe.
+- After every `anchor build`, copy `target/idl/agentvouch.json` to `web/agentvouch.json` and rerun `web/scripts/generate-client.ts` so the web client stays deploy-safe.
 
 Acceptance criteria:
 
@@ -815,9 +820,9 @@ The USDC-native `v0.2.0` program should not:
 The migration is complete when:
 
 - `v0.2.0` is deployed to devnet with a fresh program ID.
-- Every protocol money field is USDC-denominated; `rg "lamports|price_lamports|author_bond_lamports|stake_amount" programs/reputation-oracle/src` returns no business-logic hits (rent helpers excluded).
+- Every protocol money field is USDC-denominated; `rg "lamports|price_lamports|author_bond_lamports|stake_amount" programs/agentvouch/src` returns no business-logic hits (rent helpers excluded).
 - `rg "LAMPORTS_PER_SOL|formatSol|priceLamports|authorBondLamports" web/app web/components web/hooks` returns no hits outside legacy notices.
-- After `anchor build`, `web/reputation_oracle.json` and generated client artifacts are synced to the live `v0.2.0` IDL.
+- After `anchor build`, `web/agentvouch.json` and generated client artifacts are synced to the live `v0.2.0` IDL.
 - Every USDC-moving instruction has at least one positive and one negative test (wrong mint, wrong token program, missing ATA, wrong owner).
 - Vouching, author bonds, purchases, voucher rewards, disputes, and reputation all use USDC accounting.
 - Web primary flows no longer require `v0.1.0` SOL instructions.

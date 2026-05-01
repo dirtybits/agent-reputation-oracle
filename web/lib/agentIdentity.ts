@@ -10,7 +10,7 @@ import {
   normalizeInputChainContext,
   normalizePersistedChainContext,
 } from "@/lib/chains";
-import { REPUTATION_ORACLE_PROGRAM_ADDRESS } from "../generated/reputation-oracle/src/generated/programs";
+import { AGENTVOUCH_PROGRAM_ADDRESS } from "../generated/agentvouch/src/generated/programs";
 
 export type AgentIdentitySource = "local" | "erc8004" | "imported";
 
@@ -166,7 +166,7 @@ async function deriveAgentProfilePda(walletPubkey: string): Promise<string> {
   const textEncoder = getUtf8Encoder();
   const addressEncoder = getAddressEncoder();
   const [pda] = await getProgramDerivedAddress({
-    programAddress: REPUTATION_ORACLE_PROGRAM_ADDRESS,
+    programAddress: AGENTVOUCH_PROGRAM_ADDRESS,
     seeds: [
       textEncoder.encode("agent"),
       addressEncoder.encode(walletPubkey as Address),

@@ -32,7 +32,7 @@ import {
 import {
   AuthorDisputeReason,
   VouchStatus,
-} from "@/generated/reputation-oracle/src/generated";
+} from "@/generated/agentvouch/src/generated";
 import type { SolanaRegistryCandidate } from "@/lib/solanaAgentRegistry";
 import { SolAmount } from "@/components/SolAmount";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";

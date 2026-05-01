@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { ReputationOracle } from "../target/types/reputation_oracle";
+import { Agentvouch } from "../target/types/agentvouch";
 import { PublicKey } from "@solana/web3.js";
 
 async function main() {
@@ -12,7 +12,7 @@ async function main() {
   anchor.setProvider(provider);
 
   const program = anchor.workspace
-    .ReputationOracle as Program<ReputationOracle>;
+    .Agentvouch as Program<Agentvouch>;
 
   const agentAddress = new PublicKey(
     process.argv[2] || "dmt4CBeNrF6iMV793zfJGiAAqVK9C9bifdL9cvqNTou"
