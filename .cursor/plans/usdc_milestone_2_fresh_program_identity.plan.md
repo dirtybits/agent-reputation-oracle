@@ -10,10 +10,10 @@ todos:
     status: completed
   - id: rename-anchor-identity
     content: Rename Anchor program identity from reputation_oracle to agentvouch
-    status: pending
+    status: completed
   - id: update-program-references
     content: Update scripts, docs, tests, web hooks, and package references for the new program identity
-    status: pending
+    status: completed
   - id: regenerate-or-document-client
     content: Run anchor build and regenerate/sync IDL client artifacts or document blocker
     status: completed
