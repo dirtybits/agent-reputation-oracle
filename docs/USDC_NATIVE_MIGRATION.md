@@ -107,6 +107,14 @@ Token program and mints:
   - mainnet-beta: `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
 - Chain context is recorded as CAIP-2 (`solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` for devnet, `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` for mainnet-beta).
 
+USDC risk acknowledgement:
+
+- Native Circle USDC is centralized collateral. Circle can blacklist/freeze accounts, mint/burn policy is issuer-controlled, and access depends on regulated infrastructure.
+- `v0.2.0` accepts that risk because USDC gives the protocol a stable unit of account, simple listing prices, legible slashable backing, and a better fit for x402 and agentic commerce than volatile SOL or multi-asset collateral.
+- The protocol should not describe USDC as decentralization-maximal collateral. It is the pragmatic settlement asset for this phase.
+- Keep the asset choice explicit in config through `usdc_mint` and `token_program`, but enforce only native Circle USDC under the classic SPL Token program in `v0.2.0`.
+- If a credible decentralized stable asset emerges with enough liquidity, chain support, x402 support, and operational simplicity, evaluate it in a future protocol version. Do not add price oracles or multi-collateral support in `v0.2.0`.
+
 Identity and reputation interop:
 
 - Treat AgentVouch as the economic accountability layer that sits on top of agent identity, not a competing identity standard.
