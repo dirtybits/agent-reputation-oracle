@@ -223,6 +223,18 @@ Current note:
 - `target/deploy/agentvouch_v02-keypair.json` is the archived `v0.2.0` keypair copy.
 - `v0.2.0` program pubkey: `CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW`.
 
+## Production Cutover Guardrail
+
+Do not deploy the `v0.2.0` branch to production until the new program is deployed, initialized, indexed, and smoke-tested end to end.
+
+Cutover rules:
+
+- Keep production `agentvouch.xyz` stable on the current working flow while `v0.2.0` is still being built.
+- Public metadata that agents, wallets, and reviewers can read must flip together at cutover: `web/public/skill.md`, `.well-known/agentvouch.json`, docs, generated IDL/client files, and `@agentvouch/protocol` constants.
+- Phantom app acceptance should remain tied mostly to the domain, app ID, allowlisted URLs, and wallet UX. A program ID change is acceptable only after the new on-chain flow is live and verified.
+- Do not expose a half-cutover state where public docs or manifests point at `CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW` before the program has been deployed and initialized on the intended cluster.
+- Keep private deploy keypairs out of git. Commit only source, docs, generated IDL/client artifacts, and public constants.
+
 ## Planned Implementation Process
 
 Treat `v0.2.0` as a fresh protocol that uses the existing codebase as scaffolding, not as a backwards-compatible patch set. There is no real usage or user money on the current devnet deployment, so the implementation should prefer a clean USDC-native model over compatibility shims.
