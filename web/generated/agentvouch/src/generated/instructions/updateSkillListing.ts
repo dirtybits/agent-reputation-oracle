@@ -101,7 +101,7 @@ export type UpdateSkillListingInstructionData = {
   skillUri: string;
   name: string;
   description: string;
-  priceLamports: bigint;
+  priceUsdcMicros: bigint;
 };
 
 export type UpdateSkillListingInstructionDataArgs = {
@@ -109,7 +109,7 @@ export type UpdateSkillListingInstructionDataArgs = {
   skillUri: string;
   name: string;
   description: string;
-  priceLamports: number | bigint;
+  priceUsdcMicros: number | bigint;
 };
 
 export function getUpdateSkillListingInstructionDataEncoder(): Encoder<UpdateSkillListingInstructionDataArgs> {
@@ -120,7 +120,7 @@ export function getUpdateSkillListingInstructionDataEncoder(): Encoder<UpdateSki
       ["skillUri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["description", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["priceLamports", getU64Encoder()],
+      ["priceUsdcMicros", getU64Encoder()],
     ]),
     (value) => ({
       ...value,
@@ -136,7 +136,7 @@ export function getUpdateSkillListingInstructionDataDecoder(): Decoder<UpdateSki
     ["skillUri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["description", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["priceLamports", getU64Decoder()],
+    ["priceUsdcMicros", getU64Decoder()],
   ]);
 }
 
@@ -166,7 +166,7 @@ export type UpdateSkillListingAsyncInput<
   skillUri: UpdateSkillListingInstructionDataArgs["skillUri"];
   name: UpdateSkillListingInstructionDataArgs["name"];
   description: UpdateSkillListingInstructionDataArgs["description"];
-  priceLamports: UpdateSkillListingInstructionDataArgs["priceLamports"];
+  priceUsdcMicros: UpdateSkillListingInstructionDataArgs["priceUsdcMicros"];
 };
 
 export async function getUpdateSkillListingInstructionAsync<
@@ -275,7 +275,7 @@ export type UpdateSkillListingInput<
   skillUri: UpdateSkillListingInstructionDataArgs["skillUri"];
   name: UpdateSkillListingInstructionDataArgs["name"];
   description: UpdateSkillListingInstructionDataArgs["description"];
-  priceLamports: UpdateSkillListingInstructionDataArgs["priceLamports"];
+  priceUsdcMicros: UpdateSkillListingInstructionDataArgs["priceUsdcMicros"];
 };
 
 export function getUpdateSkillListingInstruction<

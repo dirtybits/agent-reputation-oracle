@@ -41,6 +41,7 @@ import {
   findConfigPda,
   findRevokeVouchVouchPda,
   findVoucherProfilePda,
+  findVouchVaultAuthorityPda,
 } from "../pdas";
 import { AGENTVOUCH_PROGRAM_ADDRESS } from "../programs";
 
@@ -60,9 +61,13 @@ export type RevokeVouchInstruction<
   TAccountVoucherProfile extends string | AccountMeta<string> = string,
   TAccountVoucheeProfile extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
+  TAccountUsdcMint extends string | AccountMeta<string> = string,
+  TAccountVouchVaultAuthority extends string | AccountMeta<string> = string,
+  TAccountVouchVault extends string | AccountMeta<string> = string,
+  TAccountVoucherUsdcAccount extends string | AccountMeta<string> = string,
   TAccountVoucher extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
+  TAccountTokenProgram extends string | AccountMeta<string> =
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -80,13 +85,25 @@ export type RevokeVouchInstruction<
       TAccountConfig extends string
         ? ReadonlyAccount<TAccountConfig>
         : TAccountConfig,
+      TAccountUsdcMint extends string
+        ? ReadonlyAccount<TAccountUsdcMint>
+        : TAccountUsdcMint,
+      TAccountVouchVaultAuthority extends string
+        ? ReadonlyAccount<TAccountVouchVaultAuthority>
+        : TAccountVouchVaultAuthority,
+      TAccountVouchVault extends string
+        ? WritableAccount<TAccountVouchVault>
+        : TAccountVouchVault,
+      TAccountVoucherUsdcAccount extends string
+        ? WritableAccount<TAccountVoucherUsdcAccount>
+        : TAccountVoucherUsdcAccount,
       TAccountVoucher extends string
         ? WritableSignerAccount<TAccountVoucher> &
             AccountSignerMeta<TAccountVoucher>
         : TAccountVoucher,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -123,15 +140,23 @@ export type RevokeVouchAsyncInput<
   TAccountVoucherProfile extends string = string,
   TAccountVoucheeProfile extends string = string,
   TAccountConfig extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountVouchVaultAuthority extends string = string,
+  TAccountVouchVault extends string = string,
+  TAccountVoucherUsdcAccount extends string = string,
   TAccountVoucher extends string = string,
-  TAccountSystemProgram extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   vouch?: Address<TAccountVouch>;
   voucherProfile?: Address<TAccountVoucherProfile>;
   voucheeProfile: Address<TAccountVoucheeProfile>;
   config?: Address<TAccountConfig>;
+  usdcMint: Address<TAccountUsdcMint>;
+  vouchVaultAuthority?: Address<TAccountVouchVaultAuthority>;
+  vouchVault: Address<TAccountVouchVault>;
+  voucherUsdcAccount: Address<TAccountVoucherUsdcAccount>;
   voucher: TransactionSigner<TAccountVoucher>;
-  systemProgram?: Address<TAccountSystemProgram>;
+  tokenProgram?: Address<TAccountTokenProgram>;
 };
 
 export async function getRevokeVouchInstructionAsync<
@@ -139,8 +164,12 @@ export async function getRevokeVouchInstructionAsync<
   TAccountVoucherProfile extends string,
   TAccountVoucheeProfile extends string,
   TAccountConfig extends string,
+  TAccountUsdcMint extends string,
+  TAccountVouchVaultAuthority extends string,
+  TAccountVouchVault extends string,
+  TAccountVoucherUsdcAccount extends string,
   TAccountVoucher extends string,
-  TAccountSystemProgram extends string,
+  TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
   input: RevokeVouchAsyncInput<
@@ -148,8 +177,12 @@ export async function getRevokeVouchInstructionAsync<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
+    TAccountVoucherUsdcAccount,
     TAccountVoucher,
-    TAccountSystemProgram
+    TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -159,8 +192,12 @@ export async function getRevokeVouchInstructionAsync<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
+    TAccountVoucherUsdcAccount,
     TAccountVoucher,
-    TAccountSystemProgram
+    TAccountTokenProgram
   >
 > {
   // Program address.
@@ -172,8 +209,18 @@ export async function getRevokeVouchInstructionAsync<
     voucherProfile: { value: input.voucherProfile ?? null, isWritable: true },
     voucheeProfile: { value: input.voucheeProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    vouchVaultAuthority: {
+      value: input.vouchVaultAuthority ?? null,
+      isWritable: false,
+    },
+    vouchVault: { value: input.vouchVault ?? null, isWritable: true },
+    voucherUsdcAccount: {
+      value: input.voucherUsdcAccount ?? null,
+      isWritable: true,
+    },
     voucher: { value: input.voucher ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -204,9 +251,21 @@ export async function getRevokeVouchInstructionAsync<
   if (!accounts.config.value) {
     accounts.config.value = await findConfigPda();
   }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
+  if (!accounts.vouchVaultAuthority.value) {
+    accounts.vouchVaultAuthority.value = await findVouchVaultAuthorityPda({
+      voucherProfile: getAddressFromResolvedInstructionAccount(
+        "voucherProfile",
+        accounts.voucherProfile.value,
+      ),
+      voucheeProfile: getAddressFromResolvedInstructionAccount(
+        "voucheeProfile",
+        accounts.voucheeProfile.value,
+      ),
+    });
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
@@ -216,8 +275,12 @@ export async function getRevokeVouchInstructionAsync<
       getAccountMeta("voucherProfile", accounts.voucherProfile),
       getAccountMeta("voucheeProfile", accounts.voucheeProfile),
       getAccountMeta("config", accounts.config),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("vouchVaultAuthority", accounts.vouchVaultAuthority),
+      getAccountMeta("vouchVault", accounts.vouchVault),
+      getAccountMeta("voucherUsdcAccount", accounts.voucherUsdcAccount),
       getAccountMeta("voucher", accounts.voucher),
-      getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
     data: getRevokeVouchInstructionDataEncoder().encode({}),
     programAddress,
@@ -227,8 +290,12 @@ export async function getRevokeVouchInstructionAsync<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
+    TAccountVoucherUsdcAccount,
     TAccountVoucher,
-    TAccountSystemProgram
+    TAccountTokenProgram
   >);
 }
 
@@ -237,15 +304,23 @@ export type RevokeVouchInput<
   TAccountVoucherProfile extends string = string,
   TAccountVoucheeProfile extends string = string,
   TAccountConfig extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountVouchVaultAuthority extends string = string,
+  TAccountVouchVault extends string = string,
+  TAccountVoucherUsdcAccount extends string = string,
   TAccountVoucher extends string = string,
-  TAccountSystemProgram extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   vouch: Address<TAccountVouch>;
   voucherProfile: Address<TAccountVoucherProfile>;
   voucheeProfile: Address<TAccountVoucheeProfile>;
   config: Address<TAccountConfig>;
+  usdcMint: Address<TAccountUsdcMint>;
+  vouchVaultAuthority: Address<TAccountVouchVaultAuthority>;
+  vouchVault: Address<TAccountVouchVault>;
+  voucherUsdcAccount: Address<TAccountVoucherUsdcAccount>;
   voucher: TransactionSigner<TAccountVoucher>;
-  systemProgram?: Address<TAccountSystemProgram>;
+  tokenProgram?: Address<TAccountTokenProgram>;
 };
 
 export function getRevokeVouchInstruction<
@@ -253,8 +328,12 @@ export function getRevokeVouchInstruction<
   TAccountVoucherProfile extends string,
   TAccountVoucheeProfile extends string,
   TAccountConfig extends string,
+  TAccountUsdcMint extends string,
+  TAccountVouchVaultAuthority extends string,
+  TAccountVouchVault extends string,
+  TAccountVoucherUsdcAccount extends string,
   TAccountVoucher extends string,
-  TAccountSystemProgram extends string,
+  TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
   input: RevokeVouchInput<
@@ -262,8 +341,12 @@ export function getRevokeVouchInstruction<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
+    TAccountVoucherUsdcAccount,
     TAccountVoucher,
-    TAccountSystemProgram
+    TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): RevokeVouchInstruction<
@@ -272,8 +355,12 @@ export function getRevokeVouchInstruction<
   TAccountVoucherProfile,
   TAccountVoucheeProfile,
   TAccountConfig,
+  TAccountUsdcMint,
+  TAccountVouchVaultAuthority,
+  TAccountVouchVault,
+  TAccountVoucherUsdcAccount,
   TAccountVoucher,
-  TAccountSystemProgram
+  TAccountTokenProgram
 > {
   // Program address.
   const programAddress = config?.programAddress ?? AGENTVOUCH_PROGRAM_ADDRESS;
@@ -284,8 +371,18 @@ export function getRevokeVouchInstruction<
     voucherProfile: { value: input.voucherProfile ?? null, isWritable: true },
     voucheeProfile: { value: input.voucheeProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    vouchVaultAuthority: {
+      value: input.vouchVaultAuthority ?? null,
+      isWritable: false,
+    },
+    vouchVault: { value: input.vouchVault ?? null, isWritable: true },
+    voucherUsdcAccount: {
+      value: input.voucherUsdcAccount ?? null,
+      isWritable: true,
+    },
     voucher: { value: input.voucher ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -293,9 +390,9 @@ export function getRevokeVouchInstruction<
   >;
 
   // Resolve default values.
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
@@ -305,8 +402,12 @@ export function getRevokeVouchInstruction<
       getAccountMeta("voucherProfile", accounts.voucherProfile),
       getAccountMeta("voucheeProfile", accounts.voucheeProfile),
       getAccountMeta("config", accounts.config),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("vouchVaultAuthority", accounts.vouchVaultAuthority),
+      getAccountMeta("vouchVault", accounts.vouchVault),
+      getAccountMeta("voucherUsdcAccount", accounts.voucherUsdcAccount),
       getAccountMeta("voucher", accounts.voucher),
-      getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
     data: getRevokeVouchInstructionDataEncoder().encode({}),
     programAddress,
@@ -316,8 +417,12 @@ export function getRevokeVouchInstruction<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
+    TAccountVoucherUsdcAccount,
     TAccountVoucher,
-    TAccountSystemProgram
+    TAccountTokenProgram
   >);
 }
 
@@ -331,8 +436,12 @@ export type ParsedRevokeVouchInstruction<
     voucherProfile: TAccountMetas[1];
     voucheeProfile: TAccountMetas[2];
     config: TAccountMetas[3];
-    voucher: TAccountMetas[4];
-    systemProgram: TAccountMetas[5];
+    usdcMint: TAccountMetas[4];
+    vouchVaultAuthority: TAccountMetas[5];
+    vouchVault: TAccountMetas[6];
+    voucherUsdcAccount: TAccountMetas[7];
+    voucher: TAccountMetas[8];
+    tokenProgram: TAccountMetas[9];
   };
   data: RevokeVouchInstructionData;
 };
@@ -345,12 +454,12 @@ export function parseRevokeVouchInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedRevokeVouchInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 10) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 6,
+        expectedAccountMetas: 10,
       },
     );
   }
@@ -367,8 +476,12 @@ export function parseRevokeVouchInstruction<
       voucherProfile: getNextAccount(),
       voucheeProfile: getNextAccount(),
       config: getNextAccount(),
+      usdcMint: getNextAccount(),
+      vouchVaultAuthority: getNextAccount(),
+      vouchVault: getNextAccount(),
+      voucherUsdcAccount: getNextAccount(),
       voucher: getNextAccount(),
-      systemProgram: getNextAccount(),
+      tokenProgram: getNextAccount(),
     },
     data: getRevokeVouchInstructionDataDecoder().decode(instruction.data),
   };

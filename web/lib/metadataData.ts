@@ -50,7 +50,7 @@ export async function getSkillMetadataSummary(id: string) {
         "View on-chain trust signals, stake-backed endorsements, and dispute history before installing this agent skill.",
       authorPubkey: String(listing.data.author),
       chainContext: configuredSolanaChainContext,
-      priceLamports: Number(listing.data.priceLamports),
+      priceLamports: Number(listing.data.priceUsdcMicros),
       trustSummary,
     };
   }

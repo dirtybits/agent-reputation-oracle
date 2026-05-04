@@ -33,6 +33,7 @@ import {
 } from "@/lib/chains";
 import { getErrorMessage } from "@/lib/errors";
 import { wrapRpcLookupError } from "@/lib/rpcErrors";
+import { getConfiguredUsdcMint } from "@/lib/x402";
 import {
   fetchAllMaybePurchase,
   fetchMaybePurchase,
@@ -55,6 +56,10 @@ const rpc = createSolanaRpc(ENDPOINT);
 const SIGNATURE_CONFIRMATION_TIMEOUT_MS = 45_000;
 const SIGNATURE_CONFIRMATION_POLL_MS = 1_000;
 const LAMPORTS_PER_SOL = 1_000_000_000n;
+const TOKEN_PROGRAM_ID = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const ASSOCIATED_TOKEN_PROGRAM_ID = address(
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+);
 
 const textEncoder = getUtf8Encoder();
 const addressEncoder = getAddressEncoder();
@@ -114,6 +119,10 @@ async function getAgentPDA(agentKey: Address): Promise<Address> {
   return deriveAddress(["agent", agentKey]);
 }
 
+async function getAssociatedTokenAccount(owner: Address, mint: Address) {
+  return deriveAddress([owner, TOKEN_PROGRAM_ID, mint], ASSOCIATED_TOKEN_PROGRAM_ID);
+}
+
 async function getPurchasePDA(
   buyer: Address,
   skillListing: Address
@@ -149,7 +158,7 @@ async function estimatePurchasePreflight(
   });
   return assessPurchasePreflight({
     context,
-    priceLamports: BigInt(listing.data.priceLamports),
+    priceLamports: BigInt(listing.data.priceUsdcMicros),
     author,
   });
 }
@@ -469,11 +478,22 @@ export function useMarketplaceOracle() {
         console.warn("Purchase preflight skipped:", error);
       }
 
+      const listing = await fetchMaybeSkillListing(rpc, skillListingKey);
+      if (!listing.exists) throw new Error("Skill listing not found");
       const authorProfile = await getAgentPDA(authorKey);
+      const usdcMint = address(getConfiguredUsdcMint());
+      const [buyerUsdcAccount, authorUsdcAccount] = await Promise.all([
+        getAssociatedTokenAccount(walletAddress, usdcMint),
+        getAssociatedTokenAccount(authorKey, usdcMint),
+      ]);
       const ix = await getPurchaseSkillInstructionAsync({
         skillListing: skillListingKey,
         author: authorKey,
         authorProfile,
+        usdcMint,
+        buyerUsdcAccount,
+        authorUsdcAccount,
+        rewardVault: listing.data.rewardVault,
         buyer: signer,
       });
       try {

@@ -32,7 +32,7 @@ export type SkillListingUpdated = {
   skillListing: Address;
   author: Address;
   name: string;
-  priceLamports: bigint;
+  priceUsdcMicros: bigint;
   timestamp: bigint;
 };
 
@@ -40,7 +40,7 @@ export type SkillListingUpdatedArgs = {
   skillListing: Address;
   author: Address;
   name: string;
-  priceLamports: number | bigint;
+  priceUsdcMicros: number | bigint;
   timestamp: number | bigint;
 };
 
@@ -49,7 +49,7 @@ export function getSkillListingUpdatedEncoder(): Encoder<SkillListingUpdatedArgs
     ["skillListing", getAddressEncoder()],
     ["author", getAddressEncoder()],
     ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-    ["priceLamports", getU64Encoder()],
+    ["priceUsdcMicros", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -59,7 +59,7 @@ export function getSkillListingUpdatedDecoder(): Decoder<SkillListingUpdated> {
     ["skillListing", getAddressDecoder()],
     ["author", getAddressDecoder()],
     ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["priceLamports", getU64Decoder()],
+    ["priceUsdcMicros", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

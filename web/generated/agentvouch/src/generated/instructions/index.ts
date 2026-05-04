@@ -6,21 +6,19 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./adminMigrateAgent";
 export * from "./claimVoucherRevenue";
 export * from "./closeSkillListing";
 export * from "./createSkillListing";
 export * from "./depositAuthorBond";
 export * from "./initializeConfig";
-export * from "./migrateAgent";
-export * from "./migrateConfig";
+export * from "./linkVouchToListing";
 export * from "./openAuthorDispute";
 export * from "./purchaseSkill";
 export * from "./registerAgent";
 export * from "./removeSkillListing";
-export * from "./repairAgentRegisteredAt";
 export * from "./resolveAuthorDispute";
 export * from "./revokeVouch";
+export * from "./unlinkVouchFromListing";
 export * from "./updateSkillListing";
 export * from "./vouch";
 export * from "./withdrawAuthorBond";

@@ -84,40 +84,52 @@ export type AuthorDispute = {
   disputeId: bigint;
   author: Address;
   challenger: Address;
+  disputeBondVault: Address;
+  rentPayer: Address;
   reason: AuthorDisputeReason;
   evidenceUri: string;
   status: AuthorDisputeStatus;
   ruling: Option<AuthorDisputeRuling>;
   liabilityScope: AuthorDisputeLiabilityScope;
   skillListing: Address;
-  skillPriceLamportsSnapshot: bigint;
+  skillPriceUsdcMicrosSnapshot: bigint;
   purchase: Option<Address>;
   backingVouchCountSnapshot: number;
   linkedVouchCount: number;
-  bondAmount: bigint;
+  processedVouchCount: number;
+  authorBondSlashedUsdcMicros: bigint;
+  voucherSlashedUsdcMicros: bigint;
+  bondAmountUsdcMicros: bigint;
   createdAt: bigint;
   resolvedAt: Option<bigint>;
   bump: number;
+  disputeBondVaultBump: number;
 };
 
 export type AuthorDisputeArgs = {
   disputeId: number | bigint;
   author: Address;
   challenger: Address;
+  disputeBondVault: Address;
+  rentPayer: Address;
   reason: AuthorDisputeReasonArgs;
   evidenceUri: string;
   status: AuthorDisputeStatusArgs;
   ruling: OptionOrNullable<AuthorDisputeRulingArgs>;
   liabilityScope: AuthorDisputeLiabilityScopeArgs;
   skillListing: Address;
-  skillPriceLamportsSnapshot: number | bigint;
+  skillPriceUsdcMicrosSnapshot: number | bigint;
   purchase: OptionOrNullable<Address>;
   backingVouchCountSnapshot: number;
   linkedVouchCount: number;
-  bondAmount: number | bigint;
+  processedVouchCount: number;
+  authorBondSlashedUsdcMicros: number | bigint;
+  voucherSlashedUsdcMicros: number | bigint;
+  bondAmountUsdcMicros: number | bigint;
   createdAt: number | bigint;
   resolvedAt: OptionOrNullable<number | bigint>;
   bump: number;
+  disputeBondVaultBump: number;
 };
 
 /** Gets the encoder for {@link AuthorDisputeArgs} account data. */
@@ -128,20 +140,26 @@ export function getAuthorDisputeEncoder(): Encoder<AuthorDisputeArgs> {
       ["disputeId", getU64Encoder()],
       ["author", getAddressEncoder()],
       ["challenger", getAddressEncoder()],
+      ["disputeBondVault", getAddressEncoder()],
+      ["rentPayer", getAddressEncoder()],
       ["reason", getAuthorDisputeReasonEncoder()],
       ["evidenceUri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["status", getAuthorDisputeStatusEncoder()],
       ["ruling", getOptionEncoder(getAuthorDisputeRulingEncoder())],
       ["liabilityScope", getAuthorDisputeLiabilityScopeEncoder()],
       ["skillListing", getAddressEncoder()],
-      ["skillPriceLamportsSnapshot", getU64Encoder()],
+      ["skillPriceUsdcMicrosSnapshot", getU64Encoder()],
       ["purchase", getOptionEncoder(getAddressEncoder())],
       ["backingVouchCountSnapshot", getU32Encoder()],
       ["linkedVouchCount", getU32Encoder()],
-      ["bondAmount", getU64Encoder()],
+      ["processedVouchCount", getU32Encoder()],
+      ["authorBondSlashedUsdcMicros", getU64Encoder()],
+      ["voucherSlashedUsdcMicros", getU64Encoder()],
+      ["bondAmountUsdcMicros", getU64Encoder()],
       ["createdAt", getI64Encoder()],
       ["resolvedAt", getOptionEncoder(getI64Encoder())],
       ["bump", getU8Encoder()],
+      ["disputeBondVaultBump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: AUTHOR_DISPUTE_DISCRIMINATOR }),
   );
@@ -154,20 +172,26 @@ export function getAuthorDisputeDecoder(): Decoder<AuthorDispute> {
     ["disputeId", getU64Decoder()],
     ["author", getAddressDecoder()],
     ["challenger", getAddressDecoder()],
+    ["disputeBondVault", getAddressDecoder()],
+    ["rentPayer", getAddressDecoder()],
     ["reason", getAuthorDisputeReasonDecoder()],
     ["evidenceUri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["status", getAuthorDisputeStatusDecoder()],
     ["ruling", getOptionDecoder(getAuthorDisputeRulingDecoder())],
     ["liabilityScope", getAuthorDisputeLiabilityScopeDecoder()],
     ["skillListing", getAddressDecoder()],
-    ["skillPriceLamportsSnapshot", getU64Decoder()],
+    ["skillPriceUsdcMicrosSnapshot", getU64Decoder()],
     ["purchase", getOptionDecoder(getAddressDecoder())],
     ["backingVouchCountSnapshot", getU32Decoder()],
     ["linkedVouchCount", getU32Decoder()],
-    ["bondAmount", getU64Decoder()],
+    ["processedVouchCount", getU32Decoder()],
+    ["authorBondSlashedUsdcMicros", getU64Decoder()],
+    ["voucherSlashedUsdcMicros", getU64Decoder()],
+    ["bondAmountUsdcMicros", getU64Decoder()],
     ["createdAt", getI64Decoder()],
     ["resolvedAt", getOptionDecoder(getI64Decoder())],
     ["bump", getU8Decoder()],
+    ["disputeBondVaultBump", getU8Decoder()],
   ]);
 }
 

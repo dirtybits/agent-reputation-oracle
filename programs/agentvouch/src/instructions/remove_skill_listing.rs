@@ -25,7 +25,7 @@ pub struct RemoveSkillListing<'info> {
 }
 
 pub fn handler(ctx: Context<RemoveSkillListing>, _skill_id: String) -> Result<()> {
-    if crate::state::SkillListing::is_free_price(ctx.accounts.skill_listing.price_lamports) {
+    if crate::state::SkillListing::is_free_price(ctx.accounts.skill_listing.price_usdc_micros) {
         ctx.accounts.author_profile.active_free_skill_listings = ctx
             .accounts
             .author_profile

@@ -34,9 +34,9 @@ export type AuthorDisputeResolved = {
   ruling: string;
   liabilityScope: string;
   linkedVouchCount: number;
-  authorBondSlashedAmount: bigint;
-  voucherSlashedAmount: bigint;
-  slashedAmount: bigint;
+  authorBondSlashedUsdcMicros: bigint;
+  voucherSlashedUsdcMicros: bigint;
+  slashedUsdcMicros: bigint;
   timestamp: bigint;
 };
 
@@ -46,9 +46,9 @@ export type AuthorDisputeResolvedArgs = {
   ruling: string;
   liabilityScope: string;
   linkedVouchCount: number;
-  authorBondSlashedAmount: number | bigint;
-  voucherSlashedAmount: number | bigint;
-  slashedAmount: number | bigint;
+  authorBondSlashedUsdcMicros: number | bigint;
+  voucherSlashedUsdcMicros: number | bigint;
+  slashedUsdcMicros: number | bigint;
   timestamp: number | bigint;
 };
 
@@ -59,9 +59,9 @@ export function getAuthorDisputeResolvedEncoder(): Encoder<AuthorDisputeResolved
     ["ruling", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ["liabilityScope", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ["linkedVouchCount", getU32Encoder()],
-    ["authorBondSlashedAmount", getU64Encoder()],
-    ["voucherSlashedAmount", getU64Encoder()],
-    ["slashedAmount", getU64Encoder()],
+    ["authorBondSlashedUsdcMicros", getU64Encoder()],
+    ["voucherSlashedUsdcMicros", getU64Encoder()],
+    ["slashedUsdcMicros", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -73,9 +73,9 @@ export function getAuthorDisputeResolvedDecoder(): Decoder<AuthorDisputeResolved
     ["ruling", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["liabilityScope", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["linkedVouchCount", getU32Decoder()],
-    ["authorBondSlashedAmount", getU64Decoder()],
-    ["voucherSlashedAmount", getU64Decoder()],
-    ["slashedAmount", getU64Decoder()],
+    ["authorBondSlashedUsdcMicros", getU64Decoder()],
+    ["voucherSlashedUsdcMicros", getU64Decoder()],
+    ["slashedUsdcMicros", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

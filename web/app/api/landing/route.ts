@@ -68,9 +68,9 @@ export async function GET() {
           author: data.author,
           name: data.name,
           description: data.description,
-          priceLamports: Number(data.priceLamports),
+          priceLamports: Number(data.priceUsdcMicros),
           totalDownloads: Number(data.totalDownloads),
-          totalRevenue: Number(data.totalRevenue),
+          totalRevenue: Number(data.totalRevenueUsdcMicros),
           status: data.status,
         },
       };
@@ -84,7 +84,7 @@ export async function GET() {
         publicKey: a.pubkey,
         account: {
           authority: data.authority,
-          totalStakedFor: Number(data.totalStakedFor),
+          totalStakedFor: Number(data.totalVouchStakeUsdcMicros),
         },
       };
     });

@@ -54,7 +54,10 @@ export type Purchase = {
   buyer: Address;
   skillListing: Address;
   purchasedAt: bigint;
-  pricePaid: bigint;
+  pricePaidUsdcMicros: bigint;
+  authorShareUsdcMicros: bigint;
+  voucherPoolUsdcMicros: bigint;
+  usdcMint: Address;
   bump: number;
 };
 
@@ -62,7 +65,10 @@ export type PurchaseArgs = {
   buyer: Address;
   skillListing: Address;
   purchasedAt: number | bigint;
-  pricePaid: number | bigint;
+  pricePaidUsdcMicros: number | bigint;
+  authorShareUsdcMicros: number | bigint;
+  voucherPoolUsdcMicros: number | bigint;
+  usdcMint: Address;
   bump: number;
 };
 
@@ -74,7 +80,10 @@ export function getPurchaseEncoder(): FixedSizeEncoder<PurchaseArgs> {
       ["buyer", getAddressEncoder()],
       ["skillListing", getAddressEncoder()],
       ["purchasedAt", getI64Encoder()],
-      ["pricePaid", getU64Encoder()],
+      ["pricePaidUsdcMicros", getU64Encoder()],
+      ["authorShareUsdcMicros", getU64Encoder()],
+      ["voucherPoolUsdcMicros", getU64Encoder()],
+      ["usdcMint", getAddressEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: PURCHASE_DISCRIMINATOR }),
@@ -88,7 +97,10 @@ export function getPurchaseDecoder(): FixedSizeDecoder<Purchase> {
     ["buyer", getAddressDecoder()],
     ["skillListing", getAddressDecoder()],
     ["purchasedAt", getI64Decoder()],
-    ["pricePaid", getU64Decoder()],
+    ["pricePaidUsdcMicros", getU64Decoder()],
+    ["authorShareUsdcMicros", getU64Decoder()],
+    ["voucherPoolUsdcMicros", getU64Decoder()],
+    ["usdcMint", getAddressDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -152,5 +164,5 @@ export async function fetchAllMaybePurchase(
 }
 
 export function getPurchaseSize(): number {
-  return 89;
+  return 137;
 }

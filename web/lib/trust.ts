@@ -72,8 +72,8 @@ function getDefaultTrust(): AuthorTrust {
 }
 
 function mapAgentProfileTrust(profile: AgentProfileData): AuthorTrust {
-  const totalStakedFor = Number(profile.totalStakedFor);
-  const authorBondLamports = Number(profile.authorBondLamports);
+  const totalStakedFor = Number(profile.totalVouchStakeUsdcMicros);
+  const authorBondLamports = Number(profile.authorBondUsdcMicros);
   return {
     reputationScore: Number(profile.reputationScore),
     totalVouchesReceived: profile.totalVouchesReceived,

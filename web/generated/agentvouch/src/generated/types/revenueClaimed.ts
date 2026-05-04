@@ -24,26 +24,29 @@ import {
 
 export type RevenueClaimed = {
   skillListing: Address;
+  listingVouchPosition: Address;
   vouch: Address;
   voucher: Address;
-  amount: bigint;
+  amountUsdcMicros: bigint;
   timestamp: bigint;
 };
 
 export type RevenueClaimedArgs = {
   skillListing: Address;
+  listingVouchPosition: Address;
   vouch: Address;
   voucher: Address;
-  amount: number | bigint;
+  amountUsdcMicros: number | bigint;
   timestamp: number | bigint;
 };
 
 export function getRevenueClaimedEncoder(): FixedSizeEncoder<RevenueClaimedArgs> {
   return getStructEncoder([
     ["skillListing", getAddressEncoder()],
+    ["listingVouchPosition", getAddressEncoder()],
     ["vouch", getAddressEncoder()],
     ["voucher", getAddressEncoder()],
-    ["amount", getU64Encoder()],
+    ["amountUsdcMicros", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -51,9 +54,10 @@ export function getRevenueClaimedEncoder(): FixedSizeEncoder<RevenueClaimedArgs>
 export function getRevenueClaimedDecoder(): FixedSizeDecoder<RevenueClaimed> {
   return getStructDecoder([
     ["skillListing", getAddressDecoder()],
+    ["listingVouchPosition", getAddressDecoder()],
     ["vouch", getAddressDecoder()],
     ["voucher", getAddressDecoder()],
-    ["amount", getU64Decoder()],
+    ["amountUsdcMicros", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

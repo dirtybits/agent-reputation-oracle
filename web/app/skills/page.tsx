@@ -288,8 +288,8 @@ export default function MarketplacePage() {
             skillRepoId: repoListing?.id ?? null,
             author: repoListing?.author_pubkey ?? String(listing?.account.author ?? ""),
             timestamp: Number(purchase.account.purchasedAt),
-            priceLamports: Number(purchase.account.pricePaid),
-            priceUsdcMicros: null,
+            priceLamports: null,
+            priceUsdcMicros: String(purchase.account.pricePaidUsdcMicros),
           };
         });
         const listingItems: FeedItem[] = resolvedListings.map((listing) => {
@@ -306,8 +306,10 @@ export default function MarketplacePage() {
             timestamp: Number(listing.account.createdAt),
             priceLamports: repoListing?.price_usdc_micros
               ? null
-              : Number(listing.account.priceLamports),
-            priceUsdcMicros: repoListing?.price_usdc_micros ?? null,
+              : null,
+            priceUsdcMicros:
+              repoListing?.price_usdc_micros ??
+              String(listing.account.priceUsdcMicros),
           };
         });
         const usdcPurchaseItems: FeedItem[] = activity.usdcPurchases.map(
@@ -769,7 +771,7 @@ export default function MarketplacePage() {
                       const creatorPrice =
                         skill.creatorPriceLamports ??
                         (listing
-                          ? Number(listing.account.priceLamports)
+                          ? Number(listing.account.priceUsdcMicros)
                           : skill.price_lamports ?? 0);
                       const estimatedTotal =
                         skill.estimatedBuyerTotalLamports ?? creatorPrice;
@@ -980,7 +982,7 @@ export default function MarketplacePage() {
                           {formatDate(Number(purchase.account.purchasedAt))} ·{" "}
                           <SolAmount
                             amount={formatSol(
-                              Number(purchase.account.pricePaid)
+                              Number(purchase.account.pricePaidUsdcMicros)
                             )}
                             className="font-mono text-gray-900 dark:text-white"
                             iconClassName="w-3 h-3"
@@ -1049,9 +1051,9 @@ export default function MarketplacePage() {
                   const detailId =
                     listingDetail?.id ?? `chain-${String(listing.publicKey)}`;
                   const canPublishVersion = !!listingDetail && detailId.indexOf("chain-") !== 0;
-                  const price = Number(listing.account.priceLamports);
+                  const price = Number(listing.account.priceUsdcMicros);
                   const downloads = Number(listing.account.totalDownloads);
-                  const revenue = Number(listing.account.totalRevenue);
+                  const revenue = Number(listing.account.totalRevenueUsdcMicros);
                   const authorEarnings = revenue * 0.6;
                   const sellerRentBlocked =
                     listingDetail?.purchasePreflightStatus ===

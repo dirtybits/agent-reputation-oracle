@@ -23,6 +23,8 @@ import {
   getI64Encoder,
   getStructDecoder,
   getStructEncoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -59,23 +61,31 @@ export type Vouch = {
   discriminator: ReadonlyUint8Array;
   voucher: Address;
   vouchee: Address;
-  stakeAmount: bigint;
+  stakeUsdcMicros: bigint;
+  vault: Address;
+  rentPayer: Address;
   createdAt: bigint;
   status: VouchStatus;
-  cumulativeRevenue: bigint;
+  cumulativeRevenueUsdcMicros: bigint;
+  linkedListingCount: number;
   lastPayoutAt: bigint;
   bump: number;
+  vaultBump: number;
 };
 
 export type VouchArgs = {
   voucher: Address;
   vouchee: Address;
-  stakeAmount: number | bigint;
+  stakeUsdcMicros: number | bigint;
+  vault: Address;
+  rentPayer: Address;
   createdAt: number | bigint;
   status: VouchStatusArgs;
-  cumulativeRevenue: number | bigint;
+  cumulativeRevenueUsdcMicros: number | bigint;
+  linkedListingCount: number;
   lastPayoutAt: number | bigint;
   bump: number;
+  vaultBump: number;
 };
 
 /** Gets the encoder for {@link VouchArgs} account data. */
@@ -85,12 +95,16 @@ export function getVouchEncoder(): FixedSizeEncoder<VouchArgs> {
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["voucher", getAddressEncoder()],
       ["vouchee", getAddressEncoder()],
-      ["stakeAmount", getU64Encoder()],
+      ["stakeUsdcMicros", getU64Encoder()],
+      ["vault", getAddressEncoder()],
+      ["rentPayer", getAddressEncoder()],
       ["createdAt", getI64Encoder()],
       ["status", getVouchStatusEncoder()],
-      ["cumulativeRevenue", getU64Encoder()],
+      ["cumulativeRevenueUsdcMicros", getU64Encoder()],
+      ["linkedListingCount", getU32Encoder()],
       ["lastPayoutAt", getI64Encoder()],
       ["bump", getU8Encoder()],
+      ["vaultBump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: VOUCH_DISCRIMINATOR }),
   );
@@ -102,12 +116,16 @@ export function getVouchDecoder(): FixedSizeDecoder<Vouch> {
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["voucher", getAddressDecoder()],
     ["vouchee", getAddressDecoder()],
-    ["stakeAmount", getU64Decoder()],
+    ["stakeUsdcMicros", getU64Decoder()],
+    ["vault", getAddressDecoder()],
+    ["rentPayer", getAddressDecoder()],
     ["createdAt", getI64Decoder()],
     ["status", getVouchStatusDecoder()],
-    ["cumulativeRevenue", getU64Decoder()],
+    ["cumulativeRevenueUsdcMicros", getU64Decoder()],
+    ["linkedListingCount", getU32Decoder()],
     ["lastPayoutAt", getI64Decoder()],
     ["bump", getU8Decoder()],
+    ["vaultBump", getU8Decoder()],
   ]);
 }
 
@@ -170,5 +188,5 @@ export async function fetchAllMaybeVouch(
 }
 
 export function getVouchSize(): number {
-  return 106;
+  return 175;
 }

@@ -88,7 +88,7 @@ export async function GET(
       const preflight = serializePurchasePreflight(
         assessPurchasePreflight({
           context: preflightContext,
-          priceLamports: BigInt(listing.data.priceLamports),
+          priceLamports: BigInt(listing.data.priceUsdcMicros),
           author: isAddress(String(listing.data.author))
             ? address(String(listing.data.author))
             : null,
@@ -124,7 +124,7 @@ export async function GET(
         }
       }
       const buyerHasPurchased =
-        buyerAddress && BigInt(listing.data.priceLamports) > 0n
+        buyerAddress && BigInt(listing.data.priceUsdcMicros) > 0n
           ? await hasOnChainPurchase(
               String(buyerAddress),
               listing.publicKey
@@ -152,11 +152,11 @@ export async function GET(
           chain_context: configuredSolanaChainContext,
           total_installs: 0,
           total_downloads: Number(listing.data.totalDownloads),
-          price_lamports: Number(listing.data.priceLamports),
-          price_usdc_micros: null,
+          price_lamports: null,
+          price_usdc_micros: String(listing.data.priceUsdcMicros),
           currency_mint: null,
           payment_flow:
-            Number(listing.data.priceLamports) > 0 ? "legacy-sol" : "free",
+            Number(listing.data.priceUsdcMicros) > 0 ? "usdc" : "free",
           contact: null,
           created_at: new Date(
             Number(listing.data.createdAt) * 1000

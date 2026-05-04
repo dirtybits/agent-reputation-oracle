@@ -593,11 +593,11 @@ export default function AuthorProfilePage() {
       ? {
           reputationScore: Number(profile.reputationScore ?? 0),
           totalVouchesReceived: Number(profile.totalVouchesReceived ?? 0),
-          totalStakedFor: Number(profile.totalStakedFor ?? 0),
-          authorBondLamports: Number(profile.authorBondLamports ?? 0),
+          totalStakedFor: Number(profile.totalVouchStakeUsdcMicros ?? 0),
+          authorBondLamports: Number(profile.authorBondUsdcMicros ?? 0),
           totalStakeAtRisk:
-            Number(profile.totalStakedFor ?? 0) +
-            Number(profile.authorBondLamports ?? 0),
+            Number(profile.totalVouchStakeUsdcMicros ?? 0) +
+            Number(profile.authorBondUsdcMicros ?? 0),
           disputesAgainstAuthor: 0,
           disputesUpheldAgainstAuthor: 0,
           activeDisputesAgainstAuthor: 0,
@@ -624,14 +624,14 @@ export default function AuthorProfilePage() {
       return [];
     }
 
-    const totalStaked = BigInt(profile.totalStakedFor ?? 0);
-    const voucherStake = BigInt(viewerVouch.account.stakeAmount ?? 0);
+    const totalStaked = BigInt(profile.totalVouchStakeUsdcMicros ?? 0);
+    const voucherStake = BigInt(viewerVouch.account.stakeUsdcMicros ?? 0);
 
     return authorSkillListings
       .map((listing) => {
         const listingAddress = String(listing.publicKey);
         const unclaimedRevenueLamports = BigInt(
-          listing.account.unclaimedVoucherRevenue ?? 0
+          listing.account.unclaimedVoucherRevenueUsdcMicros ?? 0
         );
         const estimatedShareLamports =
           totalStaked > 0n
@@ -1562,7 +1562,7 @@ export default function AuthorProfilePage() {
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               You are backing this author with{" "}
-              {formatSol(Number(viewerVouch.account.stakeAmount))} SOL.
+              {formatSol(Number(viewerVouch.account.stakeUsdcMicros))} SOL.
               Claiming uses the existing on-chain `claim_voucher_revenue`
               instruction and only applies to legacy SOL purchases.
             </p>
@@ -1796,7 +1796,7 @@ export default function AuthorProfilePage() {
               {vouchesReceived.map((vouch) => {
                 const voucherProfile = String(vouch.account.voucher);
                 const voucherAuthority = profileAuthorityByPda[voucherProfile];
-                const stakeAmount = vouch.account.stakeAmount;
+                const stakeAmount = vouch.account.stakeUsdcMicros;
                 const statusLabel = getVouchStatusLabel(vouch.account.status);
                 const includedInAuthorWideReports =
                   countsTowardAuthorWideReportSnapshot(vouch.account.status);
@@ -1864,7 +1864,7 @@ export default function AuthorProfilePage() {
               {vouchesGiven.map((vouch) => {
                 const voucheeProfile = String(vouch.account.vouchee);
                 const voucheeAuthority = profileAuthorityByPda[voucheeProfile];
-                const stakeAmount = vouch.account.stakeAmount;
+                const stakeAmount = vouch.account.stakeUsdcMicros;
                 const statusLabel = getVouchStatusLabel(vouch.account.status);
                 return (
                   <div

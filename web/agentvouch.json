@@ -8,56 +8,6 @@
   },
   "instructions": [
     {
-      "name": "admin_migrate_agent",
-      "discriminator": [
-        203,
-        79,
-        102,
-        176,
-        194,
-        111,
-        179,
-        208
-      ],
-      "accounts": [
-        {
-          "name": "agent_profile",
-          "docs": [
-            "validate its owner/discriminator/PDA manually before rewriting it."
-          ],
-          "writable": true
-        },
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "claim_voucher_revenue",
       "discriminator": [
         197,
@@ -75,8 +25,50 @@
           "writable": true
         },
         {
-          "name": "vouch",
+          "name": "listing_vouch_position",
           "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing"
+              },
+              {
+                "kind": "account",
+                "path": "vouch"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vouch",
           "pda": {
             "seeds": [
               {
@@ -96,27 +88,6 @@
               {
                 "kind": "account",
                 "path": "author_profile"
-              }
-            ]
-          }
-        },
-        {
-          "name": "voucher_profile",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  103,
-                  101,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "voucher"
               }
             ]
           }
@@ -144,13 +115,109 @@
           }
         },
         {
+          "name": "voucher_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "reward_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reward_vault",
+          "writable": true
+        },
+        {
+          "name": "voucher_usdc_account",
+          "writable": true
+        },
+        {
           "name": "voucher",
           "writable": true,
           "signer": true
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
@@ -312,9 +379,99 @@
           "optional": true
         },
         {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "reward_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reward_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing"
+              }
+            ]
+          }
+        },
+        {
           "name": "author",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -339,7 +496,7 @@
           "type": "string"
         },
         {
-          "name": "price_lamports",
+          "name": "price_usdc_micros",
           "type": "u64"
         }
       ]
@@ -426,9 +583,97 @@
           }
         },
         {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "author_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "author_bond_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_bond_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
           "name": "author",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -437,7 +682,7 @@
       ],
       "args": [
         {
-          "name": "amount",
+          "name": "amount_usdc_micros",
           "type": "u64"
         }
       ]
@@ -475,9 +720,159 @@
           }
         },
         {
-          "name": "authority",
+          "name": "usdc_mint"
+        },
+        {
+          "name": "protocol_treasury_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol_treasury_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "x402_settlement_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  120,
+                  52,
+                  48,
+                  50,
+                  95,
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "x402_settlement_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  120,
+                  52,
+                  48,
+                  50,
+                  95,
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority"
+        },
+        {
+          "name": "payer",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -486,16 +881,24 @@
       ],
       "args": [
         {
-          "name": "min_stake",
-          "type": "u64"
+          "name": "chain_context",
+          "type": "string"
         },
         {
-          "name": "dispute_bond",
-          "type": "u64"
+          "name": "config_authority",
+          "type": "pubkey"
         },
         {
-          "name": "min_author_bond_for_free_listing",
-          "type": "u64"
+          "name": "treasury_authority",
+          "type": "pubkey"
+        },
+        {
+          "name": "settlement_authority",
+          "type": "pubkey"
+        },
+        {
+          "name": "pause_authority",
+          "type": "pubkey"
         },
         {
           "name": "slash_percentage",
@@ -508,25 +911,93 @@
       ]
     },
     {
-      "name": "migrate_agent",
+      "name": "link_vouch_to_listing",
       "discriminator": [
-        102,
-        150,
-        249,
-        223,
-        92,
-        169,
-        131,
-        39
+        202,
+        154,
+        2,
+        164,
+        144,
+        248,
+        53,
+        191
       ],
       "accounts": [
         {
-          "name": "agent_profile",
-          "docs": [
-            "because the stored bump may be at a stale offset after a struct layout change.",
-            "Seeds and owner are validated; we rewrite the account data manually."
-          ],
+          "name": "skill_listing",
+          "writable": true
+        },
+        {
+          "name": "listing_vouch_position",
           "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing"
+              },
+              {
+                "kind": "account",
+                "path": "vouch"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vouch",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  117,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher_profile"
+              },
+              {
+                "kind": "account",
+                "path": "author_profile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voucher_profile",
           "pda": {
             "seeds": [
               {
@@ -541,48 +1012,35 @@
               },
               {
                 "kind": "account",
-                "path": "authority"
+                "path": "voucher"
               }
             ]
           }
         },
         {
-          "name": "authority",
-          "writable": true,
-          "signer": true
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing.author",
+                "account": "SkillListing"
+              }
+            ]
+          }
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "metadata_uri",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "migrate_config",
-      "discriminator": [
-        92,
-        131,
-        58,
-        105,
-        210,
-        154,
-        224,
-        193
-      ],
-      "accounts": [
-        {
           "name": "config",
-          "docs": [
-            "deserialized as `Account<ReputationConfig>` yet. Seeds and ownership are",
-            "validated here, then the account is rewritten manually."
-          ],
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -600,7 +1058,7 @@
           }
         },
         {
-          "name": "authority",
+          "name": "voucher",
           "writable": true,
           "signer": true
         },
@@ -709,9 +1167,109 @@
           "optional": true
         },
         {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "challenger_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "dispute_bond_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  105,
+                  115,
+                  112,
+                  117,
+                  116,
+                  101,
+                  95,
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_profile.authority",
+                "account": "AgentProfile"
+              },
+              {
+                "kind": "arg",
+                "path": "dispute_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "dispute_bond_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  105,
+                  115,
+                  112,
+                  117,
+                  116,
+                  101,
+                  95,
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author_profile.authority",
+                "account": "AgentProfile"
+              },
+              {
+                "kind": "arg",
+                "path": "dispute_id"
+              }
+            ]
+          }
+        },
+        {
           "name": "challenger",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -784,8 +1342,7 @@
           }
         },
         {
-          "name": "author",
-          "writable": true
+          "name": "author"
         },
         {
           "name": "author_profile",
@@ -810,9 +1367,46 @@
           }
         },
         {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "buyer_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "author_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "reward_vault",
+          "writable": true
+        },
+        {
           "name": "buyer",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -948,72 +1542,6 @@
       ]
     },
     {
-      "name": "repair_agent_registered_at",
-      "discriminator": [
-        7,
-        147,
-        128,
-        160,
-        11,
-        176,
-        124,
-        76
-      ],
-      "accounts": [
-        {
-          "name": "agent_profile",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  103,
-                  101,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "agent_profile.authority",
-                "account": "AgentProfile"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "authority",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "registered_at",
-          "type": "i64"
-        }
-      ]
-    },
-    {
       "name": "resolve_author_dispute",
       "discriminator": [
         104,
@@ -1028,94 +1556,46 @@
       "accounts": [
         {
           "name": "author_dispute",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  95,
-                  100,
-                  105,
-                  115,
-                  112,
-                  117,
-                  116,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "author_profile.authority",
-                "account": "AgentProfile"
-              },
-              {
-                "kind": "arg",
-                "path": "dispute_id"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "author_profile",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  103,
-                  101,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "author_profile.authority",
-                "account": "AgentProfile"
-              }
-            ]
-          }
+          "writable": true
         },
         {
-          "name": "author_bond",
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
+          "name": "config"
         },
         {
           "name": "authority",
           "signer": true
         },
         {
-          "name": "challenger",
+          "name": "usdc_mint"
+        },
+        {
+          "name": "dispute_bond_vault_authority"
+        },
+        {
+          "name": "dispute_bond_vault",
           "writable": true
+        },
+        {
+          "name": "protocol_treasury_vault",
+          "writable": true
+        },
+        {
+          "name": "author_bond_vault_authority"
+        },
+        {
+          "name": "challenger"
+        },
+        {
+          "name": "challenger_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
@@ -1236,13 +1716,219 @@
           }
         },
         {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vouch_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher_profile"
+              },
+              {
+                "kind": "account",
+                "path": "vouchee_profile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vouch_vault",
+          "writable": true
+        },
+        {
+          "name": "voucher_usdc_account",
+          "writable": true
+        },
+        {
           "name": "voucher",
           "writable": true,
           "signer": true
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "unlink_vouch_from_listing",
+      "discriminator": [
+        28,
+        208,
+        119,
+        150,
+        170,
+        237,
+        104,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "skill_listing",
+          "writable": true
+        },
+        {
+          "name": "listing_vouch_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing"
+              },
+              {
+                "kind": "account",
+                "path": "vouch"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vouch",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  117,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher_profile"
+              },
+              {
+                "kind": "account",
+                "path": "author_profile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voucher_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "skill_listing.author",
+                "account": "SkillListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "voucher",
+          "signer": true
         }
       ],
       "args": []
@@ -1353,7 +2039,7 @@
           "type": "string"
         },
         {
-          "name": "price_lamports",
+          "name": "price_usdc_micros",
           "type": "u64"
         }
       ]
@@ -1461,9 +2147,93 @@
           }
         },
         {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "voucher_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "vouch_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher_profile"
+              },
+              {
+                "kind": "account",
+                "path": "vouchee_profile"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vouch_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "voucher_profile"
+              },
+              {
+                "kind": "account",
+                "path": "vouchee_profile"
+              }
+            ]
+          }
+        },
+        {
           "name": "voucher",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -1472,7 +2242,7 @@
       ],
       "args": [
         {
-          "name": "stake_amount",
+          "name": "stake_usdc_micros",
           "type": "u64"
         }
       ]
@@ -1559,14 +2329,72 @@
           }
         },
         {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "author_bond_vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  95,
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "author_bond_vault",
+          "writable": true
+        },
+        {
+          "name": "author_usdc_account",
+          "writable": true
+        },
+        {
           "name": "author",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
         {
-          "name": "amount",
+          "name": "amount_usdc_micros",
           "type": "u64"
         }
       ]
@@ -1610,6 +2438,19 @@
         235,
         140,
         242
+      ]
+    },
+    {
+      "name": "ListingVouchPosition",
+      "discriminator": [
+        2,
+        163,
+        255,
+        106,
+        125,
+        56,
+        3,
+        146
       ]
     },
     {
@@ -1745,6 +2586,32 @@
       ]
     },
     {
+      "name": "ListingVouchPositionLinked",
+      "discriminator": [
+        26,
+        43,
+        223,
+        38,
+        30,
+        24,
+        20,
+        149
+      ]
+    },
+    {
+      "name": "ListingVouchPositionUnlinked",
+      "discriminator": [
+        118,
+        128,
+        70,
+        50,
+        15,
+        195,
+        103,
+        149
+      ]
+    },
+    {
       "name": "RevenueClaimed",
       "discriminator": [
         5,
@@ -1826,108 +2693,48 @@
   "errors": [
     {
       "code": 6000,
-      "name": "AuthorDisputeNotOpen",
-      "msg": "Author dispute is not open"
+      "name": "StakeBelowMinimum",
+      "msg": "Stake amount is below minimum"
     },
     {
       "code": 6001,
-      "name": "AuthorMismatch",
-      "msg": "The disputed author does not match this author dispute"
+      "name": "CannotVouchForSelf",
+      "msg": "Cannot vouch for yourself"
     },
     {
       "code": 6002,
-      "name": "UnauthorizedResolver",
-      "msg": "Only the configured authority can resolve author disputes"
+      "name": "StakeOverflow",
+      "msg": "Stake amount overflowed the existing vouch"
     },
     {
       "code": 6003,
-      "name": "ChallengerMismatch",
-      "msg": "Challenger account mismatch"
+      "name": "VouchAccountMismatch",
+      "msg": "Vouch account does not match the expected voucher/vouchee pair"
     },
     {
       "code": 6004,
-      "name": "InsufficientFunds",
-      "msg": "Insufficient funds"
+      "name": "VouchNotReusable",
+      "msg": "This vouch relationship cannot accept new stake in its current state"
     },
     {
       "code": 6005,
-      "name": "IncompleteBackingSnapshot",
-      "msg": "Author dispute cannot resolve without its full author-wide backing snapshot"
+      "name": "ProtocolPaused",
+      "msg": "Protocol is paused"
     },
     {
       "code": 6006,
-      "name": "InvalidSettlementAccounts",
-      "msg": "Author dispute uphold must include every snapshotted backing vouch account triple"
+      "name": "InvalidUsdcMint",
+      "msg": "USDC mint does not match config"
     },
     {
       "code": 6007,
-      "name": "DuplicateSettlementBackingVouch",
-      "msg": "Duplicate backing vouches are not allowed during settlement"
+      "name": "InvalidTokenMint",
+      "msg": "Token account mint does not match config"
     },
     {
       "code": 6008,
-      "name": "AuthorDisputeVouchLinkMismatch",
-      "msg": "Settlement link does not match this author dispute"
-    },
-    {
-      "code": 6009,
-      "name": "AuthorDisputeSettlementVouchMismatch",
-      "msg": "Settlement vouch does not match the recorded author dispute link"
-    },
-    {
-      "code": 6010,
-      "name": "BackingVouchAuthorMismatch",
-      "msg": "Backing vouch does not belong to the disputed author"
-    },
-    {
-      "code": 6011,
-      "name": "BackingVouchVoucherMismatch",
-      "msg": "Backing vouch voucher profile does not match the recorded voucher"
-    },
-    {
-      "code": 6012,
-      "name": "BackingVouchNotSlashable",
-      "msg": "Backing vouch can no longer be slashed through this author dispute"
-    },
-    {
-      "code": 6013,
-      "name": "BackingVouchCountOverflow",
-      "msg": "Backing vouch count overflow"
-    },
-    {
-      "code": 6014,
-      "name": "SlashAmountOverflow",
-      "msg": "Slash amount overflow"
-    },
-    {
-      "code": 6015,
-      "name": "MissingAuthorBondForSettlement",
-      "msg": "Resolver must provide the author's bond account when bond capital exists"
-    },
-    {
-      "code": 6016,
-      "name": "AuthorBondAccountMismatch",
-      "msg": "Author bond PDA does not match the expected author"
-    },
-    {
-      "code": 6017,
-      "name": "AuthorBondProfileMismatch",
-      "msg": "Author bond account does not match the author profile totals"
-    },
-    {
-      "code": 6018,
-      "name": "InvalidSettlementAmounts",
-      "msg": "Resolved voucher slash amounts did not match the expected liability"
-    },
-    {
-      "code": 6019,
-      "name": "BondOnlyDisputeMustNotProvideSettlementAccounts",
-      "msg": "Bond-only disputes must not include voucher settlement accounts"
-    },
-    {
-      "code": 6020,
-      "name": "OpenAuthorDisputeCountUnderflow",
-      "msg": "Open author dispute count underflowed"
+      "name": "InvalidTokenOwner",
+      "msg": "Token account owner is invalid"
     }
   ],
   "types": [
@@ -1957,11 +2764,11 @@
             "type": "u32"
           },
           {
-            "name": "total_staked_for",
+            "name": "total_vouch_stake_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "author_bond_lamports",
+            "name": "author_bond_usdc_micros",
             "type": "u64"
           },
           {
@@ -1970,6 +2777,14 @@
           },
           {
             "name": "open_author_disputes",
+            "type": "u32"
+          },
+          {
+            "name": "upheld_author_disputes",
+            "type": "u32"
+          },
+          {
+            "name": "dismissed_author_disputes",
             "type": "u32"
           },
           {
@@ -1993,7 +2808,15 @@
             "type": "pubkey"
           },
           {
-            "name": "amount",
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_usdc_micros",
             "type": "u64"
           },
           {
@@ -2006,6 +2829,10 @@
           },
           {
             "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
             "type": "u8"
           }
         ]
@@ -2025,12 +2852,16 @@
             "type": "pubkey"
           },
           {
-            "name": "amount",
+            "name": "amount_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "total_bond_amount",
+            "name": "total_bond_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",
@@ -2053,11 +2884,11 @@
             "type": "pubkey"
           },
           {
-            "name": "amount",
+            "name": "amount_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "remaining_bond_amount",
+            "name": "remaining_bond_usdc_micros",
             "type": "u64"
           },
           {
@@ -2081,11 +2912,11 @@
             "type": "pubkey"
           },
           {
-            "name": "amount",
+            "name": "amount_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "total_bond_amount",
+            "name": "total_bond_usdc_micros",
             "type": "u64"
           },
           {
@@ -2110,6 +2941,14 @@
           },
           {
             "name": "challenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "dispute_bond_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_payer",
             "type": "pubkey"
           },
           {
@@ -2155,7 +2994,7 @@
             "type": "pubkey"
           },
           {
-            "name": "skill_price_lamports_snapshot",
+            "name": "skill_price_usdc_micros_snapshot",
             "type": "u64"
           },
           {
@@ -2173,7 +3012,19 @@
             "type": "u32"
           },
           {
-            "name": "bond_amount",
+            "name": "processed_vouch_count",
+            "type": "u32"
+          },
+          {
+            "name": "author_bond_slashed_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "voucher_slashed_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "bond_amount_usdc_micros",
             "type": "u64"
           },
           {
@@ -2188,6 +3039,10 @@
           },
           {
             "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "dispute_bond_vault_bump",
             "type": "u8"
           }
         ]
@@ -2237,7 +3092,7 @@
             "type": "pubkey"
           },
           {
-            "name": "skill_price_lamports_snapshot",
+            "name": "skill_price_usdc_micros_snapshot",
             "type": "u64"
           },
           {
@@ -2251,8 +3106,12 @@
             "type": "u32"
           },
           {
-            "name": "bond_amount",
+            "name": "bond_amount_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "dispute_bond_vault",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",
@@ -2307,15 +3166,15 @@
             "type": "u32"
           },
           {
-            "name": "author_bond_slashed_amount",
+            "name": "author_bond_slashed_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "voucher_slashed_amount",
+            "name": "voucher_slashed_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "slashed_amount",
+            "name": "slashed_usdc_micros",
             "type": "u64"
           },
           {
@@ -2374,6 +3233,143 @@
       }
     },
     {
+      "name": "ListingVouchPosition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_stake_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "entry_reward_index_x1e12",
+            "type": "u128"
+          },
+          {
+            "name": "pending_rewards_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_revenue_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "ListingVouchPositionStatus"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListingVouchPositionLinked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "listing_vouch_position",
+            "type": "pubkey"
+          },
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_stake_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListingVouchPositionStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Unlinked"
+          },
+          {
+            "name": "Slashed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListingVouchPositionUnlinked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "listing_vouch_position",
+            "type": "pubkey"
+          },
+          {
+            "name": "skill_listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "vouch",
+            "type": "pubkey"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_rewards_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "Purchase",
       "type": {
         "kind": "struct",
@@ -2391,8 +3387,20 @@
             "type": "i64"
           },
           {
-            "name": "price_paid",
+            "name": "price_paid_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "author_share_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "voucher_pool_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
           },
           {
             "name": "bump",
@@ -2411,16 +3419,68 @@
             "type": "pubkey"
           },
           {
-            "name": "min_stake",
+            "name": "config_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "settlement_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "pause_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "protocol_treasury_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "x402_settlement_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "chain_context",
+            "type": "string"
+          },
+          {
+            "name": "min_vouch_stake_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "dispute_bond",
+            "name": "dispute_bond_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "min_author_bond_for_free_listing",
+            "name": "min_author_bond_for_free_listing_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "min_paid_listing_price_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "author_share_bps",
+            "type": "u16"
+          },
+          {
+            "name": "voucher_share_bps",
+            "type": "u16"
+          },
+          {
+            "name": "protocol_fee_bps",
+            "type": "u16"
           },
           {
             "name": "slash_percentage",
@@ -2431,16 +3491,40 @@
             "type": "i64"
           },
           {
-            "name": "stake_weight",
+            "name": "stake_weight_per_usdc",
             "type": "u32"
+          },
+          {
+            "name": "risk_component_cap",
+            "type": "u64"
           },
           {
             "name": "vouch_weight",
             "type": "u32"
           },
           {
-            "name": "longevity_bonus",
+            "name": "vouch_component_cap",
+            "type": "u64"
+          },
+          {
+            "name": "longevity_bonus_per_day",
             "type": "u32"
+          },
+          {
+            "name": "longevity_component_cap",
+            "type": "u64"
+          },
+          {
+            "name": "upheld_dispute_penalty",
+            "type": "u64"
+          },
+          {
+            "name": "reputation_score_cap",
+            "type": "u64"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
           },
           {
             "name": "bump",
@@ -2459,6 +3543,10 @@
             "type": "pubkey"
           },
           {
+            "name": "listing_vouch_position",
+            "type": "pubkey"
+          },
+          {
             "name": "vouch",
             "type": "pubkey"
           },
@@ -2467,7 +3555,7 @@
             "type": "pubkey"
           },
           {
-            "name": "amount",
+            "name": "amount_usdc_micros",
             "type": "u64"
           },
           {
@@ -2499,19 +3587,47 @@
             "type": "string"
           },
           {
-            "name": "price_lamports",
+            "name": "price_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "reward_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_vault_rent_payer",
+            "type": "pubkey"
           },
           {
             "name": "total_downloads",
             "type": "u64"
           },
           {
-            "name": "total_revenue",
+            "name": "total_revenue_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "unclaimed_voucher_revenue",
+            "name": "total_author_revenue_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "total_voucher_revenue_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "active_reward_stake_usdc_micros",
+            "type": "u64"
+          },
+          {
+            "name": "active_reward_position_count",
+            "type": "u32"
+          },
+          {
+            "name": "reward_index_usdc_micros_x1e12",
+            "type": "u128"
+          },
+          {
+            "name": "unclaimed_voucher_revenue_usdc_micros",
             "type": "u64"
           },
           {
@@ -2532,6 +3648,10 @@
           },
           {
             "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "reward_vault_bump",
             "type": "u8"
           }
         ]
@@ -2555,8 +3675,12 @@
             "type": "string"
           },
           {
-            "name": "price_lamports",
+            "name": "price_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "reward_vault",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",
@@ -2583,7 +3707,7 @@
             "type": "string"
           },
           {
-            "name": "price_lamports",
+            "name": "price_usdc_micros",
             "type": "u64"
           },
           {
@@ -2611,16 +3735,24 @@
             "type": "pubkey"
           },
           {
-            "name": "price",
+            "name": "price_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "author_share",
+            "name": "author_share_usdc_micros",
             "type": "u64"
           },
           {
-            "name": "voucher_pool",
+            "name": "voucher_pool_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "author_usdc_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_vault",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",
@@ -2660,8 +3792,16 @@
             "type": "pubkey"
           },
           {
-            "name": "stake_amount",
+            "name": "stake_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_payer",
+            "type": "pubkey"
           },
           {
             "name": "created_at",
@@ -2676,8 +3816,12 @@
             }
           },
           {
-            "name": "cumulative_revenue",
+            "name": "cumulative_revenue_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "linked_listing_count",
+            "type": "u32"
           },
           {
             "name": "last_payout_at",
@@ -2685,6 +3829,10 @@
           },
           {
             "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
             "type": "u8"
           }
         ]
@@ -2708,8 +3856,12 @@
             "type": "pubkey"
           },
           {
-            "name": "stake_amount",
+            "name": "stake_usdc_micros",
             "type": "u64"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",
@@ -2736,7 +3888,7 @@
             "type": "pubkey"
           },
           {
-            "name": "stake_returned",
+            "name": "stake_returned_usdc_micros",
             "type": "u64"
           },
           {

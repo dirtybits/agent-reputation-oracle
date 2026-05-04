@@ -1,14 +1,10 @@
-use std::collections::BTreeSet;
-
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
-use anchor_lang::system_program;
+use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
 use crate::events::AuthorDisputeOpened as AuthorDisputeOpenedEvent;
 use crate::state::{
     AgentProfile, AuthorDispute, AuthorDisputeLiabilityScope, AuthorDisputeReason,
-    AuthorDisputeStatus,
-    AuthorDisputeVouchLink, Purchase, ReputationConfig, SkillListing, Vouch,
+    AuthorDisputeStatus, Purchase, ReputationConfig, SkillListing,
 };
 
 #[derive(Accounts)]
@@ -21,28 +17,62 @@ pub struct OpenAuthorDispute<'info> {
         seeds = [b"author_dispute", author_profile.authority.as_ref(), &dispute_id.to_le_bytes()],
         bump
     )]
-    pub author_dispute: Account<'info, AuthorDispute>,
+    pub author_dispute: Box<Account<'info, AuthorDispute>>,
 
     #[account(
         mut,
         seeds = [b"agent", author_profile.authority.as_ref()],
         bump = author_profile.bump
     )]
-    pub author_profile: Account<'info, AgentProfile>,
+    pub author_profile: Box<Account<'info, AgentProfile>>,
+
+    #[account(seeds = [b"config"], bump = config.bump)]
+    pub config: Box<Account<'info, ReputationConfig>>,
+
+    pub skill_listing: Box<Account<'info, SkillListing>>,
+
+    pub purchase: Option<Box<Account<'info, Purchase>>>,
+
+    #[account(address = config.usdc_mint @ ErrorCode::InvalidUsdcMint)]
+    pub usdc_mint: Box<Account<'info, Mint>>,
 
     #[account(
-        seeds = [b"config"],
-        bump = config.bump
+        mut,
+        constraint = challenger_usdc_account.mint == config.usdc_mint @ ErrorCode::InvalidTokenMint,
+        constraint = challenger_usdc_account.owner == challenger.key() @ ErrorCode::InvalidTokenOwner
     )]
-    pub config: Account<'info, ReputationConfig>,
+    pub challenger_usdc_account: Box<Account<'info, TokenAccount>>,
 
-    pub skill_listing: Account<'info, SkillListing>,
+    /// CHECK: PDA authority for the dispute bond vault.
+    #[account(
+        seeds = [
+            b"dispute_bond_vault_authority",
+            author_profile.authority.as_ref(),
+            &dispute_id.to_le_bytes()
+        ],
+        bump
+    )]
+    pub dispute_bond_vault_authority: UncheckedAccount<'info>,
 
-    pub purchase: Option<Account<'info, Purchase>>,
+    #[account(
+        init,
+        payer = challenger,
+        token::mint = usdc_mint,
+        token::authority = dispute_bond_vault_authority,
+        token::token_program = token_program,
+        seeds = [
+            b"dispute_bond_vault",
+            author_profile.authority.as_ref(),
+            &dispute_id.to_le_bytes()
+        ],
+        bump
+    )]
+    pub dispute_bond_vault: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     pub challenger: Signer<'info>,
 
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
@@ -52,13 +82,13 @@ pub fn handler<'info>(
     reason: AuthorDisputeReason,
     evidence_uri: String,
 ) -> Result<()> {
+    require!(!ctx.accounts.config.paused, ErrorCode::ProtocolPaused);
     require!(
         evidence_uri.len() <= AuthorDispute::MAX_EVIDENCE_URI_LENGTH,
         ErrorCode::EvidenceUriTooLong
     );
 
     let author = ctx.accounts.author_profile.authority;
-
     require!(
         ctx.accounts.skill_listing.author == author,
         ErrorCode::SkillListingAuthorMismatch
@@ -71,147 +101,56 @@ pub fn handler<'info>(
         );
     }
 
-    let config = &ctx.accounts.config;
-    system_program::transfer(
+    token::transfer_checked(
         CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.challenger.to_account_info(),
-                to: ctx.accounts.author_dispute.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            TransferChecked {
+                from: ctx.accounts.challenger_usdc_account.to_account_info(),
+                mint: ctx.accounts.usdc_mint.to_account_info(),
+                to: ctx.accounts.dispute_bond_vault.to_account_info(),
+                authority: ctx.accounts.challenger.to_account_info(),
             },
         ),
-        config.dispute_bond,
+        ctx.accounts.config.dispute_bond_usdc_micros,
+        ctx.accounts.usdc_mint.decimals,
     )?;
 
     let clock = Clock::get()?;
     let skill_listing = ctx.accounts.skill_listing.key();
-    let skill_price_lamports_snapshot = ctx.accounts.skill_listing.price_lamports;
-    let liability_scope =
-        if SkillListing::is_free_price(skill_price_lamports_snapshot) {
-            AuthorDisputeLiabilityScope::AuthorBondOnly
-        } else {
-            AuthorDisputeLiabilityScope::AuthorBondThenVouchers
-        };
+    let skill_price_usdc_micros_snapshot = ctx.accounts.skill_listing.price_usdc_micros;
+    let liability_scope = if SkillListing::is_free_price(skill_price_usdc_micros_snapshot) {
+        AuthorDisputeLiabilityScope::AuthorBondOnly
+    } else {
+        AuthorDisputeLiabilityScope::AuthorBondThenVouchers
+    };
     let purchase = ctx.accounts.purchase.as_ref().map(|account| account.key());
-    let expected_backing_vouch_count = ctx.accounts.author_profile.total_vouches_received;
-    let author_dispute_key = ctx.accounts.author_dispute.key();
-    let remaining_account_count = ctx.remaining_accounts.len();
-
-    require!(
-        remaining_account_count % 2 == 0,
-        ErrorCode::InvalidBackingVouchAccounts
-    );
-
-    let supplied_backing_vouch_count = (remaining_account_count / 2) as u32;
-    require!(
-        supplied_backing_vouch_count == expected_backing_vouch_count,
-        ErrorCode::IncompleteBackingVouchSet
-    );
-
-    let system_program_info = ctx.accounts.system_program.to_account_info();
-    let challenger_info = ctx.accounts.challenger.to_account_info();
-    let rent = Rent::get()?;
-    let mut unique_vouches = BTreeSet::new();
-    let mut linked_vouch_count = 0u32;
-
-    for account_pair in ctx.remaining_accounts.chunks_exact(2) {
-        let link_account = &account_pair[0];
-        let vouch_account = &account_pair[1];
-        let vouch = Account::<Vouch>::try_from(vouch_account)?;
-        let vouch_key = vouch.key();
-
-        require!(
-            unique_vouches.insert(vouch_key),
-            ErrorCode::DuplicateBackingVouch
-        );
-        require!(
-            vouch.vouchee == ctx.accounts.author_profile.key(),
-            ErrorCode::BackingVouchAuthorMismatch
-        );
-        require!(
-            vouch.status.counts_toward_author_wide_backing_snapshot(),
-            ErrorCode::BackingVouchNotLive
-        );
-
-        let (expected_link_key, link_bump) = Pubkey::find_program_address(
-            &[
-                b"author_dispute_vouch_link",
-                author_dispute_key.as_ref(),
-                vouch_key.as_ref(),
-            ],
-            ctx.program_id,
-        );
-        require_keys_eq!(
-            link_account.key(),
-            expected_link_key,
-            ErrorCode::AuthorDisputeVouchLinkMismatch
-        );
-        require!(
-            link_account.owner == &system_program::ID && link_account.data_is_empty(),
-            ErrorCode::AuthorDisputeVouchLinkAlreadyInitialized
-        );
-
-        let link_bump_seed = [link_bump];
-        let link_signer_seeds: &[&[u8]] = &[
-            b"author_dispute_vouch_link",
-            author_dispute_key.as_ref(),
-            vouch_key.as_ref(),
-            &link_bump_seed,
-        ];
-        invoke_signed(
-            &system_instruction::create_account(
-                &challenger_info.key(),
-                &link_account.key(),
-                rent.minimum_balance(AuthorDisputeVouchLink::LEN),
-                AuthorDisputeVouchLink::LEN as u64,
-                ctx.program_id,
-            ),
-            &[
-                challenger_info.clone(),
-                link_account.clone(),
-                system_program_info.clone(),
-            ],
-            &[link_signer_seeds],
-        )?;
-
-        let link_state = AuthorDisputeVouchLink {
-            author_dispute: author_dispute_key,
-            vouch: vouch_key,
-            added_at: clock.unix_timestamp,
-            bump: link_bump,
-        };
-        let mut link_data = link_account.try_borrow_mut_data()?;
-        let mut link_data_slice: &mut [u8] = &mut link_data;
-        link_state.try_serialize(&mut link_data_slice)?;
-
-        linked_vouch_count = linked_vouch_count
-            .checked_add(1)
-            .ok_or(ErrorCode::BackingVouchCountOverflow)?;
-    }
-
-    require!(
-        linked_vouch_count == expected_backing_vouch_count,
-        ErrorCode::IncompleteBackingVouchSet
-    );
 
     let author_dispute = &mut ctx.accounts.author_dispute;
     author_dispute.dispute_id = dispute_id;
     author_dispute.author = author;
     author_dispute.challenger = ctx.accounts.challenger.key();
+    author_dispute.dispute_bond_vault = ctx.accounts.dispute_bond_vault.key();
+    author_dispute.rent_payer = ctx.accounts.challenger.key();
     author_dispute.reason = reason;
     author_dispute.evidence_uri = evidence_uri;
     author_dispute.status = AuthorDisputeStatus::Open;
     author_dispute.ruling = None;
     author_dispute.liability_scope = liability_scope;
     author_dispute.skill_listing = skill_listing;
-    author_dispute.skill_price_lamports_snapshot = skill_price_lamports_snapshot;
+    author_dispute.skill_price_usdc_micros_snapshot = skill_price_usdc_micros_snapshot;
     author_dispute.purchase = purchase;
-    author_dispute.backing_vouch_count_snapshot = expected_backing_vouch_count;
-    author_dispute.linked_vouch_count = linked_vouch_count;
-    author_dispute.bond_amount = config.dispute_bond;
+    author_dispute.backing_vouch_count_snapshot =
+        ctx.accounts.skill_listing.active_reward_position_count;
+    author_dispute.linked_vouch_count = 0;
+    author_dispute.processed_vouch_count = 0;
+    author_dispute.author_bond_slashed_usdc_micros = 0;
+    author_dispute.voucher_slashed_usdc_micros = 0;
+    author_dispute.bond_amount_usdc_micros = ctx.accounts.config.dispute_bond_usdc_micros;
     author_dispute.created_at = clock.unix_timestamp;
     author_dispute.resolved_at = None;
     author_dispute.bump = ctx.bumps.author_dispute;
+    author_dispute.dispute_bond_vault_bump = ctx.bumps.dispute_bond_vault;
+
     ctx.accounts.author_profile.open_author_disputes = ctx
         .accounts
         .author_profile
@@ -220,16 +159,17 @@ pub fn handler<'info>(
         .ok_or(ErrorCode::OpenAuthorDisputeCountOverflow)?;
 
     emit!(AuthorDisputeOpenedEvent {
-        author_dispute: author_dispute_key,
+        author_dispute: author_dispute.key(),
         author,
         challenger: ctx.accounts.challenger.key(),
         reason: reason_label(reason).to_string(),
         liability_scope: liability_scope_label(liability_scope).to_string(),
         skill_listing,
-        skill_price_lamports_snapshot,
+        skill_price_usdc_micros_snapshot,
         purchase,
-        linked_vouch_count,
-        bond_amount: config.dispute_bond,
+        linked_vouch_count: 0,
+        bond_amount_usdc_micros: ctx.accounts.config.dispute_bond_usdc_micros,
+        dispute_bond_vault: ctx.accounts.dispute_bond_vault.key(),
         timestamp: clock.unix_timestamp,
     });
 
@@ -254,28 +194,20 @@ fn liability_scope_label(liability_scope: AuthorDisputeLiabilityScope) -> &'stat
 
 #[error_code]
 pub enum ErrorCode {
+    #[msg("Protocol is paused")]
+    ProtocolPaused,
     #[msg("Evidence URI is too long")]
     EvidenceUriTooLong,
     #[msg("The provided skill listing does not belong to the disputed author")]
     SkillListingAuthorMismatch,
-    #[msg("The provided purchase does not belong to the provided skill listing")]
+    #[msg("Provided purchase does not match the disputed skill listing")]
     PurchaseSkillMismatch,
-    #[msg("Author disputes must receive link and vouch accounts in pairs")]
-    InvalidBackingVouchAccounts,
-    #[msg("Author disputes must snapshot the full author-wide backing set")]
-    IncompleteBackingVouchSet,
-    #[msg("Duplicate backing vouches are not allowed in an author-wide dispute snapshot")]
-    DuplicateBackingVouch,
-    #[msg("The provided backing vouch does not belong to the disputed author")]
-    BackingVouchAuthorMismatch,
-    #[msg("The provided backing vouch is not part of the author's live backing set")]
-    BackingVouchNotLive,
-    #[msg("The provided author-dispute link PDA does not match the backing vouch")]
-    AuthorDisputeVouchLinkMismatch,
-    #[msg("The provided author-dispute link PDA is already initialized")]
-    AuthorDisputeVouchLinkAlreadyInitialized,
-    #[msg("The author-wide backing snapshot exceeded the supported link count")]
-    BackingVouchCountOverflow,
     #[msg("Open author dispute count overflowed")]
     OpenAuthorDisputeCountOverflow,
+    #[msg("USDC mint does not match config")]
+    InvalidUsdcMint,
+    #[msg("Token account mint does not match config")]
+    InvalidTokenMint,
+    #[msg("Token account owner is invalid")]
+    InvalidTokenOwner,
 }

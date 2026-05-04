@@ -39,10 +39,11 @@ export type AuthorDisputeOpened = {
   reason: string;
   liabilityScope: string;
   skillListing: Address;
-  skillPriceLamportsSnapshot: bigint;
+  skillPriceUsdcMicrosSnapshot: bigint;
   purchase: Option<Address>;
   linkedVouchCount: number;
-  bondAmount: bigint;
+  bondAmountUsdcMicros: bigint;
+  disputeBondVault: Address;
   timestamp: bigint;
 };
 
@@ -53,10 +54,11 @@ export type AuthorDisputeOpenedArgs = {
   reason: string;
   liabilityScope: string;
   skillListing: Address;
-  skillPriceLamportsSnapshot: number | bigint;
+  skillPriceUsdcMicrosSnapshot: number | bigint;
   purchase: OptionOrNullable<Address>;
   linkedVouchCount: number;
-  bondAmount: number | bigint;
+  bondAmountUsdcMicros: number | bigint;
+  disputeBondVault: Address;
   timestamp: number | bigint;
 };
 
@@ -68,10 +70,11 @@ export function getAuthorDisputeOpenedEncoder(): Encoder<AuthorDisputeOpenedArgs
     ["reason", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ["liabilityScope", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ["skillListing", getAddressEncoder()],
-    ["skillPriceLamportsSnapshot", getU64Encoder()],
+    ["skillPriceUsdcMicrosSnapshot", getU64Encoder()],
     ["purchase", getOptionEncoder(getAddressEncoder())],
     ["linkedVouchCount", getU32Encoder()],
-    ["bondAmount", getU64Encoder()],
+    ["bondAmountUsdcMicros", getU64Encoder()],
+    ["disputeBondVault", getAddressEncoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -84,10 +87,11 @@ export function getAuthorDisputeOpenedDecoder(): Decoder<AuthorDisputeOpened> {
     ["reason", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["liabilityScope", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["skillListing", getAddressDecoder()],
-    ["skillPriceLamportsSnapshot", getU64Decoder()],
+    ["skillPriceUsdcMicrosSnapshot", getU64Decoder()],
     ["purchase", getOptionDecoder(getAddressDecoder())],
     ["linkedVouchCount", getU32Decoder()],
-    ["bondAmount", getU64Decoder()],
+    ["bondAmountUsdcMicros", getU64Decoder()],
+    ["disputeBondVault", getAddressDecoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

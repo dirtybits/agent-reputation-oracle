@@ -25,6 +25,8 @@ import {
   getI64Encoder,
   getStructDecoder,
   getStructEncoder,
+  getU128Decoder,
+  getU128Encoder,
   getU32Decoder,
   getU32Encoder,
   getU64Decoder,
@@ -69,14 +71,22 @@ export type SkillListing = {
   skillUri: string;
   name: string;
   description: string;
-  priceLamports: bigint;
+  priceUsdcMicros: bigint;
+  rewardVault: Address;
+  rewardVaultRentPayer: Address;
   totalDownloads: bigint;
-  totalRevenue: bigint;
-  unclaimedVoucherRevenue: bigint;
+  totalRevenueUsdcMicros: bigint;
+  totalAuthorRevenueUsdcMicros: bigint;
+  totalVoucherRevenueUsdcMicros: bigint;
+  activeRewardStakeUsdcMicros: bigint;
+  activeRewardPositionCount: number;
+  rewardIndexUsdcMicrosX1e12: bigint;
+  unclaimedVoucherRevenueUsdcMicros: bigint;
   createdAt: bigint;
   updatedAt: bigint;
   status: SkillStatus;
   bump: number;
+  rewardVaultBump: number;
 };
 
 export type SkillListingArgs = {
@@ -84,14 +94,22 @@ export type SkillListingArgs = {
   skillUri: string;
   name: string;
   description: string;
-  priceLamports: number | bigint;
+  priceUsdcMicros: number | bigint;
+  rewardVault: Address;
+  rewardVaultRentPayer: Address;
   totalDownloads: number | bigint;
-  totalRevenue: number | bigint;
-  unclaimedVoucherRevenue: number | bigint;
+  totalRevenueUsdcMicros: number | bigint;
+  totalAuthorRevenueUsdcMicros: number | bigint;
+  totalVoucherRevenueUsdcMicros: number | bigint;
+  activeRewardStakeUsdcMicros: number | bigint;
+  activeRewardPositionCount: number;
+  rewardIndexUsdcMicrosX1e12: number | bigint;
+  unclaimedVoucherRevenueUsdcMicros: number | bigint;
   createdAt: number | bigint;
   updatedAt: number | bigint;
   status: SkillStatusArgs;
   bump: number;
+  rewardVaultBump: number;
 };
 
 /** Gets the encoder for {@link SkillListingArgs} account data. */
@@ -103,14 +121,22 @@ export function getSkillListingEncoder(): Encoder<SkillListingArgs> {
       ["skillUri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["description", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["priceLamports", getU64Encoder()],
+      ["priceUsdcMicros", getU64Encoder()],
+      ["rewardVault", getAddressEncoder()],
+      ["rewardVaultRentPayer", getAddressEncoder()],
       ["totalDownloads", getU64Encoder()],
-      ["totalRevenue", getU64Encoder()],
-      ["unclaimedVoucherRevenue", getU64Encoder()],
+      ["totalRevenueUsdcMicros", getU64Encoder()],
+      ["totalAuthorRevenueUsdcMicros", getU64Encoder()],
+      ["totalVoucherRevenueUsdcMicros", getU64Encoder()],
+      ["activeRewardStakeUsdcMicros", getU64Encoder()],
+      ["activeRewardPositionCount", getU32Encoder()],
+      ["rewardIndexUsdcMicrosX1e12", getU128Encoder()],
+      ["unclaimedVoucherRevenueUsdcMicros", getU64Encoder()],
       ["createdAt", getI64Encoder()],
       ["updatedAt", getI64Encoder()],
       ["status", getSkillStatusEncoder()],
       ["bump", getU8Encoder()],
+      ["rewardVaultBump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: SKILL_LISTING_DISCRIMINATOR }),
   );
@@ -124,14 +150,22 @@ export function getSkillListingDecoder(): Decoder<SkillListing> {
     ["skillUri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["description", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["priceLamports", getU64Decoder()],
+    ["priceUsdcMicros", getU64Decoder()],
+    ["rewardVault", getAddressDecoder()],
+    ["rewardVaultRentPayer", getAddressDecoder()],
     ["totalDownloads", getU64Decoder()],
-    ["totalRevenue", getU64Decoder()],
-    ["unclaimedVoucherRevenue", getU64Decoder()],
+    ["totalRevenueUsdcMicros", getU64Decoder()],
+    ["totalAuthorRevenueUsdcMicros", getU64Decoder()],
+    ["totalVoucherRevenueUsdcMicros", getU64Decoder()],
+    ["activeRewardStakeUsdcMicros", getU64Decoder()],
+    ["activeRewardPositionCount", getU32Decoder()],
+    ["rewardIndexUsdcMicrosX1e12", getU128Decoder()],
+    ["unclaimedVoucherRevenueUsdcMicros", getU64Decoder()],
     ["createdAt", getI64Decoder()],
     ["updatedAt", getI64Decoder()],
     ["status", getSkillStatusDecoder()],
     ["bump", getU8Decoder()],
+    ["rewardVaultBump", getU8Decoder()],
   ]);
 }
 

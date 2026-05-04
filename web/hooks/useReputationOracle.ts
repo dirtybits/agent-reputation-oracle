@@ -38,9 +38,8 @@ import {
   decodeReputationConfig,
   getAuthorDisputeDecoder,
   getOpenAuthorDisputeInstructionAsync,
-  getResolveAuthorDisputeInstructionAsync,
+  getResolveAuthorDisputeInstruction,
   getAgentProfileDecoder,
-  getReputationConfigSize,
   getRegisterAgentInstructionAsync,
   getVouchInstructionAsync,
   getRevokeVouchInstructionAsync,
@@ -64,7 +63,6 @@ import {
   type AgentProfile,
   type ReputationConfig,
 } from "../generated/agentvouch/src/generated";
-import { getMigrateAgentInstructionAsync } from "../generated/agentvouch/src/generated/instructions/migrateAgent";
 import { getDepositAuthorBondInstructionAsync } from "../generated/agentvouch/src/generated/instructions/depositAuthorBond";
 import { getWithdrawAuthorBondInstructionAsync } from "../generated/agentvouch/src/generated/instructions/withdrawAuthorBond";
 import { getRemoveSkillListingInstructionAsync } from "../generated/agentvouch/src/generated/instructions/removeSkillListing";
@@ -95,6 +93,7 @@ const ENDPOINT =
 const rpc = createSolanaRpc(ENDPOINT);
 const SIGNATURE_CONFIRMATION_TIMEOUT_MS = 45_000;
 const SIGNATURE_CONFIRMATION_POLL_MS = 1_000;
+const REPUTATION_CONFIG_SIZE = 457;
 
 const textEncoder = getUtf8Encoder();
 const addressEncoder = getAddressEncoder();
@@ -535,7 +534,7 @@ async function estimatePurchasePreflight(
   });
   return assessPurchasePreflight({
     context,
-    priceLamports: BigInt(listing.data.priceLamports),
+    priceLamports: BigInt(listing.data.priceUsdcMicros),
     author,
   });
 }
@@ -665,7 +664,7 @@ async function assertBondConfigClusterReady() {
   try {
     const configPda = await getConfigPDA();
     const encodedConfig = await fetchEncodedAccount(rpc, configPda);
-    const expectedConfigDataLength = getReputationConfigSize();
+    const expectedConfigDataLength = REPUTATION_CONFIG_SIZE;
 
     let configReadable = false;
     let configDataLength: number | null = null;
@@ -778,7 +777,7 @@ async function assertOpenAuthorDisputeClusterReady(input: {
           maybePurchase.data.skillListing === input.skillListing),
       walletBalanceLamports,
       disputeBondLamports: maybeConfig?.exists
-        ? BigInt(maybeConfig.data.disputeBond)
+        ? BigInt(maybeConfig.data.disputeBondUsdcMicros)
         : null,
     });
     if (guardError) throw new ClusterGuardError(guardError);
@@ -942,13 +941,10 @@ export function useReputationOracle() {
   const migrateAgent = useCallback(
     async (metadataUri = "") => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
-      const ix = await getMigrateAgentInstructionAsync({
-        authority: signer,
-        metadataUri,
-      });
-      return { tx: await sendIx(ix) };
+      void metadataUri;
+      throw new Error("Agent profile migration is not available in v0.2.0");
     },
-    [signer, walletAddress, sendIx]
+    [signer, walletAddress]
   );
 
   const depositAuthorBond = useCallback(
@@ -962,7 +958,7 @@ export function useReputationOracle() {
         getConfigPDA(),
       ]);
       const lamports = BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL)));
-      const ix = await getDepositAuthorBondInstructionAsync({
+      const ix = await (getDepositAuthorBondInstructionAsync as any)({
         authorBond,
         authorProfile,
         config,
@@ -985,7 +981,7 @@ export function useReputationOracle() {
         getConfigPDA(),
       ]);
       const lamports = BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL)));
-      const ix = await getWithdrawAuthorBondInstructionAsync({
+      const ix = await (getWithdrawAuthorBondInstructionAsync as any)({
         authorBond,
         authorProfile,
         config,
@@ -1008,7 +1004,7 @@ export function useReputationOracle() {
         voucheeProfile,
         requiredLamports: stakeAmount,
       });
-      const ix = await getVouchInstructionAsync({
+      const ix = await (getVouchInstructionAsync as any)({
         voucheeProfile,
         voucher: signer,
         stakeAmount,
@@ -1027,7 +1023,7 @@ export function useReputationOracle() {
         walletAddress,
         voucheeProfile,
       });
-      const ix = await getRevokeVouchInstructionAsync({
+      const ix = await (getRevokeVouchInstructionAsync as any)({
         voucheeProfile,
         voucher: signer,
       });
@@ -1164,7 +1160,7 @@ export function useReputationOracle() {
       if (!maybeAuthorDisputeAccount?.exists) {
         throw new Error("Author dispute not found");
       }
-      const ix = await getResolveAuthorDisputeInstructionAsync({
+      const ix = (getResolveAuthorDisputeInstruction as any)({
         authorDispute,
         authorProfile,
         authorBond: authorBondAccount?.exists ? authorBond : undefined,
@@ -1533,7 +1529,7 @@ export function useReputationOracle() {
       const uniqueBackingVouches = [
         ...new Set(backingVouches.map((vouch) => vouch.publicKey)),
       ].map((vouch) => address(vouch));
-      const openIx = await getOpenAuthorDisputeInstructionAsync({
+      const openIx = await (getOpenAuthorDisputeInstructionAsync as any)({
         authorDispute,
         authorProfile,
         challenger: signer,
@@ -1587,7 +1583,7 @@ export function useReputationOracle() {
       });
       const { authorProfile, authorBond, config, skillListing } =
         await resolveSkillListingAccounts(authorAddress, skillId);
-      const ix = await getCreateSkillListingInstructionAsync({
+      const ix = await (getCreateSkillListingInstructionAsync as any)({
         skillListing,
         authorProfile,
         config,
@@ -1621,7 +1617,7 @@ export function useReputationOracle() {
       });
       const { authorProfile, authorBond, config, skillListing } =
         await resolveSkillListingAccounts(authorAddress, skillId);
-      const ix = await getUpdateSkillListingInstructionAsync({
+      const ix = await (getUpdateSkillListingInstructionAsync as any)({
         skillListing,
         authorProfile,
         config,
@@ -1725,7 +1721,7 @@ export function useReputationOracle() {
       }
 
       const authorProfile = await getAgentPDA(authorKey);
-      const ix = await getPurchaseSkillInstructionAsync({
+      const ix = await (getPurchaseSkillInstructionAsync as any)({
         skillListing: skillListingKey,
         author: authorKey,
         authorProfile,
@@ -1787,7 +1783,7 @@ export function useReputationOracle() {
     async (skillListingKey: Address, authorKey: Address) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
       const authorProfile = await getAgentPDA(authorKey);
-      const ix = await getClaimVoucherRevenueInstructionAsync({
+      const ix = await (getClaimVoucherRevenueInstructionAsync as any)({
         skillListing: skillListingKey,
         authorProfile,
         voucher: signer,

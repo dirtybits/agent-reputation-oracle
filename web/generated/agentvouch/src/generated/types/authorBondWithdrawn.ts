@@ -25,16 +25,16 @@ import {
 export type AuthorBondWithdrawn = {
   authorBond: Address;
   author: Address;
-  amount: bigint;
-  totalBondAmount: bigint;
+  amountUsdcMicros: bigint;
+  totalBondUsdcMicros: bigint;
   timestamp: bigint;
 };
 
 export type AuthorBondWithdrawnArgs = {
   authorBond: Address;
   author: Address;
-  amount: number | bigint;
-  totalBondAmount: number | bigint;
+  amountUsdcMicros: number | bigint;
+  totalBondUsdcMicros: number | bigint;
   timestamp: number | bigint;
 };
 
@@ -42,8 +42,8 @@ export function getAuthorBondWithdrawnEncoder(): FixedSizeEncoder<AuthorBondWith
   return getStructEncoder([
     ["authorBond", getAddressEncoder()],
     ["author", getAddressEncoder()],
-    ["amount", getU64Encoder()],
-    ["totalBondAmount", getU64Encoder()],
+    ["amountUsdcMicros", getU64Encoder()],
+    ["totalBondUsdcMicros", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -52,8 +52,8 @@ export function getAuthorBondWithdrawnDecoder(): FixedSizeDecoder<AuthorBondWith
   return getStructDecoder([
     ["authorBond", getAddressDecoder()],
     ["author", getAddressDecoder()],
-    ["amount", getU64Decoder()],
-    ["totalBondAmount", getU64Decoder()],
+    ["amountUsdcMicros", getU64Decoder()],
+    ["totalBondUsdcMicros", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

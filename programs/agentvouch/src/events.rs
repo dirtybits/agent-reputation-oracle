@@ -5,7 +5,8 @@ pub struct VouchCreated {
     pub vouch: Pubkey,
     pub voucher: Pubkey,
     pub vouchee: Pubkey,
-    pub stake_amount: u64,
+    pub stake_usdc_micros: u64,
+    pub vault: Pubkey,
     pub timestamp: i64,
 }
 
@@ -14,7 +15,7 @@ pub struct VouchRevoked {
     pub vouch: Pubkey,
     pub voucher: Pubkey,
     pub vouchee: Pubkey,
-    pub stake_returned: u64,
+    pub stake_returned_usdc_micros: u64,
     pub timestamp: i64,
 }
 
@@ -22,8 +23,9 @@ pub struct VouchRevoked {
 pub struct AuthorBondDeposited {
     pub author_bond: Pubkey,
     pub author: Pubkey,
-    pub amount: u64,
-    pub total_bond_amount: u64,
+    pub amount_usdc_micros: u64,
+    pub total_bond_usdc_micros: u64,
+    pub vault: Pubkey,
     pub timestamp: i64,
 }
 
@@ -31,8 +33,8 @@ pub struct AuthorBondDeposited {
 pub struct AuthorBondWithdrawn {
     pub author_bond: Pubkey,
     pub author: Pubkey,
-    pub amount: u64,
-    pub total_bond_amount: u64,
+    pub amount_usdc_micros: u64,
+    pub total_bond_usdc_micros: u64,
     pub timestamp: i64,
 }
 
@@ -40,8 +42,8 @@ pub struct AuthorBondWithdrawn {
 pub struct AuthorBondSlashed {
     pub author_bond: Pubkey,
     pub author: Pubkey,
-    pub amount: u64,
-    pub remaining_bond_amount: u64,
+    pub amount_usdc_micros: u64,
+    pub remaining_bond_usdc_micros: u64,
     pub timestamp: i64,
 }
 
@@ -53,10 +55,11 @@ pub struct AuthorDisputeOpened {
     pub reason: String,
     pub liability_scope: String,
     pub skill_listing: Pubkey,
-    pub skill_price_lamports_snapshot: u64,
+    pub skill_price_usdc_micros_snapshot: u64,
     pub purchase: Option<Pubkey>,
     pub linked_vouch_count: u32,
-    pub bond_amount: u64,
+    pub bond_amount_usdc_micros: u64,
+    pub dispute_bond_vault: Pubkey,
     pub timestamp: i64,
 }
 
@@ -67,9 +70,9 @@ pub struct AuthorDisputeResolved {
     pub ruling: String,
     pub liability_scope: String,
     pub linked_vouch_count: u32,
-    pub author_bond_slashed_amount: u64,
-    pub voucher_slashed_amount: u64,
-    pub slashed_amount: u64,
+    pub author_bond_slashed_usdc_micros: u64,
+    pub voucher_slashed_usdc_micros: u64,
+    pub slashed_usdc_micros: u64,
     pub timestamp: i64,
 }
 
@@ -85,7 +88,8 @@ pub struct SkillListingCreated {
     pub skill_listing: Pubkey,
     pub author: Pubkey,
     pub name: String,
-    pub price_lamports: u64,
+    pub price_usdc_micros: u64,
+    pub reward_vault: Pubkey,
     pub timestamp: i64,
 }
 
@@ -94,7 +98,7 @@ pub struct SkillListingUpdated {
     pub skill_listing: Pubkey,
     pub author: Pubkey,
     pub name: String,
-    pub price_lamports: u64,
+    pub price_usdc_micros: u64,
     pub timestamp: i64,
 }
 
@@ -103,17 +107,40 @@ pub struct SkillPurchased {
     pub purchase: Pubkey,
     pub skill_listing: Pubkey,
     pub buyer: Pubkey,
-    pub price: u64,
-    pub author_share: u64,
-    pub voucher_pool: u64,
+    pub price_usdc_micros: u64,
+    pub author_share_usdc_micros: u64,
+    pub voucher_pool_usdc_micros: u64,
+    pub author_usdc_account: Pubkey,
+    pub reward_vault: Pubkey,
     pub timestamp: i64,
 }
 
 #[event]
 pub struct RevenueClaimed {
     pub skill_listing: Pubkey,
+    pub listing_vouch_position: Pubkey,
     pub vouch: Pubkey,
     pub voucher: Pubkey,
-    pub amount: u64,
+    pub amount_usdc_micros: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct ListingVouchPositionLinked {
+    pub listing_vouch_position: Pubkey,
+    pub skill_listing: Pubkey,
+    pub vouch: Pubkey,
+    pub voucher: Pubkey,
+    pub reward_stake_usdc_micros: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct ListingVouchPositionUnlinked {
+    pub listing_vouch_position: Pubkey,
+    pub skill_listing: Pubkey,
+    pub vouch: Pubkey,
+    pub voucher: Pubkey,
+    pub pending_rewards_usdc_micros: u64,
     pub timestamp: i64,
 }

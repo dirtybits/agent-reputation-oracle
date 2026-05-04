@@ -8,18 +8,21 @@
 
 export * from "./accounts";
 export * from "./errors";
-export * from "./instructions/adminMigrateAgent";
 export * from "./instructions/claimVoucherRevenue";
+export * from "./instructions/closeSkillListing";
 export * from "./instructions/createSkillListing";
+export * from "./instructions/depositAuthorBond";
 export * from "./instructions/initializeConfig";
-export * from "./instructions/migrateConfig";
+export * from "./instructions/linkVouchToListing";
 export * from "./instructions/openAuthorDispute";
 export * from "./instructions/purchaseSkill";
-export * from "./instructions/repairAgentRegisteredAt";
 export * from "./instructions/registerAgent";
+export * from "./instructions/removeSkillListing";
 export * from "./instructions/resolveAuthorDispute";
 export * from "./instructions/revokeVouch";
+export * from "./instructions/unlinkVouchFromListing";
 export * from "./instructions/updateSkillListing";
+export * from "./instructions/withdrawAuthorBond";
 export {
   getVouchInstruction,
   getVouchInstructionAsync,

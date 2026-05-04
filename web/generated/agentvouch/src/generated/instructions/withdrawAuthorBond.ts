@@ -41,6 +41,7 @@ import {
 } from "@solana/program-client-core";
 import {
   findAuthorBondPda,
+  findAuthorBondVaultAuthorityPda,
   findAuthorProfilePda,
   findConfigPda,
 } from "../pdas";
@@ -61,7 +62,14 @@ export type WithdrawAuthorBondInstruction<
   TAccountAuthorBond extends string | AccountMeta<string> = string,
   TAccountAuthorProfile extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
+  TAccountUsdcMint extends string | AccountMeta<string> = string,
+  TAccountAuthorBondVaultAuthority extends string | AccountMeta<string> =
+    string,
+  TAccountAuthorBondVault extends string | AccountMeta<string> = string,
+  TAccountAuthorUsdcAccount extends string | AccountMeta<string> = string,
   TAccountAuthor extends string | AccountMeta<string> = string,
+  TAccountTokenProgram extends string | AccountMeta<string> =
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -76,26 +84,43 @@ export type WithdrawAuthorBondInstruction<
       TAccountConfig extends string
         ? ReadonlyAccount<TAccountConfig>
         : TAccountConfig,
+      TAccountUsdcMint extends string
+        ? ReadonlyAccount<TAccountUsdcMint>
+        : TAccountUsdcMint,
+      TAccountAuthorBondVaultAuthority extends string
+        ? ReadonlyAccount<TAccountAuthorBondVaultAuthority>
+        : TAccountAuthorBondVaultAuthority,
+      TAccountAuthorBondVault extends string
+        ? WritableAccount<TAccountAuthorBondVault>
+        : TAccountAuthorBondVault,
+      TAccountAuthorUsdcAccount extends string
+        ? WritableAccount<TAccountAuthorUsdcAccount>
+        : TAccountAuthorUsdcAccount,
       TAccountAuthor extends string
         ? WritableSignerAccount<TAccountAuthor> &
             AccountSignerMeta<TAccountAuthor>
         : TAccountAuthor,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       ...TRemainingAccounts,
     ]
   >;
 
 export type WithdrawAuthorBondInstructionData = {
   discriminator: ReadonlyUint8Array;
-  amount: bigint;
+  amountUsdcMicros: bigint;
 };
 
-export type WithdrawAuthorBondInstructionDataArgs = { amount: number | bigint };
+export type WithdrawAuthorBondInstructionDataArgs = {
+  amountUsdcMicros: number | bigint;
+};
 
 export function getWithdrawAuthorBondInstructionDataEncoder(): FixedSizeEncoder<WithdrawAuthorBondInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["amount", getU64Encoder()],
+      ["amountUsdcMicros", getU64Encoder()],
     ]),
     (value) => ({
       ...value,
@@ -107,7 +132,7 @@ export function getWithdrawAuthorBondInstructionDataEncoder(): FixedSizeEncoder<
 export function getWithdrawAuthorBondInstructionDataDecoder(): FixedSizeDecoder<WithdrawAuthorBondInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["amount", getU64Decoder()],
+    ["amountUsdcMicros", getU64Decoder()],
   ]);
 }
 
@@ -125,27 +150,47 @@ export type WithdrawAuthorBondAsyncInput<
   TAccountAuthorBond extends string = string,
   TAccountAuthorProfile extends string = string,
   TAccountConfig extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountAuthorBondVaultAuthority extends string = string,
+  TAccountAuthorBondVault extends string = string,
+  TAccountAuthorUsdcAccount extends string = string,
   TAccountAuthor extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   authorBond?: Address<TAccountAuthorBond>;
   authorProfile?: Address<TAccountAuthorProfile>;
   config?: Address<TAccountConfig>;
+  usdcMint: Address<TAccountUsdcMint>;
+  authorBondVaultAuthority?: Address<TAccountAuthorBondVaultAuthority>;
+  authorBondVault: Address<TAccountAuthorBondVault>;
+  authorUsdcAccount: Address<TAccountAuthorUsdcAccount>;
   author: TransactionSigner<TAccountAuthor>;
-  amount: WithdrawAuthorBondInstructionDataArgs["amount"];
+  tokenProgram?: Address<TAccountTokenProgram>;
+  amountUsdcMicros: WithdrawAuthorBondInstructionDataArgs["amountUsdcMicros"];
 };
 
 export async function getWithdrawAuthorBondInstructionAsync<
   TAccountAuthorBond extends string,
   TAccountAuthorProfile extends string,
   TAccountConfig extends string,
+  TAccountUsdcMint extends string,
+  TAccountAuthorBondVaultAuthority extends string,
+  TAccountAuthorBondVault extends string,
+  TAccountAuthorUsdcAccount extends string,
   TAccountAuthor extends string,
+  TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
   input: WithdrawAuthorBondAsyncInput<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthor
+    TAccountUsdcMint,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthor,
+    TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -154,7 +199,12 @@ export async function getWithdrawAuthorBondInstructionAsync<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthor
+    TAccountUsdcMint,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthor,
+    TAccountTokenProgram
   >
 > {
   // Program address.
@@ -165,7 +215,18 @@ export async function getWithdrawAuthorBondInstructionAsync<
     authorBond: { value: input.authorBond ?? null, isWritable: true },
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    authorBondVaultAuthority: {
+      value: input.authorBondVaultAuthority ?? null,
+      isWritable: false,
+    },
+    authorBondVault: { value: input.authorBondVault ?? null, isWritable: true },
+    authorUsdcAccount: {
+      value: input.authorUsdcAccount ?? null,
+      isWritable: true,
+    },
     author: { value: input.author ?? null, isWritable: true },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -195,6 +256,19 @@ export async function getWithdrawAuthorBondInstructionAsync<
   if (!accounts.config.value) {
     accounts.config.value = await findConfigPda();
   }
+  if (!accounts.authorBondVaultAuthority.value) {
+    accounts.authorBondVaultAuthority.value =
+      await findAuthorBondVaultAuthorityPda({
+        author: getAddressFromResolvedInstructionAccount(
+          "author",
+          accounts.author.value,
+        ),
+      });
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
@@ -202,7 +276,15 @@ export async function getWithdrawAuthorBondInstructionAsync<
       getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("authorProfile", accounts.authorProfile),
       getAccountMeta("config", accounts.config),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta(
+        "authorBondVaultAuthority",
+        accounts.authorBondVaultAuthority,
+      ),
+      getAccountMeta("authorBondVault", accounts.authorBondVault),
+      getAccountMeta("authorUsdcAccount", accounts.authorUsdcAccount),
       getAccountMeta("author", accounts.author),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
     data: getWithdrawAuthorBondInstructionDataEncoder().encode(
       args as WithdrawAuthorBondInstructionDataArgs,
@@ -213,7 +295,12 @@ export async function getWithdrawAuthorBondInstructionAsync<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthor
+    TAccountUsdcMint,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthor,
+    TAccountTokenProgram
   >);
 }
 
@@ -221,27 +308,47 @@ export type WithdrawAuthorBondInput<
   TAccountAuthorBond extends string = string,
   TAccountAuthorProfile extends string = string,
   TAccountConfig extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountAuthorBondVaultAuthority extends string = string,
+  TAccountAuthorBondVault extends string = string,
+  TAccountAuthorUsdcAccount extends string = string,
   TAccountAuthor extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   authorBond: Address<TAccountAuthorBond>;
   authorProfile: Address<TAccountAuthorProfile>;
   config: Address<TAccountConfig>;
+  usdcMint: Address<TAccountUsdcMint>;
+  authorBondVaultAuthority: Address<TAccountAuthorBondVaultAuthority>;
+  authorBondVault: Address<TAccountAuthorBondVault>;
+  authorUsdcAccount: Address<TAccountAuthorUsdcAccount>;
   author: TransactionSigner<TAccountAuthor>;
-  amount: WithdrawAuthorBondInstructionDataArgs["amount"];
+  tokenProgram?: Address<TAccountTokenProgram>;
+  amountUsdcMicros: WithdrawAuthorBondInstructionDataArgs["amountUsdcMicros"];
 };
 
 export function getWithdrawAuthorBondInstruction<
   TAccountAuthorBond extends string,
   TAccountAuthorProfile extends string,
   TAccountConfig extends string,
+  TAccountUsdcMint extends string,
+  TAccountAuthorBondVaultAuthority extends string,
+  TAccountAuthorBondVault extends string,
+  TAccountAuthorUsdcAccount extends string,
   TAccountAuthor extends string,
+  TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
   input: WithdrawAuthorBondInput<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthor
+    TAccountUsdcMint,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthor,
+    TAccountTokenProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): WithdrawAuthorBondInstruction<
@@ -249,7 +356,12 @@ export function getWithdrawAuthorBondInstruction<
   TAccountAuthorBond,
   TAccountAuthorProfile,
   TAccountConfig,
-  TAccountAuthor
+  TAccountUsdcMint,
+  TAccountAuthorBondVaultAuthority,
+  TAccountAuthorBondVault,
+  TAccountAuthorUsdcAccount,
+  TAccountAuthor,
+  TAccountTokenProgram
 > {
   // Program address.
   const programAddress = config?.programAddress ?? AGENTVOUCH_PROGRAM_ADDRESS;
@@ -259,7 +371,18 @@ export function getWithdrawAuthorBondInstruction<
     authorBond: { value: input.authorBond ?? null, isWritable: true },
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    authorBondVaultAuthority: {
+      value: input.authorBondVaultAuthority ?? null,
+      isWritable: false,
+    },
+    authorBondVault: { value: input.authorBondVault ?? null, isWritable: true },
+    authorUsdcAccount: {
+      value: input.authorUsdcAccount ?? null,
+      isWritable: true,
+    },
     author: { value: input.author ?? null, isWritable: true },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -269,13 +392,27 @@ export function getWithdrawAuthorBondInstruction<
   // Original args.
   const args = { ...input };
 
+  // Resolve default values.
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
+
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("authorProfile", accounts.authorProfile),
       getAccountMeta("config", accounts.config),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta(
+        "authorBondVaultAuthority",
+        accounts.authorBondVaultAuthority,
+      ),
+      getAccountMeta("authorBondVault", accounts.authorBondVault),
+      getAccountMeta("authorUsdcAccount", accounts.authorUsdcAccount),
       getAccountMeta("author", accounts.author),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
     data: getWithdrawAuthorBondInstructionDataEncoder().encode(
       args as WithdrawAuthorBondInstructionDataArgs,
@@ -286,7 +423,12 @@ export function getWithdrawAuthorBondInstruction<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
-    TAccountAuthor
+    TAccountUsdcMint,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthor,
+    TAccountTokenProgram
   >);
 }
 
@@ -299,7 +441,12 @@ export type ParsedWithdrawAuthorBondInstruction<
     authorBond: TAccountMetas[0];
     authorProfile: TAccountMetas[1];
     config: TAccountMetas[2];
-    author: TAccountMetas[3];
+    usdcMint: TAccountMetas[3];
+    authorBondVaultAuthority: TAccountMetas[4];
+    authorBondVault: TAccountMetas[5];
+    authorUsdcAccount: TAccountMetas[6];
+    author: TAccountMetas[7];
+    tokenProgram: TAccountMetas[8];
   };
   data: WithdrawAuthorBondInstructionData;
 };
@@ -312,12 +459,12 @@ export function parseWithdrawAuthorBondInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedWithdrawAuthorBondInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -333,7 +480,12 @@ export function parseWithdrawAuthorBondInstruction<
       authorBond: getNextAccount(),
       authorProfile: getNextAccount(),
       config: getNextAccount(),
+      usdcMint: getNextAccount(),
+      authorBondVaultAuthority: getNextAccount(),
+      authorBondVault: getNextAccount(),
+      authorUsdcAccount: getNextAccount(),
       author: getNextAccount(),
+      tokenProgram: getNextAccount(),
     },
     data: getWithdrawAuthorBondInstructionDataDecoder().decode(
       instruction.data,

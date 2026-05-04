@@ -9,6 +9,7 @@
 export * from "./agentProfile";
 export * from "./authorBond";
 export * from "./authorDispute";
+export * from "./listingVouchPosition";
 export * from "./purchase";
 export * from "./reputationConfig";
 export * from "./skillListing";

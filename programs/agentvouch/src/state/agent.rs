@@ -2,17 +2,19 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct AgentProfile {
-    pub authority: Pubkey,           // Agent's wallet
-    pub metadata_uri: String,        // Off-chain metadata (name, description, capabilities)
-    pub reputation_score: u64,       // Computed score
-    pub total_vouches_received: u32, // Count of vouches received
-    pub total_vouches_given: u32,    // Count of vouches given
-    pub total_staked_for: u64,       // Total SOL staked by others vouching for this agent
-    pub author_bond_lamports: u64,   // Self-staked capital posted by the author
+    pub authority: Pubkey,              // Agent's wallet
+    pub metadata_uri: String,           // Off-chain metadata (name, description, capabilities)
+    pub reputation_score: u64,          // Computed score
+    pub total_vouches_received: u32,    // Count of vouches received
+    pub total_vouches_given: u32,       // Count of vouches given
+    pub total_vouch_stake_usdc_micros: u64, // USDC staked by others vouching for this agent
+    pub author_bond_usdc_micros: u64,   // Self-staked trust capital posted by the author
     pub active_free_skill_listings: u32, // Active zero-price listings gated by the author bond
-    pub open_author_disputes: u32,   // Open author-wide disputes that freeze bond withdrawals
-    pub registered_at: i64,          // Timestamp
-    pub bump: u8,                    // PDA bump
+    pub open_author_disputes: u32,      // Open author disputes that freeze reachable funds
+    pub upheld_author_disputes: u32,
+    pub dismissed_author_disputes: u32,
+    pub registered_at: i64,             // Timestamp
+    pub bump: u8,                       // PDA bump
 }
 
 impl AgentProfile {
@@ -24,28 +26,41 @@ impl AgentProfile {
         8 + // reputation_score
         4 + // total_vouches_received
         4 + // total_vouches_given
-        8 + // total_staked_for
-        8 + // author_bond_lamports
+        8 + // total_vouch_stake_usdc_micros
+        8 + // author_bond_usdc_micros
         4 + // active_free_skill_listings
         4 + // open_author_disputes
+        4 + // upheld_author_disputes
+        4 + // dismissed_author_disputes
         8 + // registered_at
         1; // bump
     
     pub fn compute_reputation(&self, config: &super::ReputationConfig) -> u64 {
-        let total_stake_at_risk = self
-            .total_staked_for
-            .saturating_add(self.author_bond_lamports);
-        let stake_component = total_stake_at_risk.saturating_mul(config.stake_weight as u64);
-        let vouch_component = (self.total_vouches_received as u64).saturating_mul(config.vouch_weight as u64);
-        
-        // Calculate days since registration
+        let risk_usdc_micros = self
+            .total_vouch_stake_usdc_micros
+            .saturating_add(self.author_bond_usdc_micros);
+        let risk_component = ((risk_usdc_micros as u128)
+            .saturating_mul(config.stake_weight_per_usdc as u128)
+            / super::USDC_MICROS_PER_USDC as u128)
+            .min(config.risk_component_cap as u128) as u64;
+        let vouch_component = (self.total_vouches_received as u64)
+            .saturating_mul(config.vouch_weight as u64)
+            .min(config.vouch_component_cap);
+
         let now = Clock::get().unwrap().unix_timestamp;
         let age_seconds = now.saturating_sub(self.registered_at);
         let age_days = age_seconds / 86400;
-        let longevity_component = (age_days as u64).saturating_mul(config.longevity_bonus as u64);
-        
-        stake_component
+        let longevity_component = (age_days as u64)
+            .saturating_mul(config.longevity_bonus_per_day as u64)
+            .min(config.longevity_component_cap);
+        let raw_positive_score = risk_component
             .saturating_add(vouch_component)
-            .saturating_add(longevity_component)
+            .saturating_add(longevity_component);
+        let dispute_penalty = (self.upheld_author_disputes as u64)
+            .saturating_mul(config.upheld_dispute_penalty);
+
+        raw_positive_score
+            .saturating_sub(dispute_penalty)
+            .min(config.reputation_score_cap)
     }
 }

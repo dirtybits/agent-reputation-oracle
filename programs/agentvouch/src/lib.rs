@@ -15,24 +15,24 @@ pub mod agentvouch {
 
     pub fn initialize_config(
         ctx: Context<InitializeConfig>,
-        min_stake: u64,
-        dispute_bond: u64,
-        min_author_bond_for_free_listing: u64,
+        chain_context: String,
+        config_authority: Pubkey,
+        treasury_authority: Pubkey,
+        settlement_authority: Pubkey,
+        pause_authority: Pubkey,
         slash_percentage: u8,
         cooldown_period: i64,
     ) -> Result<()> {
         instructions::initialize_config::handler(
             ctx,
-            min_stake,
-            dispute_bond,
-            min_author_bond_for_free_listing,
+            chain_context,
+            config_authority,
+            treasury_authority,
+            settlement_authority,
+            pause_authority,
             slash_percentage,
             cooldown_period,
         )
-    }
-
-    pub fn migrate_config(ctx: Context<MigrateConfig>) -> Result<()> {
-        instructions::migrate_config::handler(ctx)
     }
 
     pub fn register_agent(
@@ -42,43 +42,25 @@ pub mod agentvouch {
         instructions::register_agent::handler(ctx, metadata_uri)
     }
 
-    pub fn migrate_agent(
-        ctx: Context<MigrateAgent>,
-        metadata_uri: String,
-    ) -> Result<()> {
-        instructions::migrate_agent::handler(ctx, metadata_uri)
-    }
-
-    pub fn admin_migrate_agent(ctx: Context<AdminMigrateAgent>) -> Result<()> {
-        instructions::admin_migrate_agent::handler(ctx)
-    }
-
-    pub fn repair_agent_registered_at(
-        ctx: Context<RepairAgentRegisteredAt>,
-        registered_at: i64,
-    ) -> Result<()> {
-        instructions::repair_agent_registered_at::handler(ctx, registered_at)
-    }
-
     pub fn deposit_author_bond(
         ctx: Context<DepositAuthorBond>,
-        amount: u64,
+        amount_usdc_micros: u64,
     ) -> Result<()> {
-        instructions::deposit_author_bond::handler(ctx, amount)
+        instructions::deposit_author_bond::handler(ctx, amount_usdc_micros)
     }
 
     pub fn withdraw_author_bond(
         ctx: Context<WithdrawAuthorBond>,
-        amount: u64,
+        amount_usdc_micros: u64,
     ) -> Result<()> {
-        instructions::withdraw_author_bond::handler(ctx, amount)
+        instructions::withdraw_author_bond::handler(ctx, amount_usdc_micros)
     }
 
     pub fn vouch(
         ctx: Context<CreateVouch>,
-        stake_amount: u64,
+        stake_usdc_micros: u64,
     ) -> Result<()> {
-        instructions::vouch::handler(ctx, stake_amount)
+        instructions::vouch::handler(ctx, stake_usdc_micros)
     }
 
     pub fn revoke_vouch(ctx: Context<RevokeVouch>) -> Result<()> {
@@ -108,7 +90,7 @@ pub mod agentvouch {
         skill_uri: String,
         name: String,
         description: String,
-        price_lamports: u64,
+        price_usdc_micros: u64,
     ) -> Result<()> {
         instructions::create_skill_listing::handler(
             ctx,
@@ -116,7 +98,7 @@ pub mod agentvouch {
             skill_uri,
             name,
             description,
-            price_lamports,
+            price_usdc_micros,
         )
     }
 
@@ -126,7 +108,7 @@ pub mod agentvouch {
         skill_uri: String,
         name: String,
         description: String,
-        price_lamports: u64,
+        price_usdc_micros: u64,
     ) -> Result<()> {
         instructions::update_skill_listing::handler(
             ctx,
@@ -134,7 +116,7 @@ pub mod agentvouch {
             skill_uri,
             name,
             description,
-            price_lamports,
+            price_usdc_micros,
         )
     }
 
@@ -158,5 +140,13 @@ pub mod agentvouch {
 
     pub fn claim_voucher_revenue(ctx: Context<ClaimVoucherRevenue>) -> Result<()> {
         instructions::claim_voucher_revenue::handler(ctx)
+    }
+
+    pub fn link_vouch_to_listing(ctx: Context<LinkVouchToListing>) -> Result<()> {
+        instructions::link_vouch_to_listing::handler(ctx)
+    }
+
+    pub fn unlink_vouch_from_listing(ctx: Context<UnlinkVouchFromListing>) -> Result<()> {
+        instructions::unlink_vouch_from_listing::handler(ctx)
     }
 }

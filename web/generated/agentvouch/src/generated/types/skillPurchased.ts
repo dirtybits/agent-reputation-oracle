@@ -26,9 +26,11 @@ export type SkillPurchased = {
   purchase: Address;
   skillListing: Address;
   buyer: Address;
-  price: bigint;
-  authorShare: bigint;
-  voucherPool: bigint;
+  priceUsdcMicros: bigint;
+  authorShareUsdcMicros: bigint;
+  voucherPoolUsdcMicros: bigint;
+  authorUsdcAccount: Address;
+  rewardVault: Address;
   timestamp: bigint;
 };
 
@@ -36,9 +38,11 @@ export type SkillPurchasedArgs = {
   purchase: Address;
   skillListing: Address;
   buyer: Address;
-  price: number | bigint;
-  authorShare: number | bigint;
-  voucherPool: number | bigint;
+  priceUsdcMicros: number | bigint;
+  authorShareUsdcMicros: number | bigint;
+  voucherPoolUsdcMicros: number | bigint;
+  authorUsdcAccount: Address;
+  rewardVault: Address;
   timestamp: number | bigint;
 };
 
@@ -47,9 +51,11 @@ export function getSkillPurchasedEncoder(): FixedSizeEncoder<SkillPurchasedArgs>
     ["purchase", getAddressEncoder()],
     ["skillListing", getAddressEncoder()],
     ["buyer", getAddressEncoder()],
-    ["price", getU64Encoder()],
-    ["authorShare", getU64Encoder()],
-    ["voucherPool", getU64Encoder()],
+    ["priceUsdcMicros", getU64Encoder()],
+    ["authorShareUsdcMicros", getU64Encoder()],
+    ["voucherPoolUsdcMicros", getU64Encoder()],
+    ["authorUsdcAccount", getAddressEncoder()],
+    ["rewardVault", getAddressEncoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -59,9 +65,11 @@ export function getSkillPurchasedDecoder(): FixedSizeDecoder<SkillPurchased> {
     ["purchase", getAddressDecoder()],
     ["skillListing", getAddressDecoder()],
     ["buyer", getAddressDecoder()],
-    ["price", getU64Decoder()],
-    ["authorShare", getU64Decoder()],
-    ["voucherPool", getU64Decoder()],
+    ["priceUsdcMicros", getU64Decoder()],
+    ["authorShareUsdcMicros", getU64Decoder()],
+    ["voucherPoolUsdcMicros", getU64Decoder()],
+    ["authorUsdcAccount", getAddressDecoder()],
+    ["rewardVault", getAddressDecoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

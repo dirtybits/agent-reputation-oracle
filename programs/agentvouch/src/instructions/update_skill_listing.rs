@@ -14,22 +14,22 @@ pub struct UpdateSkillListing<'info> {
         constraint = skill_listing.author == author.key() @ UpdateSkillError::NotAuthor,
         constraint = skill_listing.status != SkillStatus::Removed @ UpdateSkillError::SkillRemoved,
     )]
-    pub skill_listing: Account<'info, SkillListing>,
+    pub skill_listing: Box<Account<'info, SkillListing>>,
 
     #[account(
         mut,
         seeds = [b"agent", author.key().as_ref()],
         bump = author_profile.bump,
     )]
-    pub author_profile: Account<'info, AgentProfile>,
+    pub author_profile: Box<Account<'info, AgentProfile>>,
 
     #[account(
         seeds = [b"config"],
         bump = config.bump,
     )]
-    pub config: Account<'info, ReputationConfig>,
+    pub config: Box<Account<'info, ReputationConfig>>,
 
-    pub author_bond: Option<Account<'info, AuthorBond>>,
+    pub author_bond: Option<Box<Account<'info, AuthorBond>>>,
 
     pub author: Signer<'info>,
 }
@@ -40,8 +40,9 @@ pub fn handler(
     skill_uri: String,
     name: String,
     description: String,
-    price_lamports: u64,
+    price_usdc_micros: u64,
 ) -> Result<()> {
+    require!(!ctx.accounts.config.paused, UpdateSkillError::ProtocolPaused);
     require!(
         skill_uri.len() <= SkillListing::MAX_URI_LEN,
         UpdateSkillError::UriTooLong
@@ -55,29 +56,32 @@ pub fn handler(
         UpdateSkillError::DescriptionTooLong
     );
     require!(
-        SkillListing::is_supported_price(price_lamports),
+        SkillListing::is_supported_price(
+            price_usdc_micros,
+            ctx.accounts.config.min_paid_listing_price_usdc_micros,
+        ),
         UpdateSkillError::PriceNotSupported
     );
 
-    if SkillListing::is_free_price(price_lamports) {
+    if SkillListing::is_free_price(price_usdc_micros) {
         validate_free_listing_bond(
             ctx.program_id,
             &ctx.accounts.author.key(),
             &ctx.accounts.author_profile,
             &ctx.accounts.config,
-            ctx.accounts.author_bond.as_ref(),
+            ctx.accounts.author_bond.as_deref(),
         )?;
     }
 
     let skill_listing = &mut ctx.accounts.skill_listing;
     let clock = Clock::get()?;
-    let was_free = SkillListing::is_free_price(skill_listing.price_lamports);
-    let will_be_free = SkillListing::is_free_price(price_lamports);
+    let was_free = SkillListing::is_free_price(skill_listing.price_usdc_micros);
+    let will_be_free = SkillListing::is_free_price(price_usdc_micros);
 
     skill_listing.skill_uri = skill_uri;
     skill_listing.name = name.clone();
     skill_listing.description = description;
-    skill_listing.price_lamports = price_lamports;
+    skill_listing.price_usdc_micros = price_usdc_micros;
     skill_listing.updated_at = clock.unix_timestamp;
 
     if !was_free && will_be_free {
@@ -100,7 +104,7 @@ pub fn handler(
         skill_listing: ctx.accounts.skill_listing.key(),
         author: ctx.accounts.author.key(),
         name,
-        price_lamports,
+        price_usdc_micros,
         timestamp: clock.unix_timestamp,
     });
 
@@ -129,11 +133,12 @@ fn validate_free_listing_bond(
         UpdateSkillError::AuthorBondAccountMismatch
     );
     require!(
-        author_bond_account.amount == author_profile.author_bond_lamports,
+        author_bond_account.amount_usdc_micros == author_profile.author_bond_usdc_micros,
         UpdateSkillError::AuthorBondProfileMismatch
     );
     require!(
-        author_bond_account.amount >= config.min_author_bond_for_free_listing,
+        author_bond_account.amount_usdc_micros
+            >= config.min_author_bond_for_free_listing_usdc_micros,
         UpdateSkillError::FreeListingRequiresBondFloor
     );
 
@@ -166,4 +171,6 @@ pub enum UpdateSkillError {
     FreeListingCountOverflow,
     #[msg("Active free listing count underflowed")]
     FreeListingCountUnderflow,
+    #[msg("Protocol is paused")]
+    ProtocolPaused,
 }

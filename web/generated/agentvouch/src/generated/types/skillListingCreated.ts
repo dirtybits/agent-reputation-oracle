@@ -32,7 +32,8 @@ export type SkillListingCreated = {
   skillListing: Address;
   author: Address;
   name: string;
-  priceLamports: bigint;
+  priceUsdcMicros: bigint;
+  rewardVault: Address;
   timestamp: bigint;
 };
 
@@ -40,7 +41,8 @@ export type SkillListingCreatedArgs = {
   skillListing: Address;
   author: Address;
   name: string;
-  priceLamports: number | bigint;
+  priceUsdcMicros: number | bigint;
+  rewardVault: Address;
   timestamp: number | bigint;
 };
 
@@ -49,7 +51,8 @@ export function getSkillListingCreatedEncoder(): Encoder<SkillListingCreatedArgs
     ["skillListing", getAddressEncoder()],
     ["author", getAddressEncoder()],
     ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-    ["priceLamports", getU64Encoder()],
+    ["priceUsdcMicros", getU64Encoder()],
+    ["rewardVault", getAddressEncoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -59,7 +62,8 @@ export function getSkillListingCreatedDecoder(): Decoder<SkillListingCreated> {
     ["skillListing", getAddressDecoder()],
     ["author", getAddressDecoder()],
     ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["priceLamports", getU64Decoder()],
+    ["priceUsdcMicros", getU64Decoder()],
+    ["rewardVault", getAddressDecoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

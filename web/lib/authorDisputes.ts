@@ -272,13 +272,13 @@ export async function listAuthorDisputesByAuthor(
         ),
         skillListing,
         skillPriceLamportsSnapshot: Number(
-          dispute.account.skillPriceLamportsSnapshot
+          dispute.account.skillPriceUsdcMicrosSnapshot
         ),
         purchase,
         backingVouchCountSnapshot: dispute.account.backingVouchCountSnapshot,
         linkedVouchCount: dispute.account.linkedVouchCount,
         linkedVouches: linkedVouchesByDispute?.get(dispute.publicKey) ?? [],
-        bondAmount: Number(dispute.account.bondAmount),
+        bondAmount: Number(dispute.account.bondAmountUsdcMicros),
         createdAt: Number(dispute.account.createdAt),
         resolvedAt: resolvedAt === null ? null : Number(resolvedAt),
       };

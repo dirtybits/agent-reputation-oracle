@@ -26,7 +26,7 @@ export type VouchRevoked = {
   vouch: Address;
   voucher: Address;
   vouchee: Address;
-  stakeReturned: bigint;
+  stakeReturnedUsdcMicros: bigint;
   timestamp: bigint;
 };
 
@@ -34,7 +34,7 @@ export type VouchRevokedArgs = {
   vouch: Address;
   voucher: Address;
   vouchee: Address;
-  stakeReturned: number | bigint;
+  stakeReturnedUsdcMicros: number | bigint;
   timestamp: number | bigint;
 };
 
@@ -43,7 +43,7 @@ export function getVouchRevokedEncoder(): FixedSizeEncoder<VouchRevokedArgs> {
     ["vouch", getAddressEncoder()],
     ["voucher", getAddressEncoder()],
     ["vouchee", getAddressEncoder()],
-    ["stakeReturned", getU64Encoder()],
+    ["stakeReturnedUsdcMicros", getU64Encoder()],
     ["timestamp", getI64Encoder()],
   ]);
 }
@@ -53,7 +53,7 @@ export function getVouchRevokedDecoder(): FixedSizeDecoder<VouchRevoked> {
     ["vouch", getAddressDecoder()],
     ["voucher", getAddressDecoder()],
     ["vouchee", getAddressDecoder()],
-    ["stakeReturned", getU64Decoder()],
+    ["stakeReturnedUsdcMicros", getU64Decoder()],
     ["timestamp", getI64Decoder()],
   ]);
 }

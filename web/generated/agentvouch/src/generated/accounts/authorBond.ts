@@ -52,18 +52,24 @@ export function getAuthorBondDiscriminatorBytes() {
 export type AuthorBond = {
   discriminator: ReadonlyUint8Array;
   author: Address;
-  amount: bigint;
+  vault: Address;
+  rentPayer: Address;
+  amountUsdcMicros: bigint;
   createdAt: bigint;
   updatedAt: bigint;
   bump: number;
+  vaultBump: number;
 };
 
 export type AuthorBondArgs = {
   author: Address;
-  amount: number | bigint;
+  vault: Address;
+  rentPayer: Address;
+  amountUsdcMicros: number | bigint;
   createdAt: number | bigint;
   updatedAt: number | bigint;
   bump: number;
+  vaultBump: number;
 };
 
 /** Gets the encoder for {@link AuthorBondArgs} account data. */
@@ -72,10 +78,13 @@ export function getAuthorBondEncoder(): FixedSizeEncoder<AuthorBondArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["author", getAddressEncoder()],
-      ["amount", getU64Encoder()],
+      ["vault", getAddressEncoder()],
+      ["rentPayer", getAddressEncoder()],
+      ["amountUsdcMicros", getU64Encoder()],
       ["createdAt", getI64Encoder()],
       ["updatedAt", getI64Encoder()],
       ["bump", getU8Encoder()],
+      ["vaultBump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: AUTHOR_BOND_DISCRIMINATOR }),
   );
@@ -86,10 +95,13 @@ export function getAuthorBondDecoder(): FixedSizeDecoder<AuthorBond> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["author", getAddressDecoder()],
-    ["amount", getU64Decoder()],
+    ["vault", getAddressDecoder()],
+    ["rentPayer", getAddressDecoder()],
+    ["amountUsdcMicros", getU64Decoder()],
     ["createdAt", getI64Decoder()],
     ["updatedAt", getI64Decoder()],
     ["bump", getU8Decoder()],
+    ["vaultBump", getU8Decoder()],
   ]);
 }
 
@@ -155,5 +167,5 @@ export async function fetchAllMaybeAuthorBond(
 }
 
 export function getAuthorBondSize(): number {
-  return 65;
+  return 130;
 }

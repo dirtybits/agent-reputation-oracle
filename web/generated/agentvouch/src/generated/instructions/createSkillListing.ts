@@ -49,6 +49,8 @@ import {
 import {
   findAuthorProfilePda,
   findConfigPda,
+  findRewardVaultAuthorityPda,
+  findRewardVaultPda,
   findSkillListingPda,
 } from "../pdas";
 import { AGENTVOUCH_PROGRAM_ADDRESS } from "../programs";
@@ -69,7 +71,12 @@ export type CreateSkillListingInstruction<
   TAccountAuthorProfile extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
   TAccountAuthorBond extends string | AccountMeta<string> = string,
+  TAccountUsdcMint extends string | AccountMeta<string> = string,
+  TAccountRewardVaultAuthority extends string | AccountMeta<string> = string,
+  TAccountRewardVault extends string | AccountMeta<string> = string,
   TAccountAuthor extends string | AccountMeta<string> = string,
+  TAccountTokenProgram extends string | AccountMeta<string> =
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -89,10 +96,22 @@ export type CreateSkillListingInstruction<
       TAccountAuthorBond extends string
         ? ReadonlyAccount<TAccountAuthorBond>
         : TAccountAuthorBond,
+      TAccountUsdcMint extends string
+        ? ReadonlyAccount<TAccountUsdcMint>
+        : TAccountUsdcMint,
+      TAccountRewardVaultAuthority extends string
+        ? ReadonlyAccount<TAccountRewardVaultAuthority>
+        : TAccountRewardVaultAuthority,
+      TAccountRewardVault extends string
+        ? WritableAccount<TAccountRewardVault>
+        : TAccountRewardVault,
       TAccountAuthor extends string
         ? WritableSignerAccount<TAccountAuthor> &
             AccountSignerMeta<TAccountAuthor>
         : TAccountAuthor,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -106,7 +125,7 @@ export type CreateSkillListingInstructionData = {
   skillUri: string;
   name: string;
   description: string;
-  priceLamports: bigint;
+  priceUsdcMicros: bigint;
 };
 
 export type CreateSkillListingInstructionDataArgs = {
@@ -114,7 +133,7 @@ export type CreateSkillListingInstructionDataArgs = {
   skillUri: string;
   name: string;
   description: string;
-  priceLamports: number | bigint;
+  priceUsdcMicros: number | bigint;
 };
 
 export function getCreateSkillListingInstructionDataEncoder(): Encoder<CreateSkillListingInstructionDataArgs> {
@@ -125,7 +144,7 @@ export function getCreateSkillListingInstructionDataEncoder(): Encoder<CreateSki
       ["skillUri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["description", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["priceLamports", getU64Encoder()],
+      ["priceUsdcMicros", getU64Encoder()],
     ]),
     (value) => ({
       ...value,
@@ -141,7 +160,7 @@ export function getCreateSkillListingInstructionDataDecoder(): Decoder<CreateSki
     ["skillUri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["description", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["priceLamports", getU64Decoder()],
+    ["priceUsdcMicros", getU64Decoder()],
   ]);
 }
 
@@ -160,20 +179,28 @@ export type CreateSkillListingAsyncInput<
   TAccountAuthorProfile extends string = string,
   TAccountConfig extends string = string,
   TAccountAuthorBond extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountRewardVaultAuthority extends string = string,
+  TAccountRewardVault extends string = string,
   TAccountAuthor extends string = string,
+  TAccountTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   skillListing?: Address<TAccountSkillListing>;
   authorProfile?: Address<TAccountAuthorProfile>;
   config?: Address<TAccountConfig>;
   authorBond?: Address<TAccountAuthorBond>;
+  usdcMint: Address<TAccountUsdcMint>;
+  rewardVaultAuthority?: Address<TAccountRewardVaultAuthority>;
+  rewardVault?: Address<TAccountRewardVault>;
   author: TransactionSigner<TAccountAuthor>;
+  tokenProgram?: Address<TAccountTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   skillId: CreateSkillListingInstructionDataArgs["skillId"];
   skillUri: CreateSkillListingInstructionDataArgs["skillUri"];
   name: CreateSkillListingInstructionDataArgs["name"];
   description: CreateSkillListingInstructionDataArgs["description"];
-  priceLamports: CreateSkillListingInstructionDataArgs["priceLamports"];
+  priceUsdcMicros: CreateSkillListingInstructionDataArgs["priceUsdcMicros"];
 };
 
 export async function getCreateSkillListingInstructionAsync<
@@ -181,7 +208,11 @@ export async function getCreateSkillListingInstructionAsync<
   TAccountAuthorProfile extends string,
   TAccountConfig extends string,
   TAccountAuthorBond extends string,
+  TAccountUsdcMint extends string,
+  TAccountRewardVaultAuthority extends string,
+  TAccountRewardVault extends string,
   TAccountAuthor extends string,
+  TAccountTokenProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
@@ -190,7 +221,11 @@ export async function getCreateSkillListingInstructionAsync<
     TAccountAuthorProfile,
     TAccountConfig,
     TAccountAuthorBond,
+    TAccountUsdcMint,
+    TAccountRewardVaultAuthority,
+    TAccountRewardVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -201,7 +236,11 @@ export async function getCreateSkillListingInstructionAsync<
     TAccountAuthorProfile,
     TAccountConfig,
     TAccountAuthorBond,
+    TAccountUsdcMint,
+    TAccountRewardVaultAuthority,
+    TAccountRewardVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >
 > {
@@ -214,7 +253,14 @@ export async function getCreateSkillListingInstructionAsync<
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
     authorBond: { value: input.authorBond ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    rewardVaultAuthority: {
+      value: input.rewardVaultAuthority ?? null,
+      isWritable: false,
+    },
+    rewardVault: { value: input.rewardVault ?? null, isWritable: true },
     author: { value: input.author ?? null, isWritable: true },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -246,6 +292,26 @@ export async function getCreateSkillListingInstructionAsync<
   if (!accounts.config.value) {
     accounts.config.value = await findConfigPda();
   }
+  if (!accounts.rewardVaultAuthority.value) {
+    accounts.rewardVaultAuthority.value = await findRewardVaultAuthorityPda({
+      skillListing: getAddressFromResolvedInstructionAccount(
+        "skillListing",
+        accounts.skillListing.value,
+      ),
+    });
+  }
+  if (!accounts.rewardVault.value) {
+    accounts.rewardVault.value = await findRewardVaultPda({
+      skillListing: getAddressFromResolvedInstructionAccount(
+        "skillListing",
+        accounts.skillListing.value,
+      ),
+    });
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -258,7 +324,11 @@ export async function getCreateSkillListingInstructionAsync<
       getAccountMeta("authorProfile", accounts.authorProfile),
       getAccountMeta("config", accounts.config),
       getAccountMeta("authorBond", accounts.authorBond),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("rewardVaultAuthority", accounts.rewardVaultAuthority),
+      getAccountMeta("rewardVault", accounts.rewardVault),
       getAccountMeta("author", accounts.author),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getCreateSkillListingInstructionDataEncoder().encode(
@@ -271,7 +341,11 @@ export async function getCreateSkillListingInstructionAsync<
     TAccountAuthorProfile,
     TAccountConfig,
     TAccountAuthorBond,
+    TAccountUsdcMint,
+    TAccountRewardVaultAuthority,
+    TAccountRewardVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >);
 }
@@ -281,20 +355,28 @@ export type CreateSkillListingInput<
   TAccountAuthorProfile extends string = string,
   TAccountConfig extends string = string,
   TAccountAuthorBond extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountRewardVaultAuthority extends string = string,
+  TAccountRewardVault extends string = string,
   TAccountAuthor extends string = string,
+  TAccountTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   skillListing: Address<TAccountSkillListing>;
   authorProfile: Address<TAccountAuthorProfile>;
   config: Address<TAccountConfig>;
   authorBond?: Address<TAccountAuthorBond>;
+  usdcMint: Address<TAccountUsdcMint>;
+  rewardVaultAuthority: Address<TAccountRewardVaultAuthority>;
+  rewardVault: Address<TAccountRewardVault>;
   author: TransactionSigner<TAccountAuthor>;
+  tokenProgram?: Address<TAccountTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   skillId: CreateSkillListingInstructionDataArgs["skillId"];
   skillUri: CreateSkillListingInstructionDataArgs["skillUri"];
   name: CreateSkillListingInstructionDataArgs["name"];
   description: CreateSkillListingInstructionDataArgs["description"];
-  priceLamports: CreateSkillListingInstructionDataArgs["priceLamports"];
+  priceUsdcMicros: CreateSkillListingInstructionDataArgs["priceUsdcMicros"];
 };
 
 export function getCreateSkillListingInstruction<
@@ -302,7 +384,11 @@ export function getCreateSkillListingInstruction<
   TAccountAuthorProfile extends string,
   TAccountConfig extends string,
   TAccountAuthorBond extends string,
+  TAccountUsdcMint extends string,
+  TAccountRewardVaultAuthority extends string,
+  TAccountRewardVault extends string,
   TAccountAuthor extends string,
+  TAccountTokenProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
@@ -311,7 +397,11 @@ export function getCreateSkillListingInstruction<
     TAccountAuthorProfile,
     TAccountConfig,
     TAccountAuthorBond,
+    TAccountUsdcMint,
+    TAccountRewardVaultAuthority,
+    TAccountRewardVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -321,7 +411,11 @@ export function getCreateSkillListingInstruction<
   TAccountAuthorProfile,
   TAccountConfig,
   TAccountAuthorBond,
+  TAccountUsdcMint,
+  TAccountRewardVaultAuthority,
+  TAccountRewardVault,
   TAccountAuthor,
+  TAccountTokenProgram,
   TAccountSystemProgram
 > {
   // Program address.
@@ -333,7 +427,14 @@ export function getCreateSkillListingInstruction<
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
     authorBond: { value: input.authorBond ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    rewardVaultAuthority: {
+      value: input.rewardVaultAuthority ?? null,
+      isWritable: false,
+    },
+    rewardVault: { value: input.rewardVault ?? null, isWritable: true },
     author: { value: input.author ?? null, isWritable: true },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -345,6 +446,10 @@ export function getCreateSkillListingInstruction<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -357,7 +462,11 @@ export function getCreateSkillListingInstruction<
       getAccountMeta("authorProfile", accounts.authorProfile),
       getAccountMeta("config", accounts.config),
       getAccountMeta("authorBond", accounts.authorBond),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("rewardVaultAuthority", accounts.rewardVaultAuthority),
+      getAccountMeta("rewardVault", accounts.rewardVault),
       getAccountMeta("author", accounts.author),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getCreateSkillListingInstructionDataEncoder().encode(
@@ -370,7 +479,11 @@ export function getCreateSkillListingInstruction<
     TAccountAuthorProfile,
     TAccountConfig,
     TAccountAuthorBond,
+    TAccountUsdcMint,
+    TAccountRewardVaultAuthority,
+    TAccountRewardVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >);
 }
@@ -385,8 +498,12 @@ export type ParsedCreateSkillListingInstruction<
     authorProfile: TAccountMetas[1];
     config: TAccountMetas[2];
     authorBond?: TAccountMetas[3] | undefined;
-    author: TAccountMetas[4];
-    systemProgram: TAccountMetas[5];
+    usdcMint: TAccountMetas[4];
+    rewardVaultAuthority: TAccountMetas[5];
+    rewardVault: TAccountMetas[6];
+    author: TAccountMetas[7];
+    tokenProgram: TAccountMetas[8];
+    systemProgram: TAccountMetas[9];
   };
   data: CreateSkillListingInstructionData;
 };
@@ -399,12 +516,12 @@ export function parseCreateSkillListingInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCreateSkillListingInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 10) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 6,
+        expectedAccountMetas: 10,
       },
     );
   }
@@ -427,7 +544,11 @@ export function parseCreateSkillListingInstruction<
       authorProfile: getNextAccount(),
       config: getNextAccount(),
       authorBond: getNextOptionalAccount(),
+      usdcMint: getNextAccount(),
+      rewardVaultAuthority: getNextAccount(),
+      rewardVault: getNextAccount(),
       author: getNextAccount(),
+      tokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getCreateSkillListingInstructionDataDecoder().decode(

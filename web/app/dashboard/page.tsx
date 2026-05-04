@@ -546,7 +546,7 @@ export default function DashboardPage() {
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <FiDollarSign />{" "}
-                        {formatSolAmount(Number(agent.account.totalStakedFor))}{" "}
+                        {formatSolAmount(Number(agent.account.totalVouchStakeUsdcMicros))}{" "}
                         SOL
                       </span>
                     </div>
@@ -664,7 +664,7 @@ export default function DashboardPage() {
                       </span>
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
                         {formatSolAmount(
-                          Number(agentProfile.totalStakedFor),
+                          Number(agentProfile.totalVouchStakeUsdcMicros),
                           3,
                           4
                         )}{" "}
@@ -677,7 +677,7 @@ export default function DashboardPage() {
                       </span>
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
                         {formatSolAmount(
-                          Number(agentProfile.authorBondLamports ?? 0),
+                          Number(agentProfile.authorBondUsdcMicros ?? 0),
                           3,
                           4
                         )}{" "}
@@ -690,8 +690,8 @@ export default function DashboardPage() {
                       </span>
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
                         {formatSolAmount(
-                          Number(agentProfile.totalStakedFor) +
-                            Number(agentProfile.authorBondLamports ?? 0),
+                          Number(agentProfile.totalVouchStakeUsdcMicros) +
+                            Number(agentProfile.authorBondUsdcMicros ?? 0),
                           3,
                           4
                         )}{" "}
@@ -865,7 +865,7 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="text-xs text-green-600 dark:text-green-400 font-mono">
                                   {formatSolAmount(
-                                    Number(purchase.account.pricePaid)
+                                    Number(purchase.account.pricePaidUsdcMicros)
                                   )}{" "}
                                   SOL
                                 </span>
@@ -1049,7 +1049,7 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     {vouchesReceived.map((vouch, idx: number) => {
                       const voucher = vouch.account.voucher;
-                      const stakeAmount = vouch.account.stakeAmount;
+                      const stakeAmount = vouch.account.stakeUsdcMicros;
                       const createdAt = vouch.account.createdAt;
                       return (
                         <div
@@ -1106,7 +1106,7 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     {vouches.map((vouch, idx: number) => {
                       const vouchee = vouch.account.vouchee;
-                      const stakeAmount = vouch.account.stakeAmount;
+                      const stakeAmount = vouch.account.stakeUsdcMicros;
                       const createdAt = vouch.account.createdAt;
                       return (
                         <div
@@ -1284,7 +1284,7 @@ export default function DashboardPage() {
                         </span>
                         <span className="text-sm font-mono text-gray-900 dark:text-white">
                           {formatSolAmount(
-                            Number(searchedAgent.totalStakedFor),
+                            Number(searchedAgent.totalVouchStakeUsdcMicros),
                             3,
                             4
                           )}{" "}
@@ -1297,7 +1297,7 @@ export default function DashboardPage() {
                         </span>
                         <span className="text-sm font-mono text-gray-900 dark:text-white">
                           {formatSolAmount(
-                            Number(searchedAgent.authorBondLamports ?? 0),
+                            Number(searchedAgent.authorBondUsdcMicros ?? 0),
                             3,
                             4
                           )}{" "}
@@ -1310,8 +1310,8 @@ export default function DashboardPage() {
                         </span>
                         <span className="text-sm font-mono text-gray-900 dark:text-white">
                           {formatSolAmount(
-                            Number(searchedAgent.totalStakedFor) +
-                              Number(searchedAgent.authorBondLamports ?? 0),
+                            Number(searchedAgent.totalVouchStakeUsdcMicros) +
+                              Number(searchedAgent.authorBondUsdcMicros ?? 0),
                             3,
                             4
                           )}{" "}
@@ -1452,7 +1452,7 @@ export default function DashboardPage() {
                                 <span className="inline-flex items-center gap-1">
                                   <FiDollarSign />{" "}
                                   {formatSolAmount(
-                                    Number(agent.account.totalStakedFor)
+                                    Number(agent.account.totalVouchStakeUsdcMicros)
                                   )}{" "}
                                   SOL
                                 </span>

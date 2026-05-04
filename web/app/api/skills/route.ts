@@ -77,9 +77,9 @@ type ChainSkillRow = Omit<
   chain_context: string;
   total_downloads: number;
   total_revenue: number;
-  price_lamports: number;
-  price_usdc_micros: null;
-  currency_mint: null;
+  price_lamports: null;
+  price_usdc_micros: string;
+  currency_mint: string | null;
   skill_uri: string | null;
   source: "chain";
 };
@@ -104,10 +104,10 @@ async function fetchOnChainListings(): Promise<ChainSkillRow[]> {
       chain_context: configuredSolanaChainContext,
       total_installs: 0,
       total_downloads: Number(listing.data.totalDownloads),
-      price_lamports: Number(listing.data.priceLamports),
-      price_usdc_micros: null,
+      price_lamports: null,
+      price_usdc_micros: String(listing.data.priceUsdcMicros),
       currency_mint: null,
-      total_revenue: Number(listing.data.totalRevenue),
+      total_revenue: Number(listing.data.totalRevenueUsdcMicros),
       created_at: new Date(Number(listing.data.createdAt) * 1000).toISOString(),
       updated_at: new Date(Number(listing.data.updatedAt) * 1000).toISOString(),
       source: "chain" as const,

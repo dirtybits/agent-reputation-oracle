@@ -41,6 +41,8 @@ import {
 } from "@solana/program-client-core";
 import {
   findAuthorBondPda,
+  findAuthorBondVaultAuthorityPda,
+  findAuthorBondVaultPda,
   findAuthorProfilePda,
   findConfigPda,
 } from "../pdas";
@@ -61,7 +63,14 @@ export type DepositAuthorBondInstruction<
   TAccountAuthorBond extends string | AccountMeta<string> = string,
   TAccountAuthorProfile extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
+  TAccountUsdcMint extends string | AccountMeta<string> = string,
+  TAccountAuthorUsdcAccount extends string | AccountMeta<string> = string,
+  TAccountAuthorBondVaultAuthority extends string | AccountMeta<string> =
+    string,
+  TAccountAuthorBondVault extends string | AccountMeta<string> = string,
   TAccountAuthor extends string | AccountMeta<string> = string,
+  TAccountTokenProgram extends string | AccountMeta<string> =
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -78,10 +87,25 @@ export type DepositAuthorBondInstruction<
       TAccountConfig extends string
         ? ReadonlyAccount<TAccountConfig>
         : TAccountConfig,
+      TAccountUsdcMint extends string
+        ? ReadonlyAccount<TAccountUsdcMint>
+        : TAccountUsdcMint,
+      TAccountAuthorUsdcAccount extends string
+        ? WritableAccount<TAccountAuthorUsdcAccount>
+        : TAccountAuthorUsdcAccount,
+      TAccountAuthorBondVaultAuthority extends string
+        ? ReadonlyAccount<TAccountAuthorBondVaultAuthority>
+        : TAccountAuthorBondVaultAuthority,
+      TAccountAuthorBondVault extends string
+        ? WritableAccount<TAccountAuthorBondVault>
+        : TAccountAuthorBondVault,
       TAccountAuthor extends string
         ? WritableSignerAccount<TAccountAuthor> &
             AccountSignerMeta<TAccountAuthor>
         : TAccountAuthor,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -91,16 +115,18 @@ export type DepositAuthorBondInstruction<
 
 export type DepositAuthorBondInstructionData = {
   discriminator: ReadonlyUint8Array;
-  amount: bigint;
+  amountUsdcMicros: bigint;
 };
 
-export type DepositAuthorBondInstructionDataArgs = { amount: number | bigint };
+export type DepositAuthorBondInstructionDataArgs = {
+  amountUsdcMicros: number | bigint;
+};
 
 export function getDepositAuthorBondInstructionDataEncoder(): FixedSizeEncoder<DepositAuthorBondInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["amount", getU64Encoder()],
+      ["amountUsdcMicros", getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: DEPOSIT_AUTHOR_BOND_DISCRIMINATOR }),
   );
@@ -109,7 +135,7 @@ export function getDepositAuthorBondInstructionDataEncoder(): FixedSizeEncoder<D
 export function getDepositAuthorBondInstructionDataDecoder(): FixedSizeDecoder<DepositAuthorBondInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["amount", getU64Decoder()],
+    ["amountUsdcMicros", getU64Decoder()],
   ]);
 }
 
@@ -127,22 +153,37 @@ export type DepositAuthorBondAsyncInput<
   TAccountAuthorBond extends string = string,
   TAccountAuthorProfile extends string = string,
   TAccountConfig extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountAuthorUsdcAccount extends string = string,
+  TAccountAuthorBondVaultAuthority extends string = string,
+  TAccountAuthorBondVault extends string = string,
   TAccountAuthor extends string = string,
+  TAccountTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   authorBond?: Address<TAccountAuthorBond>;
   authorProfile?: Address<TAccountAuthorProfile>;
   config?: Address<TAccountConfig>;
+  usdcMint: Address<TAccountUsdcMint>;
+  authorUsdcAccount: Address<TAccountAuthorUsdcAccount>;
+  authorBondVaultAuthority?: Address<TAccountAuthorBondVaultAuthority>;
+  authorBondVault?: Address<TAccountAuthorBondVault>;
   author: TransactionSigner<TAccountAuthor>;
+  tokenProgram?: Address<TAccountTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  amount: DepositAuthorBondInstructionDataArgs["amount"];
+  amountUsdcMicros: DepositAuthorBondInstructionDataArgs["amountUsdcMicros"];
 };
 
 export async function getDepositAuthorBondInstructionAsync<
   TAccountAuthorBond extends string,
   TAccountAuthorProfile extends string,
   TAccountConfig extends string,
+  TAccountUsdcMint extends string,
+  TAccountAuthorUsdcAccount extends string,
+  TAccountAuthorBondVaultAuthority extends string,
+  TAccountAuthorBondVault extends string,
   TAccountAuthor extends string,
+  TAccountTokenProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
@@ -150,7 +191,12 @@ export async function getDepositAuthorBondInstructionAsync<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -160,7 +206,12 @@ export async function getDepositAuthorBondInstructionAsync<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >
 > {
@@ -172,7 +223,18 @@ export async function getDepositAuthorBondInstructionAsync<
     authorBond: { value: input.authorBond ?? null, isWritable: true },
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    authorUsdcAccount: {
+      value: input.authorUsdcAccount ?? null,
+      isWritable: true,
+    },
+    authorBondVaultAuthority: {
+      value: input.authorBondVaultAuthority ?? null,
+      isWritable: false,
+    },
+    authorBondVault: { value: input.authorBondVault ?? null, isWritable: true },
     author: { value: input.author ?? null, isWritable: true },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -203,6 +265,27 @@ export async function getDepositAuthorBondInstructionAsync<
   if (!accounts.config.value) {
     accounts.config.value = await findConfigPda();
   }
+  if (!accounts.authorBondVaultAuthority.value) {
+    accounts.authorBondVaultAuthority.value =
+      await findAuthorBondVaultAuthorityPda({
+        author: getAddressFromResolvedInstructionAccount(
+          "author",
+          accounts.author.value,
+        ),
+      });
+  }
+  if (!accounts.authorBondVault.value) {
+    accounts.authorBondVault.value = await findAuthorBondVaultPda({
+      author: getAddressFromResolvedInstructionAccount(
+        "author",
+        accounts.author.value,
+      ),
+    });
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -214,7 +297,15 @@ export async function getDepositAuthorBondInstructionAsync<
       getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("authorProfile", accounts.authorProfile),
       getAccountMeta("config", accounts.config),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("authorUsdcAccount", accounts.authorUsdcAccount),
+      getAccountMeta(
+        "authorBondVaultAuthority",
+        accounts.authorBondVaultAuthority,
+      ),
+      getAccountMeta("authorBondVault", accounts.authorBondVault),
       getAccountMeta("author", accounts.author),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getDepositAuthorBondInstructionDataEncoder().encode(
@@ -226,7 +317,12 @@ export async function getDepositAuthorBondInstructionAsync<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >);
 }
@@ -235,22 +331,37 @@ export type DepositAuthorBondInput<
   TAccountAuthorBond extends string = string,
   TAccountAuthorProfile extends string = string,
   TAccountConfig extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountAuthorUsdcAccount extends string = string,
+  TAccountAuthorBondVaultAuthority extends string = string,
+  TAccountAuthorBondVault extends string = string,
   TAccountAuthor extends string = string,
+  TAccountTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   authorBond: Address<TAccountAuthorBond>;
   authorProfile: Address<TAccountAuthorProfile>;
   config: Address<TAccountConfig>;
+  usdcMint: Address<TAccountUsdcMint>;
+  authorUsdcAccount: Address<TAccountAuthorUsdcAccount>;
+  authorBondVaultAuthority: Address<TAccountAuthorBondVaultAuthority>;
+  authorBondVault: Address<TAccountAuthorBondVault>;
   author: TransactionSigner<TAccountAuthor>;
+  tokenProgram?: Address<TAccountTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  amount: DepositAuthorBondInstructionDataArgs["amount"];
+  amountUsdcMicros: DepositAuthorBondInstructionDataArgs["amountUsdcMicros"];
 };
 
 export function getDepositAuthorBondInstruction<
   TAccountAuthorBond extends string,
   TAccountAuthorProfile extends string,
   TAccountConfig extends string,
+  TAccountUsdcMint extends string,
+  TAccountAuthorUsdcAccount extends string,
+  TAccountAuthorBondVaultAuthority extends string,
+  TAccountAuthorBondVault extends string,
   TAccountAuthor extends string,
+  TAccountTokenProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
@@ -258,7 +369,12 @@ export function getDepositAuthorBondInstruction<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -267,7 +383,12 @@ export function getDepositAuthorBondInstruction<
   TAccountAuthorBond,
   TAccountAuthorProfile,
   TAccountConfig,
+  TAccountUsdcMint,
+  TAccountAuthorUsdcAccount,
+  TAccountAuthorBondVaultAuthority,
+  TAccountAuthorBondVault,
   TAccountAuthor,
+  TAccountTokenProgram,
   TAccountSystemProgram
 > {
   // Program address.
@@ -278,7 +399,18 @@ export function getDepositAuthorBondInstruction<
     authorBond: { value: input.authorBond ?? null, isWritable: true },
     authorProfile: { value: input.authorProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    authorUsdcAccount: {
+      value: input.authorUsdcAccount ?? null,
+      isWritable: true,
+    },
+    authorBondVaultAuthority: {
+      value: input.authorBondVaultAuthority ?? null,
+      isWritable: false,
+    },
+    authorBondVault: { value: input.authorBondVault ?? null, isWritable: true },
     author: { value: input.author ?? null, isWritable: true },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -290,6 +422,10 @@ export function getDepositAuthorBondInstruction<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -301,7 +437,15 @@ export function getDepositAuthorBondInstruction<
       getAccountMeta("authorBond", accounts.authorBond),
       getAccountMeta("authorProfile", accounts.authorProfile),
       getAccountMeta("config", accounts.config),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("authorUsdcAccount", accounts.authorUsdcAccount),
+      getAccountMeta(
+        "authorBondVaultAuthority",
+        accounts.authorBondVaultAuthority,
+      ),
+      getAccountMeta("authorBondVault", accounts.authorBondVault),
       getAccountMeta("author", accounts.author),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getDepositAuthorBondInstructionDataEncoder().encode(
@@ -313,7 +457,12 @@ export function getDepositAuthorBondInstruction<
     TAccountAuthorBond,
     TAccountAuthorProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountAuthorUsdcAccount,
+    TAccountAuthorBondVaultAuthority,
+    TAccountAuthorBondVault,
     TAccountAuthor,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >);
 }
@@ -327,8 +476,13 @@ export type ParsedDepositAuthorBondInstruction<
     authorBond: TAccountMetas[0];
     authorProfile: TAccountMetas[1];
     config: TAccountMetas[2];
-    author: TAccountMetas[3];
-    systemProgram: TAccountMetas[4];
+    usdcMint: TAccountMetas[3];
+    authorUsdcAccount: TAccountMetas[4];
+    authorBondVaultAuthority: TAccountMetas[5];
+    authorBondVault: TAccountMetas[6];
+    author: TAccountMetas[7];
+    tokenProgram: TAccountMetas[8];
+    systemProgram: TAccountMetas[9];
   };
   data: DepositAuthorBondInstructionData;
 };
@@ -341,12 +495,12 @@ export function parseDepositAuthorBondInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedDepositAuthorBondInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 10) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 10,
       },
     );
   }
@@ -362,7 +516,12 @@ export function parseDepositAuthorBondInstruction<
       authorBond: getNextAccount(),
       authorProfile: getNextAccount(),
       config: getNextAccount(),
+      usdcMint: getNextAccount(),
+      authorUsdcAccount: getNextAccount(),
+      authorBondVaultAuthority: getNextAccount(),
+      authorBondVault: getNextAccount(),
       author: getNextAccount(),
+      tokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getDepositAuthorBondInstructionDataDecoder().decode(instruction.data),

@@ -7,6 +7,8 @@
  */
 
 import {
+  addDecoderSizePrefix,
+  addEncoderSizePrefix,
   assertAccountExists,
   assertAccountsExist,
   combineCodec,
@@ -17,27 +19,33 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getI64Decoder,
   getI64Encoder,
   getStructDecoder,
   getStructEncoder,
+  getU16Decoder,
+  getU16Encoder,
   getU32Decoder,
   getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
   getU8Encoder,
+  getUtf8Decoder,
+  getUtf8Encoder,
   transformEncoder,
   type Account,
   type Address,
+  type Codec,
+  type Decoder,
   type EncodedAccount,
+  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
   type MaybeAccount,
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
@@ -56,44 +64,101 @@ export function getReputationConfigDiscriminatorBytes() {
 export type ReputationConfig = {
   discriminator: ReadonlyUint8Array;
   authority: Address;
-  minStake: bigint;
-  disputeBond: bigint;
-  minAuthorBondForFreeListing: bigint;
+  configAuthority: Address;
+  treasuryAuthority: Address;
+  settlementAuthority: Address;
+  pauseAuthority: Address;
+  usdcMint: Address;
+  tokenProgram: Address;
+  protocolTreasuryVault: Address;
+  x402SettlementVault: Address;
+  chainContext: string;
+  minVouchStakeUsdcMicros: bigint;
+  disputeBondUsdcMicros: bigint;
+  minAuthorBondForFreeListingUsdcMicros: bigint;
+  minPaidListingPriceUsdcMicros: bigint;
+  authorShareBps: number;
+  voucherShareBps: number;
+  protocolFeeBps: number;
   slashPercentage: number;
   cooldownPeriod: bigint;
-  stakeWeight: number;
+  stakeWeightPerUsdc: number;
+  riskComponentCap: bigint;
   vouchWeight: number;
-  longevityBonus: number;
+  vouchComponentCap: bigint;
+  longevityBonusPerDay: number;
+  longevityComponentCap: bigint;
+  upheldDisputePenalty: bigint;
+  reputationScoreCap: bigint;
+  paused: boolean;
   bump: number;
 };
 
 export type ReputationConfigArgs = {
   authority: Address;
-  minStake: number | bigint;
-  disputeBond: number | bigint;
-  minAuthorBondForFreeListing: number | bigint;
+  configAuthority: Address;
+  treasuryAuthority: Address;
+  settlementAuthority: Address;
+  pauseAuthority: Address;
+  usdcMint: Address;
+  tokenProgram: Address;
+  protocolTreasuryVault: Address;
+  x402SettlementVault: Address;
+  chainContext: string;
+  minVouchStakeUsdcMicros: number | bigint;
+  disputeBondUsdcMicros: number | bigint;
+  minAuthorBondForFreeListingUsdcMicros: number | bigint;
+  minPaidListingPriceUsdcMicros: number | bigint;
+  authorShareBps: number;
+  voucherShareBps: number;
+  protocolFeeBps: number;
   slashPercentage: number;
   cooldownPeriod: number | bigint;
-  stakeWeight: number;
+  stakeWeightPerUsdc: number;
+  riskComponentCap: number | bigint;
   vouchWeight: number;
-  longevityBonus: number;
+  vouchComponentCap: number | bigint;
+  longevityBonusPerDay: number;
+  longevityComponentCap: number | bigint;
+  upheldDisputePenalty: number | bigint;
+  reputationScoreCap: number | bigint;
+  paused: boolean;
   bump: number;
 };
 
 /** Gets the encoder for {@link ReputationConfigArgs} account data. */
-export function getReputationConfigEncoder(): FixedSizeEncoder<ReputationConfigArgs> {
+export function getReputationConfigEncoder(): Encoder<ReputationConfigArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["authority", getAddressEncoder()],
-      ["minStake", getU64Encoder()],
-      ["disputeBond", getU64Encoder()],
-      ["minAuthorBondForFreeListing", getU64Encoder()],
+      ["configAuthority", getAddressEncoder()],
+      ["treasuryAuthority", getAddressEncoder()],
+      ["settlementAuthority", getAddressEncoder()],
+      ["pauseAuthority", getAddressEncoder()],
+      ["usdcMint", getAddressEncoder()],
+      ["tokenProgram", getAddressEncoder()],
+      ["protocolTreasuryVault", getAddressEncoder()],
+      ["x402SettlementVault", getAddressEncoder()],
+      ["chainContext", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["minVouchStakeUsdcMicros", getU64Encoder()],
+      ["disputeBondUsdcMicros", getU64Encoder()],
+      ["minAuthorBondForFreeListingUsdcMicros", getU64Encoder()],
+      ["minPaidListingPriceUsdcMicros", getU64Encoder()],
+      ["authorShareBps", getU16Encoder()],
+      ["voucherShareBps", getU16Encoder()],
+      ["protocolFeeBps", getU16Encoder()],
       ["slashPercentage", getU8Encoder()],
       ["cooldownPeriod", getI64Encoder()],
-      ["stakeWeight", getU32Encoder()],
+      ["stakeWeightPerUsdc", getU32Encoder()],
+      ["riskComponentCap", getU64Encoder()],
       ["vouchWeight", getU32Encoder()],
-      ["longevityBonus", getU32Encoder()],
+      ["vouchComponentCap", getU64Encoder()],
+      ["longevityBonusPerDay", getU32Encoder()],
+      ["longevityComponentCap", getU64Encoder()],
+      ["upheldDisputePenalty", getU64Encoder()],
+      ["reputationScoreCap", getU64Encoder()],
+      ["paused", getBooleanEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: REPUTATION_CONFIG_DISCRIMINATOR }),
@@ -101,24 +166,43 @@ export function getReputationConfigEncoder(): FixedSizeEncoder<ReputationConfigA
 }
 
 /** Gets the decoder for {@link ReputationConfig} account data. */
-export function getReputationConfigDecoder(): FixedSizeDecoder<ReputationConfig> {
+export function getReputationConfigDecoder(): Decoder<ReputationConfig> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["authority", getAddressDecoder()],
-    ["minStake", getU64Decoder()],
-    ["disputeBond", getU64Decoder()],
-    ["minAuthorBondForFreeListing", getU64Decoder()],
+    ["configAuthority", getAddressDecoder()],
+    ["treasuryAuthority", getAddressDecoder()],
+    ["settlementAuthority", getAddressDecoder()],
+    ["pauseAuthority", getAddressDecoder()],
+    ["usdcMint", getAddressDecoder()],
+    ["tokenProgram", getAddressDecoder()],
+    ["protocolTreasuryVault", getAddressDecoder()],
+    ["x402SettlementVault", getAddressDecoder()],
+    ["chainContext", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["minVouchStakeUsdcMicros", getU64Decoder()],
+    ["disputeBondUsdcMicros", getU64Decoder()],
+    ["minAuthorBondForFreeListingUsdcMicros", getU64Decoder()],
+    ["minPaidListingPriceUsdcMicros", getU64Decoder()],
+    ["authorShareBps", getU16Decoder()],
+    ["voucherShareBps", getU16Decoder()],
+    ["protocolFeeBps", getU16Decoder()],
     ["slashPercentage", getU8Decoder()],
     ["cooldownPeriod", getI64Decoder()],
-    ["stakeWeight", getU32Decoder()],
+    ["stakeWeightPerUsdc", getU32Decoder()],
+    ["riskComponentCap", getU64Decoder()],
     ["vouchWeight", getU32Decoder()],
-    ["longevityBonus", getU32Decoder()],
+    ["vouchComponentCap", getU64Decoder()],
+    ["longevityBonusPerDay", getU32Decoder()],
+    ["longevityComponentCap", getU64Decoder()],
+    ["upheldDisputePenalty", getU64Decoder()],
+    ["reputationScoreCap", getU64Decoder()],
+    ["paused", getBooleanDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
 
 /** Gets the codec for {@link ReputationConfig} account data. */
-export function getReputationConfigCodec(): FixedSizeCodec<
+export function getReputationConfigCodec(): Codec<
   ReputationConfigArgs,
   ReputationConfig
 > {
@@ -189,8 +273,4 @@ export async function fetchAllMaybeReputationConfig(
   return maybeAccounts.map((maybeAccount) =>
     decodeReputationConfig(maybeAccount),
   );
-}
-
-export function getReputationConfigSize(): number {
-  return 86;
 }

@@ -130,7 +130,7 @@ export async function getOnChainPrice(
     if (!listing) return null;
 
     return {
-      price: Number(listing.data.priceLamports),
+      price: Number(listing.data.priceUsdcMicros),
       author: listing.data.author as string,
     };
   } catch {

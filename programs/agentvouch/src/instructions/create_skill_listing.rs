@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use crate::state::{
     find_author_bond_pda, AgentProfile, AuthorBond, ReputationConfig, SkillListing, SkillStatus,
 };
@@ -14,26 +15,45 @@ pub struct CreateSkillListing<'info> {
         seeds = [b"skill", author.key().as_ref(), skill_id.as_bytes()],
         bump
     )]
-    pub skill_listing: Account<'info, SkillListing>,
+    pub skill_listing: Box<Account<'info, SkillListing>>,
     
     #[account(
         mut,
         seeds = [b"agent", author.key().as_ref()],
         bump = author_profile.bump,
     )]
-    pub author_profile: Account<'info, AgentProfile>,
+    pub author_profile: Box<Account<'info, AgentProfile>>,
 
     #[account(
         seeds = [b"config"],
         bump = config.bump,
     )]
-    pub config: Account<'info, ReputationConfig>,
+    pub config: Box<Account<'info, ReputationConfig>>,
 
-    pub author_bond: Option<Account<'info, AuthorBond>>,
+    pub author_bond: Option<Box<Account<'info, AuthorBond>>>,
+
+    #[account(address = config.usdc_mint @ CreateSkillError::InvalidUsdcMint)]
+    pub usdc_mint: Box<Account<'info, Mint>>,
+
+    /// CHECK: PDA authority for the listing reward vault.
+    #[account(seeds = [b"listing_reward_vault_authority", skill_listing.key().as_ref()], bump)]
+    pub reward_vault_authority: UncheckedAccount<'info>,
+
+    #[account(
+        init,
+        payer = author,
+        token::mint = usdc_mint,
+        token::authority = reward_vault_authority,
+        token::token_program = token_program,
+        seeds = [b"listing_reward_vault", skill_listing.key().as_ref()],
+        bump
+    )]
+    pub reward_vault: Box<Account<'info, TokenAccount>>,
     
     #[account(mut)]
     pub author: Signer<'info>,
-    
+
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
@@ -43,8 +63,9 @@ pub fn handler(
     skill_uri: String,
     name: String,
     description: String,
-    price_lamports: u64,
+    price_usdc_micros: u64,
 ) -> Result<()> {
+    require!(!ctx.accounts.config.paused, CreateSkillError::ProtocolPaused);
     require!(
         skill_uri.len() <= SkillListing::MAX_URI_LEN,
         CreateSkillError::UriTooLong
@@ -58,17 +79,20 @@ pub fn handler(
         CreateSkillError::DescriptionTooLong
     );
     require!(
-        SkillListing::is_supported_price(price_lamports),
+        SkillListing::is_supported_price(
+            price_usdc_micros,
+            ctx.accounts.config.min_paid_listing_price_usdc_micros,
+        ),
         CreateSkillError::PriceNotSupported
     );
 
-    if SkillListing::is_free_price(price_lamports) {
+    if SkillListing::is_free_price(price_usdc_micros) {
         validate_free_listing_bond(
             ctx.program_id,
             &ctx.accounts.author.key(),
             &ctx.accounts.author_profile,
             &ctx.accounts.config,
-            ctx.accounts.author_bond.as_ref(),
+            ctx.accounts.author_bond.as_deref(),
         )?;
     }
     
@@ -79,16 +103,24 @@ pub fn handler(
     skill_listing.skill_uri = skill_uri;
     skill_listing.name = name.clone();
     skill_listing.description = description;
-    skill_listing.price_lamports = price_lamports;
+    skill_listing.price_usdc_micros = price_usdc_micros;
+    skill_listing.reward_vault = ctx.accounts.reward_vault.key();
+    skill_listing.reward_vault_rent_payer = ctx.accounts.author.key();
     skill_listing.total_downloads = 0;
-    skill_listing.total_revenue = 0;
-    skill_listing.unclaimed_voucher_revenue = 0;
+    skill_listing.total_revenue_usdc_micros = 0;
+    skill_listing.total_author_revenue_usdc_micros = 0;
+    skill_listing.total_voucher_revenue_usdc_micros = 0;
+    skill_listing.active_reward_stake_usdc_micros = 0;
+    skill_listing.active_reward_position_count = 0;
+    skill_listing.reward_index_usdc_micros_x1e12 = 0;
+    skill_listing.unclaimed_voucher_revenue_usdc_micros = 0;
     skill_listing.created_at = clock.unix_timestamp;
     skill_listing.updated_at = clock.unix_timestamp;
     skill_listing.status = SkillStatus::Active;
     skill_listing.bump = ctx.bumps.skill_listing;
+    skill_listing.reward_vault_bump = ctx.bumps.reward_vault;
 
-    if SkillListing::is_free_price(price_lamports) {
+    if SkillListing::is_free_price(price_usdc_micros) {
         ctx.accounts.author_profile.active_free_skill_listings = ctx
             .accounts
             .author_profile
@@ -101,7 +133,8 @@ pub fn handler(
         skill_listing: ctx.accounts.skill_listing.key(),
         author: ctx.accounts.author.key(),
         name,
-        price_lamports,
+        price_usdc_micros,
+        reward_vault: ctx.accounts.reward_vault.key(),
         timestamp: clock.unix_timestamp,
     });
     
@@ -130,11 +163,12 @@ fn validate_free_listing_bond(
         CreateSkillError::AuthorBondAccountMismatch
     );
     require!(
-        author_bond_account.amount == author_profile.author_bond_lamports,
+        author_bond_account.amount_usdc_micros == author_profile.author_bond_usdc_micros,
         CreateSkillError::AuthorBondProfileMismatch
     );
     require!(
-        author_bond_account.amount >= config.min_author_bond_for_free_listing,
+        author_bond_account.amount_usdc_micros
+            >= config.min_author_bond_for_free_listing_usdc_micros,
         CreateSkillError::FreeListingRequiresBondFloor
     );
 
@@ -161,4 +195,8 @@ pub enum CreateSkillError {
     AuthorBondProfileMismatch,
     #[msg("Active free listing count overflowed")]
     FreeListingCountOverflow,
+    #[msg("Protocol is paused")]
+    ProtocolPaused,
+    #[msg("USDC mint does not match config")]
+    InvalidUsdcMint,
 }

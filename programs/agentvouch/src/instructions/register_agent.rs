@@ -38,10 +38,12 @@ pub fn handler(
         agent_profile.reputation_score = 0;
         agent_profile.total_vouches_received = 0;
         agent_profile.total_vouches_given = 0;
-        agent_profile.total_staked_for = 0;
-        agent_profile.author_bond_lamports = 0;
+        agent_profile.total_vouch_stake_usdc_micros = 0;
+        agent_profile.author_bond_usdc_micros = 0;
         agent_profile.active_free_skill_listings = 0;
         agent_profile.open_author_disputes = 0;
+        agent_profile.upheld_author_disputes = 0;
+        agent_profile.dismissed_author_disputes = 0;
         agent_profile.registered_at = clock.unix_timestamp;
     }
     agent_profile.bump = ctx.bumps.agent_profile;

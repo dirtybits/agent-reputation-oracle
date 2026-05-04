@@ -14,96 +14,48 @@ import {
 } from "@solana/kit";
 import { AGENTVOUCH_PROGRAM_ADDRESS } from "../programs";
 
-/** AuthorDisputeNotOpen: Author dispute is not open */
-export const AGENTVOUCH_ERROR__AUTHOR_DISPUTE_NOT_OPEN = 0x1770; // 6000
-/** AuthorMismatch: The disputed author does not match this author dispute */
-export const AGENTVOUCH_ERROR__AUTHOR_MISMATCH = 0x1771; // 6001
-/** UnauthorizedResolver: Only the configured authority can resolve author disputes */
-export const AGENTVOUCH_ERROR__UNAUTHORIZED_RESOLVER = 0x1772; // 6002
-/** ChallengerMismatch: Challenger account mismatch */
-export const AGENTVOUCH_ERROR__CHALLENGER_MISMATCH = 0x1773; // 6003
-/** InsufficientFunds: Insufficient funds */
-export const AGENTVOUCH_ERROR__INSUFFICIENT_FUNDS = 0x1774; // 6004
-/** IncompleteBackingSnapshot: Author dispute cannot resolve without its full author-wide backing snapshot */
-export const AGENTVOUCH_ERROR__INCOMPLETE_BACKING_SNAPSHOT = 0x1775; // 6005
-/** InvalidSettlementAccounts: Author dispute uphold must include every snapshotted backing vouch account triple */
-export const AGENTVOUCH_ERROR__INVALID_SETTLEMENT_ACCOUNTS = 0x1776; // 6006
-/** DuplicateSettlementBackingVouch: Duplicate backing vouches are not allowed during settlement */
-export const AGENTVOUCH_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH = 0x1777; // 6007
-/** AuthorDisputeVouchLinkMismatch: Settlement link does not match this author dispute */
-export const AGENTVOUCH_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH = 0x1778; // 6008
-/** AuthorDisputeSettlementVouchMismatch: Settlement vouch does not match the recorded author dispute link */
-export const AGENTVOUCH_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH = 0x1779; // 6009
-/** BackingVouchAuthorMismatch: Backing vouch does not belong to the disputed author */
-export const AGENTVOUCH_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH = 0x177a; // 6010
-/** BackingVouchVoucherMismatch: Backing vouch voucher profile does not match the recorded voucher */
-export const AGENTVOUCH_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH = 0x177b; // 6011
-/** BackingVouchNotSlashable: Backing vouch can no longer be slashed through this author dispute */
-export const AGENTVOUCH_ERROR__BACKING_VOUCH_NOT_SLASHABLE = 0x177c; // 6012
-/** BackingVouchCountOverflow: Backing vouch count overflow */
-export const AGENTVOUCH_ERROR__BACKING_VOUCH_COUNT_OVERFLOW = 0x177d; // 6013
-/** SlashAmountOverflow: Slash amount overflow */
-export const AGENTVOUCH_ERROR__SLASH_AMOUNT_OVERFLOW = 0x177e; // 6014
-/** MissingAuthorBondForSettlement: Resolver must provide the author's bond account when bond capital exists */
-export const AGENTVOUCH_ERROR__MISSING_AUTHOR_BOND_FOR_SETTLEMENT = 0x177f; // 6015
-/** AuthorBondAccountMismatch: Author bond PDA does not match the expected author */
-export const AGENTVOUCH_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH = 0x1780; // 6016
-/** AuthorBondProfileMismatch: Author bond account does not match the author profile totals */
-export const AGENTVOUCH_ERROR__AUTHOR_BOND_PROFILE_MISMATCH = 0x1781; // 6017
-/** InvalidSettlementAmounts: Resolved voucher slash amounts did not match the expected liability */
-export const AGENTVOUCH_ERROR__INVALID_SETTLEMENT_AMOUNTS = 0x1782; // 6018
-/** BondOnlyDisputeMustNotProvideSettlementAccounts: Bond-only disputes must not include voucher settlement accounts */
-export const AGENTVOUCH_ERROR__BOND_ONLY_DISPUTE_MUST_NOT_PROVIDE_SETTLEMENT_ACCOUNTS = 0x1783; // 6019
-/** OpenAuthorDisputeCountUnderflow: Open author dispute count underflowed */
-export const AGENTVOUCH_ERROR__OPEN_AUTHOR_DISPUTE_COUNT_UNDERFLOW = 0x1784; // 6020
+/** StakeBelowMinimum: Stake amount is below minimum */
+export const AGENTVOUCH_ERROR__STAKE_BELOW_MINIMUM = 0x1770; // 6000
+/** CannotVouchForSelf: Cannot vouch for yourself */
+export const AGENTVOUCH_ERROR__CANNOT_VOUCH_FOR_SELF = 0x1771; // 6001
+/** StakeOverflow: Stake amount overflowed the existing vouch */
+export const AGENTVOUCH_ERROR__STAKE_OVERFLOW = 0x1772; // 6002
+/** VouchAccountMismatch: Vouch account does not match the expected voucher/vouchee pair */
+export const AGENTVOUCH_ERROR__VOUCH_ACCOUNT_MISMATCH = 0x1773; // 6003
+/** VouchNotReusable: This vouch relationship cannot accept new stake in its current state */
+export const AGENTVOUCH_ERROR__VOUCH_NOT_REUSABLE = 0x1774; // 6004
+/** ProtocolPaused: Protocol is paused */
+export const AGENTVOUCH_ERROR__PROTOCOL_PAUSED = 0x1775; // 6005
+/** InvalidUsdcMint: USDC mint does not match config */
+export const AGENTVOUCH_ERROR__INVALID_USDC_MINT = 0x1776; // 6006
+/** InvalidTokenMint: Token account mint does not match config */
+export const AGENTVOUCH_ERROR__INVALID_TOKEN_MINT = 0x1777; // 6007
+/** InvalidTokenOwner: Token account owner is invalid */
+export const AGENTVOUCH_ERROR__INVALID_TOKEN_OWNER = 0x1778; // 6008
 
 export type AgentvouchError =
-  | typeof AGENTVOUCH_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH
-  | typeof AGENTVOUCH_ERROR__AUTHOR_BOND_PROFILE_MISMATCH
-  | typeof AGENTVOUCH_ERROR__AUTHOR_DISPUTE_NOT_OPEN
-  | typeof AGENTVOUCH_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH
-  | typeof AGENTVOUCH_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH
-  | typeof AGENTVOUCH_ERROR__AUTHOR_MISMATCH
-  | typeof AGENTVOUCH_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH
-  | typeof AGENTVOUCH_ERROR__BACKING_VOUCH_COUNT_OVERFLOW
-  | typeof AGENTVOUCH_ERROR__BACKING_VOUCH_NOT_SLASHABLE
-  | typeof AGENTVOUCH_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH
-  | typeof AGENTVOUCH_ERROR__BOND_ONLY_DISPUTE_MUST_NOT_PROVIDE_SETTLEMENT_ACCOUNTS
-  | typeof AGENTVOUCH_ERROR__CHALLENGER_MISMATCH
-  | typeof AGENTVOUCH_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH
-  | typeof AGENTVOUCH_ERROR__INCOMPLETE_BACKING_SNAPSHOT
-  | typeof AGENTVOUCH_ERROR__INSUFFICIENT_FUNDS
-  | typeof AGENTVOUCH_ERROR__INVALID_SETTLEMENT_ACCOUNTS
-  | typeof AGENTVOUCH_ERROR__INVALID_SETTLEMENT_AMOUNTS
-  | typeof AGENTVOUCH_ERROR__MISSING_AUTHOR_BOND_FOR_SETTLEMENT
-  | typeof AGENTVOUCH_ERROR__OPEN_AUTHOR_DISPUTE_COUNT_UNDERFLOW
-  | typeof AGENTVOUCH_ERROR__SLASH_AMOUNT_OVERFLOW
-  | typeof AGENTVOUCH_ERROR__UNAUTHORIZED_RESOLVER;
+  | typeof AGENTVOUCH_ERROR__CANNOT_VOUCH_FOR_SELF
+  | typeof AGENTVOUCH_ERROR__INVALID_TOKEN_MINT
+  | typeof AGENTVOUCH_ERROR__INVALID_TOKEN_OWNER
+  | typeof AGENTVOUCH_ERROR__INVALID_USDC_MINT
+  | typeof AGENTVOUCH_ERROR__PROTOCOL_PAUSED
+  | typeof AGENTVOUCH_ERROR__STAKE_BELOW_MINIMUM
+  | typeof AGENTVOUCH_ERROR__STAKE_OVERFLOW
+  | typeof AGENTVOUCH_ERROR__VOUCH_ACCOUNT_MISMATCH
+  | typeof AGENTVOUCH_ERROR__VOUCH_NOT_REUSABLE;
 
 let agentvouchErrorMessages: Record<AgentvouchError, string> | undefined;
 if (process.env.NODE_ENV !== "production") {
   agentvouchErrorMessages = {
-    [AGENTVOUCH_ERROR__AUTHOR_BOND_ACCOUNT_MISMATCH]: `Author bond PDA does not match the expected author`,
-    [AGENTVOUCH_ERROR__AUTHOR_BOND_PROFILE_MISMATCH]: `Author bond account does not match the author profile totals`,
-    [AGENTVOUCH_ERROR__AUTHOR_DISPUTE_NOT_OPEN]: `Author dispute is not open`,
-    [AGENTVOUCH_ERROR__AUTHOR_DISPUTE_SETTLEMENT_VOUCH_MISMATCH]: `Settlement vouch does not match the recorded author dispute link`,
-    [AGENTVOUCH_ERROR__AUTHOR_DISPUTE_VOUCH_LINK_MISMATCH]: `Settlement link does not match this author dispute`,
-    [AGENTVOUCH_ERROR__AUTHOR_MISMATCH]: `The disputed author does not match this author dispute`,
-    [AGENTVOUCH_ERROR__BACKING_VOUCH_AUTHOR_MISMATCH]: `Backing vouch does not belong to the disputed author`,
-    [AGENTVOUCH_ERROR__BACKING_VOUCH_COUNT_OVERFLOW]: `Backing vouch count overflow`,
-    [AGENTVOUCH_ERROR__BACKING_VOUCH_NOT_SLASHABLE]: `Backing vouch can no longer be slashed through this author dispute`,
-    [AGENTVOUCH_ERROR__BACKING_VOUCH_VOUCHER_MISMATCH]: `Backing vouch voucher profile does not match the recorded voucher`,
-    [AGENTVOUCH_ERROR__BOND_ONLY_DISPUTE_MUST_NOT_PROVIDE_SETTLEMENT_ACCOUNTS]: `Bond-only disputes must not include voucher settlement accounts`,
-    [AGENTVOUCH_ERROR__CHALLENGER_MISMATCH]: `Challenger account mismatch`,
-    [AGENTVOUCH_ERROR__DUPLICATE_SETTLEMENT_BACKING_VOUCH]: `Duplicate backing vouches are not allowed during settlement`,
-    [AGENTVOUCH_ERROR__INCOMPLETE_BACKING_SNAPSHOT]: `Author dispute cannot resolve without its full author-wide backing snapshot`,
-    [AGENTVOUCH_ERROR__INSUFFICIENT_FUNDS]: `Insufficient funds`,
-    [AGENTVOUCH_ERROR__INVALID_SETTLEMENT_ACCOUNTS]: `Author dispute uphold must include every snapshotted backing vouch account triple`,
-    [AGENTVOUCH_ERROR__INVALID_SETTLEMENT_AMOUNTS]: `Resolved voucher slash amounts did not match the expected liability`,
-    [AGENTVOUCH_ERROR__MISSING_AUTHOR_BOND_FOR_SETTLEMENT]: `Resolver must provide the author's bond account when bond capital exists`,
-    [AGENTVOUCH_ERROR__OPEN_AUTHOR_DISPUTE_COUNT_UNDERFLOW]: `Open author dispute count underflowed`,
-    [AGENTVOUCH_ERROR__SLASH_AMOUNT_OVERFLOW]: `Slash amount overflow`,
-    [AGENTVOUCH_ERROR__UNAUTHORIZED_RESOLVER]: `Only the configured authority can resolve author disputes`,
+    [AGENTVOUCH_ERROR__CANNOT_VOUCH_FOR_SELF]: `Cannot vouch for yourself`,
+    [AGENTVOUCH_ERROR__INVALID_TOKEN_MINT]: `Token account mint does not match config`,
+    [AGENTVOUCH_ERROR__INVALID_TOKEN_OWNER]: `Token account owner is invalid`,
+    [AGENTVOUCH_ERROR__INVALID_USDC_MINT]: `USDC mint does not match config`,
+    [AGENTVOUCH_ERROR__PROTOCOL_PAUSED]: `Protocol is paused`,
+    [AGENTVOUCH_ERROR__STAKE_BELOW_MINIMUM]: `Stake amount is below minimum`,
+    [AGENTVOUCH_ERROR__STAKE_OVERFLOW]: `Stake amount overflowed the existing vouch`,
+    [AGENTVOUCH_ERROR__VOUCH_ACCOUNT_MISMATCH]: `Vouch account does not match the expected voucher/vouchee pair`,
+    [AGENTVOUCH_ERROR__VOUCH_NOT_REUSABLE]: `This vouch relationship cannot accept new stake in its current state`,
   };
 }
 

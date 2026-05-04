@@ -43,6 +43,8 @@ import {
   findConfigPda,
   findRevokeVouchVouchPda,
   findVoucherProfilePda,
+  findVouchVaultAuthorityPda,
+  findVouchVaultPda,
 } from "../pdas";
 import { AGENTVOUCH_PROGRAM_ADDRESS } from "../programs";
 
@@ -60,7 +62,13 @@ export type VouchInstruction<
   TAccountVoucherProfile extends string | AccountMeta<string> = string,
   TAccountVoucheeProfile extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
+  TAccountUsdcMint extends string | AccountMeta<string> = string,
+  TAccountVoucherUsdcAccount extends string | AccountMeta<string> = string,
+  TAccountVouchVaultAuthority extends string | AccountMeta<string> = string,
+  TAccountVouchVault extends string | AccountMeta<string> = string,
   TAccountVoucher extends string | AccountMeta<string> = string,
+  TAccountTokenProgram extends string | AccountMeta<string> =
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -80,10 +88,25 @@ export type VouchInstruction<
       TAccountConfig extends string
         ? ReadonlyAccount<TAccountConfig>
         : TAccountConfig,
+      TAccountUsdcMint extends string
+        ? ReadonlyAccount<TAccountUsdcMint>
+        : TAccountUsdcMint,
+      TAccountVoucherUsdcAccount extends string
+        ? WritableAccount<TAccountVoucherUsdcAccount>
+        : TAccountVoucherUsdcAccount,
+      TAccountVouchVaultAuthority extends string
+        ? ReadonlyAccount<TAccountVouchVaultAuthority>
+        : TAccountVouchVaultAuthority,
+      TAccountVouchVault extends string
+        ? WritableAccount<TAccountVouchVault>
+        : TAccountVouchVault,
       TAccountVoucher extends string
         ? WritableSignerAccount<TAccountVoucher> &
             AccountSignerMeta<TAccountVoucher>
         : TAccountVoucher,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -93,16 +116,16 @@ export type VouchInstruction<
 
 export type VouchInstructionData = {
   discriminator: ReadonlyUint8Array;
-  stakeAmount: bigint;
+  stakeUsdcMicros: bigint;
 };
 
-export type VouchInstructionDataArgs = { stakeAmount: number | bigint };
+export type VouchInstructionDataArgs = { stakeUsdcMicros: number | bigint };
 
 export function getVouchInstructionDataEncoder(): FixedSizeEncoder<VouchInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["stakeAmount", getU64Encoder()],
+      ["stakeUsdcMicros", getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: VOUCH_DISCRIMINATOR }),
   );
@@ -111,7 +134,7 @@ export function getVouchInstructionDataEncoder(): FixedSizeEncoder<VouchInstruct
 export function getVouchInstructionDataDecoder(): FixedSizeDecoder<VouchInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["stakeAmount", getU64Decoder()],
+    ["stakeUsdcMicros", getU64Decoder()],
   ]);
 }
 
@@ -130,16 +153,26 @@ export type VouchAsyncInput<
   TAccountVoucherProfile extends string = string,
   TAccountVoucheeProfile extends string = string,
   TAccountConfig extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountVoucherUsdcAccount extends string = string,
+  TAccountVouchVaultAuthority extends string = string,
+  TAccountVouchVault extends string = string,
   TAccountVoucher extends string = string,
+  TAccountTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   vouch?: Address<TAccountVouch>;
   voucherProfile?: Address<TAccountVoucherProfile>;
   voucheeProfile: Address<TAccountVoucheeProfile>;
   config?: Address<TAccountConfig>;
+  usdcMint: Address<TAccountUsdcMint>;
+  voucherUsdcAccount: Address<TAccountVoucherUsdcAccount>;
+  vouchVaultAuthority?: Address<TAccountVouchVaultAuthority>;
+  vouchVault?: Address<TAccountVouchVault>;
   voucher: TransactionSigner<TAccountVoucher>;
+  tokenProgram?: Address<TAccountTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  stakeAmount: VouchInstructionDataArgs["stakeAmount"];
+  stakeUsdcMicros: VouchInstructionDataArgs["stakeUsdcMicros"];
 };
 
 export async function getVouchInstructionAsync<
@@ -147,7 +180,12 @@ export async function getVouchInstructionAsync<
   TAccountVoucherProfile extends string,
   TAccountVoucheeProfile extends string,
   TAccountConfig extends string,
+  TAccountUsdcMint extends string,
+  TAccountVoucherUsdcAccount extends string,
+  TAccountVouchVaultAuthority extends string,
+  TAccountVouchVault extends string,
   TAccountVoucher extends string,
+  TAccountTokenProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
@@ -156,7 +194,12 @@ export async function getVouchInstructionAsync<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVoucherUsdcAccount,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
     TAccountVoucher,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -167,7 +210,12 @@ export async function getVouchInstructionAsync<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVoucherUsdcAccount,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
     TAccountVoucher,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >
 > {
@@ -180,7 +228,18 @@ export async function getVouchInstructionAsync<
     voucherProfile: { value: input.voucherProfile ?? null, isWritable: true },
     voucheeProfile: { value: input.voucheeProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    voucherUsdcAccount: {
+      value: input.voucherUsdcAccount ?? null,
+      isWritable: true,
+    },
+    vouchVaultAuthority: {
+      value: input.vouchVaultAuthority ?? null,
+      isWritable: false,
+    },
+    vouchVault: { value: input.vouchVault ?? null, isWritable: true },
     voucher: { value: input.voucher ?? null, isWritable: true },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -215,6 +274,34 @@ export async function getVouchInstructionAsync<
   if (!accounts.config.value) {
     accounts.config.value = await findConfigPda();
   }
+  if (!accounts.vouchVaultAuthority.value) {
+    accounts.vouchVaultAuthority.value = await findVouchVaultAuthorityPda({
+      voucherProfile: getAddressFromResolvedInstructionAccount(
+        "voucherProfile",
+        accounts.voucherProfile.value,
+      ),
+      voucheeProfile: getAddressFromResolvedInstructionAccount(
+        "voucheeProfile",
+        accounts.voucheeProfile.value,
+      ),
+    });
+  }
+  if (!accounts.vouchVault.value) {
+    accounts.vouchVault.value = await findVouchVaultPda({
+      voucherProfile: getAddressFromResolvedInstructionAccount(
+        "voucherProfile",
+        accounts.voucherProfile.value,
+      ),
+      voucheeProfile: getAddressFromResolvedInstructionAccount(
+        "voucheeProfile",
+        accounts.voucheeProfile.value,
+      ),
+    });
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -227,7 +314,12 @@ export async function getVouchInstructionAsync<
       getAccountMeta("voucherProfile", accounts.voucherProfile),
       getAccountMeta("voucheeProfile", accounts.voucheeProfile),
       getAccountMeta("config", accounts.config),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("voucherUsdcAccount", accounts.voucherUsdcAccount),
+      getAccountMeta("vouchVaultAuthority", accounts.vouchVaultAuthority),
+      getAccountMeta("vouchVault", accounts.vouchVault),
       getAccountMeta("voucher", accounts.voucher),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getVouchInstructionDataEncoder().encode(
@@ -240,7 +332,12 @@ export async function getVouchInstructionAsync<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVoucherUsdcAccount,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
     TAccountVoucher,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >);
 }
@@ -250,16 +347,26 @@ export type VouchInput<
   TAccountVoucherProfile extends string = string,
   TAccountVoucheeProfile extends string = string,
   TAccountConfig extends string = string,
+  TAccountUsdcMint extends string = string,
+  TAccountVoucherUsdcAccount extends string = string,
+  TAccountVouchVaultAuthority extends string = string,
+  TAccountVouchVault extends string = string,
   TAccountVoucher extends string = string,
+  TAccountTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   vouch: Address<TAccountVouch>;
   voucherProfile: Address<TAccountVoucherProfile>;
   voucheeProfile: Address<TAccountVoucheeProfile>;
   config: Address<TAccountConfig>;
+  usdcMint: Address<TAccountUsdcMint>;
+  voucherUsdcAccount: Address<TAccountVoucherUsdcAccount>;
+  vouchVaultAuthority: Address<TAccountVouchVaultAuthority>;
+  vouchVault: Address<TAccountVouchVault>;
   voucher: TransactionSigner<TAccountVoucher>;
+  tokenProgram?: Address<TAccountTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  stakeAmount: VouchInstructionDataArgs["stakeAmount"];
+  stakeUsdcMicros: VouchInstructionDataArgs["stakeUsdcMicros"];
 };
 
 export function getVouchInstruction<
@@ -267,7 +374,12 @@ export function getVouchInstruction<
   TAccountVoucherProfile extends string,
   TAccountVoucheeProfile extends string,
   TAccountConfig extends string,
+  TAccountUsdcMint extends string,
+  TAccountVoucherUsdcAccount extends string,
+  TAccountVouchVaultAuthority extends string,
+  TAccountVouchVault extends string,
   TAccountVoucher extends string,
+  TAccountTokenProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof AGENTVOUCH_PROGRAM_ADDRESS,
 >(
@@ -276,7 +388,12 @@ export function getVouchInstruction<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVoucherUsdcAccount,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
     TAccountVoucher,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
@@ -286,7 +403,12 @@ export function getVouchInstruction<
   TAccountVoucherProfile,
   TAccountVoucheeProfile,
   TAccountConfig,
+  TAccountUsdcMint,
+  TAccountVoucherUsdcAccount,
+  TAccountVouchVaultAuthority,
+  TAccountVouchVault,
   TAccountVoucher,
+  TAccountTokenProgram,
   TAccountSystemProgram
 > {
   // Program address.
@@ -298,7 +420,18 @@ export function getVouchInstruction<
     voucherProfile: { value: input.voucherProfile ?? null, isWritable: true },
     voucheeProfile: { value: input.voucheeProfile ?? null, isWritable: true },
     config: { value: input.config ?? null, isWritable: false },
+    usdcMint: { value: input.usdcMint ?? null, isWritable: false },
+    voucherUsdcAccount: {
+      value: input.voucherUsdcAccount ?? null,
+      isWritable: true,
+    },
+    vouchVaultAuthority: {
+      value: input.vouchVaultAuthority ?? null,
+      isWritable: false,
+    },
+    vouchVault: { value: input.vouchVault ?? null, isWritable: true },
     voucher: { value: input.voucher ?? null, isWritable: true },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -310,6 +443,10 @@ export function getVouchInstruction<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -322,7 +459,12 @@ export function getVouchInstruction<
       getAccountMeta("voucherProfile", accounts.voucherProfile),
       getAccountMeta("voucheeProfile", accounts.voucheeProfile),
       getAccountMeta("config", accounts.config),
+      getAccountMeta("usdcMint", accounts.usdcMint),
+      getAccountMeta("voucherUsdcAccount", accounts.voucherUsdcAccount),
+      getAccountMeta("vouchVaultAuthority", accounts.vouchVaultAuthority),
+      getAccountMeta("vouchVault", accounts.vouchVault),
       getAccountMeta("voucher", accounts.voucher),
+      getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getVouchInstructionDataEncoder().encode(
@@ -335,7 +477,12 @@ export function getVouchInstruction<
     TAccountVoucherProfile,
     TAccountVoucheeProfile,
     TAccountConfig,
+    TAccountUsdcMint,
+    TAccountVoucherUsdcAccount,
+    TAccountVouchVaultAuthority,
+    TAccountVouchVault,
     TAccountVoucher,
+    TAccountTokenProgram,
     TAccountSystemProgram
   >);
 }
@@ -350,8 +497,13 @@ export type ParsedVouchInstruction<
     voucherProfile: TAccountMetas[1];
     voucheeProfile: TAccountMetas[2];
     config: TAccountMetas[3];
-    voucher: TAccountMetas[4];
-    systemProgram: TAccountMetas[5];
+    usdcMint: TAccountMetas[4];
+    voucherUsdcAccount: TAccountMetas[5];
+    vouchVaultAuthority: TAccountMetas[6];
+    vouchVault: TAccountMetas[7];
+    voucher: TAccountMetas[8];
+    tokenProgram: TAccountMetas[9];
+    systemProgram: TAccountMetas[10];
   };
   data: VouchInstructionData;
 };
@@ -364,12 +516,12 @@ export function parseVouchInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedVouchInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 11) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 6,
+        expectedAccountMetas: 11,
       },
     );
   }
@@ -386,7 +538,12 @@ export function parseVouchInstruction<
       voucherProfile: getNextAccount(),
       voucheeProfile: getNextAccount(),
       config: getNextAccount(),
+      usdcMint: getNextAccount(),
+      voucherUsdcAccount: getNextAccount(),
+      vouchVaultAuthority: getNextAccount(),
+      vouchVault: getNextAccount(),
       voucher: getNextAccount(),
+      tokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getVouchInstructionDataDecoder().decode(instruction.data),

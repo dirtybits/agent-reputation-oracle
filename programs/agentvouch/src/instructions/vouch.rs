@@ -1,10 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
+use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 use crate::state::{AgentProfile, Vouch, VouchStatus, ReputationConfig};
 use crate::events::VouchCreated;
 
 #[derive(Accounts)]
-#[instruction(stake_amount: u64)]
+#[instruction(stake_usdc_micros: u64)]
 pub struct CreateVouch<'info> {
     #[account(
         init_if_needed,
@@ -13,42 +13,80 @@ pub struct CreateVouch<'info> {
         seeds = [b"vouch", voucher_profile.key().as_ref(), vouchee_profile.key().as_ref()],
         bump
     )]
-    pub vouch: Account<'info, Vouch>,
+    pub vouch: Box<Account<'info, Vouch>>,
     
     #[account(
         mut,
         seeds = [b"agent", voucher.key().as_ref()],
         bump = voucher_profile.bump
     )]
-    pub voucher_profile: Account<'info, AgentProfile>,
+    pub voucher_profile: Box<Account<'info, AgentProfile>>,
     
     #[account(
         mut,
         seeds = [b"agent", vouchee_profile.authority.as_ref()],
         bump = vouchee_profile.bump
     )]
-    pub vouchee_profile: Account<'info, AgentProfile>,
+    pub vouchee_profile: Box<Account<'info, AgentProfile>>,
     
     #[account(
         seeds = [b"config"],
         bump = config.bump
     )]
-    pub config: Account<'info, ReputationConfig>,
+    pub config: Box<Account<'info, ReputationConfig>>,
+
+    #[account(address = config.usdc_mint @ ErrorCode::InvalidUsdcMint)]
+    pub usdc_mint: Box<Account<'info, Mint>>,
+
+    #[account(
+        mut,
+        constraint = voucher_usdc_account.mint == config.usdc_mint @ ErrorCode::InvalidTokenMint,
+        constraint = voucher_usdc_account.owner == voucher.key() @ ErrorCode::InvalidTokenOwner
+    )]
+    pub voucher_usdc_account: Box<Account<'info, TokenAccount>>,
+
+    /// CHECK: PDA authority for the vouch stake vault.
+    #[account(
+        seeds = [
+            b"vouch_vault_authority",
+            voucher_profile.key().as_ref(),
+            vouchee_profile.key().as_ref()
+        ],
+        bump
+    )]
+    pub vouch_vault_authority: UncheckedAccount<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = voucher,
+        token::mint = usdc_mint,
+        token::authority = vouch_vault_authority,
+        token::token_program = token_program,
+        seeds = [
+            b"vouch_vault",
+            voucher_profile.key().as_ref(),
+            vouchee_profile.key().as_ref()
+        ],
+        bump
+    )]
+    pub vouch_vault: Box<Account<'info, TokenAccount>>,
     
     #[account(mut)]
     pub voucher: Signer<'info>,
-    
+
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(
     ctx: Context<CreateVouch>,
-    stake_amount: u64,
+    stake_usdc_micros: u64,
 ) -> Result<()> {
     let config = &ctx.accounts.config;
+    require!(!config.paused, ErrorCode::ProtocolPaused);
 
     require!(
-        stake_amount >= config.min_stake,
+        stake_usdc_micros >= config.min_vouch_stake_usdc_micros,
         ErrorCode::StakeBelowMinimum
     );
 
@@ -82,37 +120,43 @@ pub fn handler(
         ErrorCode::VouchAccountMismatch
     );
 
-    // Transfer the newly committed stake into the canonical vouch PDA.
-    system_program::transfer(
+    token::transfer_checked(
         CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.voucher.to_account_info(),
-                to: ctx.accounts.vouch.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            TransferChecked {
+                from: ctx.accounts.voucher_usdc_account.to_account_info(),
+                mint: ctx.accounts.usdc_mint.to_account_info(),
+                to: ctx.accounts.vouch_vault.to_account_info(),
+                authority: ctx.accounts.voucher.to_account_info(),
             },
         ),
-        stake_amount,
+        stake_usdc_micros,
+        ctx.accounts.usdc_mint.decimals,
     )?;
 
     let vouch = &mut ctx.accounts.vouch;
     if is_new_relationship {
         vouch.voucher = ctx.accounts.voucher_profile.key();
         vouch.vouchee = ctx.accounts.vouchee_profile.key();
-        vouch.stake_amount = stake_amount;
+        vouch.stake_usdc_micros = stake_usdc_micros;
+        vouch.vault = ctx.accounts.vouch_vault.key();
+        vouch.rent_payer = ctx.accounts.voucher.key();
         vouch.created_at = clock.unix_timestamp;
         vouch.status = VouchStatus::Active;
-        vouch.cumulative_revenue = 0;
+        vouch.cumulative_revenue_usdc_micros = 0;
+        vouch.linked_listing_count = 0;
         vouch.last_payout_at = clock.unix_timestamp;
         vouch.bump = ctx.bumps.vouch;
+        vouch.vault_bump = ctx.bumps.vouch_vault;
     } else if is_reactivation {
-        vouch.stake_amount = stake_amount;
+        vouch.stake_usdc_micros = stake_usdc_micros;
         vouch.created_at = clock.unix_timestamp;
         vouch.status = VouchStatus::Active;
         vouch.last_payout_at = clock.unix_timestamp;
     } else {
-        vouch.stake_amount = vouch
-            .stake_amount
-            .checked_add(stake_amount)
+        vouch.stake_usdc_micros = vouch
+            .stake_usdc_micros
+            .checked_add(stake_usdc_micros)
             .ok_or(ErrorCode::StakeOverflow)?;
         vouch.status = VouchStatus::Active;
     }
@@ -126,7 +170,9 @@ pub fn handler(
     if is_new_relationship || is_reactivation {
         vouchee_profile.total_vouches_received = vouchee_profile.total_vouches_received.saturating_add(1);
     }
-    vouchee_profile.total_staked_for = vouchee_profile.total_staked_for.saturating_add(stake_amount);
+    vouchee_profile.total_vouch_stake_usdc_micros = vouchee_profile
+        .total_vouch_stake_usdc_micros
+        .saturating_add(stake_usdc_micros);
 
     // Recompute reputation
     vouchee_profile.reputation_score = vouchee_profile.compute_reputation(config);
@@ -135,7 +181,8 @@ pub fn handler(
         vouch: ctx.accounts.vouch.key(),
         voucher: ctx.accounts.voucher_profile.key(),
         vouchee: ctx.accounts.vouchee_profile.key(),
-        stake_amount,
+        stake_usdc_micros,
+        vault: ctx.accounts.vouch_vault.key(),
         timestamp: Clock::get()?.unix_timestamp,
     });
     
@@ -154,4 +201,12 @@ pub enum ErrorCode {
     VouchAccountMismatch,
     #[msg("This vouch relationship cannot accept new stake in its current state")]
     VouchNotReusable,
+    #[msg("Protocol is paused")]
+    ProtocolPaused,
+    #[msg("USDC mint does not match config")]
+    InvalidUsdcMint,
+    #[msg("Token account mint does not match config")]
+    InvalidTokenMint,
+    #[msg("Token account owner is invalid")]
+    InvalidTokenOwner,
 }

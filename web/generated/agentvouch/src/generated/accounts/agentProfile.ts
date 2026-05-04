@@ -64,10 +64,12 @@ export type AgentProfile = {
   reputationScore: bigint;
   totalVouchesReceived: number;
   totalVouchesGiven: number;
-  totalStakedFor: bigint;
-  authorBondLamports: bigint;
+  totalVouchStakeUsdcMicros: bigint;
+  authorBondUsdcMicros: bigint;
   activeFreeSkillListings: number;
   openAuthorDisputes: number;
+  upheldAuthorDisputes: number;
+  dismissedAuthorDisputes: number;
   registeredAt: bigint;
   bump: number;
 };
@@ -78,10 +80,12 @@ export type AgentProfileArgs = {
   reputationScore: number | bigint;
   totalVouchesReceived: number;
   totalVouchesGiven: number;
-  totalStakedFor: number | bigint;
-  authorBondLamports: number | bigint;
+  totalVouchStakeUsdcMicros: number | bigint;
+  authorBondUsdcMicros: number | bigint;
   activeFreeSkillListings: number;
   openAuthorDisputes: number;
+  upheldAuthorDisputes: number;
+  dismissedAuthorDisputes: number;
   registeredAt: number | bigint;
   bump: number;
 };
@@ -96,10 +100,12 @@ export function getAgentProfileEncoder(): Encoder<AgentProfileArgs> {
       ["reputationScore", getU64Encoder()],
       ["totalVouchesReceived", getU32Encoder()],
       ["totalVouchesGiven", getU32Encoder()],
-      ["totalStakedFor", getU64Encoder()],
-      ["authorBondLamports", getU64Encoder()],
+      ["totalVouchStakeUsdcMicros", getU64Encoder()],
+      ["authorBondUsdcMicros", getU64Encoder()],
       ["activeFreeSkillListings", getU32Encoder()],
       ["openAuthorDisputes", getU32Encoder()],
+      ["upheldAuthorDisputes", getU32Encoder()],
+      ["dismissedAuthorDisputes", getU32Encoder()],
       ["registeredAt", getI64Encoder()],
       ["bump", getU8Encoder()],
     ]),
@@ -116,10 +122,12 @@ export function getAgentProfileDecoder(): Decoder<AgentProfile> {
     ["reputationScore", getU64Decoder()],
     ["totalVouchesReceived", getU32Decoder()],
     ["totalVouchesGiven", getU32Decoder()],
-    ["totalStakedFor", getU64Decoder()],
-    ["authorBondLamports", getU64Decoder()],
+    ["totalVouchStakeUsdcMicros", getU64Decoder()],
+    ["authorBondUsdcMicros", getU64Decoder()],
     ["activeFreeSkillListings", getU32Decoder()],
     ["openAuthorDisputes", getU32Decoder()],
+    ["upheldAuthorDisputes", getU32Decoder()],
+    ["dismissedAuthorDisputes", getU32Decoder()],
     ["registeredAt", getI64Decoder()],
     ["bump", getU8Decoder()],
   ]);

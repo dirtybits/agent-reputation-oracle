@@ -4,12 +4,16 @@ use anchor_lang::prelude::*;
 pub struct Vouch {
     pub voucher: Pubkey,         // Who is vouching
     pub vouchee: Pubkey,         // Who is being vouched for
-    pub stake_amount: u64,       // SOL staked (lamports)
+    pub stake_usdc_micros: u64,  // USDC stake backing the vouchee
+    pub vault: Pubkey,
+    pub rent_payer: Pubkey,
     pub created_at: i64,         // Timestamp
     pub status: VouchStatus,     // Active, Revoked, Slashed
-    pub cumulative_revenue: u64, // Total revenue earned from marketplace purchases
+    pub cumulative_revenue_usdc_micros: u64, // Total marketplace revenue claimed
+    pub linked_listing_count: u32,
     pub last_payout_at: i64,     // Last time voucher claimed revenue
     pub bump: u8,                // PDA bump
+    pub vault_bump: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
@@ -23,12 +27,16 @@ impl Vouch {
     pub const LEN: usize = 8 + // discriminator
         32 + // voucher
         32 + // vouchee
-        8 + // stake_amount
+        8 + // stake_usdc_micros
+        32 + // vault
+        32 + // rent_payer
         8 + // created_at
         1 + // status (enum)
-        8 + // cumulative_revenue
+        8 + // cumulative_revenue_usdc_micros
+        4 + // linked_listing_count
         8 + // last_payout_at
-        1; // bump
+        1 + // bump
+        1; // vault_bump
 
     pub fn is_uninitialized(&self) -> bool {
         self.voucher == Pubkey::default() && self.vouchee == Pubkey::default()
