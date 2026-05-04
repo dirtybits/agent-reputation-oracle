@@ -28,6 +28,17 @@ Governance decision:
 - Governance-sensitive changes include `usdc_mint`, `token_program`, `protocol_treasury_vault`, `x402_settlement_authority`, `x402_settlement_vault`, economic floors, slash percentages, and any future protocol fee.
 - `v0.2.0` charges no protocol fee. The split remains `60%` author / `40%` voucher pool, but account layouts should leave room for an explicitly configured future protocol fee without changing historical accounting.
 
+Authority and treasury gate decision:
+
+- BPF upgrade authority is separate from `ReputationConfig` roles and must be tracked in the deployment runbook.
+- Devnet `v0.2.0` may use controlled keys for iteration, but the active upgrade authority, config authority, treasury authority, pause authority, and settlement authority pubkeys must be recorded for each deploy.
+- Mainnet `v1.0.0` cannot accept real user funds while a single hot wallet controls upgrade, config, or treasury authority. Those roles require multisig or stronger governance.
+- `config_authority` controls governance-sensitive config updates and role rotations.
+- `treasury_authority` is reserved in `v0.2.0`; Milestone 3 should not add an arbitrary treasury-withdrawal instruction. Treasury inflows are dismissed dispute bonds and future governed fees.
+- `pause_authority` can only toggle pause state and is rotatable by `config_authority` if separate.
+- `settlement_authority` is reserved for the future x402 bridge, is rotatable and pausable by `config_authority`, and cannot withdraw arbitrary settlement or treasury vault balances.
+- `paused = true` blocks new risk and new purchases: create/update paid listings, direct purchases, new vouches, vouch/listing links, author-bond deposits, and x402 settlement. It allows authority rotation, unpause, dispute open/resolve, voucher reward claims, author-bond withdrawals, vouch revokes, and close flows only when normal dispute/lock invariants already permit them.
+
 Interop decision:
 
 - Use CAIP-2 as the canonical chain identifier across docs, schema, events, and indexer outputs (`solana:<genesis>` today; `eip155:<chain-id>` and other CAIP-2 strings for future deployments).
@@ -128,10 +139,13 @@ Vault custody model:
 
 The v0.2.0 program uses one explicit custody pattern per primitive:
 
+- Protocol-owned USDC vaults use explicit token-account PDAs, not ATAs. Recipient accounts for user-facing payouts remain canonical ATAs.
 - Author bond: per-author PDA-owned token vault.
 - Vouch stake: per-vouch PDA-owned token vault, funded by the voucher who also pays rent and reclaims rent on `revoke_vouch`.
 - Listing reward pool: per-listing PDA-owned token vault, separate from the listing PDA's data account.
 - Dispute bond: per-dispute PDA-owned token vault until resolution.
+- Protocol treasury: PDA-owned token vault that receives dismissed dispute bonds and future governed fees.
+- x402 settlement: PDA-owned token vault reserved for a future bridge path; Milestone 3 does not enable protocol-listed x402 settlement.
 - Author payout on purchase: direct transfer to the author's canonical USDC ATA for `(author, config.usdc_mint)`.
 - Voucher revenue claim: transfers from the listing reward vault to the voucher's canonical USDC ATA.
 - Slashed funds: preserve v0.1.0 economics in USDC. If a dispute is upheld, the challenger receives their dispute bond plus slashed author/voucher funds. If dismissed, the challenger bond goes to the protocol treasury vault.
@@ -140,15 +154,16 @@ ATA and rent rules:
 
 - The program never auto-creates a recipient ATA. Clients must ensure ATAs exist before submitting; the web hook layer handles `createAssociatedTokenAccountIdempotentInstruction` in the same transaction.
 - Listing and purchase clients must create the author's canonical USDC ATA idempotently when needed. v0.2.0 does not support arbitrary author payout wallets.
-- SOL is required only for transaction fees and PDA/ATA rent. The party that creates a PDA-owned vault pays its rent (voucher for vouch vault, author for author bond vault, author for listing reward vault, challenger for dispute vault). Rent is refunded on the matching close instruction.
+- SOL is required only for transaction fees and PDA/ATA rent. The party that creates a PDA-owned vault pays its rent (author for author-bond and listing-reward vaults, voucher for vouch-stake vaults, challenger for dispute-bond vaults, config initializer for treasury and settlement vaults). Rent is refunded to the original primitive rent payer on the matching close instruction. Slashing never confiscates SOL rent; it only moves USDC.
 
 Vault lifecycle rules:
 
 - Author bond vaults can close only after the author bond balance is zero and the author has no open disputes.
 - Vouch stake vaults can close only through `revoke_vouch` or final settlement after the vouch is no longer active and no linked dispute can slash it.
-- If a vouch is fully slashed, slashed USDC goes to the dispute payout path, but rent from closing the vouch PDA/token vault returns to the original rent payer unless the spec explicitly defines a punitive rent forfeiture. The default is no rent forfeiture.
-- Listing reward vaults cannot close while `unclaimed_voucher_revenue_usdc_micros > 0` or while any voucher has claimable rewards. Listing removal should freeze new purchases but keep the reward vault claimable until a permissionless claim/sweep path empties it.
-- Dispute bond vaults close on dispute resolution. If upheld, the challenger receives their dispute bond plus slashed USDC. If dismissed, the challenger bond goes to the protocol treasury vault. Rent returns to the original dispute vault rent payer unless the spec explicitly changes this.
+- If a vouch is fully slashed, slashed USDC goes to the dispute payout path, but rent from closing the vouch PDA/token vault returns to the original rent payer.
+- Listing reward vaults cannot close while `unclaimed_voucher_revenue_usdc_micros > 0` or while any voucher has claimable rewards. Listing removal should freeze new purchases but keep the reward vault claimable until all voucher claim rights are resolved.
+- Listing reward vault residuals that are not assigned to a claimable voucher position, including rounding dust or accidental direct transfers, can be swept to the protocol treasury vault during a permissionless close/sweep path after all claimable rewards are resolved.
+- Dispute bond vaults close on dispute resolution. If upheld, the challenger receives their dispute bond plus slashed USDC. If dismissed, the challenger bond goes to the protocol treasury vault. Rent returns to the challenger.
 - `withdraw_author_bond` and `revoke_vouch` must fail while the target author has active disputes that can reach those funds.
 - If an author loses their wallet, v0.2.0 does not provide admin recovery by default. Funds remain controlled by the original author authority unless a later governance-approved migration instruction is specified.
 
@@ -176,6 +191,27 @@ Settlement authority constraints:
 - It cannot set listing price, change author, change voucher split, mint USDC, bypass `Purchase` PDA uniqueness, or withdraw arbitrary settlement vault balances.
 - It must be rotatable and pausable by config authority, with every settlement emitting a versioned event for audit.
 - Production use requires monitoring for settlement failures, stuck settlement vault balances, duplicate attempts, and authority rotation events.
+
+Economics and reputation gate decision:
+
+- Milestone 3 locks the v0.2.0 devnet defaults at: `0.01 USDC` minimum paid listing price, `1 USDC` minimum vouch stake, `1 USDC` minimum author bond for free listings, `0.5 USDC` dispute bond, `60%` author share, `40%` voucher reward share, and `0%` protocol fee.
+- Author bonds and voucher stake use the same USD-at-risk reputation curve because both represent slashable trust capital.
+- Profile age stays in the on-chain score through the capped `longevity_component`, using `AgentProfile.registered_at`. Wallet/account age and external profile age are off-chain/indexed trust context in `v0.2.0`.
+- Reputation uses integer math only:
+
+```text
+risk_usdc_micros = author_bond_usdc_micros + total_vouch_stake_usdc_micros
+risk_component = min((risk_usdc_micros * stake_weight_per_usdc) / 1_000_000, risk_component_cap)
+vouch_component = min(total_vouches_received * vouch_weight, vouch_component_cap)
+longevity_component = min(age_days * longevity_bonus_per_day, longevity_component_cap)
+raw_positive_score = risk_component + vouch_component + longevity_component
+dispute_penalty = upheld_author_disputes * upheld_dispute_penalty
+score = min(saturating_sub(raw_positive_score, dispute_penalty), reputation_score_cap)
+```
+
+- Default weights: `stake_weight_per_usdc = 10`, `risk_component_cap = 10_000_000` (saturates at `1,000,000 USDC` of slashable trust capital), `vouch_weight = 10`, `vouch_component_cap = 10_000` (saturates at `1,000` vouches), `longevity_bonus_per_day = 1`, `longevity_component_cap = 3_650` (saturates at ~10 years of profile age), `upheld_dispute_penalty = 1_000`, and `reputation_score_cap = 10_100_000`.
+- Keep amount-based risk and count-based vouch social proof separate. Vouch stake contributes through `stake_weight_per_usdc`; `vouch_weight` is only the capped count-based component.
+- Upheld disputes reduce reputation through slashed stake/bond lowering USD-at-risk and through the fixed upheld-dispute penalty. Open disputes freeze withdrawals but do not directly reduce score until resolved.
 
 ## Target Architecture
 
@@ -231,10 +267,27 @@ Do not deploy the `v0.2.0` branch to production until the new program is deploye
 Cutover rules:
 
 - Keep production `agentvouch.xyz` stable on the current working flow while `v0.2.0` is still being built.
+- Branch artifacts may reference the `v0.2.0` program ID during implementation, but production must not serve public metadata that advertises `v0.2.0` before deployed bytecode, config, API/indexer, and web flows match it.
+- Cut over in this order: deploy program, initialize config, verify program/config authorities, sync IDL/client artifacts, enable API/indexer reads, enable feature-flagged v0.2.0 writes, run devnet smoke tests, update public metadata/docs/protocol constants together, then hard-cut primary writes to `v0.2.0`.
 - Public metadata that agents, wallets, and reviewers can read must flip together at cutover: `web/public/skill.md`, `.well-known/agentvouch.json`, docs, generated IDL/client files, and `@agentvouch/protocol` constants.
+- `web/public/skill.md` must be internally consistent at cutover: USDC-native copy, v0.2.0 program ID, current paid download contract, x402 capability status, and no stale SOL/lamport publish or purchase claims except explicit legacy notes.
 - Phantom app acceptance should remain tied mostly to the domain, app ID, allowlisted URLs, and wallet UX. A program ID change is acceptable only after the new on-chain flow is live and verified.
+- Do not expose new program ID-dependent wallet flows in production until Phantom connect, direct checkout, and embedded/send-only wallet fallback behavior are verified.
 - Do not expose a half-cutover state where public docs or manifests point at `CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW` before the program has been deployed and initialized on the intended cluster.
+- During transition, APIs and trust surfaces may dual-read `v0.1.0` and `v0.2.0`, but new writes hard-cut to `v0.2.0` only after direct purchase indexing, entitlement repair/backfill, and smoke tests pass.
+- Rollback path: keep `main` deploy-safe for the current v0.1 flow until Milestone 10 passes. If cutover smoke fails after a preview deploy, roll production metadata and write flags back to the current v0.1 flow; do not partially roll forward public manifests.
+- `/api/x402/supported` remains fail-closed for protocol-listed paid skills until the x402 bridge POC passes; repo-only/off-chain x402 support must be labeled as not protocol-visible.
 - Keep private deploy keypairs out of git. Commit only source, docs, generated IDL/client artifacts, and public constants.
+
+Public cutover smoke checklist:
+
+- Deployed program ID, `declare_id!`, `Anchor.toml`, `web/agentvouch.json`, generated client, protocol package constants, `.well-known/agentvouch.json`, and `skill.md` metadata all agree.
+- Config is initialized with the expected USDC mint, token program, role authorities, treasury vault, settlement vault, floors, splits, pause state, and CAIP-2 chain context.
+- API/indexer can read v0.2.0 config, profiles, listings, vouches, purchases, voucher claims, disputes, and authority events.
+- Devnet smoke passes: register agent, deposit author bond, vouch, link vouch to listing, publish listing, direct USDC purchase, claim voucher revenue, open/resolve dispute, verify reputation delta, and download raw skill content with `X-AgentVouch-Auth`.
+- Legacy v0.1 read surfaces remain readable during transition, while all new writes target v0.2.0 after hard cut.
+- Production preview confirms Phantom wallet connection, direct purchase checkout, send-only/embedded wallet fallback copy, and no protocol-listed x402 advertisement unless bridge support is live.
+- Public docs and `skill.md` have no stale SOL-denominated primary flow claims.
 
 ## Planned Implementation Process
 
@@ -353,19 +406,70 @@ Candidate account fields:
 - Optional `SkillListing.agent_registry` mirror for cross-chain reputation portability.
 - Optional `SkillListing.agent_id` mirror for cross-chain reputation portability.
 
-Floors and calibration to lock in:
+Locked floors and calibration:
 
-- Minimum listing price: replace the v0.1.0 `0.001 SOL` rule with `0.01 USDC` (`10_000` micros) or remove the floor entirely.
-- Minimum vouch stake, minimum author bond for free listings, and dispute bond all expressed in micro-USDC.
-- Reputation formula: retune around USD economic value, not only the decimal shift from lamports to micro-USDC. Calibrate against the legacy v0.1.0 low-end trust scale (anchored to the `0.001 SOL` listing floor), not accidental lamport math. Lock exact score ranges, weights, caps, rounding behavior, and overflow limits before implementation.
+- Minimum listing price: replace the v0.1.0 `0.001 SOL` rule with `0.01 USDC` (`10_000` micros).
+- Minimum vouch stake: `1 USDC`; minimum author bond for free listings: `1 USDC`; dispute bond: `0.5 USDC`.
+- Reputation formula: score against USD economic value, not lamport units. Use the locked Gate 2 formula, weights, caps, floor rounding, and `u128` intermediate math.
 - Cooldowns, dispute holds, and revoke locks carry over from v0.1.0 unchanged; restate them in the spec so they are not dropped during the rewrite.
 
-Voucher reward accounting to lock in:
+Locked voucher reward accounting:
 
-- Use an explicit cumulative reward index or equivalent per-vouch accounting model so late vouches do not earn prior revenue.
-- A voucher keeps already-accrued claim rights after revoke or partial slash unless the spec explicitly defines forfeiture; default forfeiture is only forward-looking after the vouch is inactive or stake is reduced.
-- Partial slashes reduce future reward weight in proportion to remaining active stake.
-- Listing closure cannot strand unclaimed rewards. Either all claimable rewards must be claimed first, or a permissionless sweep/force-claim flow must preserve voucher ownership.
+- Use first-class `ListingVouchPosition` accounts and a listing-level cumulative reward index. Late vouches start at the current index and cannot earn prior voucher-pool revenue.
+- Use `SCALE = 1_000_000_000_000`, `reward_index_usdc_micros_x1e12`, `entry_reward_index_x1e12`, and checked `u128` intermediate math. Overflow fails the instruction; reward accounting must not saturate.
+- Paid `purchase_skill` requires `active_reward_stake_usdc_micros > 0` and a non-zero reward index delta.
+- Purchase-time reward update:
+
+```text
+voucher_pool = price_usdc_micros * voucher_share_bps / 10_000
+index_delta = voucher_pool * SCALE / active_reward_stake_usdc_micros
+listing.reward_index_usdc_micros_x1e12 += index_delta
+listing.unclaimed_voucher_revenue_usdc_micros += voucher_pool
+```
+
+- Position mutation accrues before changing stake, status, or entry index:
+
+```text
+accrued = reward_stake_usdc_micros * (listing.reward_index_usdc_micros_x1e12 - entry_reward_index_x1e12) / SCALE
+pending_rewards_usdc_micros += accrued
+entry_reward_index_x1e12 = listing.reward_index_usdc_micros_x1e12
+```
+
+- A voucher keeps already-accrued claim rights after unlink, revoke, or partial slash. Forfeiture is only forward-looking after the vouch is inactive or stake is reduced.
+- Partial slashes accrue first, then reduce future reward weight in proportion to remaining active stake. Fully slashed positions keep already accrued pending rewards claimable unless a later explicit forfeiture rule is adopted.
+- Claims accrue first, pay the actual claimable amount from the listing reward vault to the voucher canonical ATA, decrement `unclaimed_voucher_revenue_usdc_micros` by the paid amount, and update position plus aggregate vouch revenue counters.
+- Listing removal freezes new purchases and links, but does not block reward claims.
+- Listing closure cannot strand claimable rewards. It requires `unclaimed_voucher_revenue_usdc_micros == 0` and no claimable `ListingVouchPosition` rewards; a permissionless close/sweep path may move only residual unassigned dust or accidental direct-transfer USDC to the protocol treasury after all claim rights are resolved.
+
+Compute and account ceiling gate decision:
+
+- No Milestone 3 instruction may require an unbounded number of accounts. User-facing transactions must fit a `64` static-account planning ceiling without requiring Address Lookup Tables.
+- Paid-listing dispute exposure is listing-scoped. Dispute linking and voucher slashing operate on `ListingVouchPosition` accounts for the disputed listing, not every author-wide vouch.
+- `MAX_ACTIVE_REWARD_POSITIONS_PER_LISTING = 32` for `v0.2.0`.
+- `MAX_DISPUTE_POSITIONS_PER_TX = 8` for any instruction that links, verifies, slashes, or settles dispute-linked voucher positions.
+- Paid-listing upheld disputes use batched settlement when linked positions exceed the per-transaction limit: record ruling, settle author bond, process linked voucher positions in chunks, then finalize after all required positions are settled.
+- Dismissed disputes use a fixed-account path. Direct purchases, voucher claims, link/unlink, revoke, author-bond deposit/withdraw, and listing create/remove/close remain fixed-account flows.
+- Compute targets before devnet cutover: direct purchase below `250_000` CU, voucher claim below `200_000` CU, link/unlink/revoke below `250_000` CU each, open dispute and dismissed dispute resolution below `300_000` CU, dispute link batch of 8 positions below `500_000` CU, upheld voucher settlement batch of 8 positions below `1_200_000` CU, and future `settle_x402_purchase` below `350_000` CU when implemented.
+- If measured compute exceeds these targets, reduce batch size before devnet cutover instead of relying on larger transactions.
+
+Toolchain and generated artifact gate decision:
+
+- Anchor CLI: `0.32.1`.
+- Solana CLI: `3.1.4`.
+- Rust/MSRV: `1.89.0` via `rust-toolchain.toml`.
+- Node/npm for local verification: Node `24.1.0`, npm `11.12.1`.
+- Add `anchor-spl = { version = "0.32.1" }` in Milestone 3 so SPL Token helpers match `anchor-lang = "0.32.1"`.
+- Use npm as the canonical workspace package manager and align `Anchor.toml` to npm during Milestone 3 implementation.
+- Regenerated artifacts are `target/idl/agentvouch.json`, `target/types/agentvouch.ts`, `target/deploy/agentvouch.so`, `web/agentvouch.json`, and `web/generated/agentvouch`.
+- Generated artifacts must be regenerated, not patched by hand. If `NO_DNA=1 anchor build` does not leave `target/deploy/agentvouch.so` in the repo because `CARGO_TARGET_DIR` is set externally, run `env -u CARGO_TARGET_DIR cargo build-sbf --manifest-path programs/agentvouch/Cargo.toml`.
+- Canonical generated artifact flow:
+
+```bash
+NO_DNA=1 anchor build
+cp target/idl/agentvouch.json web/agentvouch.json
+npm run generate:client
+npm run build --workspace @agentvouch/web
+```
 
 Events and IDL break:
 
@@ -421,15 +525,15 @@ Required gates:
 
 - x402 bridge POC pass/fail decision, including PDA settlement vault compatibility, memo binding, payer extraction, idempotency, retry, and refund behavior.
 - Governance and authority model for devnet and mainnet, including upgrade authority custody and config authority rotation.
-- Treasury policy, including who can withdraw treasury USDC, under what approval threshold, and whether withdrawals are disabled on devnet/mainnet.
-- Exact economic floors (provisional values to lock in before coding):
+- Treasury policy: `treasury_authority` is reserved, and no arbitrary treasury-withdrawal instruction ships in Milestone 3.
+- Exact economic floors:
   - Minimum listing price: 0.01 USDC (`10_000` micros).
   - Minimum author bond for free listings and minimum vouch stake: 1 USDC.
   - Dispute bond: 0.5 USDC.
 - Reputation score formula, score caps, rounding behavior, and USD-value calibration against the legacy v0.1.0 low-end trust scale (anchored to the `0.001 SOL` listing floor).
 - Voucher reward index model, revoke/slash eligibility rules, and listing close behavior with unclaimed rewards.
-- Compute/account ceiling review for every instruction, especially disputes that pass linked vouches and token accounts through `remaining_accounts`.
-- Toolchain pin: Anchor version, Solana CLI version, Rust/MSRV, `anchor-spl` version, and generated client command.
+- Compute/account ceilings: fixed-account flows stay bounded, paid-listing disputes use listing-scoped backing, `MAX_ACTIVE_REWARD_POSITIONS_PER_LISTING = 32`, and dispute link/slash batches process at most `MAX_DISPUTE_POSITIONS_PER_TX = 8`.
+- Toolchain pin: Anchor `0.32.1`, Solana CLI `3.1.4`, Rust `1.89.0`, Node `24.1.0`, npm `11.12.1`, `anchor-spl = 0.32.1`, and `npm run generate:client`.
 
 Acceptance criteria:
 
@@ -451,7 +555,7 @@ Tasks:
 - Remove or rewrite `v0.1.0` migration instructions that only exist for old lamport account layouts.
 - Add post-transfer balance or state checks anywhere instruction logic depends on vault deltas.
 - Keep compute and account-count budgets visible in tests for high-account flows.
-- After every `anchor build` (or `anchor clean && anchor build` when IDLs look stale), copy `target/idl/agentvouch.json` -> `web/agentvouch.json` and run `web/scripts/generate-client.ts`. The web client must remain Vercel-deploy-safe.
+- After every `anchor build` (or `anchor clean && anchor build` when IDLs look stale), copy `target/idl/agentvouch.json` -> `web/agentvouch.json` and run `npm run generate:client`. The web client must remain Vercel-deploy-safe.
 
 Instruction areas to rewrite:
 
@@ -481,7 +585,7 @@ Acceptance criteria:
   - PDA authority signer seeds
   - token program
 - Program builds with the new ID.
-- No instruction requires an unbounded number of accounts. If dispute resolution can exceed account limits for highly vouched authors, the spec must define batching or capped linked-vouch processing.
+- No instruction requires an unbounded number of accounts. Paid-listing dispute resolution uses listing-scoped backing and batched linked-position processing.
 
 Verification:
 
@@ -550,7 +654,7 @@ Verification:
 ```bash
 NO_DNA=1 anchor build
 cp target/idl/agentvouch.json web/agentvouch.json
-npm --workspace web run generate-client
+npm run generate:client
 rg "ELmVnLSN|priceLamports|authorBondLamports|LAMPORTS_PER_SOL" web/generated web/agentvouch.json
 ```
 
@@ -589,7 +693,7 @@ Verification:
 
 ```bash
 rg "LAMPORTS_PER_SOL|formatSol|priceLamports|authorBondLamports" web/hooks web/lib
-npm --workspace web run typecheck
+npm run build --workspace @agentvouch/web
 ```
 
 ### Milestone 7: UI Conversion
@@ -623,7 +727,7 @@ Verification:
 
 ```bash
 rg "SOL|lamports|formatSol|LAMPORTS_PER_SOL" web/app web/components web/hooks
-npm --workspace web run build
+npm run build --workspace @agentvouch/web
 ```
 
 ### Milestone 8: API, x402, And Entitlements Alignment
@@ -673,7 +777,7 @@ Verification:
 
 ```bash
 rg "legacy-sol|purchaseSkill|hasOnChainPurchase|x402-usdc" web/app/api web/lib web/app/skills
-npm --workspace web run build
+npm run build --workspace @agentvouch/web
 ```
 
 ### Milestone 9: Docs, CLI, And Skill File
@@ -692,7 +796,7 @@ Tasks:
 - Document that x402 bridge memos must contain only protocol references (version, listing, skill id, nonce) and no PII or free-form buyer text.
 - Update `AGENTS.md` learned-facts to reflect USDC-native protocol, new program ID, vault model, and CAIP-2 conventions.
 - Co-version the pitch deck `pitch/AgentVouch_walkthrough.pptx` (and its paper sibling) with the new account/instruction counts, vault-per-primitive model, and USDC-native architecture slide. The deck pulls facts directly from the program; keep it in sync.
-- After every `anchor build`, copy `target/idl/agentvouch.json` to `web/agentvouch.json` and rerun `web/scripts/generate-client.ts` so the web client stays deploy-safe.
+- After every `anchor build`, copy `target/idl/agentvouch.json` to `web/agentvouch.json` and rerun `npm run generate:client` so the web client stays deploy-safe.
 
 Acceptance criteria:
 
@@ -704,7 +808,7 @@ Verification:
 
 ```bash
 rg "0.001 SOL|price_lamports|lamports|legacy SOL|ELmVnLSN" docs web/public packages/agentvouch-cli web/app/docs
-npm --workspace web run build
+npm run build --workspace @agentvouch/web
 ```
 
 ### Milestone 10: Devnet Deploy And Smoke Test
@@ -741,7 +845,7 @@ Verification:
 ```bash
 NO_DNA=1 anchor build
 NO_DNA=1 anchor test
-npm --workspace web run build
+npm run build --workspace @agentvouch/web
 solana program show <v0.2.0-program-id> -u devnet
 ```
 
@@ -787,21 +891,12 @@ Spam and abuse checks:
 
 ## Open Questions And Risk Register
 
-Track decisions that the v0.2.0 spec must close before Milestone 3:
+Track decisions that remain outside the locked Pre-Milestone 3 core rewrite gates:
 
 - Exact x402 bridge POC outcome and whether x402 can be primary for protocol-listed paid skills in v0.2.0.
 - Whether the x402 settlement vault can safely use a PDA owner with the current facilitator implementation.
 - Whether `settle.payer` from the x402 facilitator is reliable enough to derive the on-chain `Purchase` PDA buyer.
 - Retry and refund policy when x402 settles but `settle_x402_purchase` fails.
-- Reputation `stake_weight` recalibration value and resulting score range.
-- Minimum listing price floor (`0.01 USDC` vs no floor).
-- Exact DB migration shape for active protocol metadata and receipt audit fields.
-- Upgrade authority custody, config authority rotation, and pause policy.
-- Treasury withdrawal policy and whether any treasury withdrawals are allowed before mainnet governance exists.
-- Author wallet rotation/dead-author policy.
-- Rent routing during slashing and force-close flows.
-- Listing removal behavior when voucher rewards remain unclaimed.
-- Direct purchase indexing reliability and backfill source.
 - Exact ERC-8004 / Solana Agent Registry binding shape: which fields the protocol stores on-chain (`agent_registry`, `agent_id`, `agent_uri`, or opaque `registry_ref`) and which it derives off-chain at the indexer layer.
 
 ## v1.0.0 Mainnet Readiness
@@ -845,5 +940,5 @@ The migration is complete when:
 - Active-dispute freeze invariants, vault close/refund rules, reward-index math, and listing-removal behavior are covered by tests.
 - Governance, treasury, authority rotation, pause, and mainnet readiness policies are documented even if `v0.2.0` remains devnet-only.
 - `web/public/skill.md`, `docs/ARCHITECTURE.md`, `AGENTS.md`, and `pitch/AgentVouch_walkthrough.pptx` describe the live USDC-native protocol.
-- `NO_DNA=1 anchor build`, program tests, and `npm --workspace web run build` pass.
+- `NO_DNA=1 anchor build`, program tests, and `npm run build --workspace @agentvouch/web` pass.
 

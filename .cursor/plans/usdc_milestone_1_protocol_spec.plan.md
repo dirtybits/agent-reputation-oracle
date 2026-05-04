@@ -132,7 +132,29 @@ For protocol-listed paid skills, `purchase_skill` requires positive active vouch
 
 If the product later wants paid protocol listings with no voucher backing, define a separate unallocated-revenue policy before Milestone 3. Do not silently let late vouches earn prior revenue.
 
+### Compute And Account Ceilings
+
+- User-facing transactions must fit a `64` static-account planning ceiling without requiring Address Lookup Tables.
+- `MAX_ACTIVE_REWARD_POSITIONS_PER_LISTING = 32`.
+- `MAX_DISPUTE_POSITIONS_PER_TX = 8`.
+- Paid-listing dispute exposure is listing-scoped: link and settle `ListingVouchPosition` accounts for the disputed listing, not every author-wide vouch.
+- Upheld paid-listing disputes use batched settlement when linked positions exceed `MAX_DISPUTE_POSITIONS_PER_TX`. The dispute state must track progress across chunks before finalization.
+- Dismissed disputes use a fixed-account path.
+- Fixed-account flows: direct purchase, voucher claim, link/unlink, revoke, author-bond deposit/withdraw, listing create/remove/close.
+- Compute targets before devnet cutover: direct purchase below `250_000` CU, voucher claim below `200_000` CU, link/unlink/revoke below `250_000` CU each, open dispute and dismissed dispute resolution below `300_000` CU, dispute link batch of 8 positions below `500_000` CU, upheld voucher settlement batch of 8 positions below `1_200_000` CU, and future `settle_x402_purchase` below `350_000` CU when implemented.
+- If measured compute exceeds targets, reduce batch size rather than depending on larger transactions.
+
 ## Account Model
+
+### Vault Lifecycle Policy
+
+- Protocol-owned USDC vaults use explicit token-account PDAs, not ATAs.
+- Recipient accounts for user-facing payouts are canonical ATAs and must already exist; clients create them idempotently before submitting transactions.
+- Program vault rent payer is fixed by primitive: author for author-bond and listing-reward vaults, voucher for vouch-stake vaults, challenger for dispute-bond vaults, and config initializer for treasury/settlement vaults.
+- Rent refunds return to the original primitive rent payer on normal close or force/final close. Slashing never confiscates SOL rent.
+- Close/sweep instructions must preserve dispute locks and voucher claim ownership.
+- Residual listing reward vault USDC that is not assigned to a claimable voucher position can be swept to the protocol treasury vault only after all claimable rewards are resolved.
+- Lost-wallet recovery is not supported in `v0.2.0`; funds stay controlled by the original authority and normal claim/revoke/withdraw/close invariants.
 
 ### `ReputationConfig`
 
@@ -208,7 +230,7 @@ Data PDA: `[b"author_bond", author]`
 Vault token account PDA seeds:
 
 - vault authority: `[b"author_bond_vault_authority", author]`
-- vault token account: implementation may use ATA for `(vault_authority, usdc_mint)` or an explicit token-account PDA. Use one pattern consistently.
+- vault token account: explicit token-account PDA, not an ATA
 
 Fields:
 
@@ -234,6 +256,10 @@ PDA: `[b"vouch", voucher_profile, vouchee_profile]`
 Vault authority seeds:
 
 - `[b"vouch_vault_authority", vouch]`
+
+Vault token account:
+
+- explicit token-account PDA, not an ATA
 
 Fields:
 
@@ -270,6 +296,10 @@ Reward vault authority seeds:
 
 - `[b"listing_reward_vault_authority", skill_listing]`
 
+Reward vault token account:
+
+- explicit token-account PDA, not an ATA
+
 Fields:
 
 - `author: Pubkey`
@@ -285,6 +315,7 @@ Fields:
 - `total_author_revenue_usdc_micros: u64`
 - `total_voucher_revenue_usdc_micros: u64`
 - `active_reward_stake_usdc_micros: u64`
+- `active_reward_position_count: u32`
 - `reward_index_usdc_micros_x1e12: u128`
 - `unclaimed_voucher_revenue_usdc_micros: u64`
 - `created_at: i64`
@@ -331,6 +362,7 @@ Rules:
 - `SkillListing.active_reward_stake_usdc_micros` sums active listing vouch positions, not all author-wide vouches.
 - `purchase_skill` distributes the voucher pool across active `ListingVouchPosition` stake for that listing.
 - Paid listing purchases require `active_reward_stake_usdc_micros > 0`.
+- Links fail if `active_reward_position_count >= MAX_ACTIVE_REWARD_POSITIONS_PER_LISTING`.
 - Unlinking a position first accrues rewards into `pending_rewards_usdc_micros`, reduces listing active reward stake, and decrements `Vouch.linked_listing_count`.
 - Disputes for a paid listing can slash linked positions and the underlying vouch stake.
 
@@ -387,6 +419,10 @@ Bond vault authority seeds:
 
 - `[b"dispute_bond_vault_authority", author_dispute]`
 
+Bond vault token account:
+
+- explicit token-account PDA, not an ATA
+
 Fields:
 
 - `dispute_id: u64`
@@ -432,8 +468,8 @@ Fields:
 Rules:
 
 - Used to snapshot which vouches can be slashed by the dispute.
-- Open/resolve flows should link `ListingVouchPosition` accounts for the disputed listing, not every author-wide vouch.
-- Open/resolve flows must enforce account-count and compute ceilings. If the number of linked positions can exceed limits, implementation must batch linking and/or settlement.
+- Open/resolve flows link `ListingVouchPosition` accounts for the disputed listing, not every author-wide vouch.
+- Linking and voucher settlement must process at most `MAX_DISPUTE_POSITIONS_PER_TX` positions per transaction. If the disputed listing has more linked positions, implementation must batch linking and/or settlement.
 
 ## Instruction Contracts
 
@@ -680,7 +716,8 @@ Rules:
 - Upheld: challenger receives dispute bond plus slashed funds.
 - Dismissed: challenger bond goes to protocol treasury vault.
 - Updates dispute counters, author profile, author bond, vouches, reputation, and vault balances.
-- Must support batching/capped linked-vouch settlement if account count is too high.
+- Dismissed disputes use a fixed-account path.
+- Upheld paid-listing disputes use batched voucher settlement when linked positions exceed `MAX_DISPUTE_POSITIONS_PER_TX`; finalization is allowed only after all required positions are processed.
 
 ## Reward Index Model
 
@@ -697,24 +734,32 @@ Definitions:
 On purchase:
 
 ```text
-voucher_pool = price * voucher_share_bps / 10_000
+voucher_pool = price_usdc_micros * voucher_share_bps / 10_000
 index_delta = voucher_pool * SCALE / active_reward_stake_usdc_micros
-listing.reward_index += index_delta
+listing.reward_index_usdc_micros_x1e12 += index_delta
+listing.unclaimed_voucher_revenue_usdc_micros += voucher_pool
 ```
 
 On position mutation:
 
 ```text
-accrued = reward_stake_usdc_micros * (listing.reward_index - position.entry_reward_index) / SCALE
-position.pending_rewards += accrued
-position.entry_reward_index = listing.reward_index
+accrued = reward_stake_usdc_micros * (listing.reward_index_usdc_micros_x1e12 - entry_reward_index_x1e12) / SCALE
+pending_rewards_usdc_micros += accrued
+entry_reward_index_x1e12 = listing.reward_index_usdc_micros_x1e12
 ```
 
 Implementation note:
 
 - For `v0.2.0`, use listing-level reward vaults, listing-level reward indexes, and `ListingVouchPosition` PDAs.
 - Do not fall back to pro-rata unclaimed pool math that lets late vouches earn prior revenue.
-- If account count becomes high for listings with many positions, cap positions per listing or batch claims/settlements explicitly.
+- Paid purchases require `active_reward_stake_usdc_micros > 0` and `index_delta > 0`.
+- Use checked `u128` intermediate math; arithmetic overflow fails the instruction and reward accounting must not saturate.
+- Link starts at the current listing reward index.
+- Unlink, partial slash, full slash, claim, and any reward-stake/status mutation accrue pending rewards first.
+- Already accrued pending rewards remain claimable after unlink, revoke, or slash unless a later explicit forfeiture rule is adopted.
+- Listing removal freezes new purchases and links, but does not block reward claims.
+- Listing close requires `unclaimed_voucher_revenue_usdc_micros == 0` and no claimable position rewards. Residual unassigned dust or accidental direct-transfer USDC may be swept to treasury only after all claim rights are resolved.
+- Account growth is bounded by `MAX_ACTIVE_REWARD_POSITIONS_PER_LISTING`; dispute linking and voucher settlement are batched by `MAX_DISPUTE_POSITIONS_PER_TX`.
 
 ## Reputation Formula
 
@@ -732,14 +777,14 @@ score = min(score, reputation_score_cap)
 
 Recommended defaults:
 
-- `stake_weight_per_usdc = 100`
-- `risk_component_cap = 100_000`
-- `vouch_weight = 100`
+- `stake_weight_per_usdc = 10`
+- `risk_component_cap = 10_000_000`
+- `vouch_weight = 10`
 - `vouch_component_cap = 10_000`
 - `longevity_bonus_per_day = 1`
 - `longevity_component_cap = 3_650`
-- `upheld_dispute_penalty = 5_000`
-- `reputation_score_cap = 1_000_000`
+- `upheld_dispute_penalty = 1_000`
+- `reputation_score_cap = 10_100_000`
 
 Rationale:
 
@@ -779,6 +824,8 @@ Fail policy:
 
 Devnet `v0.2.0` may use controlled deployer/config keys for iteration.
 
+BPF upgrade authority is separate from `ReputationConfig` fields and must be tracked in the deployment runbook.
+
 Mainnet `v1.0.0` requirements:
 
 - Upgrade authority: multisig or stronger governance.
@@ -787,11 +834,50 @@ Mainnet `v1.0.0` requirements:
 - Settlement authority: rotatable and pausable by config authority.
 - Pause authority: multisig or emergency authority with documented scope.
 
+Role semantics:
+
+- `config_authority` controls governance-sensitive config updates and role rotations.
+- `treasury_authority` is reserved in `v0.2.0`; no arbitrary treasury-withdrawal instruction ships in Milestone 3.
+- `settlement_authority` is reserved for the x402 bridge, cannot withdraw arbitrary settlement funds, and can be paused or rotated by `config_authority`.
+- `pause_authority` can only toggle pause state and can be rotated by `config_authority` if separate.
+- `paused = true` blocks new risk and purchases while allowing authority rotation, unpause, dispute open/resolve, reward claims, withdrawals, revokes, and close flows only when normal dispute and lock invariants already permit them.
+
 Treasury policy:
 
 - `v0.2.0` protocol fee is zero.
 - Treasury receives dismissed dispute bonds and any explicitly governed future fees.
-- Treasury withdrawals before mainnet governance should be disabled or limited to test/devnet cleanup.
+- Treasury withdrawals are not part of Milestone 3. Add them only in a later governance milestone if protocol fees or treasury operations become necessary.
+
+## Toolchain And Generated Artifacts
+
+Pinned Milestone 3 toolchain:
+
+- Anchor CLI: `0.32.1`
+- Solana CLI: `3.1.4`
+- Rust/MSRV: `1.89.0`
+- Node/npm: Node `24.1.0`, npm `11.12.1`
+- `anchor-lang = 0.32.1`
+- `anchor-spl = 0.32.1`
+
+Generated artifact flow:
+
+```bash
+NO_DNA=1 anchor build
+cp target/idl/agentvouch.json web/agentvouch.json
+npm run generate:client
+npm run build --workspace @agentvouch/web
+```
+
+Deploy artifact fallback:
+
+```bash
+env -u CARGO_TARGET_DIR cargo build-sbf --manifest-path programs/agentvouch/Cargo.toml
+```
+
+Rules:
+
+- Use npm as the canonical workspace package manager and align `Anchor.toml` to npm during Milestone 3 implementation.
+- Regenerate `target/idl/agentvouch.json`, `target/types/agentvouch.ts`, `target/deploy/agentvouch.so`, `web/agentvouch.json`, and `web/generated/agentvouch`; do not hand-edit generated outputs.
 
 ## ERC-8004 / Solana Agent Registry
 
@@ -881,7 +967,7 @@ These are not unresolved design forks, but they must be validated before code fr
 - Run the x402 bridge POC against the selected facilitator.
 - Measure account count and compute for worst-case dispute linking/settlement.
 - Confirm exact max string lengths for registry fields and CAIP-2 storage to keep account rent bounded.
-- Pin toolchain versions: Anchor, Solana CLI, Rust/MSRV, `anchor-spl`, and generated client command.
+- Verify local tools match the pinned toolchain before starting Milestone 3 implementation.
 
 ## Handoff To Milestone 2/3
 
