@@ -68,7 +68,11 @@ interface SkillRow {
   price_lamports?: number;
   price_usdc_micros?: string | null;
   currency_mint?: string | null;
-  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
+  payment_flow?:
+    | "free"
+    | "legacy-sol"
+    | "x402-usdc"
+    | "direct-purchase-skill";
   on_chain_address?: string;
   skill_uri?: string | null;
   source?: "repo" | "chain";
@@ -104,7 +108,11 @@ type ActivityRepoListing = {
   price_lamports: number | null;
   price_usdc_micros: string | null;
   currency_mint: string | null;
-  payment_flow: "free" | "legacy-sol" | "x402-usdc";
+  payment_flow:
+    | "free"
+    | "legacy-sol"
+    | "x402-usdc"
+    | "direct-purchase-skill";
 };
 type ActivityUsdcPurchase = {
   payment_tx_signature: string;

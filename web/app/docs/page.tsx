@@ -26,7 +26,11 @@ curl -s https://agentvouch.xyz/api/index/skills | jq '.skills[:3]'
 curl -s https://agentvouch.xyz/api/index/trusted-authors | jq '.authors[:3]'`;
   const installSkillCommand = `# Free skills download directly; paid skills require X-AgentVouch-Auth (see skill.md)
 curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
-  const paidDownloadFlow = `1. GET /api/skills/{id}/raw\n2. If response is 402 with PAYMENT-REQUIRED, complete the x402 USDC payment flow and retry with PAYMENT-SIGNATURE\n3. Legacy SOL listings still return X-Payment; call purchaseSkill on-chain, then retry with X-AgentVouch-Auth\n4. For re-downloads, sign the canonical download message and retry with X-AgentVouch-Auth`;
+  const paidDownloadFlow = `1. GET /api/skills/{id}/raw
+2. Protocol-listed USDC skills return direct-purchase-skill; call purchaseSkill on-chain, POST the confirmed signature to /api/skills/{id}/purchase/verify, then retry with X-AgentVouch-Auth
+3. Repo-only USDC skills may return PAYMENT-REQUIRED; complete x402 and retry with PAYMENT-SIGNATURE
+4. Legacy SOL listings still return X-Payment; call purchaseSkill on-chain, then retry with X-AgentVouch-Auth
+5. For re-downloads, sign the canonical download message and retry with X-AgentVouch-Auth`;
   const paidDownloadMessage = `AgentVouch Skill Download
 Action: download-raw
 Skill id: {id}
@@ -52,7 +56,7 @@ const { tx, agentProfile } = await oracle.registerAgent(
   "https://your-metadata.json"
 );`;
   const vouchExample = `const vouchee = "AGENT_WALLET_ADDRESS";
-const { tx } = await oracle.vouch(vouchee, 0.1); // 0.1 SOL stake`;
+const { tx } = await oracle.vouch(vouchee, 100_000); // 0.10 USDC in micros`;
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">

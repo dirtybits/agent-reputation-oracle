@@ -16,6 +16,8 @@ type SkillRow = {
   on_chain_address: string | null;
   price_usdc_micros: string | null;
   currency_mint: string | null;
+  on_chain_protocol_version?: string | null;
+  on_chain_program_id?: string | null;
 };
 
 const CHAIN_PREFIX = "chain-";
@@ -69,8 +71,16 @@ export async function GET(
     const providedListing = request.nextUrl.searchParams.get("listing");
 
     const rows = await sql()<SkillRow>`
-      SELECT id, skill_id, current_version, updated_at, on_chain_address
-      , price_usdc_micros, currency_mint
+      SELECT
+        id,
+        skill_id,
+        current_version,
+        updated_at,
+        on_chain_address,
+        price_usdc_micros,
+        currency_mint,
+        on_chain_protocol_version,
+        on_chain_program_id
       FROM skills
       WHERE id = ${id}::uuid
     `;
@@ -105,8 +115,12 @@ export async function GET(
         price_lamports: priceLamports,
         price_usdc_micros: skill.price_usdc_micros,
         currency_mint: skill.currency_mint,
+        on_chain_protocol_version: skill.on_chain_protocol_version ?? null,
+        on_chain_program_id: skill.on_chain_program_id ?? null,
         payment_flow: skill.price_usdc_micros
-          ? "x402-usdc"
+          ? skill.on_chain_address
+            ? "direct-purchase-skill"
+            : "x402-usdc"
           : priceLamports > 0
           ? "legacy-sol"
           : "free",

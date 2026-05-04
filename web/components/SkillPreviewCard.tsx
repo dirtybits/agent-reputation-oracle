@@ -31,7 +31,11 @@ interface SkillPreviewCardSkill {
   source?: "repo" | "chain";
   author_trust: TrustData | null;
   price_usdc_micros?: string | null;
-  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
+  payment_flow?:
+    | "free"
+    | "legacy-sol"
+    | "x402-usdc"
+    | "direct-purchase-skill";
   purchasePreflightMessage?: string | null;
   purchaseBlockError?: {
     code: "buyerInsufficientBalance" | "authorPayoutRentBlocked";
@@ -165,7 +169,9 @@ export default function SkillPreviewCard({
   const trust = skill.author_trust;
   const primaryUsdcPrice = formatUsdcMicros(skill.price_usdc_micros);
   const hasUsdcPrimary =
-    Boolean(primaryUsdcPrice) || skill.payment_flow === "x402-usdc";
+    Boolean(primaryUsdcPrice) ||
+    skill.payment_flow === "x402-usdc" ||
+    skill.payment_flow === "direct-purchase-skill";
   const authorReports = trust
     ? getAuthorReportStatus(
         trust.disputesAgainstAuthor,

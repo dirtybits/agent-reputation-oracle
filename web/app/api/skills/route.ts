@@ -36,6 +36,10 @@ import { hasUsdcPurchaseEntitlement } from "@/lib/usdcPurchases";
 import { hasOnChainPurchase } from "@/lib/x402";
 import { address, createSolanaRpc, isAddress } from "@solana/kit";
 import { getConfiguredUsdcMint } from "@/lib/x402";
+import {
+  AGENTVOUCH_PROTOCOL_VERSION,
+  getAgentVouchProgramId,
+} from "@/lib/protocolMetadata";
 
 const PAGE_SIZE = 20;
 const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
@@ -59,6 +63,8 @@ type RepoSkillRow = {
   price_lamports?: number | null;
   price_usdc_micros?: string | null;
   currency_mint?: string | null;
+  on_chain_protocol_version?: string | null;
+  on_chain_program_id?: string | null;
   contact?: string | null;
   created_at: string;
   updated_at: string;
@@ -80,6 +86,8 @@ type ChainSkillRow = Omit<
   price_lamports: null;
   price_usdc_micros: string;
   currency_mint: string | null;
+  on_chain_protocol_version: string;
+  on_chain_program_id: string;
   skill_uri: string | null;
   source: "chain";
 };
@@ -106,7 +114,9 @@ async function fetchOnChainListings(): Promise<ChainSkillRow[]> {
       total_downloads: Number(listing.data.totalDownloads),
       price_lamports: null,
       price_usdc_micros: String(listing.data.priceUsdcMicros),
-      currency_mint: null,
+      currency_mint: getConfiguredUsdcMint(),
+      on_chain_protocol_version: AGENTVOUCH_PROTOCOL_VERSION,
+      on_chain_program_id: getAgentVouchProgramId(),
       total_revenue: Number(listing.data.totalRevenueUsdcMicros),
       created_at: new Date(Number(listing.data.createdAt) * 1000).toISOString(),
       updated_at: new Date(Number(listing.data.updatedAt) * 1000).toISOString(),
@@ -136,12 +146,22 @@ function mergeSkills(
       existing.total_downloads = chain.total_downloads;
       existing.total_revenue = chain.total_revenue;
       existing.skill_uri = chain.skill_uri;
+      existing.on_chain_protocol_version ??= chain.on_chain_protocol_version;
+      existing.on_chain_program_id ??= chain.on_chain_program_id;
+      existing.currency_mint ??= chain.currency_mint;
     } else {
       merged.push(chain);
     }
   }
 
   return merged;
+}
+
+function getSkillPaymentFlow(skill: MergedSkillRow) {
+  if (skill.price_usdc_micros) {
+    return skill.on_chain_address ? "direct-purchase-skill" : "x402-usdc";
+  }
+  return (skill.price_lamports ?? 0) > 0 ? "legacy-sol" : "free";
 }
 
 function normalizePriceUsdcMicros(value: unknown): string | null {
@@ -269,11 +289,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...skill,
-        payment_flow: skill.price_usdc_micros
-          ? "x402-usdc"
-          : (skill.price_lamports ?? 0) > 0
-          ? "legacy-sol"
-          : "free",
+        payment_flow: getSkillPaymentFlow(skill),
         author_trust: authorTrust,
         author_trust_summary: authorTrust
           ? buildAgentTrustSummary({

@@ -2,6 +2,9 @@ import { sql } from "@/lib/db";
 
 let schemaReady: Promise<void> | null = null;
 
+export const REPO_X402_PAYMENT_FLOW = "repo-x402-usdc";
+export const DIRECT_PURCHASE_PAYMENT_FLOW = "direct-purchase-skill";
+
 export async function ensureUsdcPurchaseSchema() {
   if (schemaReady) {
     return schemaReady;
@@ -19,10 +22,52 @@ export async function ensureUsdcPurchaseSchema() {
         recipient_ata VARCHAR(44) NOT NULL,
         currency_mint VARCHAR(44) NOT NULL,
         amount_micros BIGINT NOT NULL,
+        payment_flow VARCHAR(64),
+        protocol_version VARCHAR(16),
+        on_chain_program_id VARCHAR(44),
+        chain_context VARCHAR(64),
+        on_chain_address VARCHAR(44),
+        purchase_pda VARCHAR(44),
         verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_receipts
+      ADD COLUMN IF NOT EXISTS payment_flow VARCHAR(64)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_receipts
+      ADD COLUMN IF NOT EXISTS protocol_version VARCHAR(16)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_receipts
+      ADD COLUMN IF NOT EXISTS on_chain_program_id VARCHAR(44)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_receipts
+      ADD COLUMN IF NOT EXISTS chain_context VARCHAR(64)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_receipts
+      ADD COLUMN IF NOT EXISTS on_chain_address VARCHAR(44)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_receipts
+      ADD COLUMN IF NOT EXISTS purchase_pda VARCHAR(44)
+    `;
+
+    await db`
+      UPDATE usdc_purchase_receipts
+      SET payment_flow = COALESCE(payment_flow, ${REPO_X402_PAYMENT_FLOW})
+      WHERE payment_flow IS NULL
     `;
 
     await db`
@@ -44,12 +89,48 @@ export async function ensureUsdcPurchaseSchema() {
         recipient_ata VARCHAR(44) NOT NULL,
         currency_mint VARCHAR(44) NOT NULL,
         amount_micros BIGINT NOT NULL,
+        payment_flow VARCHAR(64),
+        protocol_version VARCHAR(16),
+        on_chain_program_id VARCHAR(44),
+        chain_context VARCHAR(64),
+        on_chain_address VARCHAR(44),
+        purchase_pda VARCHAR(44),
         first_verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         last_verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (skill_db_id, buyer_pubkey)
       )
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_entitlements
+      ADD COLUMN IF NOT EXISTS payment_flow VARCHAR(64)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_entitlements
+      ADD COLUMN IF NOT EXISTS protocol_version VARCHAR(16)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_entitlements
+      ADD COLUMN IF NOT EXISTS on_chain_program_id VARCHAR(44)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_entitlements
+      ADD COLUMN IF NOT EXISTS chain_context VARCHAR(64)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_entitlements
+      ADD COLUMN IF NOT EXISTS on_chain_address VARCHAR(44)
+    `;
+
+    await db`
+      ALTER TABLE usdc_purchase_entitlements
+      ADD COLUMN IF NOT EXISTS purchase_pda VARCHAR(44)
     `;
 
     await db`
@@ -66,6 +147,12 @@ export async function ensureUsdcPurchaseSchema() {
         recipient_ata,
         currency_mint,
         amount_micros,
+        payment_flow,
+        protocol_version,
+        on_chain_program_id,
+        chain_context,
+        on_chain_address,
+        purchase_pda,
         first_verified_at,
         last_verified_at,
         created_at,
@@ -79,6 +166,12 @@ export async function ensureUsdcPurchaseSchema() {
         r.recipient_ata,
         r.currency_mint,
         r.amount_micros,
+        r.payment_flow,
+        r.protocol_version,
+        r.on_chain_program_id,
+        r.chain_context,
+        r.on_chain_address,
+        r.purchase_pda,
         r.verified_at,
         r.verified_at,
         NOW(),
@@ -116,6 +209,36 @@ export async function ensureUsdcPurchaseSchema() {
           WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
             THEN EXCLUDED.amount_micros
           ELSE usdc_purchase_entitlements.amount_micros
+        END,
+        payment_flow = CASE
+          WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+            THEN EXCLUDED.payment_flow
+          ELSE usdc_purchase_entitlements.payment_flow
+        END,
+        protocol_version = CASE
+          WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+            THEN EXCLUDED.protocol_version
+          ELSE usdc_purchase_entitlements.protocol_version
+        END,
+        on_chain_program_id = CASE
+          WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+            THEN EXCLUDED.on_chain_program_id
+          ELSE usdc_purchase_entitlements.on_chain_program_id
+        END,
+        chain_context = CASE
+          WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+            THEN EXCLUDED.chain_context
+          ELSE usdc_purchase_entitlements.chain_context
+        END,
+        on_chain_address = CASE
+          WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+            THEN EXCLUDED.on_chain_address
+          ELSE usdc_purchase_entitlements.on_chain_address
+        END,
+        purchase_pda = CASE
+          WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+            THEN EXCLUDED.purchase_pda
+          ELSE usdc_purchase_entitlements.purchase_pda
         END,
         first_verified_at = LEAST(
           usdc_purchase_entitlements.first_verified_at,
@@ -162,10 +285,22 @@ export async function recordUsdcPurchaseReceipt(input: {
   recipientAta: string;
   currencyMint: string;
   amountMicros: string;
+  paymentFlow?: string;
+  protocolVersion?: string | null;
+  onChainProgramId?: string | null;
+  chainContext?: string | null;
+  onChainAddress?: string | null;
+  purchasePda?: string | null;
 }) {
   await ensureUsdcPurchaseSchema();
 
   const db = sql();
+  const paymentFlow = input.paymentFlow ?? REPO_X402_PAYMENT_FLOW;
+  const protocolVersion = input.protocolVersion ?? null;
+  const onChainProgramId = input.onChainProgramId ?? null;
+  const chainContext = input.chainContext ?? null;
+  const onChainAddress = input.onChainAddress ?? null;
+  const purchasePda = input.purchasePda ?? null;
   const [receipt] = await db<{
     id: string;
     verified_at: string;
@@ -177,6 +312,12 @@ export async function recordUsdcPurchaseReceipt(input: {
       recipient_ata,
       currency_mint,
       amount_micros,
+      payment_flow,
+      protocol_version,
+      on_chain_program_id,
+      chain_context,
+      on_chain_address,
+      purchase_pda,
       verified_at,
       updated_at
     )
@@ -187,6 +328,12 @@ export async function recordUsdcPurchaseReceipt(input: {
       ${input.recipientAta},
       ${input.currencyMint},
       ${input.amountMicros},
+      ${paymentFlow},
+      ${protocolVersion},
+      ${onChainProgramId},
+      ${chainContext},
+      ${onChainAddress},
+      ${purchasePda},
       NOW(),
       NOW()
     )
@@ -195,13 +342,27 @@ export async function recordUsdcPurchaseReceipt(input: {
       recipient_ata = EXCLUDED.recipient_ata,
       currency_mint = EXCLUDED.currency_mint,
       amount_micros = EXCLUDED.amount_micros,
+      payment_flow = EXCLUDED.payment_flow,
+      protocol_version = EXCLUDED.protocol_version,
+      on_chain_program_id = EXCLUDED.on_chain_program_id,
+      chain_context = EXCLUDED.chain_context,
+      on_chain_address = EXCLUDED.on_chain_address,
+      purchase_pda = EXCLUDED.purchase_pda,
       verified_at = GREATEST(
         usdc_purchase_receipts.verified_at,
         EXCLUDED.verified_at
       ),
       updated_at = NOW()
+    WHERE usdc_purchase_receipts.skill_db_id = EXCLUDED.skill_db_id
+      AND usdc_purchase_receipts.buyer_pubkey = EXCLUDED.buyer_pubkey
     RETURNING id, verified_at::text
   `;
+
+  if (!receipt) {
+    throw new Error(
+      "Payment transaction signature is already recorded for another skill or buyer"
+    );
+  }
 
   await db`
     INSERT INTO usdc_purchase_entitlements (
@@ -212,6 +373,12 @@ export async function recordUsdcPurchaseReceipt(input: {
       recipient_ata,
       currency_mint,
       amount_micros,
+      payment_flow,
+      protocol_version,
+      on_chain_program_id,
+      chain_context,
+      on_chain_address,
+      purchase_pda,
       first_verified_at,
       last_verified_at,
       created_at,
@@ -225,6 +392,12 @@ export async function recordUsdcPurchaseReceipt(input: {
       ${input.recipientAta},
       ${input.currencyMint},
       ${input.amountMicros},
+      ${paymentFlow},
+      ${protocolVersion},
+      ${onChainProgramId},
+      ${chainContext},
+      ${onChainAddress},
+      ${purchasePda},
       ${receipt.verified_at}::timestamptz,
       ${receipt.verified_at}::timestamptz,
       NOW(),
@@ -256,6 +429,36 @@ export async function recordUsdcPurchaseReceipt(input: {
         WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
           THEN EXCLUDED.amount_micros
         ELSE usdc_purchase_entitlements.amount_micros
+      END,
+      payment_flow = CASE
+        WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+          THEN EXCLUDED.payment_flow
+        ELSE usdc_purchase_entitlements.payment_flow
+      END,
+      protocol_version = CASE
+        WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+          THEN EXCLUDED.protocol_version
+        ELSE usdc_purchase_entitlements.protocol_version
+      END,
+      on_chain_program_id = CASE
+        WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+          THEN EXCLUDED.on_chain_program_id
+        ELSE usdc_purchase_entitlements.on_chain_program_id
+      END,
+      chain_context = CASE
+        WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+          THEN EXCLUDED.chain_context
+        ELSE usdc_purchase_entitlements.chain_context
+      END,
+      on_chain_address = CASE
+        WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+          THEN EXCLUDED.on_chain_address
+        ELSE usdc_purchase_entitlements.on_chain_address
+      END,
+      purchase_pda = CASE
+        WHEN EXCLUDED.last_verified_at >= usdc_purchase_entitlements.last_verified_at
+          THEN EXCLUDED.purchase_pda
+        ELSE usdc_purchase_entitlements.purchase_pda
       END,
       first_verified_at = LEAST(
         usdc_purchase_entitlements.first_verified_at,

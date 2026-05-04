@@ -99,6 +99,14 @@ const USDC_SKILL = {
   price_usdc_micros: "1000000",
   currency_mint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
 };
+const PROTOCOL_USDC_SKILL = {
+  ...USDC_SKILL,
+  id: "uuid-direct-usdc",
+  on_chain_address: "ListingAddr1",
+  on_chain_protocol_version: "v0.2.0",
+  on_chain_program_id: "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
+  chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+};
 
 function validAuthHeader(
   id: string,
@@ -404,6 +412,46 @@ describe("GET /api/skills/[id]/raw", () => {
     expect(await res.text()).toBe(SKILL_CONTENT);
     expect(mockHasUsdcEntitlement).toHaveBeenCalledWith(
       "uuid-usdc",
+      "BuyerPubkey1"
+    );
+  });
+
+  it("requires direct purchase verification for protocol-listed USDC skills", async () => {
+    const dbQuery = vi.fn().mockResolvedValueOnce([PROTOCOL_USDC_SKILL]);
+    mockSql.mockReturnValue(dbQuery);
+
+    const { req, params } = makeRequest("uuid-direct-usdc");
+    const res = await GET(req, { params });
+
+    expect(res.status).toBe(402);
+    const body = await res.json();
+    expect(body.payment_flow).toBe("direct-purchase-skill");
+    expect(body.on_chain_address).toBe("ListingAddr1");
+    expect(mockHasUsdcEntitlement).not.toHaveBeenCalled();
+  });
+
+  it("serves protocol-listed USDC skills when a direct entitlement exists", async () => {
+    const dbQuery = vi.fn().mockResolvedValueOnce([PROTOCOL_USDC_SKILL]);
+    mockSql.mockReturnValue(dbQuery);
+    mockVerifySig.mockReturnValue({ valid: true, pubkey: "BuyerPubkey1" });
+    mockBuildMsg.mockReturnValue("correct-message");
+    mockHasUsdcEntitlement.mockResolvedValue(true);
+
+    const auth = JSON.stringify({
+      pubkey: "BuyerPubkey1",
+      signature: "sig",
+      message: "correct-message",
+      timestamp: 1709234567890,
+    });
+    const { req, params } = makeRequest("uuid-direct-usdc", {
+      "x-agentvouch-auth": auth,
+    });
+    const res = await GET(req, { params });
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe(SKILL_CONTENT);
+    expect(mockHasUsdcEntitlement).toHaveBeenCalledWith(
+      "uuid-direct-usdc",
       "BuyerPubkey1"
     );
   });

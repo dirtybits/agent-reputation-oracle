@@ -26,7 +26,7 @@ import {
 import { useWalletConnection } from "@solana/react-hooks";
 import { useReputationOracle } from "@/hooks/useReputationOracle";
 import type { AgentIdentitySummary } from "@/lib/agentIdentity";
-import { type Address } from "@solana/kit";
+import { address, type Address } from "@solana/kit";
 import {
   PRICING,
   formatUsdcMicros,
@@ -38,7 +38,10 @@ import {
 } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getErrorMessage } from "@/lib/errors";
-import { fetchSkillWithBrowserX402 } from "@/lib/browserX402";
+import {
+  fetchSkillWithBrowserX402,
+  walletSupportsBrowserX402,
+} from "@/lib/browserX402";
 import {
   getConfiguredSolanaExplorerAddressUrl,
   getConfiguredSolanaExplorerTxUrl,
@@ -90,7 +93,11 @@ interface SkillDetail {
   price_lamports?: number;
   price_usdc_micros?: string | null;
   currency_mint?: string | null;
-  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
+  payment_flow?:
+    | "free"
+    | "legacy-sol"
+    | "x402-usdc"
+    | "direct-purchase-skill";
   contact: string | null;
   created_at: string;
   updated_at: string;
@@ -446,6 +453,72 @@ export default function SkillDetailPage({
     setUsdcPurchaseTx(null);
 
     try {
+      if (skill.on_chain_address) {
+        const purchaseResult = await oracle.purchaseSkill(
+          address(skill.on_chain_address),
+          address(skill.author_pubkey)
+        );
+
+        if (purchaseResult.tx) {
+          const verifyRes = await fetch(`/api/skills/${id}/purchase/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              signature: purchaseResult.tx,
+              buyer: walletAddress,
+              listingAddress: skill.on_chain_address,
+            }),
+          });
+          if (!verifyRes.ok) {
+            const verifyBody = (await verifyRes.json().catch(() => null)) as
+              | { error?: string }
+              | null;
+            throw new Error(
+              verifyBody?.error ||
+                "Purchase confirmed, but entitlement verification failed"
+            );
+          }
+          setUsdcPurchaseTx(purchaseResult.tx);
+        }
+
+        const authHeader = JSON.stringify(
+          await createSignedDownloadAuthPayload({
+            walletAddress,
+            signMessage,
+            skillId: skill.id,
+            listingAddress: skill.on_chain_address,
+          })
+        );
+        const rawRes = await fetch(`/api/skills/${id}/raw`, {
+          headers: {
+            "X-AgentVouch-Auth": authHeader,
+          },
+        });
+        if (!rawRes.ok) {
+          const rawBody = (await rawRes.json().catch(() => null)) as
+            | { error?: string; message?: string }
+            | null;
+          throw new Error(
+            rawBody?.error ||
+              rawBody?.message ||
+              "Purchase verified, but download failed"
+          );
+        }
+
+        downloadSkillFile(skill.skill_id, await rawRes.text());
+        await refreshSkill();
+        setSkill((current) =>
+          current ? { ...current, buyerHasPurchased: true } : current
+        );
+        setInstallResult({
+          success: true,
+          message: purchaseResult.tx
+            ? "USDC purchase confirmed and verified. Downloaded SKILL.md."
+            : "USDC entitlement already active. Downloaded SKILL.md.",
+        });
+        return;
+      }
+
       const purchaseResult = await fetchSkillWithBrowserX402({
         wallet,
         walletAddress,
@@ -743,8 +816,15 @@ export default function SkillDetailPage({
     skill.estimatedPurchaseRentLamports ?? 0;
   const paymentFlow =
     skill.payment_flow ??
-    (skill.price_usdc_micros ? "x402-usdc" : "free");
-  const hasUsdcPrimary = Boolean(primaryUsdcPrice) || paymentFlow === "x402-usdc";
+    (skill.price_usdc_micros
+      ? skill.on_chain_address
+        ? "direct-purchase-skill"
+        : "x402-usdc"
+      : "free");
+  const hasUsdcPrimary =
+    Boolean(primaryUsdcPrice) ||
+    paymentFlow === "x402-usdc" ||
+    paymentFlow === "direct-purchase-skill";
   const hasLegacySolPrice = creatorPriceLamports > 0;
   const purchasePreflightStatus =
     skill.purchasePreflightStatus ??
@@ -752,7 +832,9 @@ export default function SkillDetailPage({
   const purchaseBlocked =
     hasUsdcPrimary && isBlockingPurchaseStatus(purchasePreflightStatus);
   const isPaidSkill = hasUsdcPrimary;
-  const browserCanUseUsdc = hasUsdcPrimary;
+  const browserCanUseUsdc =
+    hasUsdcPrimary &&
+    (paymentFlow === "direct-purchase-skill" || walletSupportsBrowserX402(wallet));
   const signedRedownloadAvailable = hasUsdcPrimary || Boolean(skill.on_chain_address);
   const buyerHasPurchased = Boolean(skill.buyerHasPurchased);
   const apiPath = `/api/skills/${skill.id}/raw`;
@@ -773,7 +855,9 @@ export default function SkillDetailPage({
   "timestamp": 1709234567890
 }`;
   const installCommand = hasUsdcPrimary
-    ? `# Primary price: ${usdcPriceLabel} via x402\n# Browser checkout is available on this page.\n# Agents can call the raw endpoint directly and respond to PAYMENT-REQUIRED / PAYMENT-SIGNATURE.\ncurl -sL ${installUrl}`
+    ? paymentFlow === "direct-purchase-skill"
+      ? `# Primary price: ${usdcPriceLabel} via purchase_skill\n# Call purchase_skill on-chain, POST the confirmed signature to /api/skills/${skill.id}/purchase/verify, then retry with X-AgentVouch-Auth.\ncurl -sL ${installUrl}`
+      : `# Primary price: ${usdcPriceLabel} via x402\n# Browser checkout is available on this page for wallets with partial transaction signing.\n# Agents can call the raw endpoint directly and respond to PAYMENT-REQUIRED / PAYMENT-SIGNATURE.\ncurl -sL ${installUrl}`
     : `curl -sL ${installUrl} -o SKILL.md`;
   const purchaseTitle = primaryUsdcPrice
     ? "USDC primary pricing"
@@ -784,7 +868,7 @@ export default function SkillDetailPage({
     ? "Install with a wallet signature — no transaction fee."
     : isAuthor
     ? primaryUsdcPrice
-      ? `This listing is priced at ${usdcPriceLabel} via x402.`
+      ? `This listing is priced at ${usdcPriceLabel}.`
       : "This connected wallet is the author for this skill. Use the author actions below to manage the listing instead of purchasing it."
     : buyerHasPurchased
     ? signedRedownloadAvailable
@@ -793,7 +877,7 @@ export default function SkillDetailPage({
     : primaryUsdcPrice
     ? browserCanUseUsdc
       ? `Pay ${usdcPriceLabel} from this page. After checkout, SKILL.md downloads immediately and future re-downloads use Sign & Download.`
-      : `This listing is priced in ${usdcPriceLabel}. Use the agent/API x402 flow below.`
+      : `This listing is priced in ${usdcPriceLabel}. This wallet cannot use browser x402; use direct purchase or the agent/API fallback below.`
     : hasLegacySolPrice
     ? "This listing still has legacy SOL pricing. USDC checkout is required for new purchases."
     : "Install with a wallet signature.";

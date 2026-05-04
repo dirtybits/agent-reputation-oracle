@@ -25,10 +25,25 @@ import {
 } from "@/lib/purchasePreflight";
 import { DEFAULT_SOLANA_RPC_URL } from "@/lib/solanaRpc";
 import { address, createSolanaRpc, isAddress } from "@solana/kit";
+import {
+  AGENTVOUCH_PROTOCOL_VERSION,
+  getAgentVouchProgramId,
+} from "@/lib/protocolMetadata";
 
 const CHAIN_PREFIX = "chain-";
 const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
 const configuredSolanaChainContext = getConfiguredSolanaChainContext();
+
+function getSkillPaymentFlow(skill: {
+  price_usdc_micros?: string | null;
+  price_lamports?: number | null;
+  on_chain_address?: string | null;
+}) {
+  if (skill.price_usdc_micros) {
+    return skill.on_chain_address ? "direct-purchase-skill" : "x402-usdc";
+  }
+  return (skill.price_lamports ?? 0) > 0 ? "legacy-sol" : "free";
+}
 
 type SkillRow = {
   id: string;
@@ -46,6 +61,8 @@ type SkillRow = {
   price_lamports?: number;
   price_usdc_micros?: string | null;
   currency_mint?: string | null;
+  on_chain_protocol_version?: string | null;
+  on_chain_program_id?: string | null;
   contact?: string | null;
   created_at: string;
   updated_at: string;
@@ -151,9 +168,13 @@ export async function GET(
           total_downloads: Number(listing.data.totalDownloads),
           price_lamports: null,
           price_usdc_micros: String(listing.data.priceUsdcMicros),
-          currency_mint: null,
+          currency_mint: getConfiguredUsdcMint(),
+          on_chain_protocol_version: AGENTVOUCH_PROTOCOL_VERSION,
+          on_chain_program_id: getAgentVouchProgramId(),
           payment_flow:
-            Number(listing.data.priceUsdcMicros) > 0 ? "usdc" : "free",
+            Number(listing.data.priceUsdcMicros) > 0
+              ? "direct-purchase-skill"
+              : "free",
           contact: null,
           created_at: new Date(
             Number(listing.data.createdAt) * 1000
@@ -285,11 +306,7 @@ export async function GET(
     return NextResponse.json(
       {
         ...skill,
-        payment_flow: skill.price_usdc_micros
-          ? "x402-usdc"
-          : (skill.price_lamports ?? 0) > 0
-          ? "legacy-sol"
-          : "free",
+        payment_flow: getSkillPaymentFlow(skill),
         content: latestContent,
         versions: versionsWithoutContent,
         author_trust,
@@ -361,7 +378,11 @@ export async function PATCH(
 
     const [updated] = await sql()<SkillRow>`
       UPDATE skills
-      SET on_chain_address = ${on_chain_address}, updated_at = NOW()
+      SET
+        on_chain_address = ${on_chain_address},
+        on_chain_protocol_version = ${AGENTVOUCH_PROTOCOL_VERSION},
+        on_chain_program_id = ${getAgentVouchProgramId()},
+        updated_at = NOW()
       WHERE id = ${id}::uuid
       RETURNING *
     `;

@@ -114,7 +114,7 @@ export async function POST(
       }
 
       return NextResponse.json(
-        { error: "Paid skills require a verified USDC x402 purchase" },
+        { error: "Paid skills require a verified USDC purchase" },
         { status: 402 }
       );
     }

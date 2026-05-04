@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "x402:bridge-poc": "tsx scripts/x402-bridge-poc.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

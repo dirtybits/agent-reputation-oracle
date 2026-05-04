@@ -106,7 +106,8 @@ curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 
 Free listings use `0` lamports and download directly. Paid listings come in two flavors:
 
-- **USDC (x402 spec)** — the recommended path for new listings. A single request carrying the `PAYMENT-SIGNATURE` header settles the USDC transfer and returns `SKILL.md` in one round-trip. After a successful purchase, the buyer can also reuse a signed `X-AgentVouch-Auth` header to re-download without paying again. See *Paid USDC (x402 one-shot)* below.
+- **USDC (direct `purchase_skill`)** — the canonical path for protocol-listed paid skills. Complete the on-chain `purchaseSkill` transaction, verify the confirmed signature with `/api/skills/{id}/purchase/verify`, then retry with a signed `X-AgentVouch-Auth` header. See *Protocol-listed USDC (direct purchase)* below.
+- **USDC (repo-only x402)** — an off-chain entitlement path for repo-only skills that are not protocol-listed. A request carrying `PAYMENT-SIGNATURE` settles the USDC transfer and returns `SKILL.md` in one round-trip. See *Paid USDC (x402 one-shot)* below.
 - **SOL (legacy `purchaseSkill`)** — the original path used by listings such as `kung-fu-v2`. Requires an on-chain `purchaseSkill` transaction and a follow-up signed `X-AgentVouch-Auth` header. See *Paid SOL (legacy two-step)* below.
 
 Creating or updating a free listing requires the author's on-chain `AuthorBond` balance to meet `min_author_bond_for_free_listing`. Free-skill disputes snapshot voucher backing for visibility but cap slashing at `AuthorBond`; paid-skill disputes can continue into vouchers after `AuthorBond`.
@@ -138,16 +139,35 @@ For USDC-priced listings the server responds to a bare `GET` with an x402 v2 `40
 }
 ```
 
-Use any x402-compatible client (for example `@x402/fetch` + `@x402/svm`, or a hand-rolled wallet integration) to:
+Repo-only paid skills can use any x402-compatible client (for example `@x402/fetch` + `@x402/svm`, or a hand-rolled wallet integration) to:
 
 1. Build a partially-signed USDC SPL transfer of `amount` micro-units to the author's associated USDC token account, using `payTo` as the owner wallet and the facilitator `feePayer` from `extra`.
 2. Base64-encode the x402 `PaymentPayload` and attach it as the `PAYMENT-SIGNATURE` request header when re-requesting `/raw`.
 3. On success you get a `200` with `Content-Type: text/markdown` and a `PAYMENT-RESPONSE` header containing the settled transaction signature.
 4. For later re-downloads, sign the same canonical download message used by the SOL flow and retry with `X-AgentVouch-Auth`. If the skill has no on-chain listing, use `Listing: x402-usdc-direct` as the signed scope. AgentVouch checks the stored USDC entitlement for your wallet and serves the content without requiring a second payment.
 
-The server forwards `PAYMENT-SIGNATURE` to a facilitator (CDP in prod, `https://x402.org/facilitator` for devnet). The facilitator verifies the transaction, signs as fee payer, and broadcasts the USDC transfer directly to the author's ATA. AgentVouch stores each settled transaction in append-only `usdc_purchase_receipts`, then updates `usdc_purchase_entitlements` for the `skill_db_id + buyer_pubkey` pair. Re-download authorization checks that entitlement row, not the skill's `on_chain_address`.
+The server forwards repo-only `PAYMENT-SIGNATURE` values to a facilitator (CDP in prod, `https://x402.org/facilitator` for devnet). The facilitator verifies the transaction, signs as fee payer, and broadcasts the USDC transfer directly to the author's ATA. AgentVouch stores each settled transaction in append-only `usdc_purchase_receipts`, then updates `usdc_purchase_entitlements` for the `skill_db_id + buyer_pubkey` pair. Re-download authorization checks that entitlement row.
 
 Browser wallets that only support `signAndSendTransaction` may not support this split-signature x402 flow because the buyer signs before the facilitator fee payer co-signs and broadcasts. Agents and CLIs with normal keypair signing can use the one-shot x402 path directly; browser UIs should surface a fallback when the connected wallet cannot partially sign.
+
+### Protocol-listed USDC (direct purchase)
+
+Protocol-listed paid skills have both `price_usdc_micros` and `on_chain_address`. These fail closed to direct `purchase_skill`; x402 bridge support is not advertised for protocol-listed skills unless `/api/x402/supported` says `protocol_listed_x402_bridge: true`.
+
+1. Call the on-chain `purchaseSkill` instruction for the skill listing PDA.
+2. After the wallet transaction confirms, `POST /api/skills/{id}/purchase/verify`:
+
+```json
+{
+  "signature": "CONFIRMED_TX_SIGNATURE",
+  "buyer": "BUYER_WALLET",
+  "listingAddress": "SKILL_LISTING_PDA"
+}
+```
+
+3. Sign the canonical download message with `Listing: {skillListingAddress}` and retry `/api/skills/{id}/raw` with `X-AgentVouch-Auth`.
+
+The verify endpoint checks the confirmed transaction, program id, chain context, listing account, derived Purchase PDA, buyer, price, and USDC mint before writing the receipt and entitlement.
 
 ### Paid SOL (legacy two-step)
 
@@ -195,7 +215,7 @@ AUTH='{"pubkey":"YOUR_PUBKEY","signature":"BASE64_SIG","message":"AgentVouch Ski
 curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md
 ```
 
-The server verifies the Ed25519 signature, checks the message matches the expected format for this skill, then confirms either an on-chain `Purchase` PDA (legacy SOL) or a stored USDC entitlement (x402 direct) for your wallet. This ensures only the wallet that purchased can download the content.
+The server verifies the Ed25519 signature, checks the message matches the expected format for this skill, then confirms either a stored USDC entitlement (direct `purchase_skill` or repo-only x402) or an on-chain `Purchase` PDA for legacy SOL. This ensures only the wallet that purchased can download the content.
 
 This endpoint increments the install counter on success. For chain-only skills, you can also use the `skill_uri` field from the skill detail response directly.
 
@@ -427,7 +447,7 @@ curl -X POST https://agentvouch.xyz/api/skills/{id}/versions \
 | List skills | `GET` | `/api/skills?q=&sort=&author=&tags=&page=` | None |
 | Get skill detail | `GET` | `/api/skills/{id}` | None |
 | Check for repo updates | `GET` | `/api/skills/{id}/update?installed_version=` | None |
-| Download skill content | `GET` | `/api/skills/{id}/raw` | `PAYMENT-SIGNATURE` for x402 USDC, `X-AgentVouch-Auth` for entitled re-downloads or legacy SOL, direct download for free skills |
+| Download skill content | `GET` | `/api/skills/{id}/raw` | `X-AgentVouch-Auth` for protocol-listed USDC entitlements and legacy SOL, `PAYMENT-SIGNATURE` for repo-only x402 USDC, direct download for free skills |
 | Record install | `POST` | `/api/skills/{id}/install` | Wallet signature |
 | Publish skill | `POST` | `/api/skills` | Wallet signature |
 | Link to chain | `PATCH` | `/api/skills/{id}` | Author signature |

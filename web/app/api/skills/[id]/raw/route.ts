@@ -32,6 +32,11 @@ import {
   hasUsdcPurchaseEntitlement,
   recordUsdcPurchaseReceipt,
 } from "@/lib/usdcPurchases";
+import {
+  AGENTVOUCH_PROTOCOL_VERSION,
+  getAgentVouchChainContext,
+  getAgentVouchProgramId,
+} from "@/lib/protocolMetadata";
 
 type RawSkillContentRow = {
   id: string;
@@ -42,6 +47,9 @@ type RawSkillContentRow = {
   content: string;
   price_usdc_micros: string | null;
   currency_mint: string | null;
+  chain_context: string | null;
+  on_chain_protocol_version: string | null;
+  on_chain_program_id: string | null;
 };
 
 const TOKEN_PROGRAM_ID = address(
@@ -101,6 +109,20 @@ function paymentRequired402(body: X402PaymentRequiredBody) {
       "PAYMENT-REQUIRED": encodeX402PaymentRequiredHeader(body),
     },
   });
+}
+
+function isProtocolListedUsdcSkill(
+  skill: RawSkillContentRow,
+  priceMicros: bigint
+) {
+  return Boolean(
+    skill.on_chain_address &&
+      priceMicros > 0n &&
+      (skill.on_chain_program_id ?? getAgentVouchProgramId()) ===
+        getAgentVouchProgramId() &&
+      (skill.on_chain_protocol_version ?? AGENTVOUCH_PROTOCOL_VERSION) ===
+        AGENTVOUCH_PROTOCOL_VERSION
+  );
 }
 
 function buildPaymentResponseHeaders(value: X402SettleResponse) {
@@ -185,6 +207,47 @@ async function handleUsdcDirect(
     return NextResponse.json(
       { error: "USDC listing has invalid price_usdc_micros" },
       { status: 500 }
+    );
+  }
+
+  if (isProtocolListedUsdcSkill(skill, priceMicros)) {
+    const authHeader = request.headers.get("x-agentvouch-auth");
+    if (authHeader) {
+      const authResult = validateDownloadAuth(
+        authHeader,
+        skillDbId,
+        skill.on_chain_address
+      );
+      if ("response" in authResult) {
+        return authResult.response;
+      }
+
+      const entitled = await hasUsdcPurchaseEntitlement(
+        skillDbId,
+        authResult.buyerPubkey
+      ).catch(() => false);
+      if (entitled) {
+        await incrementInstalls(skillDbId);
+        return serveContent(skill.content);
+      }
+    }
+
+    return NextResponse.json(
+      {
+        error: "Direct purchase required",
+        message:
+          "This protocol-listed skill requires the on-chain purchase_skill flow. After the wallet transaction confirms, POST the signature to /api/skills/{id}/purchase/verify, then retry with X-AgentVouch-Auth.",
+        payment_flow: "direct-purchase-skill",
+        amount_micros: priceMicros.toString(),
+        currency_mint: skill.currency_mint,
+        chain_context: skill.chain_context ?? getAgentVouchChainContext(),
+        on_chain_program_id:
+          skill.on_chain_program_id ?? getAgentVouchProgramId(),
+        protocol_version:
+          skill.on_chain_protocol_version ?? AGENTVOUCH_PROTOCOL_VERSION,
+        on_chain_address: skill.on_chain_address,
+      },
+      { status: 402 }
     );
   }
 
@@ -288,6 +351,7 @@ async function handleUsdcDirect(
       recipientAta: authorUsdcAta,
       currencyMint: skill.currency_mint,
       amountMicros: transferCheck.settledAmountMicros.toString(),
+      paymentFlow: "repo-x402-usdc",
     });
 
     console.info(
@@ -409,6 +473,9 @@ export async function GET(
         s.name,
         s.price_usdc_micros,
         s.currency_mint,
+        s.chain_context,
+        s.on_chain_protocol_version,
+        s.on_chain_program_id,
         sv.content
       FROM skill_versions sv
       JOIN skills s ON s.id = sv.skill_id
