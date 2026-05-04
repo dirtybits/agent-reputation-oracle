@@ -4,7 +4,7 @@ overview: Lock the remaining protocol, custody, authority, x402, and tooling dec
 todos:
   - id: gate-x402-bridge
     content: Decide x402 bridge POC pass/fail criteria and fallback behavior
-    status: pending
+    status: completed
   - id: gate-economics
     content: Lock USDC economic constants and reputation calibration inputs
     status: pending
@@ -47,6 +47,14 @@ Milestone 3 should not begin until each gate below has a concrete decision, acce
 
 ## Gate 1 - x402 Bridge
 
+Decision:
+
+- `settle_x402_purchase` is not part of the first Milestone 3 core Anchor rewrite.
+- Milestone 3 should implement the direct `purchase_skill` USDC path as the only protocol-visible paid purchase path.
+- The program may reserve config/account fields needed for a future bridge, but no x402 bridge instruction should be enabled until the POC below passes.
+- x402 for protocol-listed paid skills remains disabled/fail-closed during devnet testing. x402 remains allowed only for repo-only/off-chain entitlement flows that are explicitly marked as not protocol-visible.
+- `/api/x402/supported` must not advertise protocol-listed paid skill support until the bridge POC passes and the API can settle through the on-chain protocol.
+
 Decision needed:
 
 - Whether `settle_x402_purchase` is included in the first Milestone 3 implementation pass or left behind a feature gate until the POC passes.
@@ -62,6 +70,12 @@ Pass criteria:
 Fallback:
 
 - If the POC fails, x402 remains repo-only/off-chain entitlement flow for paid skills until a trustless or facilitator-supported protocol call path exists.
+
+Milestone 3 implication:
+
+- Build direct USDC `purchase_skill` first.
+- Keep x402 bridge work as a separate POC/backlog item before Milestone 8 API alignment.
+- Do not let web/API flows create voucher rewards or protocol reputation from x402 receipts until an on-chain `X402SettlementReceipt` and normal `Purchase` PDA are created by a verified bridge path.
 
 ## Gate 2 - Economics And Reputation
 

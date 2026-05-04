@@ -161,6 +161,7 @@ Purchase settlement principle:
 
 x402 bridge POC pass/fail criteria:
 
+- Gate decision before Milestone 3: `settle_x402_purchase` is excluded from the first Anchor USDC rewrite pass. Direct USDC `purchase_skill` is the only protocol-visible paid purchase path until the x402 bridge POC passes.
 - Pass requires proof that `@x402/svm` and the selected facilitator can settle an exact USDC transfer into the intended protocol settlement vault pattern, including the PDA/off-curve owner case if that is the selected design.
 - Pass requires deterministic memo binding to `protocol_version`, chain context, listing address, skill database id, buyer, and nonce without storing PII or free-form user text on-chain.
 - Pass requires reliable buyer extraction (`settle.payer` or transaction authority) so the on-chain `Purchase` PDA is derived from the paying wallet, not the facilitator fee payer.
