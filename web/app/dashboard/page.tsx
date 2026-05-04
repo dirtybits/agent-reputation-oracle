@@ -12,7 +12,7 @@ import {
   navButtonSecondaryFlexClass,
   navButtonSecondaryInlineClass,
 } from "@/lib/buttonStyles";
-import { formatSolAmount } from "@/lib/pricing";
+import { formatUsdcMicros } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
 import { getConfiguredSolanaFmTxUrl } from "@/lib/chains";
 import { getAuthorDisputeLiabilityScopeLabel } from "@/lib/authorDisputes";
@@ -42,6 +42,7 @@ type MarketplaceListingRow = {
   name: string;
   description: string | null;
   on_chain_address?: string | null;
+  price_usdc_micros?: string | null;
   creatorPriceLamports?: number;
   estimatedBuyerTotalLamports?: number;
   purchasePreflightStatus?: PurchasePreflightStatus;
@@ -352,7 +353,10 @@ export default function DashboardPage() {
     }
   };
 
-  const parsePositiveSolInput = (value: string): number | null => {
+  const formatUsdc = (micros: number | bigint | string | null | undefined) =>
+    `${formatUsdcMicros(micros) ?? "0"} USDC`;
+
+  const parsePositiveUsdcInput = (value: string): number | null => {
     const amount = Number.parseFloat(value);
     if (!Number.isFinite(amount) || amount <= 0) {
       return null;
@@ -361,9 +365,9 @@ export default function DashboardPage() {
   };
 
   const handleDepositAuthorBond = async () => {
-    const amount = parsePositiveSolInput(authorBondAmount);
+    const amount = parsePositiveUsdcInput(authorBondAmount);
     if (amount === null) {
-      setStatus("Enter a bond amount greater than 0.");
+      setStatus("Enter a USDC bond amount greater than 0.");
       setStatusTx(null);
       return;
     }
@@ -384,9 +388,9 @@ export default function DashboardPage() {
   };
 
   const handleWithdrawAuthorBond = async () => {
-    const amount = parsePositiveSolInput(authorBondAmount);
+    const amount = parsePositiveUsdcInput(authorBondAmount);
     if (amount === null) {
-      setStatus("Enter a bond amount greater than 0.");
+      setStatus("Enter a USDC bond amount greater than 0.");
       setStatusTx(null);
       return;
     }
@@ -426,7 +430,14 @@ export default function DashboardPage() {
         setLoading(false);
         return;
       }
-      const { tx } = await oracle.vouch(vouchee, parseFloat(vouchAmount));
+      const amount = parsePositiveUsdcInput(vouchAmount);
+      if (amount === null) {
+        setStatus("Enter a USDC vouch amount greater than 0.");
+        setStatusTx(null);
+        setLoading(false);
+        return;
+      }
+      const { tx } = await oracle.vouch(vouchee, amount);
       setStatus("Vouch created!");
       setStatusTx(tx);
       setTimeout(loadAgentProfile, 2000);
@@ -546,8 +557,7 @@ export default function DashboardPage() {
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <FiDollarSign />{" "}
-                        {formatSolAmount(Number(agent.account.totalVouchStakeUsdcMicros))}{" "}
-                        SOL
+                        {formatUsdc(agent.account.totalVouchStakeUsdcMicros)}
                       </span>
                     </div>
                   </div>
@@ -663,12 +673,7 @@ export default function DashboardPage() {
                         External Backing
                       </span>
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
-                        {formatSolAmount(
-                          Number(agentProfile.totalVouchStakeUsdcMicros),
-                          3,
-                          4
-                        )}{" "}
-                        SOL
+                        {formatUsdc(agentProfile.totalVouchStakeUsdcMicros)}
                       </span>
                     </div>
                     <div className="flex justify-between py-3">
@@ -676,12 +681,7 @@ export default function DashboardPage() {
                         Author Bond
                       </span>
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
-                        {formatSolAmount(
-                          Number(agentProfile.authorBondUsdcMicros ?? 0),
-                          3,
-                          4
-                        )}{" "}
-                        SOL
+                        {formatUsdc(agentProfile.authorBondUsdcMicros ?? 0)}
                       </span>
                     </div>
                     <div className="flex justify-between py-3">
@@ -689,13 +689,10 @@ export default function DashboardPage() {
                         Total Stake At Risk
                       </span>
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
-                        {formatSolAmount(
+                        {formatUsdc(
                           Number(agentProfile.totalVouchStakeUsdcMicros) +
-                            Number(agentProfile.authorBondUsdcMicros ?? 0),
-                          3,
-                          4
-                        )}{" "}
-                        SOL
+                            Number(agentProfile.authorBondUsdcMicros ?? 0)
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between py-3">
@@ -750,7 +747,7 @@ export default function DashboardPage() {
                         <div className="flex flex-wrap items-end gap-2">
                           <div className="min-w-[160px] flex-1">
                             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                              Amount (SOL)
+                              Amount (USDC)
                             </label>
                             <input
                               type="number"
@@ -864,10 +861,7 @@ export default function DashboardPage() {
                                   {listing?.account.name ?? "Purchased skill"}
                                 </span>
                                 <span className="text-xs text-green-600 dark:text-green-400 font-mono">
-                                  {formatSolAmount(
-                                    Number(purchase.account.pricePaidUsdcMicros)
-                                  )}{" "}
-                                  SOL
+                                  {formatUsdc(purchase.account.pricePaidUsdcMicros)}
                                 </span>
                               </div>
                               {listing?.account.skillUri ? (
@@ -931,12 +925,8 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     {marketplaceListings.map((listing) => {
                       const canPublishVersion = !listing.id.startsWith("chain-");
-                      const sellerRentBlocked =
-                        listing.purchasePreflightStatus ===
-                        "authorPayoutRentBlocked";
-                      const creatorPrice = listing.creatorPriceLamports ?? 0;
-                      const estimatedBuyerTotal =
-                        listing.estimatedBuyerTotalLamports ?? creatorPrice;
+                      const listingPriceUsdcMicros =
+                        listing.price_usdc_micros ?? "0";
                       const downloads =
                         (listing.total_installs ?? 0) +
                         (listing.total_downloads ?? 0);
@@ -955,8 +945,7 @@ export default function DashboardPage() {
                                   {listing.name}
                                 </Link>
                                 <span className="text-xs text-green-600 dark:text-green-400 font-mono">
-                                  {formatSolAmount(creatorPrice)} SOL creator
-                                  price
+                                  {formatUsdc(listingPriceUsdcMicros)} price
                                 </span>
                               </div>
                               {listing.description && (
@@ -964,36 +953,13 @@ export default function DashboardPage() {
                                   {listing.description}
                                 </p>
                               )}
-                              {sellerRentBlocked && (
-                                <div className="mb-3 rounded-sm border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
-                                  <div className="flex items-start gap-2">
-                                    <FiAlertTriangle className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                                    <div className="min-w-0">
-                                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                                        Low-priced sales are currently blocked
-                                      </p>
-                                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                                        {listing.purchasePreflightMessage}
-                                      </p>
-                                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                                        Buyers currently see an estimated total
-                                        of{" "}
-                                        {formatSolAmount(estimatedBuyerTotal)}{" "}
-                                        SOL, but purchases will fail until this
-                                        payout wallet holds enough SOL.
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
                               <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
                                 <span className="inline-flex items-center gap-1">
                                   <FiZap /> {downloads} downloads
                                 </span>
                                 <span className="inline-flex items-center gap-1">
                                   <FiDollarSign />{" "}
-                                  {formatSolAmount(estimatedBuyerTotal)} SOL
-                                  estimated total
+                                  {formatUsdc(listingPriceUsdcMicros)} listed
                                 </span>
                               </div>
                             </div>
@@ -1044,7 +1010,7 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     {vouchesReceived.length}{" "}
                     {vouchesReceived.length === 1 ? "agent is" : "agents are"}{" "}
-                    staking SOL to vouch for you.
+                    staking USDC to vouch for you.
                   </p>
                   <div className="space-y-3">
                     {vouchesReceived.map((vouch, idx: number) => {
@@ -1060,7 +1026,7 @@ export default function DashboardPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
-                                  {(Number(stakeAmount) / 1e9).toFixed(4)} SOL
+                                  {formatUsdc(stakeAmount)}
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500">
                                   staked
@@ -1099,7 +1065,7 @@ export default function DashboardPage() {
                     You&apos;re Vouching For
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    You&apos;re currently staking SOL to vouch for{" "}
+                    You&apos;re currently staking USDC to vouch for{" "}
                     {vouches.length} {vouches.length === 1 ? "agent" : "agents"}
                     .
                   </p>
@@ -1117,7 +1083,7 @@ export default function DashboardPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-base font-bold text-green-600 dark:text-green-400 font-mono">
-                                  {(Number(stakeAmount) / 1e9).toFixed(4)} SOL
+                                  {formatUsdc(stakeAmount)}
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500">
                                   staked
@@ -1176,7 +1142,7 @@ export default function DashboardPage() {
                   Vouch for an Agent
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Stake SOL to vouch for another agent&apos;s reputation. If
+                  Stake USDC to vouch for another agent&apos;s reputation. If
                   they misbehave and lose a dispute, your stake gets slashed.
                 </p>
                 <div className="space-y-4">
@@ -1194,7 +1160,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Stake Amount (SOL)
+                      Stake Amount (USDC)
                     </label>
                     <input
                       type="number"
@@ -1212,7 +1178,7 @@ export default function DashboardPage() {
                   >
                     {loading
                       ? "Creating Vouch..."
-                      : `Vouch with ${vouchAmount} SOL`}
+                      : `Vouch with ${vouchAmount} USDC`}
                   </button>
                 </div>
               </div>
@@ -1283,12 +1249,7 @@ export default function DashboardPage() {
                           External Backing
                         </span>
                         <span className="text-sm font-mono text-gray-900 dark:text-white">
-                          {formatSolAmount(
-                            Number(searchedAgent.totalVouchStakeUsdcMicros),
-                            3,
-                            4
-                          )}{" "}
-                          SOL
+                          {formatUsdc(searchedAgent.totalVouchStakeUsdcMicros)}
                         </span>
                       </div>
                       <div className="flex justify-between py-3">
@@ -1296,12 +1257,7 @@ export default function DashboardPage() {
                           Author Bond
                         </span>
                         <span className="text-sm font-mono text-gray-900 dark:text-white">
-                          {formatSolAmount(
-                            Number(searchedAgent.authorBondUsdcMicros ?? 0),
-                            3,
-                            4
-                          )}{" "}
-                          SOL
+                          {formatUsdc(searchedAgent.authorBondUsdcMicros ?? 0)}
                         </span>
                       </div>
                       <div className="flex justify-between py-3">
@@ -1309,13 +1265,10 @@ export default function DashboardPage() {
                           Total Stake At Risk
                         </span>
                         <span className="text-sm font-mono text-gray-900 dark:text-white">
-                          {formatSolAmount(
+                          {formatUsdc(
                             Number(searchedAgent.totalVouchStakeUsdcMicros) +
-                              Number(searchedAgent.authorBondUsdcMicros ?? 0),
-                            3,
-                            4
-                          )}{" "}
-                          SOL
+                              Number(searchedAgent.authorBondUsdcMicros ?? 0)
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between py-3">
@@ -1451,10 +1404,7 @@ export default function DashboardPage() {
                                 </span>
                                 <span className="inline-flex items-center gap-1">
                                   <FiDollarSign />{" "}
-                                  {formatSolAmount(
-                                    Number(agent.account.totalVouchStakeUsdcMicros)
-                                  )}{" "}
-                                  SOL
+                                  {formatUsdc(agent.account.totalVouchStakeUsdcMicros)}
                                 </span>
                               </div>
                             </div>

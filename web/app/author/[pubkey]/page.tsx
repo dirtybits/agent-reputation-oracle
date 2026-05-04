@@ -36,7 +36,7 @@ import {
 import type { SolanaRegistryCandidate } from "@/lib/solanaAgentRegistry";
 import { SolAmount } from "@/components/SolAmount";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
-import { formatSolAmount } from "@/lib/pricing";
+import { formatSolAmount, formatUsdcMicros } from "@/lib/pricing";
 import {
   FiAlertTriangle,
   FiArrowLeft,
@@ -68,6 +68,10 @@ function formatSol(lamports: number): string {
   return formatSolAmount(lamports);
 }
 
+function formatUsdc(micros: number | bigint | string | null | undefined): string {
+  return formatUsdcMicros(micros) ?? "0";
+}
+
 function formatDate(isoOrTimestamp: string | number): string {
   const d =
     typeof isoOrTimestamp === "number"
@@ -97,6 +101,7 @@ interface RepoSkill {
   total_downloads?: number;
   total_revenue?: number;
   price_lamports?: number;
+  price_usdc_micros?: string | null;
   on_chain_address?: string;
   source?: "repo" | "chain";
   created_at: string;
@@ -316,7 +321,7 @@ export default function AuthorProfilePage() {
     if (!connected) return;
     const amount = parseFloat(vouchAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      setVouchStatus("Error: Enter a valid stake amount in SOL.");
+      setVouchStatus("Error: Enter a valid stake amount in USDC.");
       setVouchTx(null);
       setPendingVouchAfterRegister(false);
       return;
@@ -630,12 +635,12 @@ export default function AuthorProfilePage() {
     return authorSkillListings
       .map((listing) => {
         const listingAddress = String(listing.publicKey);
-        const unclaimedRevenueLamports = BigInt(
+        const unclaimedRevenueUsdcMicros = BigInt(
           listing.account.unclaimedVoucherRevenueUsdcMicros ?? 0
         );
-        const estimatedShareLamports =
+        const estimatedShareUsdcMicros =
           totalStaked > 0n
-            ? (unclaimedRevenueLamports * voucherStake) / totalStaked
+            ? (unclaimedRevenueUsdcMicros * voucherStake) / totalStaked
             : 0n;
         const matchedSkill =
           repoSkills.find(
@@ -650,14 +655,12 @@ export default function AuthorProfilePage() {
             listing.account.name ??
             `Skill ${shortAddr(listingAddress)}`,
           listingLamports: listing.lamports,
-          unclaimedRevenueLamports: Number(unclaimedRevenueLamports),
-          estimatedShareLamports: Number(estimatedShareLamports),
-          accountingMismatch:
-            Number(unclaimedRevenueLamports) > listing.lamports ||
-            Number(estimatedShareLamports) > listing.lamports,
+          unclaimedRevenueUsdcMicros: Number(unclaimedRevenueUsdcMicros),
+          estimatedShareUsdcMicros: Number(estimatedShareUsdcMicros),
+          accountingMismatch: false,
         };
       })
-      .filter((listing) => listing.unclaimedRevenueLamports > 0);
+      .filter((listing) => listing.unclaimedRevenueUsdcMicros > 0);
   }, [
     authorSkillListings,
     chainSkills,
@@ -1200,7 +1203,7 @@ export default function AuthorProfilePage() {
                     </p>
                     <p>Liability: {dispute.liabilityScopeLabel}</p>
                     <p>
-                      Skill price at dispute open:{" "}
+                      Legacy skill price at dispute open:{" "}
                       {formatSol(dispute.skillPriceLamportsSnapshot)} SOL
                     </p>
                     <p>
@@ -1419,7 +1422,7 @@ export default function AuthorProfilePage() {
             },
             {
               label: "Total Revenue",
-              value: `${formatSol(totalRevenue)} SOL`,
+              value: `${formatUsdc(totalRevenue)} USDC`,
               icon: <FiTrendingUp />,
             },
             {
@@ -1455,7 +1458,7 @@ export default function AuthorProfilePage() {
               Author
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Stake SOL behind this author&apos;s reputation. Vouchers earn 40%
+              Stake USDC behind this author&apos;s reputation. Vouchers earn 40%
               of author revenue.
             </p>
 
@@ -1471,7 +1474,7 @@ export default function AuthorProfilePage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Stake Amount (SOL)
+                      Stake Amount (USDC)
                     </label>
                     <input
                       type="number"
@@ -1503,7 +1506,7 @@ export default function AuthorProfilePage() {
                     >
                       {registering
                         ? "Preparing..."
-                        : `Vouch with ${vouchAmount} SOL`}
+                        : `Vouch with ${vouchAmount} USDC`}
                     </button>
                   ) : (
                     <button
@@ -1513,7 +1516,7 @@ export default function AuthorProfilePage() {
                     >
                       {vouching
                         ? "Vouching..."
-                        : `Vouch with ${vouchAmount} SOL`}
+                        : `Vouch with ${vouchAmount} USDC`}
                     </button>
                   )}
                 </div>
@@ -1562,9 +1565,9 @@ export default function AuthorProfilePage() {
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               You are backing this author with{" "}
-              {formatSol(Number(viewerVouch.account.stakeUsdcMicros))} SOL.
+              {formatUsdc(viewerVouch.account.stakeUsdcMicros)} USDC.
               Claiming uses the existing on-chain `claim_voucher_revenue`
-              instruction and only applies to legacy SOL purchases.
+              instruction.
             </p>
 
             {!viewerVouchIsActive ? (
@@ -1577,7 +1580,7 @@ export default function AuthorProfilePage() {
             ) : claimableVoucherRevenue.length === 0 ? (
               <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  No claimable SOL voucher revenue is available for this
+                  No claimable USDC voucher revenue is available for this
                   author&apos;s listings right now.
                 </p>
               </div>
@@ -1599,13 +1602,13 @@ export default function AuthorProfilePage() {
                         <div className="text-sm text-gray-500 dark:text-gray-400">
                           Unclaimed pool:{" "}
                           <span className="font-mono text-gray-900 dark:text-white">
-                            {formatSol(listing.unclaimedRevenueLamports)} SOL
+                            {formatUsdc(listing.unclaimedRevenueUsdcMicros)} USDC
                           </span>
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
                           Your estimated share:{" "}
                           <span className="font-mono text-gray-900 dark:text-white">
-                            {formatSol(listing.estimatedShareLamports)} SOL
+                            {formatUsdc(listing.estimatedShareUsdcMicros)} USDC
                           </span>
                         </div>
                         {listing.accountingMismatch && (
@@ -1623,7 +1626,7 @@ export default function AuthorProfilePage() {
                         }
                         disabled={
                           claimingRevenueListing === listing.listingAddress ||
-                          listing.estimatedShareLamports <= 0 ||
+                          listing.estimatedShareUsdcMicros <= 0 ||
                           listing.accountingMismatch
                         }
                         className={navButtonPrimaryInlineClass}
@@ -1699,14 +1702,19 @@ export default function AuthorProfilePage() {
                       <h3 className="font-heading font-bold text-gray-900 dark:text-white text-sm truncate">
                         {skill.name}
                       </h3>
-                      {skill.price_lamports && skill.price_lamports > 0 && (
+                      {skill.price_usdc_micros ? (
                         <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">
+                          {formatUsdc(skill.price_usdc_micros)} USDC
+                        </span>
+                      ) : skill.price_lamports && skill.price_lamports > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-gray-300 shrink-0">
+                          Legacy
                           <SolAmount
                             amount={formatSol(skill.price_lamports)}
                             iconClassName="w-3 h-3"
                           />
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     {skill.description && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
@@ -1739,6 +1747,7 @@ export default function AuthorProfilePage() {
                 .map((skill) => {
                   const downloads = skill.total_downloads ?? 0;
                   const price = skill.price_lamports ?? 0;
+                  const priceUsdcMicros = skill.price_usdc_micros ?? null;
                   return (
                     <Link
                       key={skill.id}
@@ -1749,14 +1758,19 @@ export default function AuthorProfilePage() {
                         <h3 className="font-heading font-bold text-gray-900 dark:text-white text-sm truncate">
                           {skill.name || "Untitled"}
                         </h3>
-                        {price > 0 && (
+                        {priceUsdcMicros ? (
                           <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">
+                            {formatUsdc(priceUsdcMicros)} USDC
+                          </span>
+                        ) : price > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-gray-300 shrink-0">
+                            Legacy
                             <SolAmount
                               amount={formatSol(price)}
                               iconClassName="w-3 h-3"
                             />
                           </span>
-                        )}
+                        ) : null}
                       </div>
                       {skill.description && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
@@ -1837,7 +1851,7 @@ export default function AuthorProfilePage() {
 
                       <div className="flex flex-col items-end gap-2">
                         <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">
-                          {formatSol(Number(stakeAmount))} SOL
+                          {formatUsdc(stakeAmount)} USDC
                         </span>
                         {includedInAuthorWideReports && !isOwnProfile && (
                           <span className="text-[11px] text-gray-400 dark:text-gray-500 text-right max-w-[11rem]">
@@ -1902,7 +1916,7 @@ export default function AuthorProfilePage() {
                       </div>
 
                       <span className="text-sm font-bold text-green-600 dark:text-green-400 font-mono">
-                        {formatSol(Number(stakeAmount))} SOL
+                        {formatUsdc(stakeAmount)} USDC
                       </span>
                     </div>
                   </div>

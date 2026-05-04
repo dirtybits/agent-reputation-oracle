@@ -142,6 +142,10 @@ function formatSol(lamports: number): string {
   return formatSolAmount(lamports);
 }
 
+function formatUsdc(micros: number | bigint | string | null | undefined): string {
+  return formatUsdcMicros(micros) ?? "0";
+}
+
 function shortAddr(addr: string): string {
   return addr.slice(0, 4) + "..." + addr.slice(-4);
 }
@@ -163,6 +167,7 @@ function isBlockingPurchaseStatus(
 ) {
   return (
     status === "buyerInsufficientBalance" ||
+    status === "buyerMissingUsdcAccount" ||
     status === "authorPayoutRentBlocked"
   );
 }
@@ -910,7 +915,8 @@ export default function MarketplacePage() {
                               {formatUsdcMicros(item.priceUsdcMicros)} USDC
                             </span>
                           ) : item.priceLamports && item.priceLamports > 0 ? (
-                            <span className="text-xs font-mono text-green-600 dark:text-green-400">
+                            <span className="text-xs font-mono text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
+                              Legacy
                               <SolAmount
                                 amount={formatSol(item.priceLamports)}
                                 iconClassName="w-3 h-3"
@@ -980,13 +986,9 @@ export default function MarketplacePage() {
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Purchased{" "}
                           {formatDate(Number(purchase.account.purchasedAt))} ·{" "}
-                          <SolAmount
-                            amount={formatSol(
-                              Number(purchase.account.pricePaidUsdcMicros)
-                            )}
-                            className="font-mono text-gray-900 dark:text-white"
-                            iconClassName="w-3 h-3"
-                          />
+                          <span className="font-mono text-gray-900 dark:text-white">
+                            {formatUsdc(purchase.account.pricePaidUsdcMicros)} USDC
+                          </span>
                         </p>
                       </div>
                       {listing?.account.skillUri && (
@@ -1054,12 +1056,7 @@ export default function MarketplacePage() {
                   const price = Number(listing.account.priceUsdcMicros);
                   const downloads = Number(listing.account.totalDownloads);
                   const revenue = Number(listing.account.totalRevenueUsdcMicros);
-                  const authorEarnings = revenue * 0.6;
-                  const sellerRentBlocked =
-                    listingDetail?.purchasePreflightStatus ===
-                    "authorPayoutRentBlocked";
-                  const estimatedBuyerTotal =
-                    listingDetail?.estimatedBuyerTotalLamports ?? price;
+                  const authorEarnings = Math.floor(revenue * 0.6);
 
                   return (
                     <div
@@ -1071,36 +1068,15 @@ export default function MarketplacePage() {
                           {listing.account.name}
                         </h3>
                         <span className="text-green-600 dark:text-green-400 font-mono font-bold">
-                          <SolAmount
-                            amount={formatSol(price)}
-                            iconClassName="w-3.5 h-3.5"
-                          />
+                          <span className="inline-flex items-center gap-1">
+                            <UsdcIcon className="w-3.5 h-3.5" />
+                            {formatUsdc(price)} USDC
+                          </span>
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         {listing.account.description}
                       </p>
-                      {sellerRentBlocked && (
-                        <div className="mb-3 rounded-sm border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
-                          <div className="flex items-start gap-2">
-                            <FiAlertTriangle className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                                Low-priced sales are currently blocked
-                              </p>
-                              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                                {listingDetail?.purchasePreflightMessage}
-                              </p>
-                              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                                Buyers currently see an estimated total of{" "}
-                                {formatSol(estimatedBuyerTotal)} SOL, but
-                                purchases will fail until this payout wallet
-                                holds enough SOL.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                       <div className="flex gap-4 text-sm">
                         <span className="text-gray-500 dark:text-gray-400">
                           <span className="inline-flex items-center gap-1">
@@ -1109,8 +1085,8 @@ export default function MarketplacePage() {
                         </span>
                         <span className="text-green-600 dark:text-green-400 font-mono">
                           <span className="inline-flex items-center gap-1">
-                            <FiTrendingUp /> {formatSol(revenue)} SOL total (
-                            {formatSol(authorEarnings)} your share)
+                            <FiTrendingUp /> {formatUsdc(revenue)} USDC total (
+                            {formatUsdc(authorEarnings)} your share)
                           </span>
                         </span>
                       </div>
