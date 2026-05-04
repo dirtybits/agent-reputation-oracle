@@ -4,28 +4,28 @@ overview: "Align API, x402, receipts, entitlements, and direct purchase indexing
 todos:
   - id: m8-schema
     content: Add protocol metadata and receipt audit schema for skills, USDC receipts, and entitlements
-    status: pending
+    status: completed
   - id: m8-direct-verify
     content: Add a direct purchase verification endpoint that turns confirmed v0.2.0 purchase_skill transactions into download entitlements
-    status: pending
+    status: completed
   - id: m8-api-read-paths
     content: Update skill API read paths, signed download checks, and activity feeds to use protocol metadata and direct-purchase entitlements
-    status: pending
+    status: completed
   - id: m8-x402-gating
     content: Make /api/x402/supported fail-closed for protocol-listed paid skills unless bridge support is explicitly enabled
-    status: pending
+    status: completed
   - id: m8-bridge-poc
     content: Build and document the x402 bridge POC decision path without enabling protocol-listed x402 by default
-    status: pending
+    status: completed
   - id: m8-wallet-ui
     content: Gate browser x402 by wallet capability and route unsupported wallets to direct purchase or agent/API fallback
-    status: pending
+    status: completed
   - id: m8-observability-tests
     content: Add logging/tests for entitlement writes, verification failures, x402 support metadata, and raw download access
-    status: pending
+    status: completed
   - id: m8-verify
     content: Run Milestone 8 grep, targeted tests, and npm run build --workspace @agentvouch/web
-    status: pending
+    status: completed
 isProject: false
 ---
 

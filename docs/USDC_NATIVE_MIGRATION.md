@@ -275,7 +275,7 @@ Cutover rules:
 - Do not expose new program ID-dependent wallet flows in production until Phantom connect, direct checkout, and embedded/send-only wallet fallback behavior are verified.
 - Do not expose a half-cutover state where public docs or manifests point at `CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW` before the program has been deployed and initialized on the intended cluster.
 - During transition, APIs and trust surfaces may dual-read `v0.1.0` and `v0.2.0`, but new writes hard-cut to `v0.2.0` only after direct purchase indexing, entitlement repair/backfill, and smoke tests pass.
-- Rollback path: keep `main` deploy-safe for the current v0.1 flow until Milestone 10 passes. If cutover smoke fails after a preview deploy, roll production metadata and write flags back to the current v0.1 flow; do not partially roll forward public manifests.
+- Rollback path: keep `main` deploy-safe for the current v0.1 flow until Milestone 11 passes. If cutover smoke fails after a preview deploy, roll production metadata and write flags back to the current v0.1 flow; do not partially roll forward public manifests.
 - `/api/x402/supported` remains fail-closed for protocol-listed paid skills until the x402 bridge POC passes; repo-only/off-chain x402 support must be labeled as not protocol-visible.
 - Keep private deploy keypairs out of git. Commit only source, docs, generated IDL/client artifacts, and public constants.
 
@@ -780,7 +780,50 @@ rg "legacy-sol|purchaseSkill|hasOnChainPurchase|x402-usdc" web/app/api web/lib w
 npm run build --workspace @agentvouch/web
 ```
 
-### Milestone 9: Docs, CLI, And Skill File
+### Milestone 9: Database Cutover
+
+Goal: move `v0.2.0` onto a clean database branch or database while keeping the current database available as an archive and rollback point.
+
+Decision:
+
+- Prefer a fresh Neon branch or fresh database for the `v0.2.0` cutover over parallel `*_v2` tables in the current production database.
+- Keep the idempotent in-place bootstrap code from Milestone 8 because it protects local, preview, and staged databases that already contain rows.
+- Do not carry old devnet purchase, receipt, or entitlement state into the clean `v0.2.0` production cutover unless there is an explicit user-facing reason.
+- Treat the old database as read-only archive/rollback after cutover.
+
+Tasks:
+
+- Create a fresh Neon branch or database for `v0.2.0`.
+- Run the app bootstrap against the new database so the `skills`, `skill_versions`, `usdc_purchase_receipts`, and `usdc_purchase_entitlements` schema is created with Milestone 8 metadata fields.
+- Decide which durable rows migrate:
+  - repo-backed skills and versions that should remain listed
+  - author identity/profile cache rows that are still useful
+  - API keys only if they are intended to survive the protocol cutover
+  - no legacy devnet purchases, legacy receipts, or stale entitlement rows by default
+- Add a one-off migration/export script or runbook for selected rows rather than branching every API query by old/new table names.
+- Verify migrated repo skills get correct `chain_context`, `on_chain_protocol_version`, `on_chain_program_id`, `price_usdc_micros`, `currency_mint`, and `on_chain_address` behavior.
+- Point preview Vercel envs to the new database first.
+- Smoke-test publish, listing link, direct purchase verification, raw download entitlement, `/api/skills`, `/api/skills/[id]`, `/api/skills/activity`, and `/api/x402/supported` against the new database.
+- At cutover, point production `DATABASE_URL` to the new database and keep the old database credentials archived but inactive.
+- Document rollback: restore production `DATABASE_URL` to the old database and roll back public metadata/write flags together if cutover smoke fails.
+
+Acceptance criteria:
+
+- The v0.2.0 app can boot and serve marketplace APIs from the new database without relying on old production rows.
+- Selected durable skills and versions are present and correctly tagged with protocol metadata.
+- Old devnet purchase/entitlement state does not grant access in the new database unless deliberately migrated.
+- Production and preview database env vars are documented and point to the intended Neon branch/database.
+- The old database is preserved as archive/rollback and not modified by the v0.2.0 cutover.
+
+Verification:
+
+```bash
+npm run build --workspace @agentvouch/web
+curl -s http://localhost:3000/api/skills | jq '.skills[:3]'
+curl -s http://localhost:3000/api/x402/supported | jq
+```
+
+### Milestone 10: Docs, CLI, And Skill File
 
 Goal: make public and agent-facing docs match the new protocol.
 
@@ -811,7 +854,7 @@ rg "0.001 SOL|price_lamports|lamports|legacy SOL|ELmVnLSN" docs web/public packa
 npm run build --workspace @agentvouch/web
 ```
 
-### Milestone 10: Devnet Deploy And Smoke Test
+### Milestone 11: Devnet Deploy And Smoke Test
 
 Goal: deploy `v0.2.0` to devnet and verify the full flow.
 
@@ -886,7 +929,7 @@ Spam and abuse checks:
 ## Branch And Worktree Convention
 
 - Land the rewrite on a dedicated branch (`feat/usdc-native-v0.2.0`) or git worktree, not directly on `main`.
-- Keep `main` deploy-safe for the existing `v0.1.0` devnet program until Milestone 10 passes.
+- Keep `main` deploy-safe for the existing `v0.1.0` devnet program until Milestone 11 passes.
 - Squash-merge or rebase-merge into `main` only after devnet smoke tests are green and docs/CLI/skill.md are aligned.
 
 ## Open Questions And Risk Register
