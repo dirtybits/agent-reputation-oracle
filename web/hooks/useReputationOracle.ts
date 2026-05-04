@@ -34,7 +34,6 @@ import {
   fetchMaybeReputationConfig,
   fetchMaybeSkillListing,
   fetchMaybeVouch,
-  fetchVouch,
   decodeReputationConfig,
   getAuthorDisputeDecoder,
   getOpenAuthorDisputeInstructionAsync,
@@ -86,8 +85,19 @@ import {
 import { getErrorMessage } from "@/lib/errors";
 import { normalizeRegisteredAt } from "@/lib/registeredAt";
 import { wrapRpcLookupError } from "@/lib/rpcErrors";
+import { getConfiguredUsdcMint } from "@/lib/x402";
+import {
+  assertUsdcAccountReady,
+  fetchAssociatedTokenAccountState,
+  formatUsdcMicrosValue,
+  getAssociatedTokenAccount,
+  getCreateAssociatedTokenAccountIdempotentInstruction,
+  logTransactionSummary,
+  TOKEN_PROGRAM_ID,
+  usdcToMicros,
+  type AgentVouchTransactionSummary,
+} from "@/lib/agentvouchUsdc";
 
-const LAMPORTS_PER_SOL = 1_000_000_000n;
 const ENDPOINT =
   process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
 const rpc = createSolanaRpc(ENDPOINT);
@@ -124,11 +134,12 @@ export function normalizeInstructionForSend(
 }
 
 export function buildTransactionSendRequest(
-  ix: SendInstruction,
+  ix: SendInstruction | readonly SendInstruction[],
   authority: TransactionSigner
 ): TransactionPrepareAndSendRequest {
+  const instructions = Array.isArray(ix) ? ix : [ix];
   return {
-    instructions: [normalizeInstructionForSend(ix)],
+    instructions: instructions.map(normalizeInstructionForSend),
     authority,
   };
 }
@@ -138,8 +149,9 @@ type StakeClusterGuardAssessment =
       action: "vouch";
       walletAddress: Address;
       voucheeProfileExists: boolean;
-      walletBalanceLamports: bigint | null;
-      requiredLamports: bigint;
+      walletUsdcBalanceMicros: bigint | null;
+      hasUsdcAccount: boolean | null;
+      requiredUsdcMicros: bigint;
       configuredChainLabel?: string;
       configuredRpcTarget?: string;
     }
@@ -180,7 +192,9 @@ type OpenAuthorDisputeClusterGuardAssessment = ClusterGuardContext & {
   purchaseExists: boolean;
   purchaseMatchesSkillListing: boolean;
   walletBalanceLamports: bigint | null;
-  disputeBondLamports: bigint | null;
+  walletUsdcBalanceMicros: bigint | null;
+  hasUsdcAccount: boolean | null;
+  disputeBondUsdcMicros: bigint | null;
 };
 
 type ResolveAuthorDisputeClusterGuardAssessment = ClusterGuardContext & {
@@ -217,17 +231,22 @@ export function getStakeClusterGuardError(
   }
 
   if (assessment.action === "vouch") {
+    if (assessment.hasUsdcAccount === false) {
+      return `Connected wallet ${shortAddress(
+        assessment.walletAddress
+      )} does not have a USDC token account on the configured ${configuredNetwork}. Fund the wallet with USDC on this cluster and retry.`;
+    }
     if (
-      assessment.walletBalanceLamports !== null &&
-      assessment.walletBalanceLamports < assessment.requiredLamports
+      assessment.walletUsdcBalanceMicros !== null &&
+      assessment.walletUsdcBalanceMicros < assessment.requiredUsdcMicros
     ) {
       return `Connected wallet ${shortAddress(
         assessment.walletAddress
-      )} has ${formatLamportsAsSol(
-        assessment.walletBalanceLamports
-      )} SOL on the configured ${configuredNetwork}. This vouch needs about ${formatLamportsAsSol(
-        assessment.requiredLamports
-      )} SOL plus network fees. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+      )} has ${formatUsdcMicrosValue(
+        assessment.walletUsdcBalanceMicros
+      )} USDC on the configured ${configuredNetwork}. This vouch needs ${formatUsdcMicrosValue(
+        assessment.requiredUsdcMicros
+      )} USDC plus SOL for network fees.`;
     }
     return null;
   }
@@ -302,17 +321,28 @@ export function getOpenAuthorDisputeClusterGuardError(
   }
 
   if (
-    assessment.walletBalanceLamports !== null &&
-    assessment.disputeBondLamports !== null &&
-    assessment.walletBalanceLamports < assessment.disputeBondLamports
+    assessment.hasUsdcAccount === false &&
+    assessment.disputeBondUsdcMicros !== null
   ) {
     return `Connected wallet ${shortAddress(
       assessment.walletAddress
-    )} has ${formatLamportsAsSol(
-      assessment.walletBalanceLamports
-    )} SOL on the configured ${configuredNetwork}. Opening this author dispute needs about ${formatLamportsAsSol(
-      assessment.disputeBondLamports
-    )} SOL plus network fees. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+    )} does not have a USDC token account on the configured ${configuredNetwork}. Opening this author dispute needs ${formatUsdcMicrosValue(
+      assessment.disputeBondUsdcMicros
+    )} USDC plus SOL for network fees.`;
+  }
+
+  if (
+    assessment.walletUsdcBalanceMicros !== null &&
+    assessment.disputeBondUsdcMicros !== null &&
+    assessment.walletUsdcBalanceMicros < assessment.disputeBondUsdcMicros
+  ) {
+    return `Connected wallet ${shortAddress(
+      assessment.walletAddress
+    )} has ${formatUsdcMicrosValue(
+      assessment.walletUsdcBalanceMicros
+    )} USDC on the configured ${configuredNetwork}. Opening this author dispute needs ${formatUsdcMicrosValue(
+      assessment.disputeBondUsdcMicros
+    )} USDC plus SOL for network fees.`;
   }
 
   return null;
@@ -398,11 +428,39 @@ async function getAuthorBondPDA(authorKey: Address): Promise<Address> {
   return deriveAddress(["author_bond", authorKey]);
 }
 
+async function getAuthorBondVaultAuthorityPDA(
+  authorKey: Address
+): Promise<Address> {
+  return deriveAddress(["author_bond_vault_authority", authorKey]);
+}
+
+async function getAuthorBondVaultPDA(authorKey: Address): Promise<Address> {
+  return deriveAddress(["author_bond_vault", authorKey]);
+}
+
 async function getVouchPDA(
   voucherProfile: Address,
   voucheeProfile: Address
 ): Promise<Address> {
   return deriveAddress(["vouch", voucherProfile, voucheeProfile]);
+}
+
+async function getVouchVaultAuthorityPDA(
+  voucherProfile: Address,
+  voucheeProfile: Address
+): Promise<Address> {
+  return deriveAddress([
+    "vouch_vault_authority",
+    voucherProfile,
+    voucheeProfile,
+  ]);
+}
+
+async function getVouchVaultPDA(
+  voucherProfile: Address,
+  voucheeProfile: Address
+): Promise<Address> {
+  return deriveAddress(["vouch_vault", voucherProfile, voucheeProfile]);
 }
 
 async function getConfigPDA(): Promise<Address> {
@@ -439,6 +497,36 @@ async function getAuthorDisputeVouchLinkPDA(
   return derived;
 }
 
+async function getDisputeBondVaultAuthorityPDA(
+  author: Address,
+  disputeId: number | bigint
+): Promise<Address> {
+  const [derived] = await getProgramDerivedAddress({
+    programAddress: AGENTVOUCH_PROGRAM_ADDRESS,
+    seeds: [
+      textEncoder.encode("dispute_bond_vault_authority"),
+      addressEncoder.encode(author),
+      encodeU64LE(disputeId),
+    ],
+  });
+  return derived;
+}
+
+async function getDisputeBondVaultPDA(
+  author: Address,
+  disputeId: number | bigint
+): Promise<Address> {
+  const [derived] = await getProgramDerivedAddress({
+    programAddress: AGENTVOUCH_PROGRAM_ADDRESS,
+    seeds: [
+      textEncoder.encode("dispute_bond_vault"),
+      addressEncoder.encode(author),
+      encodeU64LE(disputeId),
+    ],
+  });
+  return derived;
+}
+
 async function getSkillListingPDA(
   author: Address,
   skillId: string
@@ -460,6 +548,41 @@ async function getPurchasePDA(
   skillListing: Address
 ): Promise<Address> {
   return deriveAddress(["purchase", buyer, skillListing]);
+}
+
+async function getRewardVaultAuthorityPDA(skillListing: Address): Promise<Address> {
+  return deriveAddress(["listing_reward_vault_authority", skillListing]);
+}
+
+async function getRewardVaultPDA(skillListing: Address): Promise<Address> {
+  return deriveAddress(["listing_reward_vault", skillListing]);
+}
+
+async function getListingVouchPositionPDA(
+  skillListing: Address,
+  vouch: Address
+): Promise<Address> {
+  return deriveAddress(["listing_vouch_position", skillListing, vouch]);
+}
+
+async function getProtocolTreasuryVaultPDA(): Promise<Address> {
+  return deriveAddress(["treasury_vault"]);
+}
+
+async function getProtocolConfig() {
+  const config = await getConfigPDA();
+  const maybeConfig = await fetchMaybeReputationConfig(rpc, config).catch(
+    () => null
+  );
+  return {
+    config,
+    data: maybeConfig?.exists ? maybeConfig.data : null,
+  };
+}
+
+async function getProtocolUsdcMint(): Promise<Address> {
+  const protocolConfig = await getProtocolConfig();
+  return protocolConfig.data?.usdcMint ?? address(getConfiguredUsdcMint());
 }
 
 function sleep(ms: number) {
@@ -501,7 +624,7 @@ export async function resolveSkillListingAccounts(
 }
 
 function formatLamportsAsSol(lamports: bigint) {
-  const sol = Number(lamports) / Number(LAMPORTS_PER_SOL);
+  const sol = Number(lamports) / 1_000_000_000;
   const decimals = sol >= 1 ? 4 : 6;
   return sol.toFixed(decimals).replace(/\.?0+$/, "");
 }
@@ -527,14 +650,16 @@ async function estimatePurchasePreflight(
 ): Promise<PurchasePreflightAssessment> {
   const listing = await fetchMaybeSkillListing(rpc, skillListing);
   if (!listing.exists) throw new Error("Skill listing not found on-chain");
+  const usdcMint = await getProtocolUsdcMint();
   const context = await createPurchasePreflightContext({
     rpc,
     buyer,
+    usdcMint,
     authors: [author],
   });
   return assessPurchasePreflight({
     context,
-    priceLamports: BigInt(listing.data.priceUsdcMicros),
+    priceUsdcMicros: BigInt(listing.data.priceUsdcMicros),
     author,
   });
 }
@@ -546,11 +671,11 @@ function buildPurchaseBalanceError(
   const configuredNetwork = `${getConfiguredSolanaChainDisplayLabel()} (${getConfiguredSolanaRpcTargetLabel()} RPC)`;
   return `Connected wallet ${shortAddress(
     walletAddress
-  )} has ${formatLamportsAsSol(
-    estimate.buyerBalanceLamports ?? 0n
-  )} SOL on the configured ${configuredNetwork}. Buying this skill needs about ${formatLamportsAsSol(
-    estimate.estimatedBuyerTotalLamports
-  )} SOL including rent for the purchase record.`;
+  )} has ${formatUsdcMicrosValue(
+    estimate.buyerUsdcBalanceMicros ?? 0n
+  )} USDC on the configured ${configuredNetwork}. Buying this skill needs ${formatUsdcMicrosValue(
+    estimate.creatorPriceUsdcMicros
+  )} USDC plus SOL for receipt rent and network fees.`;
 }
 
 function buildPurchaseClusterMismatchError(
@@ -562,7 +687,7 @@ function buildPurchaseClusterMismatchError(
     walletAddress
   )} has ${formatLamportsAsSol(
     estimate.buyerBalanceLamports ?? 0n
-  )} SOL on the configured ${configuredNetwork}. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+  )} SOL for fees on the configured ${configuredNetwork}. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
 }
 
 function sanitizeAgentProfile(profile: AgentProfile): AgentProfile {
@@ -589,7 +714,7 @@ async function assertStakeActionClusterReady(
         action: "vouch";
         walletAddress: Address;
         voucheeProfile: Address;
-        requiredLamports: bigint;
+        requiredUsdcMicros: bigint;
       }
     | {
         action: "revoke";
@@ -604,17 +729,23 @@ async function assertStakeActionClusterReady(
     ).catch(() => null);
 
     if (input.action === "vouch") {
-      const [voucheeProfileAccount, walletBalanceLamports] = await Promise.all([
+      const usdcMint = await getProtocolUsdcMint();
+      const [voucheeProfileAccount, usdcAccountState] = await Promise.all([
         voucheeProfileAccountPromise,
-        getWalletBalanceLamports(input.walletAddress).catch(() => null),
+        fetchAssociatedTokenAccountState(rpc, input.walletAddress, usdcMint).catch(
+          () => null
+        ),
       ]);
 
       const guardError = getStakeClusterGuardError({
         action: "vouch",
         walletAddress: input.walletAddress,
         voucheeProfileExists: !!voucheeProfileAccount?.exists,
-        walletBalanceLamports,
-        requiredLamports: input.requiredLamports,
+        walletUsdcBalanceMicros: usdcAccountState?.exists
+          ? usdcAccountState.amount
+          : null,
+        hasUsdcAccount: usdcAccountState ? usdcAccountState.exists : null,
+        requiredUsdcMicros: input.requiredUsdcMicros,
       });
       if (guardError) throw new ClusterGuardError(guardError);
       return;
@@ -744,6 +875,7 @@ async function assertOpenAuthorDisputeClusterReady(input: {
       maybePurchase,
       maybeConfig,
       walletBalanceLamports,
+      usdcAccountState,
     ] = await Promise.all([
       fetchMaybeAgentProfile(rpc, authorProfile).catch(() => null),
       fetchMaybeAuthorDispute(rpc, authorDispute).catch(() => null),
@@ -755,6 +887,11 @@ async function assertOpenAuthorDisputeClusterReady(input: {
         : Promise.resolve(null),
       fetchMaybeReputationConfig(rpc, configPda).catch(() => null),
       getWalletBalanceLamports(input.walletAddress).catch(() => null),
+      getProtocolUsdcMint()
+        .then((usdcMint) =>
+          fetchAssociatedTokenAccountState(rpc, input.walletAddress, usdcMint)
+        )
+        .catch(() => null),
     ]);
 
     const guardError = getOpenAuthorDisputeClusterGuardError({
@@ -776,7 +913,11 @@ async function assertOpenAuthorDisputeClusterReady(input: {
         (!!maybePurchase?.exists &&
           maybePurchase.data.skillListing === input.skillListing),
       walletBalanceLamports,
-      disputeBondLamports: maybeConfig?.exists
+      walletUsdcBalanceMicros: usdcAccountState?.exists
+        ? usdcAccountState.amount
+        : null,
+      hasUsdcAccount: usdcAccountState ? usdcAccountState.exists : null,
+      disputeBondUsdcMicros: maybeConfig?.exists
         ? BigInt(maybeConfig.data.disputeBondUsdcMicros)
         : null,
     });
@@ -877,10 +1018,14 @@ export function useReputationOracle() {
   }, [connected, wallet]);
 
   const sendIx = useCallback(
-    async (ix: SendInstruction) => {
+    async (
+      ix: SendInstruction | readonly SendInstruction[],
+      summary?: AgentVouchTransactionSummary
+    ) => {
       if (!walletAddress || !signer) throw new Error("Wallet not connected");
       const request = buildTransactionSendRequest(ix, signer);
       try {
+        if (summary) logTransactionSummary(summary);
         const sig = await frameworkSend(request);
         const txSignature = signature(String(sig));
         await waitForConfirmedSignature(txSignature);
@@ -948,68 +1093,159 @@ export function useReputationOracle() {
   );
 
   const depositAuthorBond = useCallback(
-    async (amount: number) => {
+    async (amountUsdc: number) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
       await assertBondConfigClusterReady();
       const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
-      const [authorProfile, authorBond, config] = await Promise.all([
+      const amountUsdcMicros = usdcToMicros(amountUsdc);
+      const usdcMint = await getProtocolUsdcMint();
+      const [
+        authorProfile,
+        authorBond,
+        config,
+        authorUsdcAccount,
+        authorBondVaultAuthority,
+        authorBondVault,
+      ] = await Promise.all([
         getAgentPDA(authorAddress),
         getAuthorBondPDA(authorAddress),
         getConfigPDA(),
+        getAssociatedTokenAccount(authorAddress, usdcMint),
+        getAuthorBondVaultAuthorityPDA(authorAddress),
+        getAuthorBondVaultPDA(authorAddress),
       ]);
-      const lamports = BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL)));
-      const ix = await (getDepositAuthorBondInstructionAsync as any)({
+      await assertUsdcAccountReady({
+        rpc,
+        owner: authorAddress,
+        mint: usdcMint,
+        purpose: "Author bond deposit",
+        minimumBalanceUsdcMicros: amountUsdcMicros,
+      });
+      const ix = await getDepositAuthorBondInstructionAsync({
         authorBond,
         authorProfile,
         config,
+        usdcMint,
+        authorUsdcAccount,
+        authorBondVaultAuthority,
+        authorBondVault,
         author: signer,
-        amount: lamports,
+        amountUsdcMicros,
       });
-      return { tx: await sendIx(ix), authorBond };
+      const summary = {
+        action: "Deposit author bond",
+        token: "USDC" as const,
+        amountUsdcMicros,
+        vault: authorBondVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
+      return { tx: await sendIx(ix, summary), authorBond, summary };
     },
     [signer, walletAddress, sendIx]
   );
 
   const withdrawAuthorBond = useCallback(
-    async (amount: number) => {
+    async (amountUsdc: number) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
       await assertBondConfigClusterReady();
       const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
-      const [authorProfile, authorBond, config] = await Promise.all([
+      const amountUsdcMicros = usdcToMicros(amountUsdc);
+      const usdcMint = await getProtocolUsdcMint();
+      const [
+        authorProfile,
+        authorBond,
+        config,
+        authorUsdcAccount,
+        authorBondVaultAuthority,
+        authorBondVault,
+      ] = await Promise.all([
         getAgentPDA(authorAddress),
         getAuthorBondPDA(authorAddress),
         getConfigPDA(),
+        getAssociatedTokenAccount(authorAddress, usdcMint),
+        getAuthorBondVaultAuthorityPDA(authorAddress),
+        getAuthorBondVaultPDA(authorAddress),
       ]);
-      const lamports = BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL)));
-      const ix = await (getWithdrawAuthorBondInstructionAsync as any)({
+      const createAuthorAtaIx = getCreateAssociatedTokenAccountIdempotentInstruction({
+        payer: signer,
+        associatedTokenAccount: authorUsdcAccount,
+        owner: authorAddress,
+        mint: usdcMint,
+      });
+      const ix = await getWithdrawAuthorBondInstructionAsync({
         authorBond,
         authorProfile,
         config,
+        usdcMint,
+        authorBondVaultAuthority,
+        authorBondVault,
+        authorUsdcAccount,
         author: signer,
-        amount: lamports,
+        amountUsdcMicros,
       });
-      return { tx: await sendIx(ix), authorBond };
+      const summary = {
+        action: "Withdraw author bond",
+        token: "USDC" as const,
+        amountUsdcMicros,
+        recipient: authorUsdcAccount,
+        vault: authorBondVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
+      return { tx: await sendIx([createAuthorAtaIx, ix], summary), authorBond, summary };
     },
     [signer, walletAddress, sendIx]
   );
 
   const vouch = useCallback(
-    async (voucheeKey: Address, amount: number) => {
+    async (voucheeKey: Address, amountUsdc: number) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
-      const voucheeProfile = await getAgentPDA(voucheeKey);
-      const stakeAmount = BigInt(Math.round(amount * Number(LAMPORTS_PER_SOL)));
+      const voucherAddress = getConnectedAuthorAddress(walletAddress, signer);
+      const amountUsdcMicros = usdcToMicros(amountUsdc);
+      const usdcMint = await getProtocolUsdcMint();
+      const [voucherProfile, voucheeProfile] = await Promise.all([
+        getAgentPDA(voucherAddress),
+        getAgentPDA(voucheeKey),
+      ]);
       await assertStakeActionClusterReady({
         action: "vouch",
         walletAddress,
         voucheeProfile,
-        requiredLamports: stakeAmount,
+        requiredUsdcMicros: amountUsdcMicros,
       });
-      const ix = await (getVouchInstructionAsync as any)({
+      const [voucherUsdcAccount, vouchVaultAuthority, vouchVault] =
+        await Promise.all([
+          getAssociatedTokenAccount(voucherAddress, usdcMint),
+          getVouchVaultAuthorityPDA(voucherProfile, voucheeProfile),
+          getVouchVaultPDA(voucherProfile, voucheeProfile),
+        ]);
+      await assertUsdcAccountReady({
+        rpc,
+        owner: voucherAddress,
+        mint: usdcMint,
+        purpose: "Vouch",
+        minimumBalanceUsdcMicros: amountUsdcMicros,
+      });
+      const ix = await getVouchInstructionAsync({
+        voucherProfile,
         voucheeProfile,
+        usdcMint,
+        voucherUsdcAccount,
+        vouchVaultAuthority,
+        vouchVault,
         voucher: signer,
-        stakeAmount,
+        stakeUsdcMicros: amountUsdcMicros,
       });
-      return { tx: await sendIx(ix) };
+      const summary = {
+        action: "Vouch",
+        token: "USDC" as const,
+        amountUsdcMicros,
+        vault: vouchVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
+      return { tx: await sendIx(ix, summary), summary };
     },
     [signer, walletAddress, sendIx]
   );
@@ -1023,11 +1259,41 @@ export function useReputationOracle() {
         walletAddress,
         voucheeProfile,
       });
-      const ix = await (getRevokeVouchInstructionAsync as any)({
+      const voucherAddress = getConnectedAuthorAddress(walletAddress, signer);
+      const usdcMint = await getProtocolUsdcMint();
+      const voucherProfile = await getAgentPDA(voucherAddress);
+      const [vouch, vouchVaultAuthority, vouchVault, voucherUsdcAccount] =
+        await Promise.all([
+          getVouchPDA(voucherProfile, voucheeProfile),
+          getVouchVaultAuthorityPDA(voucherProfile, voucheeProfile),
+          getVouchVaultPDA(voucherProfile, voucheeProfile),
+          getAssociatedTokenAccount(voucherAddress, usdcMint),
+        ]);
+      const createVoucherAtaIx = getCreateAssociatedTokenAccountIdempotentInstruction({
+        payer: signer,
+        associatedTokenAccount: voucherUsdcAccount,
+        owner: voucherAddress,
+        mint: usdcMint,
+      });
+      const ix = await getRevokeVouchInstructionAsync({
+        vouch,
+        voucherProfile,
         voucheeProfile,
+        usdcMint,
+        vouchVaultAuthority,
+        vouchVault,
+        voucherUsdcAccount,
         voucher: signer,
       });
-      return { tx: await sendIx(ix) };
+      const summary = {
+        action: "Revoke vouch",
+        token: "USDC" as const,
+        recipient: voucherUsdcAccount,
+        vault: vouchVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
+      return { tx: await sendIx([createVoucherAtaIx, ix], summary), summary };
     },
     [signer, walletAddress, sendIx]
   );
@@ -1148,10 +1414,26 @@ export function useReputationOracle() {
         disputeId,
       });
       const authorBond = await getAuthorBondPDA(authorKey);
-      const [authorProfile, authorBondAccount] = await Promise.all([
+      const [
+        authorProfile,
+        authorBondAccount,
+        configInfo,
+        challengerUsdcAccount,
+        disputeBondVaultAuthority,
+        disputeBondVault,
+        authorBondVaultAuthority,
+        authorBondVault,
+      ] = await Promise.all([
         getAgentPDA(authorKey),
         fetchMaybeAuthorBond(rpc, authorBond).catch(() => null),
+        getProtocolConfig(),
+        getAssociatedTokenAccount(challenger, await getProtocolUsdcMint()),
+        getDisputeBondVaultAuthorityPDA(authorKey, disputeId),
+        getDisputeBondVaultPDA(authorKey, disputeId),
+        getAuthorBondVaultAuthorityPDA(authorKey),
+        getAuthorBondVaultPDA(authorKey),
       ]);
+      if (!configInfo.data) throw new Error("Protocol config not found");
       const authorDispute = await getAuthorDisputePDA(authorKey, disputeId);
       const maybeAuthorDisputeAccount = await fetchMaybeAuthorDispute(
         rpc,
@@ -1160,48 +1442,75 @@ export function useReputationOracle() {
       if (!maybeAuthorDisputeAccount?.exists) {
         throw new Error("Author dispute not found");
       }
-      const ix = (getResolveAuthorDisputeInstruction as any)({
+      const createChallengerAtaIx =
+        getCreateAssociatedTokenAccountIdempotentInstruction({
+          payer: signer,
+          associatedTokenAccount: challengerUsdcAccount,
+          owner: challenger,
+          mint: configInfo.data.usdcMint,
+        });
+      const ix = getResolveAuthorDisputeInstruction({
         authorDispute,
         authorProfile,
-        authorBond: authorBondAccount?.exists ? authorBond : undefined,
+        config: configInfo.config,
         authority: signer,
+        usdcMint: configInfo.data.usdcMint,
+        disputeBondVaultAuthority,
+        disputeBondVault,
+        protocolTreasuryVault:
+          configInfo.data.protocolTreasuryVault ?? (await getProtocolTreasuryVaultPDA()),
+        authorBondVaultAuthority,
         challenger,
+        challengerUsdcAccount,
         disputeId,
         ruling,
       });
+      const remainingAccounts =
+        ruling === AuthorDisputeRuling.Upheld && authorBondAccount?.exists
+          ? [
+              { address: authorBond, role: 1 },
+              { address: authorBondVault, role: 1 },
+            ]
+          : [];
+      const summary = {
+        action: "Resolve author dispute",
+        token: "USDC" as const,
+        recipient:
+          ruling === AuthorDisputeRuling.Upheld
+            ? challengerUsdcAccount
+            : configInfo.data.protocolTreasuryVault,
+        vault: disputeBondVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
       if (
         ruling !== AuthorDisputeRuling.Upheld ||
         maybeAuthorDisputeAccount.data.liabilityScope ===
           AuthorDisputeLiabilityScope.AuthorBondOnly
       ) {
-        return { tx: await sendIx(ix), authorDispute };
+        return {
+          tx: await sendIx(
+            [
+              createChallengerAtaIx,
+              { ...ix, accounts: [...ix.accounts, ...remainingAccounts] },
+            ],
+            summary
+          ),
+          authorDispute,
+          summary,
+        };
       }
 
-      const linkedVouches = await listAuthorDisputeLinks(String(authorDispute));
-      const settlementAccounts = (
-        await Promise.all(
-          linkedVouches.map(async (linkedVouch) => {
-            const vouchAddress = address(linkedVouch);
-            const authorDisputeVouchLink = await getAuthorDisputeVouchLinkPDA(
-              authorDispute,
-              vouchAddress
-            );
-            const vouch = await fetchVouch(rpc, vouchAddress);
-            return [
-              { address: authorDisputeVouchLink, role: 0 },
-              { address: vouchAddress, role: 1 },
-              { address: vouch.data.voucher, role: 1 },
-            ];
-          })
-        )
-      ).flat();
-
       return {
-        tx: await sendIx({
-          ...ix,
-          accounts: [...ix.accounts, ...settlementAccounts],
-        }),
+        tx: await sendIx(
+          [
+            createChallengerAtaIx,
+            { ...ix, accounts: [...ix.accounts, ...remainingAccounts] },
+          ],
+          summary
+        ),
         authorDispute,
+        summary,
       };
     },
     [signer, walletAddress, sendIx]
@@ -1519,8 +1828,29 @@ export function useReputationOracle() {
         skillListing: params.skillListing,
         purchase: params.purchase,
       });
-      const authorProfile = await getAgentPDA(authorKey);
-      const authorDispute = await getAuthorDisputePDA(authorKey, disputeId);
+      const { config, data: protocolConfig } = await getProtocolConfig();
+      if (!protocolConfig) throw new Error("Protocol config not found");
+      const usdcMint = protocolConfig.usdcMint;
+      const [
+        authorProfile,
+        authorDispute,
+        challengerUsdcAccount,
+        disputeBondVaultAuthority,
+        disputeBondVault,
+      ] = await Promise.all([
+        getAgentPDA(authorKey),
+        getAuthorDisputePDA(authorKey, disputeId),
+        getAssociatedTokenAccount(walletAddress, usdcMint),
+        getDisputeBondVaultAuthorityPDA(authorKey, disputeId),
+        getDisputeBondVaultPDA(authorKey, disputeId),
+      ]);
+      await assertUsdcAccountReady({
+        rpc,
+        owner: walletAddress,
+        mint: usdcMint,
+        purpose: "Author dispute bond",
+        minimumBalanceUsdcMicros: BigInt(protocolConfig.disputeBondUsdcMicros),
+      });
       const backingVouches = (
         await getAllVouchesReceivedByAgent(authorKey)
       ).filter((vouch) =>
@@ -1529,15 +1859,20 @@ export function useReputationOracle() {
       const uniqueBackingVouches = [
         ...new Set(backingVouches.map((vouch) => vouch.publicKey)),
       ].map((vouch) => address(vouch));
-      const openIx = await (getOpenAuthorDisputeInstructionAsync as any)({
+      const openIx = await getOpenAuthorDisputeInstructionAsync({
         authorDispute,
         authorProfile,
+        config,
+        skillListing: params.skillListing,
+        purchase: params.purchase,
+        usdcMint,
+        challengerUsdcAccount,
+        disputeBondVaultAuthority,
+        disputeBondVault,
         challenger: signer,
         disputeId,
         reason: params.reason,
         evidenceUri: params.evidenceUri,
-        skillListing: params.skillListing,
-        purchase: params.purchase,
       });
       const remainingAccounts = await Promise.all(
         uniqueBackingVouches.map(async (vouch) => {
@@ -1551,16 +1886,25 @@ export function useReputationOracle() {
           ];
         })
       );
+      const summary = {
+        action: "Open author dispute",
+        token: "USDC" as const,
+        amountUsdcMicros: BigInt(protocolConfig.disputeBondUsdcMicros),
+        vault: disputeBondVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
       const tx = await sendIx({
         ...openIx,
         accounts: [...openIx.accounts, ...remainingAccounts.flat()],
-      });
+      }, summary);
 
       return {
         tx,
         authorDispute,
         disputeId,
         linkedVouches: uniqueBackingVouches,
+        summary,
       };
     },
     [getAllVouchesReceivedByAgent, signer, walletAddress, sendIx]
@@ -1572,7 +1916,7 @@ export function useReputationOracle() {
       skillUri: string,
       name: string,
       description: string,
-      priceLamports: number
+      priceUsdcMicros: number
     ) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
       const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
@@ -1581,21 +1925,37 @@ export function useReputationOracle() {
         skillId,
         mode: "create",
       });
+      const usdcMint = await getProtocolUsdcMint();
       const { authorProfile, authorBond, config, skillListing } =
         await resolveSkillListingAccounts(authorAddress, skillId);
-      const ix = await (getCreateSkillListingInstructionAsync as any)({
+      const [rewardVaultAuthority, rewardVault] = await Promise.all([
+        getRewardVaultAuthorityPDA(skillListing),
+        getRewardVaultPDA(skillListing),
+      ]);
+      const ix = await getCreateSkillListingInstructionAsync({
         skillListing,
         authorProfile,
         config,
-        authorBond: priceLamports === 0 ? authorBond : undefined,
+        authorBond: priceUsdcMicros === 0 ? authorBond : undefined,
+        usdcMint,
+        rewardVaultAuthority,
+        rewardVault,
         author: signer,
         skillId,
         skillUri,
         name,
         description,
-        priceLamports: BigInt(priceLamports),
+        priceUsdcMicros: BigInt(priceUsdcMicros),
       });
-      return { tx: await sendIx(ix) };
+      const summary = {
+        action: "Create skill listing",
+        token: "USDC" as const,
+        amountUsdcMicros: BigInt(priceUsdcMicros),
+        vault: rewardVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
+      return { tx: await sendIx(ix, summary), summary };
     },
     [signer, walletAddress, sendIx]
   );
@@ -1606,7 +1966,7 @@ export function useReputationOracle() {
       skillUri: string,
       name: string,
       description: string,
-      priceLamports: number
+      priceUsdcMicros: number
     ) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
       const authorAddress = getConnectedAuthorAddress(walletAddress, signer);
@@ -1617,19 +1977,26 @@ export function useReputationOracle() {
       });
       const { authorProfile, authorBond, config, skillListing } =
         await resolveSkillListingAccounts(authorAddress, skillId);
-      const ix = await (getUpdateSkillListingInstructionAsync as any)({
+      const ix = await getUpdateSkillListingInstructionAsync({
         skillListing,
         authorProfile,
         config,
-        authorBond: priceLamports === 0 ? authorBond : undefined,
+        authorBond: priceUsdcMicros === 0 ? authorBond : undefined,
         author: signer,
         skillId,
         skillUri,
         name,
         description,
-        priceLamports: BigInt(priceLamports),
+        priceUsdcMicros: BigInt(priceUsdcMicros),
       });
-      return { tx: await sendIx(ix) };
+      const summary = {
+        action: "Update skill listing",
+        token: "USDC" as const,
+        amountUsdcMicros: BigInt(priceUsdcMicros),
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
+      return { tx: await sendIx(ix, summary), summary };
     },
     [signer, walletAddress, sendIx]
   );
@@ -1720,15 +2087,49 @@ export function useReputationOracle() {
         console.warn("Purchase preflight skipped:", error);
       }
 
-      const authorProfile = await getAgentPDA(authorKey);
-      const ix = await (getPurchaseSkillInstructionAsync as any)({
+      const listing = await fetchMaybeSkillListing(rpc, skillListingKey);
+      if (!listing.exists) throw new Error("Skill listing not found");
+      const usdcMint = await getProtocolUsdcMint();
+      const [authorProfile, buyerUsdcAccount, authorUsdcAccount] =
+        await Promise.all([
+          getAgentPDA(authorKey),
+          getAssociatedTokenAccount(walletAddress, usdcMint),
+          getAssociatedTokenAccount(authorKey, usdcMint),
+        ]);
+      await assertUsdcAccountReady({
+        rpc,
+        owner: walletAddress,
+        mint: usdcMint,
+        purpose: "Skill purchase",
+        minimumBalanceUsdcMicros: BigInt(listing.data.priceUsdcMicros),
+      });
+      const createAuthorAtaIx = getCreateAssociatedTokenAccountIdempotentInstruction({
+        payer: signer,
+        associatedTokenAccount: authorUsdcAccount,
+        owner: authorKey,
+        mint: usdcMint,
+      });
+      const ix = await getPurchaseSkillInstructionAsync({
         skillListing: skillListingKey,
         author: authorKey,
         authorProfile,
+        usdcMint,
+        buyerUsdcAccount,
+        authorUsdcAccount,
+        rewardVault: listing.data.rewardVault,
         buyer: signer,
       });
+      const summary = {
+        action: "Purchase skill",
+        token: "USDC" as const,
+        amountUsdcMicros: BigInt(listing.data.priceUsdcMicros),
+        recipient: authorUsdcAccount,
+        vault: listing.data.rewardVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
       try {
-        return { tx: await sendIx(ix) };
+        return { tx: await sendIx([createAuthorAtaIx, ix], summary), summary };
       } catch (error: unknown) {
         const existingPurchaseAfterFailure = await fetchMaybePurchase(
           rpc,
@@ -1782,16 +2183,49 @@ export function useReputationOracle() {
   const claimVoucherRevenue = useCallback(
     async (skillListingKey: Address, authorKey: Address) => {
       if (!signer || !walletAddress) throw new Error("Wallet not connected");
-      const authorProfile = await getAgentPDA(authorKey);
-      const ix = await (getClaimVoucherRevenueInstructionAsync as any)({
+      const voucherAddress = getConnectedAuthorAddress(walletAddress, signer);
+      const usdcMint = await getProtocolUsdcMint();
+      const [authorProfile, voucherProfile, listing] = await Promise.all([
+        getAgentPDA(authorKey),
+        getAgentPDA(voucherAddress),
+        fetchMaybeSkillListing(rpc, skillListingKey),
+      ]);
+      if (!listing.exists) throw new Error("Skill listing not found");
+      const vouch = await getVouchPDA(voucherProfile, authorProfile);
+      const [listingVouchPosition, rewardVaultAuthority, voucherUsdcAccount] =
+        await Promise.all([
+          getListingVouchPositionPDA(skillListingKey, vouch),
+          getRewardVaultAuthorityPDA(skillListingKey),
+          getAssociatedTokenAccount(voucherAddress, usdcMint),
+        ]);
+      const createVoucherAtaIx = getCreateAssociatedTokenAccountIdempotentInstruction({
+        payer: signer,
+        associatedTokenAccount: voucherUsdcAccount,
+        owner: voucherAddress,
+        mint: usdcMint,
+      });
+      const ix = await getClaimVoucherRevenueInstructionAsync({
         skillListing: skillListingKey,
+        listingVouchPosition,
+        vouch,
         authorProfile,
+        voucherProfile,
+        usdcMint,
+        rewardVaultAuthority,
+        rewardVault: listing.data.rewardVault,
+        voucherUsdcAccount,
         voucher: signer,
       });
-      const tx = await sendIx(ix);
-      const voucherProfile = await getAgentPDA(walletAddress);
-      const vouch = await getVouchPDA(voucherProfile, authorProfile);
-      return { tx, vouch, voucherProfile, authorProfile };
+      const summary = {
+        action: "Claim voucher revenue",
+        token: "USDC" as const,
+        recipient: voucherUsdcAccount,
+        vault: listing.data.rewardVault,
+        feePayer: signer.address,
+        cluster: getConfiguredNetworkDescription(),
+      };
+      const tx = await sendIx([createVoucherAtaIx, ix], summary);
+      return { tx, vouch, voucherProfile, authorProfile, summary };
     },
     [signer, walletAddress, sendIx]
   );

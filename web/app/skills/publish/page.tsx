@@ -158,7 +158,7 @@ function PublishSkillPageInner() {
   const [tagInput, setTagInput] = useState("");
   const [contact, setContact] = useState("");
   const [usdcPrice, setUsdcPrice] = useState("1");
-  const [price, setPrice] = useState(String(PRICING.SOL.defaultPrice));
+  const [price, setPrice] = useState(String(PRICING.USDC.defaultPrice));
   const [showPreview, setShowPreview] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishStep, setPublishStep] = useState<"idle" | "repo" | "chain">(
@@ -263,11 +263,12 @@ function PublishSkillPageInner() {
       });
       return;
     }
+    const onChainPriceUsdcMicros = Number(usdcPriceMicros);
 
-    if (!isValidListingPriceLamports(priceLamports)) {
+    if (!isValidListingPriceLamports(onChainPriceUsdcMicros)) {
       setResult({
         success: false,
-        message: `Legacy SOL fallback must be 0 for a free listing or at least ${formatMinPrice()}.`,
+        message: `On-chain USDC price must be 0 for a free listing or at least ${formatMinPrice()}.`,
       });
       return;
     }
@@ -334,7 +335,7 @@ function PublishSkillPageInner() {
           skillUri,
           cleanName,
           cleanDescription,
-          priceLamports
+          onChainPriceUsdcMicros
         );
 
         const onChainAddress = await oracle.getSkillListingPDA(
@@ -383,7 +384,7 @@ function PublishSkillPageInner() {
 
       setResult({
         success: true,
-        message: `Skill published with ${usdcPriceMicros} USDC micros as the primary x402 price and ${fromLamports(
+        message: `Skill published with ${usdcPriceMicros} USDC micros as the on-chain price and ${fromLamports(
           priceLamports
         ).toFixed(3)} SOL as the legacy fallback listing price.`,
         id: skillDbId,
@@ -937,7 +938,7 @@ function PublishSkillPageInner() {
                   <input
                     type="number"
                     min={0}
-                    step={PRICING.SOL.step}
+                    step={PRICING.USDC.step}
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="0"

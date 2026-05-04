@@ -31,8 +31,9 @@ import {
   PRICING,
   formatUsdcMicros,
   formatMinPrice,
-  toLamports,
+  toUsdcMicros,
   fromLamports,
+  fromUsdcMicros,
   isValidListingPriceLamports,
 } from "@/lib/pricing";
 import type { PurchasePreflightStatus } from "@/lib/purchasePreflight";
@@ -220,7 +221,7 @@ export default function SkillDetailPage({
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const [listPrice, setListPrice] = useState(String(PRICING.SOL.defaultPrice));
+  const [listPrice, setListPrice] = useState(String(PRICING.USDC.defaultPrice));
   const [listing, setListing] = useState(false);
   const [listResult, setListResult] = useState<{
     success: boolean;
@@ -315,8 +316,8 @@ export default function SkillDetailPage({
     setListing(true);
     setListResult(null);
     try {
-      const priceLamports = toLamports(parseFloat(listPrice || "0"));
-      if (!isValidListingPriceLamports(priceLamports)) {
+      const priceUsdcMicros = toUsdcMicros(parseFloat(listPrice || "0"));
+      if (!isValidListingPriceLamports(priceUsdcMicros)) {
         setListResult({
           success: false,
           message: `Price must be 0 for a free listing or at least ${formatMinPrice()}.`,
@@ -330,7 +331,7 @@ export default function SkillDetailPage({
         skillUri,
         skill.name,
         skill.description ?? "",
-        priceLamports
+        priceUsdcMicros
       );
       const onChainAddress = await oracle.getSkillListingPDA(
         walletAddress as Address,
@@ -629,9 +630,11 @@ export default function SkillDetailPage({
     setEditName(skill.name);
     setEditDescription(skill.description ?? "");
     setEditPrice(
-      skill.price_lamports
+      skill.price_usdc_micros
+        ? fromUsdcMicros(Number(skill.price_usdc_micros)).toString()
+        : skill.price_lamports
         ? fromLamports(skill.price_lamports).toString()
-        : String(PRICING.SOL.defaultPrice)
+        : String(PRICING.USDC.defaultPrice)
     );
     setEditUri(canonicalUri);
     setUpdateResult(null);
@@ -652,8 +655,8 @@ export default function SkillDetailPage({
     try {
       const nextSkillUri =
         skill.source !== "chain" ? buildCanonicalSkillUri(skill.id) : editUri;
-      const priceLamports = toLamports(parseFloat(editPrice || "0"));
-      if (!isValidListingPriceLamports(priceLamports)) {
+      const priceUsdcMicros = toUsdcMicros(parseFloat(editPrice || "0"));
+      if (!isValidListingPriceLamports(priceUsdcMicros)) {
         setUpdateResult({
           success: false,
           message: `Price must be 0 for a free listing or at least ${formatMinPrice()}.`,
@@ -666,7 +669,7 @@ export default function SkillDetailPage({
         nextSkillUri,
         editName,
         editDescription,
-        priceLamports
+        priceUsdcMicros
       );
       await refreshSkill();
       setSkill((s) =>
@@ -675,7 +678,7 @@ export default function SkillDetailPage({
               ...s,
               name: editName,
               description: editDescription,
-              price_lamports: priceLamports,
+              price_usdc_micros: String(priceUsdcMicros),
               skill_uri: nextSkillUri,
             }
           : s
@@ -1798,7 +1801,7 @@ export default function SkillDetailPage({
                     <input
                       type="number"
                       min={0}
-                      step={PRICING.SOL.step}
+                      step={PRICING.USDC.step}
                       value={editPrice}
                       onChange={(e) => setEditPrice(e.target.value)}
                       className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"
@@ -1903,7 +1906,7 @@ export default function SkillDetailPage({
                   <input
                     type="number"
                     min={0}
-                    step={PRICING.SOL.step}
+                    step={PRICING.USDC.step}
                     value={listPrice}
                     onChange={(e) => setListPrice(e.target.value)}
                     className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-[var(--lobster-focus-ring)] focus:border-[var(--lobster-accent)]"

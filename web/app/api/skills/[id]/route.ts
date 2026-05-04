@@ -3,7 +3,7 @@ import { initializeDatabase, sql } from "@/lib/db";
 import { resolveAuthorTrust } from "@/lib/trust";
 import { verifyWalletSignature, type AuthPayload } from "@/lib/auth";
 import { resolveAgentIdentityByWallet } from "@/lib/agentIdentity";
-import { hasOnChainPurchase } from "@/lib/x402";
+import { getConfiguredUsdcMint, hasOnChainPurchase } from "@/lib/x402";
 import { hasUsdcPurchaseEntitlement } from "@/lib/usdcPurchases";
 import { buildAgentTrustSummary } from "@/lib/agentDiscovery";
 import {
@@ -81,17 +81,14 @@ export async function GET(
       const preflightContext = await createPurchasePreflightContext({
         rpc,
         buyer: buyerAddress,
-        authors: isAddress(String(listing.data.author))
-          ? [address(String(listing.data.author))]
-          : [],
+        usdcMint: address(getConfiguredUsdcMint()),
+        authors: [],
       });
       const preflight = serializePurchasePreflight(
         assessPurchasePreflight({
           context: preflightContext,
-          priceLamports: BigInt(listing.data.priceUsdcMicros),
-          author: isAddress(String(listing.data.author))
-            ? address(String(listing.data.author))
-            : null,
+          priceUsdcMicros: BigInt(listing.data.priceUsdcMicros),
+          author: null,
         })
       );
 
@@ -253,19 +250,16 @@ export async function GET(
     const preflightContext = await createPurchasePreflightContext({
       rpc,
       buyer: buyerAddress,
-      authors: isAddress(skill.author_pubkey)
-        ? [address(skill.author_pubkey)]
-        : [],
+      usdcMint: address(getConfiguredUsdcMint()),
+      authors: [],
     });
     const preflight = serializePurchasePreflight(
       assessPurchasePreflight({
         context: preflightContext,
-        priceLamports: skill.price_usdc_micros
-          ? 0n
-          : BigInt(skill.price_lamports ?? 0),
-        author: !skill.price_usdc_micros && isAddress(skill.author_pubkey)
-          ? address(skill.author_pubkey)
-          : null,
+        priceUsdcMicros: skill.price_usdc_micros
+          ? BigInt(skill.price_usdc_micros)
+          : 0n,
+        author: null,
       })
     );
     const buyerHasPurchased = buyerAddress

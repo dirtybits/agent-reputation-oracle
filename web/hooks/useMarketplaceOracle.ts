@@ -35,6 +35,14 @@ import { getErrorMessage } from "@/lib/errors";
 import { wrapRpcLookupError } from "@/lib/rpcErrors";
 import { getConfiguredUsdcMint } from "@/lib/x402";
 import {
+  assertUsdcAccountReady,
+  formatUsdcMicrosValue,
+  getAssociatedTokenAccount,
+  getCreateAssociatedTokenAccountIdempotentInstruction,
+  logTransactionSummary,
+  type AgentVouchTransactionSummary,
+} from "@/lib/agentvouchUsdc";
+import {
   fetchAllMaybePurchase,
   fetchMaybePurchase,
   getPurchaseDecoder,
@@ -55,11 +63,6 @@ const ENDPOINT =
 const rpc = createSolanaRpc(ENDPOINT);
 const SIGNATURE_CONFIRMATION_TIMEOUT_MS = 45_000;
 const SIGNATURE_CONFIRMATION_POLL_MS = 1_000;
-const LAMPORTS_PER_SOL = 1_000_000_000n;
-const TOKEN_PROGRAM_ID = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-const ASSOCIATED_TOKEN_PROGRAM_ID = address(
-  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-);
 
 const textEncoder = getUtf8Encoder();
 const addressEncoder = getAddressEncoder();
@@ -92,11 +95,12 @@ function normalizeInstructionForSend(ix: SendInstruction): SendInstruction {
 }
 
 function buildTransactionSendRequest(
-  ix: SendInstruction,
+  ix: SendInstruction | readonly SendInstruction[],
   authority: TransactionSigner
 ): TransactionPrepareAndSendRequest {
+  const instructions = Array.isArray(ix) ? ix : [ix];
   return {
-    instructions: [normalizeInstructionForSend(ix)],
+    instructions: instructions.map(normalizeInstructionForSend),
     authority,
   };
 }
@@ -119,10 +123,6 @@ async function getAgentPDA(agentKey: Address): Promise<Address> {
   return deriveAddress(["agent", agentKey]);
 }
 
-async function getAssociatedTokenAccount(owner: Address, mint: Address) {
-  return deriveAddress([owner, TOKEN_PROGRAM_ID, mint], ASSOCIATED_TOKEN_PROGRAM_ID);
-}
-
 async function getPurchasePDA(
   buyer: Address,
   skillListing: Address
@@ -138,12 +138,6 @@ function shortAddress(value: string) {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
-function formatLamportsAsSol(lamports: bigint) {
-  const sol = Number(lamports) / Number(LAMPORTS_PER_SOL);
-  const decimals = sol >= 1 ? 4 : 6;
-  return sol.toFixed(decimals).replace(/\.?0+$/, "");
-}
-
 async function estimatePurchasePreflight(
   buyer: Address,
   skillListing: Address,
@@ -151,14 +145,16 @@ async function estimatePurchasePreflight(
 ): Promise<PurchasePreflightAssessment> {
   const listing = await fetchMaybeSkillListing(rpc, skillListing);
   if (!listing.exists) throw new Error("Skill listing not found on-chain");
+  const usdcMint = address(getConfiguredUsdcMint());
   const context = await createPurchasePreflightContext({
     rpc,
     buyer,
+    usdcMint,
     authors: [author],
   });
   return assessPurchasePreflight({
     context,
-    priceLamports: BigInt(listing.data.priceUsdcMicros),
+    priceUsdcMicros: BigInt(listing.data.priceUsdcMicros),
     author,
   });
 }
@@ -170,11 +166,11 @@ function buildPurchaseBalanceError(
   const configuredNetwork = `${getConfiguredSolanaChainDisplayLabel()} (${getConfiguredSolanaRpcTargetLabel()} RPC)`;
   return `Connected wallet ${shortAddress(
     walletAddress
-  )} has ${formatLamportsAsSol(
-    estimate.buyerBalanceLamports ?? 0n
-  )} SOL on the configured ${configuredNetwork}. Buying this skill needs about ${formatLamportsAsSol(
-    estimate.estimatedBuyerTotalLamports
-  )} SOL including rent for the purchase record.`;
+  )} has ${formatUsdcMicrosValue(
+    estimate.buyerUsdcBalanceMicros ?? 0n
+  )} USDC on the configured ${configuredNetwork}. Buying this skill needs ${formatUsdcMicrosValue(
+    estimate.creatorPriceUsdcMicros
+  )} USDC plus SOL for receipt rent and network fees.`;
 }
 
 function buildPurchaseClusterMismatchError(
@@ -184,9 +180,7 @@ function buildPurchaseClusterMismatchError(
   const configuredNetwork = `${getConfiguredSolanaChainDisplayLabel()} (${getConfiguredSolanaRpcTargetLabel()} RPC)`;
   return `Phantom reported insufficient SOL, but connected wallet ${shortAddress(
     walletAddress
-  )} has ${formatLamportsAsSol(
-    estimate.buyerBalanceLamports ?? 0n
-  )} SOL on the configured ${configuredNetwork}. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
+  )} appears connected to the configured ${configuredNetwork}. If Phantom shows a different balance, switch Phantom and the app to the same network and retry.`;
 }
 
 async function waitForConfirmedSignature(
@@ -241,10 +235,14 @@ export function useMarketplaceOracle() {
   }, [connected, wallet]);
 
   const sendIx = useCallback(
-    async (ix: SendInstruction) => {
+    async (
+      ix: SendInstruction | readonly SendInstruction[],
+      summary?: AgentVouchTransactionSummary
+    ) => {
       if (!walletAddress || !signer) throw new Error("Wallet not connected");
       const request = buildTransactionSendRequest(ix, signer);
       try {
+        if (summary) logTransactionSummary(summary);
         const sig = await frameworkSend(request);
         const txSignature = signature(String(sig));
         await waitForConfirmedSignature(txSignature);
@@ -486,6 +484,19 @@ export function useMarketplaceOracle() {
         getAssociatedTokenAccount(walletAddress, usdcMint),
         getAssociatedTokenAccount(authorKey, usdcMint),
       ]);
+      await assertUsdcAccountReady({
+        rpc,
+        owner: walletAddress,
+        mint: usdcMint,
+        purpose: "Skill purchase",
+        minimumBalanceUsdcMicros: BigInt(listing.data.priceUsdcMicros),
+      });
+      const createAuthorAtaIx = getCreateAssociatedTokenAccountIdempotentInstruction({
+        payer: signer,
+        associatedTokenAccount: authorUsdcAccount,
+        owner: authorKey,
+        mint: usdcMint,
+      });
       const ix = await getPurchaseSkillInstructionAsync({
         skillListing: skillListingKey,
         author: authorKey,
@@ -496,8 +507,17 @@ export function useMarketplaceOracle() {
         rewardVault: listing.data.rewardVault,
         buyer: signer,
       });
+      const summary = {
+        action: "Purchase skill",
+        token: "USDC" as const,
+        amountUsdcMicros: BigInt(listing.data.priceUsdcMicros),
+        recipient: authorUsdcAccount,
+        vault: listing.data.rewardVault,
+        feePayer: signer.address,
+        cluster: `${getConfiguredSolanaChainDisplayLabel()} (${getConfiguredSolanaRpcTargetLabel()} RPC)`,
+      };
       try {
-        return { tx: await sendIx(ix) };
+        return { tx: await sendIx([createAuthorAtaIx, ix], summary), summary };
       } catch (error: unknown) {
         const existingPurchaseAfterFailure = await fetchMaybePurchase(
           rpc,

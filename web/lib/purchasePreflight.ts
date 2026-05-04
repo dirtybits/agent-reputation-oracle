@@ -1,4 +1,8 @@
 import { createSolanaRpc, type Address } from "@solana/kit";
+import {
+  fetchAssociatedTokenAccountState,
+  formatUsdcMicrosValue,
+} from "./agentvouchUsdc";
 import { DEFAULT_SOLANA_RPC_URL } from "./solanaRpc";
 
 const DEFAULT_RPC_URL = DEFAULT_SOLANA_RPC_URL;
@@ -9,12 +13,13 @@ export const PURCHASE_FEE_BUFFER_LAMPORTS = 50_000n;
 export type PurchasePreflightStatus =
   | "ok"
   | "buyerInsufficientBalance"
+  | "buyerMissingUsdcAccount"
   | "authorPayoutRentBlocked"
   | "estimateUnavailable";
 
 export type BlockingPurchasePreflightStatus = Extract<
   PurchasePreflightStatus,
-  "buyerInsufficientBalance" | "authorPayoutRentBlocked"
+  "buyerInsufficientBalance" | "buyerMissingUsdcAccount" | "authorPayoutRentBlocked"
 >;
 
 export type SerializedPurchaseBlockError = {
@@ -23,6 +28,7 @@ export type SerializedPurchaseBlockError = {
 };
 
 export type SerializedPurchasePreflight = {
+  creatorPriceUsdcMicros: number;
   creatorPriceLamports: number;
   estimatedPurchaseRentLamports: number;
   feeBufferLamports: number;
@@ -35,6 +41,7 @@ export type SerializedPurchasePreflight = {
 };
 
 export type PurchasePreflightAssessment = {
+  creatorPriceUsdcMicros: bigint;
   creatorPriceLamports: bigint;
   estimatedPurchaseRentLamports: bigint;
   feeBufferLamports: bigint;
@@ -42,6 +49,8 @@ export type PurchasePreflightAssessment = {
   purchasePreflightStatus: PurchasePreflightStatus;
   purchasePreflightMessage: string | null;
   priceDisclosure: string | null;
+  buyerUsdcAccount: Address | null;
+  buyerUsdcBalanceMicros: bigint | null;
   buyerBalanceLamports: bigint | null;
   authorBalanceLamports: bigint | null;
   authorShareLamports: bigint;
@@ -50,6 +59,9 @@ export type PurchasePreflightAssessment = {
 
 export type PurchasePreflightContext = {
   buyer: Address | null;
+  buyerUsdcAccount: Address | null;
+  buyerUsdcBalanceMicros: bigint | null;
+  buyerUsdcAccountExists: boolean | null;
   buyerBalanceLamports: bigint | null;
   purchaseRentLamports: bigint | null;
   systemAccountRentExemptLamports: bigint | null;
@@ -80,31 +92,20 @@ function toSafeLamportsNumber(value: bigint): number {
   return Number(value);
 }
 
-function buildAuthorRentBlockedMessage(
-  authorBalanceLamports: bigint,
-  systemAccountRentExemptLamports: bigint
-) {
-  if (authorBalanceLamports === 0n) {
-    return "This low-priced listing cannot currently be purchased because the author's payout wallet is empty and the payout would be below Solana's rent minimum. The author needs a small amount of SOL in their wallet first.";
-  }
-  return `This low-priced listing cannot currently be purchased because the author's payout wallet would still sit below Solana's rent minimum after the payout. The author needs at least ${toSafeLamportsNumber(
-    systemAccountRentExemptLamports - authorBalanceLamports
-  )} more lamports in their wallet first.`;
-}
-
 function buildBuyerInsufficientMessage(
-  buyerBalanceLamports: bigint,
-  totalLamports: bigint
+  buyerUsdcBalanceMicros: bigint,
+  priceUsdcMicros: bigint
 ) {
-  return `Connected wallet has ${toSafeLamportsNumber(
-    buyerBalanceLamports
-  )} lamports available, but this purchase needs about ${toSafeLamportsNumber(
-    totalLamports
-  )} lamports including the on-chain purchase receipt rent.`;
+  return `Connected wallet has ${formatUsdcMicrosValue(
+    buyerUsdcBalanceMicros
+  )} USDC available, but this purchase needs ${formatUsdcMicrosValue(
+    priceUsdcMicros
+  )} USDC.`;
 }
 
 export function createFreePurchasePreflight(): PurchasePreflightAssessment {
   return {
+    creatorPriceUsdcMicros: 0n,
     creatorPriceLamports: 0n,
     estimatedPurchaseRentLamports: 0n,
     feeBufferLamports: 0n,
@@ -112,6 +113,8 @@ export function createFreePurchasePreflight(): PurchasePreflightAssessment {
     purchasePreflightStatus: "ok",
     purchasePreflightMessage: null,
     priceDisclosure: null,
+    buyerUsdcAccount: null,
+    buyerUsdcBalanceMicros: null,
     buyerBalanceLamports: null,
     authorBalanceLamports: null,
     authorShareLamports: 0n,
@@ -122,13 +125,21 @@ export function createFreePurchasePreflight(): PurchasePreflightAssessment {
 export async function createPurchasePreflightContext({
   rpc = createSolanaRpc(DEFAULT_RPC_URL),
   buyer = null,
+  usdcMint = null,
   authors = [],
 }: {
   rpc?: PurchasePreflightRpc;
   buyer?: Address | null;
+  usdcMint?: Address | null;
   authors?: Address[];
 }): Promise<PurchasePreflightContext> {
   const uniqueAuthors = [...new Set(authors.map(String))] as Address[];
+  const buyerUsdcAccountState =
+    buyer && usdcMint
+      ? await fetchAssociatedTokenAccountState(rpc, buyer, usdcMint).catch(
+          () => null
+        )
+      : null;
 
   const [
     buyerBalanceLamports,
@@ -169,6 +180,12 @@ export async function createPurchasePreflightContext({
 
   return {
     buyer,
+    buyerUsdcAccount: buyerUsdcAccountState?.address ?? null,
+    buyerUsdcBalanceMicros: buyerUsdcAccountState?.exists
+      ? buyerUsdcAccountState.amount
+      : null,
+    buyerUsdcAccountExists:
+      buyer && usdcMint ? !!buyerUsdcAccountState?.exists : null,
     buyerBalanceLamports,
     purchaseRentLamports,
     systemAccountRentExemptLamports,
@@ -178,66 +195,65 @@ export async function createPurchasePreflightContext({
 
 export function assessPurchasePreflight({
   context,
-  priceLamports,
+  priceUsdcMicros,
   author,
 }: {
   context: PurchasePreflightContext;
-  priceLamports: bigint;
+  priceUsdcMicros: bigint;
   author: Address | null;
 }): PurchasePreflightAssessment {
-  if (priceLamports <= 0n) {
+  const creatorPriceUsdcMicros = priceUsdcMicros;
+  if (creatorPriceUsdcMicros <= 0n) {
     return createFreePurchasePreflight();
   }
 
   const estimatedPurchaseRentLamports = context.purchaseRentLamports ?? 0n;
   const estimatedBuyerTotalLamports =
-    priceLamports +
-    estimatedPurchaseRentLamports +
-    PURCHASE_FEE_BUFFER_LAMPORTS;
-  const authorShareLamports = (priceLamports * 60n) / 100n;
+    estimatedPurchaseRentLamports + PURCHASE_FEE_BUFFER_LAMPORTS;
+  const authorShareLamports = 0n;
   const authorBalanceLamports = author
     ? context.authorBalanceLamportsByAddress.get(String(author)) ?? null
     : null;
   const priceDisclosure =
-    "Buying this skill creates an on-chain receipt account, so your wallet total is higher than the creator price.";
+    "Buying this skill transfers USDC and creates an on-chain purchase receipt, so your wallet still needs a small amount of SOL for rent and network fees.";
+
+  if (context.buyerUsdcAccountExists === false) {
+    return {
+      creatorPriceUsdcMicros,
+      creatorPriceLamports: 0n,
+      estimatedPurchaseRentLamports,
+      feeBufferLamports: PURCHASE_FEE_BUFFER_LAMPORTS,
+      estimatedBuyerTotalLamports,
+      purchasePreflightStatus: "buyerMissingUsdcAccount",
+      purchasePreflightMessage:
+        "Connected wallet does not have a USDC associated token account for the configured mint. Create or fund that token account and retry.",
+      priceDisclosure,
+      buyerUsdcAccount: context.buyerUsdcAccount,
+      buyerUsdcBalanceMicros: context.buyerUsdcBalanceMicros,
+      buyerBalanceLamports: context.buyerBalanceLamports,
+      authorBalanceLamports,
+      authorShareLamports,
+      systemAccountRentExemptLamports: context.systemAccountRentExemptLamports,
+    };
+  }
 
   if (
     context.purchaseRentLamports === null ||
     context.systemAccountRentExemptLamports === null ||
-    authorBalanceLamports === null
+    context.buyerUsdcBalanceMicros === null
   ) {
     return {
-      creatorPriceLamports: priceLamports,
+      creatorPriceUsdcMicros,
+      creatorPriceLamports: 0n,
       estimatedPurchaseRentLamports,
       feeBufferLamports: 0n,
-      estimatedBuyerTotalLamports: priceLamports,
+      estimatedBuyerTotalLamports,
       purchasePreflightStatus: "estimateUnavailable",
       purchasePreflightMessage:
-        "Purchase availability could not be fully checked right now. Final wallet total may be higher because this purchase creates an on-chain receipt account.",
+        "Purchase availability could not be fully checked right now. Confirm the wallet has enough USDC plus a small amount of SOL for rent and network fees.",
       priceDisclosure,
-      buyerBalanceLamports: context.buyerBalanceLamports,
-      authorBalanceLamports,
-      authorShareLamports,
-      systemAccountRentExemptLamports: context.systemAccountRentExemptLamports,
-    };
-  }
-
-  const projectedAuthorBalance = authorBalanceLamports + authorShareLamports;
-  if (
-    projectedAuthorBalance > 0n &&
-    projectedAuthorBalance < context.systemAccountRentExemptLamports
-  ) {
-    return {
-      creatorPriceLamports: priceLamports,
-      estimatedPurchaseRentLamports,
-      feeBufferLamports: PURCHASE_FEE_BUFFER_LAMPORTS,
-      estimatedBuyerTotalLamports,
-      purchasePreflightStatus: "authorPayoutRentBlocked",
-      purchasePreflightMessage: buildAuthorRentBlockedMessage(
-        authorBalanceLamports,
-        context.systemAccountRentExemptLamports
-      ),
-      priceDisclosure,
+      buyerUsdcAccount: context.buyerUsdcAccount,
+      buyerUsdcBalanceMicros: context.buyerUsdcBalanceMicros,
       buyerBalanceLamports: context.buyerBalanceLamports,
       authorBalanceLamports,
       authorShareLamports,
@@ -246,20 +262,23 @@ export function assessPurchasePreflight({
   }
 
   if (
-    context.buyerBalanceLamports !== null &&
-    context.buyerBalanceLamports < estimatedBuyerTotalLamports
+    context.buyerUsdcBalanceMicros !== null &&
+    context.buyerUsdcBalanceMicros < creatorPriceUsdcMicros
   ) {
     return {
-      creatorPriceLamports: priceLamports,
+      creatorPriceUsdcMicros,
+      creatorPriceLamports: 0n,
       estimatedPurchaseRentLamports,
       feeBufferLamports: PURCHASE_FEE_BUFFER_LAMPORTS,
       estimatedBuyerTotalLamports,
       purchasePreflightStatus: "buyerInsufficientBalance",
       purchasePreflightMessage: buildBuyerInsufficientMessage(
-        context.buyerBalanceLamports,
-        estimatedBuyerTotalLamports
+        context.buyerUsdcBalanceMicros,
+        creatorPriceUsdcMicros
       ),
       priceDisclosure,
+      buyerUsdcAccount: context.buyerUsdcAccount,
+      buyerUsdcBalanceMicros: context.buyerUsdcBalanceMicros,
       buyerBalanceLamports: context.buyerBalanceLamports,
       authorBalanceLamports,
       authorShareLamports,
@@ -268,13 +287,16 @@ export function assessPurchasePreflight({
   }
 
   return {
-    creatorPriceLamports: priceLamports,
+    creatorPriceUsdcMicros,
+    creatorPriceLamports: 0n,
     estimatedPurchaseRentLamports,
     feeBufferLamports: PURCHASE_FEE_BUFFER_LAMPORTS,
     estimatedBuyerTotalLamports,
     purchasePreflightStatus: "ok",
     purchasePreflightMessage: null,
     priceDisclosure,
+    buyerUsdcAccount: context.buyerUsdcAccount,
+    buyerUsdcBalanceMicros: context.buyerUsdcBalanceMicros,
     buyerBalanceLamports: context.buyerBalanceLamports,
     authorBalanceLamports,
     authorShareLamports,
@@ -299,6 +321,9 @@ export function serializePurchasePreflight(
   const purchaseBlocked = purchaseBlockError !== null;
 
   return {
+    creatorPriceUsdcMicros: toSafeLamportsNumber(
+      assessment.creatorPriceUsdcMicros
+    ),
     creatorPriceLamports: toSafeLamportsNumber(assessment.creatorPriceLamports),
     estimatedPurchaseRentLamports: toSafeLamportsNumber(
       assessment.estimatedPurchaseRentLamports
@@ -320,6 +345,7 @@ export function isPurchasePreflightBlocking(
 ): status is BlockingPurchasePreflightStatus {
   return (
     status === "buyerInsufficientBalance" ||
+    status === "buyerMissingUsdcAccount" ||
     status === "authorPayoutRentBlocked"
   );
 }

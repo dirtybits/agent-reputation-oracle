@@ -312,29 +312,23 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * PAGE_SIZE;
     const paged = enriched.slice(offset, offset + PAGE_SIZE);
     const buyerAddress = buyer && isAddress(buyer) ? address(buyer) : null;
+    const usdcMint = address(getConfiguredUsdcMint());
     const preflightContext = await createPurchasePreflightContext({
       rpc,
       buyer: buyerAddress,
-      authors: paged
-        .filter(
-          (skill) => !skill.price_usdc_micros && (skill.price_lamports ?? 0) > 0
-        )
-        .map((skill) => skill.author_pubkey)
-        .filter(isAddress)
-        .map((pubkey) => address(pubkey)),
+      usdcMint,
+      authors: [],
     });
     const pagedWithPricing = await Promise.all(
       paged.map(async (skill) => {
-        const creatorPriceLamports = skill.price_usdc_micros
-          ? 0n
-          : BigInt(skill.price_lamports ?? 0);
+        const creatorPriceUsdcMicros = skill.price_usdc_micros
+          ? BigInt(skill.price_usdc_micros)
+          : 0n;
         const preflight = serializePurchasePreflight(
           assessPurchasePreflight({
             context: preflightContext,
-            priceLamports: creatorPriceLamports,
-            author: !skill.price_usdc_micros && isAddress(skill.author_pubkey)
-              ? address(skill.author_pubkey)
-              : null,
+            priceUsdcMicros: creatorPriceUsdcMicros,
+            author: null,
           })
         );
         const buyerHasPurchased = buyerAddress
