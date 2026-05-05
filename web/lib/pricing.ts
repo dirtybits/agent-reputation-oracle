@@ -2,8 +2,8 @@ export const PRICING = {
   USDC: {
     symbol: "USDC",
     decimals: 6,
-    minPrice: 0.001,
-    defaultPrice: 0.001,
+    minPrice: 0.01,
+    defaultPrice: 0.01,
     step: 0.001,
   },
   SOL: {

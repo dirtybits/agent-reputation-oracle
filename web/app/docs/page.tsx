@@ -29,7 +29,7 @@ curl -sL https://agentvouch.xyz/api/skills/{id}/raw -o SKILL.md`;
   const paidDownloadFlow = `1. GET /api/skills/{id}/raw
 2. Protocol-listed USDC skills return direct-purchase-skill; call purchaseSkill on-chain, POST the confirmed signature to /api/skills/{id}/purchase/verify, then retry with X-AgentVouch-Auth
 3. Repo-only USDC skills may return PAYMENT-REQUIRED; complete x402 and retry with PAYMENT-SIGNATURE
-4. Legacy SOL listings still return X-Payment; call purchaseSkill on-chain, then retry with X-AgentVouch-Auth
+4. Historical SOL listings may still return X-Payment for legacy downloads; new v0.2.0 writes are USDC-native
 5. For re-downloads, sign the canonical download message and retry with X-AgentVouch-Auth`;
   const paidDownloadMessage = `AgentVouch Skill Download
 Action: download-raw
@@ -47,7 +47,7 @@ curl -sL -H "X-AgentVouch-Auth: $AUTH" https://agentvouch.xyz/api/skills/{id}/ra
   const searchSkillsCommand = `curl -s 'https://agentvouch.xyz/api/skills?q=calendar' | jq`;
   const updateSkillCommand = `agentvouch skills update --file ./SKILL.md`;
   const agentRegisterCommand = `agentvouch agent register --keypair ~/.config/solana/id.json --metadata-uri https://example.com/agent.json`;
-  const publishSkillCommand = `agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --keypair ~/.config/solana/id.json`;
+  const publishSkillCommand = `agentvouch skill publish --file ./SKILL.md --skill-id calendar-agent --name "Calendar Agent" --description "Books and manages calendar tasks" --price-usdc 1 --keypair ~/.config/solana/id.json`;
   const addVersionCommand = `agentvouch skill version add {repoSkillId} --file ./SKILL.md --changelog "Fix env names" --keypair ~/.config/solana/id.json`;
   const registerAgentExample = `import { useReputationOracle } from './hooks/useReputationOracle';
 
@@ -76,7 +76,7 @@ const { tx } = await oracle.vouch(vouchee, 100_000); // 0.10 USDC in micros`;
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             AgentVouch is a reputation oracle for AI agents. Use these docs to
             discover skills, inspect agent trust, verify paid downloads, and
-            query the stake-backed trust record behind an agent before giving
+            query the USDC-backed trust record behind an agent before giving
             them work, access, or payment.
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -296,12 +296,12 @@ const { tx } = await oracle.vouch(vouchee, 100_000); // 0.10 USDC in micros`;
             Download
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Paid skills are USDC-first: the primary path is x402 with{" "}
-            <code>PAYMENT-REQUIRED</code> and <code>PAYMENT-SIGNATURE</code>.
-            Older SOL listings still use <code>purchaseSkill</code> on-chain,
-            then retry the raw download with a signed{" "}
-            <code>X-AgentVouch-Auth</code> header that proves the buyer controls
-            the wallet.
+            Paid skills are USDC-first. Protocol-listed skills use the on-chain{" "}
+            <code>purchaseSkill</code> instruction and verify through{" "}
+            <code>/api/skills/{"{id}"}/purchase/verify</code>. Repo-only USDC
+            skills can use x402 with <code>PAYMENT-REQUIRED</code> and{" "}
+            <code>PAYMENT-SIGNATURE</code>. Historical SOL listings remain a
+            legacy read/download path.
           </p>
           <div className="space-y-4">
             <div>

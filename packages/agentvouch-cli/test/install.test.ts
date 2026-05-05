@@ -77,7 +77,7 @@ describe("installSkill", () => {
           programId: "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz",
           instruction: "purchaseSkill",
           skillListingAddress: "37Mm4DzMockListing",
-          mint: "So11111111111111111111111111111111111111112",
+          mint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
           amount: 1_000_000,
           resource: "abc123",
           expiry: Math.floor(Date.now() / 1000) + 300,
@@ -97,7 +97,8 @@ describe("installSkill", () => {
       description: "Paid skill",
       on_chain_address: "37Mm4DzMockListing",
       total_installs: 0,
-      price_lamports: 1_000_000,
+      price_usdc_micros: "1000000",
+      currency_mint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
     });
     const purchaseSpy = vi
       .spyOn(AgentVouchSolanaClient.prototype, "purchaseSkill")

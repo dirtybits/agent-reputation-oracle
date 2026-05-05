@@ -1,8 +1,10 @@
-# Agent Reputation Oracle - Architecture Analysis
+# AgentVouch Architecture Analysis
 
 **Analysis Date:** February 16, 2026  
-**Program ID:** `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`  
+**Current program ID:** `AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz`  
 **Network:** Solana Devnet
+
+This older analysis is superseded by `docs/ARCHITECTURE.md`; keep it as background only.
 
 ---
 
@@ -95,7 +97,7 @@ digraph StateModel {
     
     Dispute [label="{Dispute|+ vouch: Pubkey\l+ challenger: Pubkey\l+ evidence_uri: String\l+ status: DisputeStatus\l+ ruling: Option\<DisputeRuling\>\l+ created_at: i64\l+ resolved_at: Option\<i64\>\l}"];
     
-    Skill [label="{SkillListing|+ author: Pubkey\l+ skill_uri: String\l+ name: String\l+ description: String\l+ price_lamports: u64\l+ total_downloads: u64\l+ total_revenue: u64\l+ created_at: i64\l+ status: SkillStatus\l}"];
+    Skill [label="{SkillListing|+ author: Pubkey\l+ skill_uri: String\l+ name: String\l+ description: String\l+ price_usdc_micros: u64\l+ total_downloads: u64\l+ total_revenue_usdc_micros: u64\l+ created_at: i64\l+ status: SkillStatus\l}"];
     
     Purchase [label="{Purchase|+ buyer: Pubkey\l+ skill_listing: Pubkey\l+ purchased_at: i64\l+ price_paid: u64\l}"];
     
@@ -259,7 +261,7 @@ digraph PurchaseFlow {
     Buyer [label="Buyer\n(connects wallet)"];
     SkillListing [label="SkillListing\n(Active status)"];
     
-    Payment [label="Transfer SOL\n(price_lamports)"];
+    Payment [label="Transfer USDC\n(price_usdc_micros)"];
     
     Split [label="Split Payment", shape=diamond];
     
@@ -487,7 +489,7 @@ Solana Program (Rust)
 ├── Framework: Anchor 0.32.1
 ├── Language: Rust (edition 2021)
 ├── Deployment: Solana Devnet
-└── Program ID: ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf
+└── Program ID: AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz
 ```
 
 ### Frontend Layer

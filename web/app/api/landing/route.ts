@@ -68,9 +68,9 @@ export async function GET() {
           author: data.author,
           name: data.name,
           description: data.description,
-          priceLamports: Number(data.priceUsdcMicros),
+          priceUsdcMicros: Number(data.priceUsdcMicros),
           totalDownloads: Number(data.totalDownloads),
-          totalRevenue: Number(data.totalRevenueUsdcMicros),
+          totalRevenueUsdcMicros: Number(data.totalRevenueUsdcMicros),
           status: data.status,
         },
       };
@@ -114,7 +114,7 @@ export async function GET() {
       )
     );
     const totalRevenue = skills.reduce(
-      (sum, s) => sum + s.account.totalRevenue,
+      (sum, s) => sum + s.account.totalRevenueUsdcMicros,
       0
     );
     const totalStaked = agents.reduce(

@@ -3,14 +3,13 @@
 import { useState, useEffect } from "react";
 import TypewriterText from "@/components/TypewriterText";
 import { ClientWalletButton } from "@/components/ClientWalletButton";
-import { SolAmount } from "@/components/SolAmount";
 import {
   navButtonInlineClass,
   navButtonPrimaryInlineClass,
   navButtonSecondaryInlineClass,
 } from "@/lib/buttonStyles";
 import Link from "next/link";
-import { formatSolAmount } from "@/lib/pricing";
+import { formatUsdcMicros } from "@/lib/pricing";
 import {
   FiArrowRight,
   FiAward,
@@ -40,9 +39,9 @@ type FeaturedSkill = {
   account: {
     name?: string;
     description?: string | null;
-    priceLamports?: number | bigint;
+    priceUsdcMicros?: number | bigint;
     totalDownloads?: number | bigint;
-    totalRevenue?: number | bigint;
+    totalRevenueUsdcMicros?: number | bigint;
   };
 };
 type SkillsIndexResponse = {
@@ -86,6 +85,10 @@ const homepageJsonLd = {
     },
   ],
 };
+
+function formatUsdc(micros: number | bigint | string | null | undefined) {
+  return `${formatUsdcMicros(micros) ?? "0"} USDC`;
+}
 
 export default function Home() {
   const [toggle, setToggle] = useState<ToggleMode>("none");
@@ -331,9 +334,9 @@ export default function Home() {
               </div>
               <div className="grid md:grid-cols-3 gap-3">
                 {featuredSkills.map((skill) => {
-                  const price = Number(skill.account.priceLamports ?? 0);
+                  const price = skill.account.priceUsdcMicros ?? 0;
                   const downloads = Number(skill.account.totalDownloads ?? 0);
-                  const revenue = Number(skill.account.totalRevenue ?? 0);
+                  const revenue = skill.account.totalRevenueUsdcMicros ?? 0;
                   return (
                     <Link
                       key={skill.publicKey}
@@ -347,11 +350,9 @@ export default function Home() {
                         {skill.account.description || "No description"}
                       </p>
                       <div className="mt-auto flex items-center justify-between text-xs">
-                        <SolAmount
-                          amount={formatSolAmount(price)}
-                          className="font-semibold text-gray-900 dark:text-white"
-                          iconClassName="w-3 h-3"
-                        />
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {formatUsdc(price)}
+                        </span>
                         <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
                           <span className="flex items-center gap-1">
                             <FiDownload className="w-3 h-3" />
@@ -359,7 +360,7 @@ export default function Home() {
                           </span>
                           <span className="flex items-center gap-1">
                             <FiTrendingUp className="w-3 h-3" />
-                            {formatSolAmount(revenue)}
+                            {formatUsdc(revenue)}
                           </span>
                         </div>
                       </div>
@@ -400,12 +401,12 @@ export default function Home() {
               {
                 label: "Revenue",
                 value: landingMetrics?.revenue,
-                format: (v: number) => `${formatSolAmount(v)} SOL`,
+                format: (v: number) => formatUsdc(v),
               },
               {
-                label: "Total Staked",
+                label: "USDC Staked",
                 value: landingMetrics?.staked,
-                format: (v: number) => `${formatSolAmount(v)} SOL`,
+                format: (v: number) => formatUsdc(v),
               },
             ].map((m) => (
               <div
@@ -496,7 +497,7 @@ export default function Home() {
               {
                 step: "2",
                 title: "Stake & Vouch",
-                desc: "Stake SOL to vouch for agents you trust. Your reputation grows with time and successful vouches.",
+                desc: "Stake USDC to vouch for agents you trust. SOL is still used for fees and account rent.",
                 icon: <FiZap />,
               },
               {

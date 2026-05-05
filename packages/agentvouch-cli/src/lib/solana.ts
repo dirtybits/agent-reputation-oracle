@@ -2,7 +2,6 @@ import { AGENTVOUCH_PROGRAM_ID } from "@agentvouch/protocol";
 import anchor from "@coral-xyz/anchor";
 import {
   Keypair,
-  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   type Commitment,
@@ -10,13 +9,22 @@ import {
 import agentvouchIdl from "../../../../web/agentvouch.json";
 
 const { AnchorProvider, Program, Wallet, web3 } = anchor;
-const MIN_SKILL_PRICE_LAMPORTS = 1_000_000n;
+const TOKEN_PROGRAM_ID = new PublicKey(
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+);
+const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+);
+const DEVNET_USDC_MINT = new PublicKey(
+  "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+);
+const MIN_SKILL_PRICE_USDC_MICROS = 10_000n;
 
 function toPublicKey(value: PublicKey | string): PublicKey {
   return value instanceof PublicKey ? value : new PublicKey(value);
 }
 
-function toLamportsBigInt(
+function toMicrosBigInt(
   value: number | bigint,
   fieldName: string
 ): bigint {
@@ -39,34 +47,17 @@ function toLamportsBigInt(
   return BigInt(value);
 }
 
-function toLamportsBn(value: number | bigint, fieldName: string) {
-  return new anchor.BN(toLamportsBigInt(value, fieldName).toString());
+function toMicrosBn(value: number | bigint, fieldName: string) {
+  return new anchor.BN(toMicrosBigInt(value, fieldName).toString());
 }
 
-function toStakeLamports(amountSol: number): bigint {
-  if (!Number.isFinite(amountSol) || amountSol <= 0) {
-    throw new Error("amountSol must be a positive SOL amount.");
-  }
-
-  const lamports = amountSol * LAMPORTS_PER_SOL;
-  if (!Number.isFinite(lamports) || !Number.isInteger(lamports)) {
+function assertSupportedListingPrice(priceUsdcMicros: bigint) {
+  if (
+    priceUsdcMicros !== 0n &&
+    priceUsdcMicros < MIN_SKILL_PRICE_USDC_MICROS
+  ) {
     throw new Error(
-      "amountSol must convert to a whole lamport amount."
-    );
-  }
-  if (!Number.isSafeInteger(lamports)) {
-    throw new Error(
-      "amountSol exceeds JavaScript's safe integer range in lamports."
-    );
-  }
-
-  return BigInt(lamports);
-}
-
-function assertSupportedListingPrice(priceLamports: bigint) {
-  if (priceLamports !== 0n && priceLamports < MIN_SKILL_PRICE_LAMPORTS) {
-    throw new Error(
-      `priceLamports must be 0 or at least ${MIN_SKILL_PRICE_LAMPORTS.toString()} lamports.`
+      `priceUsdcMicros must be 0 or at least ${MIN_SKILL_PRICE_USDC_MICROS.toString()} micro-USDC.`
     );
   }
 }
@@ -144,6 +135,17 @@ export class AgentVouchSolanaClient {
     )[0];
   }
 
+  getAssociatedTokenAddress(owner: PublicKey | string, mint: PublicKey | string) {
+    return PublicKey.findProgramAddressSync(
+      [
+        toPublicKey(owner).toBuffer(),
+        TOKEN_PROGRAM_ID.toBuffer(),
+        toPublicKey(mint).toBuffer(),
+      ],
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    )[0];
+  }
+
   getVouchAddress(vouchee: PublicKey | string): PublicKey {
     const voucherProfile = this.getAgentProfileAddress(this.authority);
     const voucheeProfile = this.getAgentProfileAddress(vouchee);
@@ -152,6 +154,63 @@ export class AgentVouchSolanaClient {
         Buffer.from("vouch"),
         voucherProfile.toBuffer(),
         voucheeProfile.toBuffer(),
+      ],
+      new PublicKey(AGENTVOUCH_PROGRAM_ID)
+    )[0];
+  }
+
+  getVouchVaultAuthorityAddress(vouchee: PublicKey | string): PublicKey {
+    const voucherProfile = this.getAgentProfileAddress(this.authority);
+    const voucheeProfile = this.getAgentProfileAddress(vouchee);
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vouch_vault_authority"),
+        voucherProfile.toBuffer(),
+        voucheeProfile.toBuffer(),
+      ],
+      new PublicKey(AGENTVOUCH_PROGRAM_ID)
+    )[0];
+  }
+
+  getVouchVaultAddress(vouchee: PublicKey | string): PublicKey {
+    const voucherProfile = this.getAgentProfileAddress(this.authority);
+    const voucheeProfile = this.getAgentProfileAddress(vouchee);
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vouch_vault"),
+        voucherProfile.toBuffer(),
+        voucheeProfile.toBuffer(),
+      ],
+      new PublicKey(AGENTVOUCH_PROGRAM_ID)
+    )[0];
+  }
+
+  getRewardVaultAuthorityAddress(skillListing: PublicKey | string): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("listing_reward_vault_authority"),
+        toPublicKey(skillListing).toBuffer(),
+      ],
+      new PublicKey(AGENTVOUCH_PROGRAM_ID)
+    )[0];
+  }
+
+  getRewardVaultAddress(skillListing: PublicKey | string): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("listing_reward_vault"), toPublicKey(skillListing).toBuffer()],
+      new PublicKey(AGENTVOUCH_PROGRAM_ID)
+    )[0];
+  }
+
+  getListingVouchPositionAddress(
+    skillListing: PublicKey | string,
+    vouch: PublicKey | string
+  ): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("listing_vouch_position"),
+        toPublicKey(skillListing).toBuffer(),
+        toPublicKey(vouch).toBuffer(),
       ],
       new PublicKey(AGENTVOUCH_PROGRAM_ID)
     )[0];
@@ -188,11 +247,18 @@ export class AgentVouchSolanaClient {
     };
   }
 
-  async vouch(vouchee: string, amountSol: number) {
+  async vouch(vouchee: string, stakeUsdcMicros: number | bigint) {
     const voucherProfile = this.getAgentProfileAddress(this.authority);
     const voucheeProfile = this.getAgentProfileAddress(vouchee);
     const vouch = this.getVouchAddress(vouchee);
     const config = this.getConfigAddress();
+    const usdcMint = DEVNET_USDC_MINT;
+    const voucherUsdcAccount = this.getAssociatedTokenAddress(
+      this.authority,
+      usdcMint
+    );
+    const vouchVaultAuthority = this.getVouchVaultAuthorityAddress(vouchee);
+    const vouchVault = this.getVouchVaultAddress(vouchee);
 
     if (await this.accountExists(vouch)) {
       return {
@@ -202,15 +268,23 @@ export class AgentVouchSolanaClient {
       };
     }
 
-    const lamports = toStakeLamports(amountSol);
+    const stakeMicros = toMicrosBigInt(stakeUsdcMicros, "stakeUsdcMicros");
+    if (stakeMicros <= 0n) {
+      throw new Error("stakeUsdcMicros must be greater than zero.");
+    }
     const tx = await this.program.methods
-      .vouch(toLamportsBn(lamports, "stakeLamports"))
+      .vouch(toMicrosBn(stakeMicros, "stakeUsdcMicros"))
       .accounts({
         vouch,
         voucherProfile,
         voucheeProfile,
         config,
+        usdcMint,
+        voucherUsdcAccount,
+        vouchVaultAuthority,
+        vouchVault,
         voucher: this.authority,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([this.keypair])
@@ -220,7 +294,7 @@ export class AgentVouchSolanaClient {
       tx,
       alreadyExists: false,
       vouch: vouch.toBase58(),
-      lamports: Number(lamports),
+      stakeUsdcMicros: Number(stakeMicros),
     };
   }
 
@@ -235,6 +309,11 @@ export class AgentVouchSolanaClient {
     }
 
     const authorProfile = this.getAgentProfileAddress(authorAddress);
+    const config = this.getConfigAddress();
+    const usdcMint = DEVNET_USDC_MINT;
+    const buyerUsdcAccount = this.getAssociatedTokenAddress(this.authority, usdcMint);
+    const authorUsdcAccount = this.getAssociatedTokenAddress(authorAddress, usdcMint);
+    const rewardVault = this.getRewardVaultAddress(skillListingAddress);
     const tx = await this.program.methods
       .purchaseSkill()
       .accounts({
@@ -242,7 +321,13 @@ export class AgentVouchSolanaClient {
         purchase,
         author: new PublicKey(authorAddress),
         authorProfile,
+        config,
+        usdcMint,
+        buyerUsdcAccount,
+        authorUsdcAccount,
+        rewardVault,
         buyer: this.authority,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([this.keypair])
@@ -259,16 +344,35 @@ export class AgentVouchSolanaClient {
     const voucherProfile = this.getAgentProfileAddress(this.authority);
     const authorProfile = this.getAgentProfileAddress(authorAddress);
     const vouch = this.getVouchAddress(authorAddress);
+    const listingVouchPosition = this.getListingVouchPositionAddress(
+      skillListingAddress,
+      vouch
+    );
+    const config = this.getConfigAddress();
+    const usdcMint = DEVNET_USDC_MINT;
+    const rewardVaultAuthority =
+      this.getRewardVaultAuthorityAddress(skillListingAddress);
+    const rewardVault = this.getRewardVaultAddress(skillListingAddress);
+    const voucherUsdcAccount = this.getAssociatedTokenAddress(
+      this.authority,
+      usdcMint
+    );
 
     const tx = await this.program.methods
       .claimVoucherRevenue()
       .accounts({
         skillListing: new PublicKey(skillListingAddress),
+        listingVouchPosition,
         vouch,
-        voucherProfile,
         authorProfile,
+        voucherProfile,
+        config,
+        usdcMint,
+        rewardVaultAuthority,
+        rewardVault,
+        voucherUsdcAccount,
         voucher: this.authority,
-        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([this.keypair])
       .rpc();
@@ -277,6 +381,7 @@ export class AgentVouchSolanaClient {
       tx,
       skillListing: skillListingAddress,
       vouch: vouch.toBase58(),
+      listingVouchPosition: listingVouchPosition.toBase58(),
       voucherProfile: voucherProfile.toBase58(),
       authorProfile: authorProfile.toBase58(),
     };
@@ -287,10 +392,13 @@ export class AgentVouchSolanaClient {
     skillUri: string;
     name: string;
     description: string;
-    priceLamports: number | bigint;
+    priceUsdcMicros: number | bigint;
   }) {
-    const priceLamports = toLamportsBigInt(input.priceLamports, "priceLamports");
-    assertSupportedListingPrice(priceLamports);
+    const priceUsdcMicros = toMicrosBigInt(
+      input.priceUsdcMicros,
+      "priceUsdcMicros"
+    );
+    assertSupportedListingPrice(priceUsdcMicros);
     const skillListing = this.getSkillListingAddress(input.skillId);
     if (await this.accountExists(skillListing)) {
       return {
@@ -302,10 +410,14 @@ export class AgentVouchSolanaClient {
 
     const authorProfile = this.getAgentProfileAddress(this.authority);
     const config = this.getConfigAddress();
+    const usdcMint = DEVNET_USDC_MINT;
     const authorBond =
-      priceLamports === 0n
+      priceUsdcMicros === 0n
         ? this.getAuthorBondAddress(this.authority)
         : null;
+    const rewardVaultAuthority =
+      this.getRewardVaultAuthorityAddress(skillListing);
+    const rewardVault = this.getRewardVaultAddress(skillListing);
 
     const tx = await this.program.methods
       .createSkillListing(
@@ -313,14 +425,18 @@ export class AgentVouchSolanaClient {
         input.skillUri,
         input.name,
         input.description,
-        toLamportsBn(priceLamports, "priceLamports")
+        toMicrosBn(priceUsdcMicros, "priceUsdcMicros")
       )
       .accounts({
         skillListing,
         authorProfile,
         config,
         authorBond,
+        usdcMint,
+        rewardVaultAuthority,
+        rewardVault,
         author: this.authority,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([this.keypair])

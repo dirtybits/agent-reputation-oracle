@@ -839,7 +839,7 @@ Tasks:
 - Document the first-time author cost shift: USDC author bond plus SOL for rent/fees/ATA creation, even though protocol accounting is USDC-native.
 - Document that x402 bridge memos must contain only protocol references (version, listing, skill id, nonce) and no PII or free-form buyer text.
 - Update `AGENTS.md` learned-facts to reflect USDC-native protocol, new program ID, vault model, and CAIP-2 conventions.
-- Co-version the pitch deck `pitch/AgentVouch_walkthrough.pptx` (and its paper sibling) with the new account/instruction counts, vault-per-primitive model, and USDC-native architecture slide. The deck pulls facts directly from the program; keep it in sync.
+- Defer pitch deck co-versioning to Milestone 13, including `pitch/AgentVouch_walkthrough.pptx`, its paper sibling, account/instruction counts, vault-per-primitive diagrams, and USDC-native architecture slides.
 - After every `anchor build`, copy `target/idl/agentvouch.json` to `web/agentvouch.json` and rerun `npm run generate:client` so the web client stays deploy-safe.
 
 Acceptance criteria:
@@ -983,6 +983,6 @@ The migration is complete when:
 - Direct on-chain purchases are indexed into download entitlements through verified API submission plus reconciliation.
 - Active-dispute freeze invariants, vault close/refund rules, reward-index math, and listing-removal behavior are covered by tests.
 - Governance, treasury, authority rotation, pause, and mainnet readiness policies are documented even if `v0.2.0` remains devnet-only.
-- `web/public/skill.md`, `docs/ARCHITECTURE.md`, `AGENTS.md`, and `pitch/AgentVouch_walkthrough.pptx` describe the live USDC-native protocol.
+- `web/public/skill.md`, `docs/ARCHITECTURE.md`, and `AGENTS.md` describe the live USDC-native protocol; pitch deck alignment is handled in Milestone 13.
 - `NO_DNA=1 anchor build`, program tests, and `npm run build --workspace @agentvouch/web` pass.
 
