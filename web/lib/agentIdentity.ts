@@ -96,7 +96,7 @@ export function buildRegistryCanonicalAgentId(
   return `${normalized}:${registryAddress}#${recordId}`;
 }
 
-async function ensureAgentIdentitySchema(): Promise<void> {
+export async function ensureAgentIdentitySchema(): Promise<void> {
   if (!hasDatabaseConfigured()) {
     return;
   }

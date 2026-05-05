@@ -795,6 +795,7 @@ Tasks:
 
 - Create a fresh Neon branch or database for `v0.2.0`.
 - Run the app bootstrap against the new database so the `skills`, `skill_versions`, `usdc_purchase_receipts`, and `usdc_purchase_entitlements` schema is created with Milestone 8 metadata fields.
+- Use `docs/DATABASE_CUTOVER.md` as the cutover runbook and `npm run db:cutover --workspace @agentvouch/web` for inventory, bootstrap, export/import, and sanity checks.
 - Decide which durable rows migrate:
   - repo-backed skills and versions that should remain listed
   - author identity/profile cache rows that are still useful

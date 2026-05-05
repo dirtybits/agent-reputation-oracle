@@ -104,6 +104,8 @@ const rpc = createSolanaRpc(ENDPOINT);
 const SIGNATURE_CONFIRMATION_TIMEOUT_MS = 45_000;
 const SIGNATURE_CONFIRMATION_POLL_MS = 1_000;
 const REPUTATION_CONFIG_SIZE = 457;
+const AGENT_PROFILE_ACCOUNT_SPACE = 301;
+const REGISTRATION_FEE_BUFFER_LAMPORTS = 10_000n;
 
 const textEncoder = getUtf8Encoder();
 const addressEncoder = getAddressEncoder();
@@ -170,7 +172,10 @@ type ClusterGuardContext = {
 };
 
 type RegisterAgentClusterGuardAssessment = ClusterGuardContext & {
+  walletAddress: Address;
   profileExists: boolean;
+  walletBalanceLamports: bigint | null;
+  requiredLamports: bigint | null;
 };
 
 type SkillListingClusterGuardAssessment = ClusterGuardContext & {
@@ -261,9 +266,24 @@ export function getStakeClusterGuardError(
 export function getRegisterAgentClusterGuardError(
   assessment: RegisterAgentClusterGuardAssessment
 ): string | null {
-  if (!assessment.profileExists) return null;
   const configuredNetwork = getConfiguredNetworkDescription(assessment);
-  return `Author profile already exists on the configured ${configuredNetwork}. If you meant to work on another network, switch Phantom and the app to the same cluster and retry.`;
+  if (assessment.profileExists) {
+    return `Author profile already exists on the configured ${configuredNetwork}. If you meant to work on another network, switch Phantom and the app to the same cluster and retry.`;
+  }
+  if (
+    assessment.walletBalanceLamports !== null &&
+    assessment.requiredLamports !== null &&
+    assessment.walletBalanceLamports < assessment.requiredLamports
+  ) {
+    return `Connected wallet ${shortAddress(
+      assessment.walletAddress
+    )} has ${formatLamportsAsSol(
+      assessment.walletBalanceLamports
+    )} SOL on the configured ${configuredNetwork}. Registering needs about ${formatLamportsAsSol(
+      assessment.requiredLamports
+    )} SOL for account rent and network fees. Fund the wallet on this cluster and retry.`;
+  }
+  return null;
 }
 
 export function getSkillListingClusterGuardError(
@@ -777,12 +797,25 @@ async function assertStakeActionClusterReady(
 
 async function assertRegisterAgentClusterReady(walletAddress: Address) {
   try {
-    const agentProfile = await fetchMaybeAgentProfile(
-      rpc,
-      await getAgentPDA(walletAddress)
-    ).catch(() => null);
+    const agentProfilePda = await getAgentPDA(walletAddress);
+    const [agentProfile, walletBalanceLamports, profileRentLamports] =
+      await Promise.all([
+        fetchMaybeAgentProfile(rpc, agentProfilePda).catch(() => null),
+        getWalletBalanceLamports(walletAddress).catch(() => null),
+        rpc
+          .getMinimumBalanceForRentExemption(BigInt(AGENT_PROFILE_ACCOUNT_SPACE))
+          .send()
+          .then(coerceLamports)
+          .catch(() => null),
+      ]);
     const guardError = getRegisterAgentClusterGuardError({
+      walletAddress,
       profileExists: !!agentProfile?.exists,
+      walletBalanceLamports,
+      requiredLamports:
+        profileRentLamports === null
+          ? null
+          : profileRentLamports + REGISTRATION_FEE_BUFFER_LAMPORTS,
     });
     if (guardError) throw new ClusterGuardError(guardError);
   } catch (error) {

@@ -1613,7 +1613,7 @@ export default function AuthorProfilePage() {
                         </div>
                         {listing.accountingMismatch && (
                           <div className="text-xs text-amber-700 dark:text-amber-300">
-                            This listing's stored voucher revenue exceeds its
+                            This listing&apos;s stored voucher revenue exceeds its
                             actual on-chain balance. Claiming would fail until
                             the devnet listing accounting is repaired.
                           </div>
