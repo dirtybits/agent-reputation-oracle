@@ -22,7 +22,7 @@ vi.mock("../../generated/agentvouch/src/generated", () => ({
 
 vi.mock("../../generated/agentvouch/src/generated/programs", () => ({
   AGENTVOUCH_PROGRAM_ADDRESS:
-    "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
+    "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz",
 }));
 
 const mockRecordReceipt = vi.fn();
@@ -41,7 +41,7 @@ const SKILL = {
   currency_mint: "Mint",
   chain_context: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
   on_chain_protocol_version: "v0.2.0",
-  on_chain_program_id: "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
+  on_chain_program_id: "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz",
 };
 
 function mockTransaction(overrides: Record<string, unknown> = {}) {
@@ -58,11 +58,11 @@ function mockTransaction(overrides: Record<string, unknown> = {}) {
                 { pubkey: "Buyer", signer: true },
                 { pubkey: "Listing" },
                 { pubkey: "PurchasePDA" },
-                { pubkey: "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW" },
+                { pubkey: "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz" },
               ],
               instructions: [
                 {
-                  programId: "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
+                  programId: "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz",
                 },
               ],
             },
@@ -132,7 +132,7 @@ describe("verifyAndRecordDirectPurchase", () => {
             { pubkey: "Buyer", signer: true },
             { pubkey: "Listing" },
             { pubkey: "PurchasePDA" },
-            { pubkey: "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW" },
+            { pubkey: "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz" },
           ],
           instructions: [{ programId: "OtherProgram" }],
         },

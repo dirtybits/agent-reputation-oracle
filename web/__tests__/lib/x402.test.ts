@@ -18,7 +18,7 @@ vi.mock("../../generated/agentvouch/src/generated", () => ({
 
 vi.mock("../../generated/agentvouch/src/generated/programs", () => ({
   AGENTVOUCH_PROGRAM_ADDRESS:
-    "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
+    "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz",
 }));
 
 import {
@@ -40,7 +40,7 @@ function makeRequirement(
   return {
     scheme: "exact",
     network: "solana",
-    programId: "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
+    programId: "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz",
     instruction: "purchaseSkill",
     skillListingAddress: FAKE_SKILL_LISTING,
     mint: "So11111111111111111111111111111111111111112",
@@ -73,7 +73,7 @@ describe("generatePaymentRequirement", () => {
     expect(req.scheme).toBe("exact");
     expect(req.network).toBe("solana");
     expect(req.chainContext).toBe(SOLANA_DEVNET_CHAIN_CONTEXT);
-    expect(req.programId).toBe("CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW");
+    expect(req.programId).toBe("AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz");
     expect(req.instruction).toBe("purchaseSkill");
     expect(req.skillListingAddress).toBe("SkillAddr123");
     expect(req.mint).toBe("So11111111111111111111111111111111111111112");

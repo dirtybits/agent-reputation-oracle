@@ -90,6 +90,52 @@ anchor deploy \
   --provider.wallet "$ANCHOR_WALLET"
 ```
 
+## Bootstrap Program State
+
+Deploying the executable does not initialize the program's PDA state. After deploying a fresh program ID, run `initialize_config` once before testing registration-dependent flows like skill listing, vouching, purchases, or author bonds.
+
+For the USDC-native `agentvouch` program, `initialize_config` creates:
+
+- the singleton `ReputationConfig` PDA from seed `["config"]`
+- the protocol treasury USDC vault
+- the x402 settlement USDC vault
+
+Use the cluster's canonical USDC mint when initializing config. On devnet, that is:
+
+```text
+4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+```
+
+Set the config, treasury, settlement, and pause authorities deliberately. For a devnet smoke deploy, using the deploy payer for all four is acceptable; production should use the intended operations/admin authority model.
+
+Dry-run the config initialization first:
+
+```bash
+export AGENTVOUCH_RPC_URL=https://api.devnet.solana.com
+export AGENTVOUCH_WALLET=~/dev-keypair.json
+export SOLANA_CHAIN_CONTEXT=solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1
+export USDC_MINT=4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+
+anchor run init-agentvouch-config
+```
+
+If the printed program ID, authorities, PDAs, and simulation result are correct, submit it:
+
+```bash
+INIT_AGENTVOUCH_CONFIG_APPLY=1 anchor run init-agentvouch-config
+```
+
+The script is idempotent. If the `config` PDA already exists, it prints the current config and exits without sending a transaction.
+
+If this step is skipped, instructions that read `config` will fail even though the program account exists. A common symptom is skill listing simulation failing with Anchor `AccountNotInitialized` / `3012`:
+
+```text
+AnchorError caused by account: config.
+Error Code: AccountNotInitialized.
+Error Number: 3012.
+Error Message: The program expected this account to be already initialized.
+```
+
 ## Verify Program Upgrade
 
 Check the on-chain program metadata:

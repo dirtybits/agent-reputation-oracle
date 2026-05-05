@@ -173,6 +173,7 @@ type ClusterGuardContext = {
 
 type RegisterAgentClusterGuardAssessment = ClusterGuardContext & {
   walletAddress: Address;
+  programExists: boolean;
   profileExists: boolean;
   walletBalanceLamports: bigint | null;
   requiredLamports: bigint | null;
@@ -267,6 +268,11 @@ export function getRegisterAgentClusterGuardError(
   assessment: RegisterAgentClusterGuardAssessment
 ): string | null {
   const configuredNetwork = getConfiguredNetworkDescription(assessment);
+  if (!assessment.programExists) {
+    return `AgentVouch program ${shortAddress(
+      AGENTVOUCH_PROGRAM_ADDRESS
+    )} is not deployed on the configured ${configuredNetwork}. Deploy the v0.2.0 program on this cluster before registering.`;
+  }
   if (assessment.profileExists) {
     return `Author profile already exists on the configured ${configuredNetwork}. If you meant to work on another network, switch Phantom and the app to the same cluster and retry.`;
   }
@@ -798,8 +804,9 @@ async function assertStakeActionClusterReady(
 async function assertRegisterAgentClusterReady(walletAddress: Address) {
   try {
     const agentProfilePda = await getAgentPDA(walletAddress);
-    const [agentProfile, walletBalanceLamports, profileRentLamports] =
+    const [programAccount, agentProfile, walletBalanceLamports, profileRentLamports] =
       await Promise.all([
+        fetchEncodedAccount(rpc, AGENTVOUCH_PROGRAM_ADDRESS).catch(() => null),
         fetchMaybeAgentProfile(rpc, agentProfilePda).catch(() => null),
         getWalletBalanceLamports(walletAddress).catch(() => null),
         rpc
@@ -810,6 +817,7 @@ async function assertRegisterAgentClusterReady(walletAddress: Address) {
       ]);
     const guardError = getRegisterAgentClusterGuardError({
       walletAddress,
+      programExists: !!programAccount?.exists,
       profileExists: !!agentProfile?.exists,
       walletBalanceLamports,
       requiredLamports:

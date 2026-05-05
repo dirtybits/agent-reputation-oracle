@@ -14,48 +14,48 @@ import {
 } from "@solana/kit";
 import { AGENTVOUCH_PROGRAM_ADDRESS } from "../programs";
 
-/** StakeBelowMinimum: Stake amount is below minimum */
-export const AGENTVOUCH_ERROR__STAKE_BELOW_MINIMUM = 0x1770; // 6000
-/** CannotVouchForSelf: Cannot vouch for yourself */
-export const AGENTVOUCH_ERROR__CANNOT_VOUCH_FOR_SELF = 0x1771; // 6001
-/** StakeOverflow: Stake amount overflowed the existing vouch */
-export const AGENTVOUCH_ERROR__STAKE_OVERFLOW = 0x1772; // 6002
-/** VouchAccountMismatch: Vouch account does not match the expected voucher/vouchee pair */
-export const AGENTVOUCH_ERROR__VOUCH_ACCOUNT_MISMATCH = 0x1773; // 6003
-/** VouchNotReusable: This vouch relationship cannot accept new stake in its current state */
-export const AGENTVOUCH_ERROR__VOUCH_NOT_REUSABLE = 0x1774; // 6004
-/** ProtocolPaused: Protocol is paused */
-export const AGENTVOUCH_ERROR__PROTOCOL_PAUSED = 0x1775; // 6005
+/** AmountMustBePositive: Amount must be greater than zero */
+export const AGENTVOUCH_ERROR__AMOUNT_MUST_BE_POSITIVE = 0x1770; // 6000
+/** AuthorBondAuthorityMismatch: Author bond authority mismatch */
+export const AGENTVOUCH_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH = 0x1771; // 6001
+/** InsufficientBondAmount: Author bond amount is insufficient for this withdrawal */
+export const AGENTVOUCH_ERROR__INSUFFICIENT_BOND_AMOUNT = 0x1772; // 6002
+/** FreeListingsRequireBondFloor: Active free listings require the configured minimum author bond */
+export const AGENTVOUCH_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR = 0x1773; // 6003
+/** AuthorBondLockedWhileDisputesOpen: Author bond cannot be withdrawn while author disputes are open */
+export const AGENTVOUCH_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN = 0x1774; // 6004
 /** InvalidUsdcMint: USDC mint does not match config */
-export const AGENTVOUCH_ERROR__INVALID_USDC_MINT = 0x1776; // 6006
+export const AGENTVOUCH_ERROR__INVALID_USDC_MINT = 0x1775; // 6005
+/** AuthorBondVaultMismatch: Author bond vault does not match account state */
+export const AGENTVOUCH_ERROR__AUTHOR_BOND_VAULT_MISMATCH = 0x1776; // 6006
 /** InvalidTokenMint: Token account mint does not match config */
 export const AGENTVOUCH_ERROR__INVALID_TOKEN_MINT = 0x1777; // 6007
 /** InvalidTokenOwner: Token account owner is invalid */
 export const AGENTVOUCH_ERROR__INVALID_TOKEN_OWNER = 0x1778; // 6008
 
 export type AgentvouchError =
-  | typeof AGENTVOUCH_ERROR__CANNOT_VOUCH_FOR_SELF
+  | typeof AGENTVOUCH_ERROR__AMOUNT_MUST_BE_POSITIVE
+  | typeof AGENTVOUCH_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH
+  | typeof AGENTVOUCH_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN
+  | typeof AGENTVOUCH_ERROR__AUTHOR_BOND_VAULT_MISMATCH
+  | typeof AGENTVOUCH_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR
+  | typeof AGENTVOUCH_ERROR__INSUFFICIENT_BOND_AMOUNT
   | typeof AGENTVOUCH_ERROR__INVALID_TOKEN_MINT
   | typeof AGENTVOUCH_ERROR__INVALID_TOKEN_OWNER
-  | typeof AGENTVOUCH_ERROR__INVALID_USDC_MINT
-  | typeof AGENTVOUCH_ERROR__PROTOCOL_PAUSED
-  | typeof AGENTVOUCH_ERROR__STAKE_BELOW_MINIMUM
-  | typeof AGENTVOUCH_ERROR__STAKE_OVERFLOW
-  | typeof AGENTVOUCH_ERROR__VOUCH_ACCOUNT_MISMATCH
-  | typeof AGENTVOUCH_ERROR__VOUCH_NOT_REUSABLE;
+  | typeof AGENTVOUCH_ERROR__INVALID_USDC_MINT;
 
 let agentvouchErrorMessages: Record<AgentvouchError, string> | undefined;
 if (process.env.NODE_ENV !== "production") {
   agentvouchErrorMessages = {
-    [AGENTVOUCH_ERROR__CANNOT_VOUCH_FOR_SELF]: `Cannot vouch for yourself`,
+    [AGENTVOUCH_ERROR__AMOUNT_MUST_BE_POSITIVE]: `Amount must be greater than zero`,
+    [AGENTVOUCH_ERROR__AUTHOR_BOND_AUTHORITY_MISMATCH]: `Author bond authority mismatch`,
+    [AGENTVOUCH_ERROR__AUTHOR_BOND_LOCKED_WHILE_DISPUTES_OPEN]: `Author bond cannot be withdrawn while author disputes are open`,
+    [AGENTVOUCH_ERROR__AUTHOR_BOND_VAULT_MISMATCH]: `Author bond vault does not match account state`,
+    [AGENTVOUCH_ERROR__FREE_LISTINGS_REQUIRE_BOND_FLOOR]: `Active free listings require the configured minimum author bond`,
+    [AGENTVOUCH_ERROR__INSUFFICIENT_BOND_AMOUNT]: `Author bond amount is insufficient for this withdrawal`,
     [AGENTVOUCH_ERROR__INVALID_TOKEN_MINT]: `Token account mint does not match config`,
     [AGENTVOUCH_ERROR__INVALID_TOKEN_OWNER]: `Token account owner is invalid`,
     [AGENTVOUCH_ERROR__INVALID_USDC_MINT]: `USDC mint does not match config`,
-    [AGENTVOUCH_ERROR__PROTOCOL_PAUSED]: `Protocol is paused`,
-    [AGENTVOUCH_ERROR__STAKE_BELOW_MINIMUM]: `Stake amount is below minimum`,
-    [AGENTVOUCH_ERROR__STAKE_OVERFLOW]: `Stake amount overflowed the existing vouch`,
-    [AGENTVOUCH_ERROR__VOUCH_ACCOUNT_MISMATCH]: `Vouch account does not match the expected voucher/vouchee pair`,
-    [AGENTVOUCH_ERROR__VOUCH_NOT_REUSABLE]: `This vouch relationship cannot accept new stake in its current state`,
   };
 }
 

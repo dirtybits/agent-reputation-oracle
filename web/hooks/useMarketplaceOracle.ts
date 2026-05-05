@@ -56,7 +56,7 @@ import {
 import { getPurchaseSkillInstructionAsync } from "../generated/agentvouch/src/generated/instructions/purchaseSkill";
 
 const AGENTVOUCH_PROGRAM_ADDRESS = address(
-  "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW"
+  "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz"
 );
 const ENDPOINT =
   process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";

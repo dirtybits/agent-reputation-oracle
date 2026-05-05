@@ -23,7 +23,7 @@ export async function findVoucherProfilePda(
   config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
-    programAddress = "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW" as Address<"CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW">,
+    programAddress = "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz" as Address<"AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz">,
   } = config;
   return await getProgramDerivedAddress({
     programAddress,

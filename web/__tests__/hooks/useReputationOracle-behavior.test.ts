@@ -179,6 +179,7 @@ describe("useReputationOracle send helpers", () => {
   it("reports when agent registration already exists on the configured network", () => {
     const error = getRegisterAgentClusterGuardError({
       walletAddress: VOUCHER_ADDRESS,
+      programExists: true,
       profileExists: true,
       walletBalanceLamports: 2_000_000_000n,
       requiredLamports: 2_500_000n,
@@ -193,6 +194,7 @@ describe("useReputationOracle send helpers", () => {
   it("reports when agent registration does not have enough SOL for rent", () => {
     const error = getRegisterAgentClusterGuardError({
       walletAddress: VOUCHER_ADDRESS,
+      programExists: true,
       profileExists: false,
       walletBalanceLamports: 100_000n,
       requiredLamports: 2_500_000n,
@@ -208,6 +210,7 @@ describe("useReputationOracle send helpers", () => {
   it("does not block registration when profile is missing and balance is enough", () => {
     const error = getRegisterAgentClusterGuardError({
       walletAddress: VOUCHER_ADDRESS,
+      programExists: true,
       profileExists: false,
       walletBalanceLamports: 3_000_000n,
       requiredLamports: 2_500_000n,
@@ -216,6 +219,22 @@ describe("useReputationOracle send helpers", () => {
     });
 
     expect(error).toBeNull();
+  });
+
+  it("reports when the AgentVouch program is not deployed", () => {
+    const error = getRegisterAgentClusterGuardError({
+      walletAddress: VOUCHER_ADDRESS,
+      programExists: false,
+      profileExists: false,
+      walletBalanceLamports: 3_000_000n,
+      requiredLamports: 2_500_000n,
+      configuredChainLabel: "Solana Devnet",
+      configuredRpcTarget: "devnet",
+    });
+
+    expect(error).toContain("AgentVouch program");
+    expect(error).toContain("is not deployed");
+    expect(error).toContain("configured Solana Devnet (devnet RPC)");
   });
 
   it("reports when creating a listing without a profile on the configured network", () => {

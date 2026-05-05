@@ -74,7 +74,7 @@ describe("installSkill", () => {
         requirement: {
           scheme: "exact",
           network: "solana",
-          programId: "CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW",
+          programId: "AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz",
           instruction: "purchaseSkill",
           skillListingAddress: "37Mm4DzMockListing",
           mint: "So11111111111111111111111111111111111111112",

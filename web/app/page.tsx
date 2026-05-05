@@ -537,7 +537,7 @@ export default function Home() {
                 Devnet
               </span>
               <code className="font-mono text-xs text-gray-500 dark:text-gray-400 truncate">
-                CVpe18yvJ4nJxHivqu8G85TSKn8YVZcWaVE3z8afrQnW
+                AgNtCcWfeMYUzHxvGdZP5BJszQhx6NJGB4pQ7AN6XVWz
               </code>
             </div>
             <a
