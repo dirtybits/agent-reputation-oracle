@@ -25,7 +25,7 @@ function toPublicKey(value: PublicKey | string): PublicKey {
 }
 
 function toMicrosBigInt(
-  value: number | bigint,
+  value: number | bigint | string,
   fieldName: string
 ): bigint {
   if (typeof value === "bigint") {
@@ -33,6 +33,13 @@ function toMicrosBigInt(
       throw new Error(`${fieldName} must be non-negative.`);
     }
     return value;
+  }
+
+  if (typeof value === "string") {
+    if (!/^\d+$/.test(value)) {
+      throw new Error(`${fieldName} must be a non-negative integer.`);
+    }
+    return BigInt(value);
   }
 
   if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) {
@@ -47,7 +54,7 @@ function toMicrosBigInt(
   return BigInt(value);
 }
 
-function toMicrosBn(value: number | bigint, fieldName: string) {
+function toMicrosBn(value: number | bigint | string, fieldName: string) {
   return new anchor.BN(toMicrosBigInt(value, fieldName).toString());
 }
 
@@ -392,7 +399,7 @@ export class AgentVouchSolanaClient {
     skillUri: string;
     name: string;
     description: string;
-    priceUsdcMicros: number | bigint;
+    priceUsdcMicros: number | bigint | string;
   }) {
     const priceUsdcMicros = toMicrosBigInt(
       input.priceUsdcMicros,
