@@ -839,7 +839,7 @@ Tasks:
 - Document the first-time author cost shift: USDC author bond plus SOL for rent/fees/ATA creation, even though protocol accounting is USDC-native.
 - Document that x402 bridge memos must contain only protocol references (version, listing, skill id, nonce) and no PII or free-form buyer text.
 - Update `AGENTS.md` learned-facts to reflect USDC-native protocol, new program ID, vault model, and CAIP-2 conventions.
-- Defer pitch deck co-versioning to Milestone 14, including `pitch/AgentVouch_walkthrough.pptx`, its paper sibling, account/instruction counts, vault-per-primitive diagrams, and USDC-native architecture slides.
+- Defer pitch deck co-versioning to Milestone 15, including `pitch/AgentVouch_walkthrough.pptx`, its paper sibling, account/instruction counts, vault-per-primitive diagrams, and USDC-native architecture slides.
 - After every `anchor build`, copy `target/idl/agentvouch.json` to `web/agentvouch.json` and rerun `npm run generate:client` so the web client stays deploy-safe.
 
 Acceptance criteria:
@@ -1028,9 +1028,62 @@ npm run smoke:devnet-usdc
 npm run smoke:devnet-usdc -- --apply
 ```
 
-### Milestone 14: Pitch Deck And Public Narrative Alignment
+### Milestone 14: SEO And LLM-Facing Docs
 
-Goal: co-version the public deck and narrative materials with the stabilized USDC-native protocol and any Milestone 13 settlement changes.
+Goal: make the public web surface, agent-facing docs, and LLM-ingested documentation reflect the stabilized USDC-native protocol before updating pitch materials.
+
+Scope decision:
+
+- Treat `web/public/skill.md`, public docs pages, metadata, sitemaps, OpenGraph/Twitter text, and `.well-known` agent discovery files as production surfaces.
+- Keep claims aligned to shipped behavior. Do not imply mainnet readiness, escrowed refunds, governance, or Milestone 13 settlement behavior unless it has shipped.
+- Optimize for direct, factual phrasing around on-chain trust, USDC-backed vouches, author bonds, disputes, marketplace payments, and agent install flows.
+
+Tasks:
+
+- Audit and update SEO metadata across the web app:
+  - homepage title/description
+  - `/skills`
+  - `/skills/[id]`
+  - `/author/[pubkey]`
+  - `/docs` and dedicated docs pages
+  - OpenGraph and Twitter image/copy routes
+  - sitemap and robots output
+- Refresh LLM-facing and agent-facing docs:
+  - `web/public/skill.md`
+  - `.well-known/agent-card.json`
+  - `.well-known/agent-skills/index.json`
+  - `.well-known/api-catalog`
+  - API examples for `/api/skills`, `/api/index/skills`, `/api/agents/{pubkey}/trust`, and paid raw download flows
+- Update on-domain docs and measurement:
+  - `web/app/docs/page.tsx`
+  - `docs/SEO_MEASUREMENT.md`
+  - any docs pages that still emphasize old SOL or pre-USDC x402 assumptions
+- Add or update focused tests for SEO and LLM-facing output:
+  - metadata strings do not reference the old program ID or stale SOL pricing
+  - public agent files reference the canonical `agentvouch.xyz` install path
+  - skill and author discovery JSON expose USDC-native fields and CAIP-2 chain context
+- Verify generated/static public docs match the active program, current API contract, and CLI install/publish flows.
+
+Acceptance criteria:
+
+- Search snippets and metadata lead with AgentVouch as an on-chain trust and reputation layer for agents.
+- LLM-ingested docs clearly describe USDC-native `v0.2.0`, canonical skill routes, paid download authorization, and current limitations.
+- Public discovery files expose consistent program ID, chain context, payment flow, and USDC price fields.
+- No SEO or LLM-facing page implies mainnet, escrowed refunds, or governance behavior that has not shipped.
+- Deck updates remain deferred to Milestone 15.
+
+Verification:
+
+```bash
+rg "ELmVnLSN|0\.001 SOL|legacy SOL|price_lamports|Buy & Unlock|Use SOL Fallback" web/public web/app docs/SEO_MEASUREMENT.md
+npm test --workspace @agentvouch/web
+npm run build --workspace @agentvouch/web
+npm run smoke:flow-surface
+```
+
+### Milestone 15: Pitch Deck And Public Narrative Alignment
+
+Goal: co-version the public deck and narrative materials with the stabilized USDC-native protocol, Milestone 13 settlement changes, and Milestone 14 SEO/LLM-facing docs.
 
 Tasks:
 
@@ -1049,7 +1102,7 @@ Acceptance criteria:
 Verification:
 
 ```bash
-rg "SOL|lamports|0\.001 SOL|ELmVnLSN|pitch deck.*Milestone 13|Milestone 13.*pitch deck" pitch README.md docs/ARCHITECTURE.md docs/VISION.md
+rg "SOL|lamports|0\.001 SOL|ELmVnLSN|pitch deck.*Milestone 14|Milestone 14.*pitch deck" pitch README.md docs/ARCHITECTURE.md docs/VISION.md docs/SEO_MEASUREMENT.md
 ```
 
 ## Security Checklist
@@ -1144,6 +1197,6 @@ The migration is complete when:
 - Direct on-chain purchases are indexed into download entitlements through verified API submission plus reconciliation.
 - Active-dispute freeze invariants, vault close/refund rules, reward-index math, and listing-removal behavior are covered by tests.
 - Governance, treasury, authority rotation, pause, and mainnet readiness policies are documented even if `v0.2.0` remains devnet-only.
-- `web/public/skill.md`, `docs/ARCHITECTURE.md`, and `AGENTS.md` describe the live USDC-native protocol; pitch deck alignment is handled in Milestone 14.
+- `web/public/skill.md`, `docs/ARCHITECTURE.md`, and `AGENTS.md` describe the live USDC-native protocol; SEO and LLM-facing docs are handled in Milestone 14, and pitch deck alignment is handled in Milestone 15.
 - `NO_DNA=1 anchor build`, program tests, and `npm run build --workspace @agentvouch/web` pass.
 

@@ -100,4 +100,4 @@ Before mainnet, complete an external or senior internal review of:
 - IDL and generated clients are synced.
 - `web/public/skill.md`, docs, CLI, Vercel env, and public app all reference the same program/config.
 - Production runbook has current authority pubkeys, env matrix, smoke checks, and rollback steps.
-- Pitch deck alignment is handled in Milestone 14 after Milestone 13 settlement decisions are reflected.
+- SEO and LLM-facing docs are handled in Milestone 14; pitch deck alignment is handled in Milestone 15 after Milestone 13 settlement decisions are reflected.
