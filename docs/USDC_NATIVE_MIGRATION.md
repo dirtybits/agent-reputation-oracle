@@ -839,7 +839,7 @@ Tasks:
 - Document the first-time author cost shift: USDC author bond plus SOL for rent/fees/ATA creation, even though protocol accounting is USDC-native.
 - Document that x402 bridge memos must contain only protocol references (version, listing, skill id, nonce) and no PII or free-form buyer text.
 - Update `AGENTS.md` learned-facts to reflect USDC-native protocol, new program ID, vault model, and CAIP-2 conventions.
-- Defer pitch deck co-versioning to Milestone 13, including `pitch/AgentVouch_walkthrough.pptx`, its paper sibling, account/instruction counts, vault-per-primitive diagrams, and USDC-native architecture slides.
+- Defer pitch deck co-versioning to Milestone 14, including `pitch/AgentVouch_walkthrough.pptx`, its paper sibling, account/instruction counts, vault-per-primitive diagrams, and USDC-native architecture slides.
 - After every `anchor build`, copy `target/idl/agentvouch.json` to `web/agentvouch.json` and rerun `npm run generate:client` so the web client stays deploy-safe.
 
 Acceptance criteria:
@@ -893,6 +893,165 @@ npm run build --workspace @agentvouch/web
 solana program show <v0.2.0-program-id> -u devnet
 ```
 
+### Milestone 12: Production Hardening And Mainnet Readiness Prep
+
+Goal: make the USDC-native `v0.2.0` production path stable and auditable before any larger settlement redesign or mainnet launch work.
+
+Scope decision:
+
+- Treat direct on-chain `purchase_skill` plus verified download entitlements as the canonical paid-skill path for this milestone.
+- Remove or hard-gate stale `v0.1.0` SOL write assumptions from the web, API, CLI, scripts, tests, and docs.
+- Standardize the public listing contract so repo-backed and chain-only skills expose USDC price, payment flow, listing address, source, entitlement mode, and legacy status consistently.
+- Keep the escrow/refund redesign as a planned protocol track, not as an incidental hardening task. This milestone should specify it clearly enough that the next protocol milestone can implement it without changing the immediate production cutover.
+
+Tasks:
+
+- Audit and remove stale primary-flow SOL paths:
+  - `price_lamports`, `priceLamports`, `LAMPORTS_PER_SOL`, and `formatSol` should survive only in rent/fee helpers, historical metadata, explicit legacy notices, or devnet funding utilities.
+  - Any legacy SOL fallback for paid downloads must be disabled by default or clearly scoped to preserved historical entitlements.
+- Normalize listing and access API responses:
+  - `GET /api/skills`
+  - `GET /api/skills/{id}`
+  - `GET /api/index/skills`
+  - `GET /api/skills/{id}/install`
+  - `GET /api/skills/{id}/raw`
+  - `GET /api/x402/supported`
+- Make the marketplace and author/detail pages consume the normalized USDC listing contract instead of inferring paid/free state from legacy SOL fields.
+- Update stale tests that still assert legacy SOL source strings, then add focused coverage for repo-backed paid USDC skills, chain-only USDC skills, free skills with author-bond requirements, and disabled legacy fallback behavior.
+- Retire or rewrite operator scripts that still initialize or publish against the old lamport-denominated program path.
+- Add a production hardening runbook covering:
+  - Vercel production and preview env alignment
+  - Neon branch/database mapping and rollback
+  - Solana RPC/devnet variables
+  - config authority, upgrade authority, settlement authority, and treasury authority
+  - smoke checks for purchase, entitlement, raw download, vouch, author bond, dispute open/resolve, and voucher claim
+- Add a mainnet-readiness policy draft for:
+  - authority rotation or multisig
+  - treasury withdrawal approval and accounting
+  - monitoring for vault balances, events, indexing lag, failed x402 settlement, and unexpected treasury movement
+  - incident response for bad config, stuck funds, failed indexer, compromised authority, and erroneous dispute resolution
+- Prepare the Milestone 13 escrow/refund handoff by inventorying:
+  - version-pinned `Purchase` records or companion purchase-version accounts
+  - program-controlled author proceeds escrow instead of direct author wallet payout
+  - explicit author withdraw instruction
+  - separate voucher reward vault/accounting
+  - paid-skill dispute state tied to a listing/version purchase cohort
+  - refund pool and per-purchase claim tracking PDAs
+  - upheld-dispute payout waterfall across reporter reward, purchaser refunds, and protocol reserve
+  - x402/raw download compatibility during migration
+
+Acceptance criteria:
+
+- New USDC-native marketplace writes and paid downloads do not require a `v0.1.0` SOL write path.
+- API responses expose one coherent listing/access shape for repo-backed and chain-only skills.
+- Stale SOL UI/source tests are either removed or replaced with USDC-native assertions.
+- Operator docs and scripts no longer point maintainers at obsolete lamport config or old program IDs for active flows.
+- The escrow/refund redesign is documented as a separate protocol milestone with account, instruction, migration, and test implications.
+- Mainnet launch blockers are explicit, owner-operable, and not hidden inside general risk text.
+
+Verification:
+
+```bash
+rg "0\.001 SOL|legacy SOL|ELmVnLSN|Use SOL Fallback|Buy & Unlock" README.md docs web packages scripts
+rg "price_lamports|priceLamports|LAMPORTS_PER_SOL|formatSol" web packages scripts docs
+npm test --workspace @agentvouch/web
+npm test --workspace @agentvouch/cli
+npm run build --workspace @agentvouch/web
+NO_DNA=1 anchor test
+npm run smoke:flow-surface
+# After explicit approval for live devnet writes:
+npm run smoke:devnet-usdc -- --apply
+```
+
+### Milestone 13: Escrowed Proceeds And Purchaser Refund Redesign
+
+Goal: replace direct author wallet payouts with program-controlled paid-skill settlement, then add claim-based purchaser restitution for upheld paid-skill disputes.
+
+Scope decision:
+
+- Treat this as a protocol milestone with account, instruction, IDL/client, web, x402, docs, and smoke-test impact.
+- Keep the existing `Purchase`-based entitlement path working during migration.
+- Scope purchaser refunds to the disputed paid skill/version purchase cohort, not to every skill by the same author.
+- Use claim-based purchaser refunds. Do not push refunds to every purchaser inside dispute resolution.
+
+Tasks:
+
+- Specify version-pinned purchase identity:
+  - capture immutable skill version/content identity at purchase time
+  - decide whether to extend `Purchase` or add companion purchase-version accounts
+  - preserve replay-safe entitlement checks for raw downloads
+- Design escrow and accounting accounts:
+  - author proceeds escrow PDA per listing or listing/version
+  - voucher reward vault/accounting separate from author proceeds
+  - purchaser refund pool PDA
+  - per-purchase refund claim tracking PDA
+  - reserve/sweep destination for expired unclaimed refunds
+- Refactor purchase settlement:
+  - send the author share into proceeds escrow instead of directly to the author wallet
+  - keep the voucher share claimable by voucher stake weight
+  - add an explicit author withdraw instruction
+  - make buyer-visible USDC price and settlement split auditable in events
+- Add paid-skill dispute/refund settlement:
+  - link disputes to a listing/version purchase cohort
+  - define upheld-dispute payout waterfall across challenger bond return, reporter reward, purchaser refund pool, and protocol reserve
+  - cap purchaser refund claims at the purchase price paid
+  - prevent duplicate refund claims and define claim-window expiry
+- Update web and x402 flows:
+  - keep `X-AgentVouch-Auth` raw downloads compatible with successful purchases
+  - surface author proceeds escrow and withdraw status where authors manage listings
+  - surface refund eligibility and claim status for buyers
+  - document how x402 settlement maps into escrowed purchase records
+- Regenerate and sync protocol artifacts after Anchor changes:
+  - `target/idl/agentvouch.json`
+  - `target/types/agentvouch.ts`
+  - `web/agentvouch.json`
+  - generated web client artifacts
+
+Acceptance criteria:
+
+- Paid purchases no longer depend on direct author wallet payout success.
+- Author proceeds, voucher rewards, protocol treasury, and purchaser refund pools are separate and inspectable.
+- Upheld paid-skill disputes create a bounded purchaser refund path without looping over buyers during resolution.
+- Existing v0.2 purchase entitlements remain readable or have an explicit migration/legacy rule.
+- Web and docs explain author withdrawal, refund eligibility, claim windows, and non-refundable legacy purchases.
+
+Verification:
+
+```bash
+NO_DNA=1 anchor build
+NO_DNA=1 anchor test
+npm run generate:client
+npm test --workspace @agentvouch/web
+npm run build --workspace @agentvouch/web
+npm run smoke:devnet-usdc
+# After explicit approval for live devnet writes against the upgraded program:
+npm run smoke:devnet-usdc -- --apply
+```
+
+### Milestone 14: Pitch Deck And Public Narrative Alignment
+
+Goal: co-version the public deck and narrative materials with the stabilized USDC-native protocol and any Milestone 13 settlement changes.
+
+Tasks:
+
+- Update `pitch/AgentVouch_walkthrough.pptx` and `pitch/AgentVouch_walkthrough.paper.pptx`.
+- Refresh account and instruction counts from `programs/agentvouch/`.
+- Update diagrams for USDC vaults, escrowed proceeds, purchaser refund pools, voucher rewards, and dispute settlement.
+- Keep claims aligned with shipped protocol behavior, marking any future work as `WIP`.
+- Regenerate the paper deck from the canonical deck/theme tooling.
+
+Acceptance criteria:
+
+- The canonical deck matches the live program, IDL, docs, CLI, and web flows.
+- Public claims do not imply mainnet, escrow, refunds, or governance behavior that has not shipped.
+- Architecture slides reflect the current account and instruction model.
+
+Verification:
+
+```bash
+rg "SOL|lamports|0\.001 SOL|ELmVnLSN|pitch deck.*Milestone 13|Milestone 13.*pitch deck" pitch README.md docs/ARCHITECTURE.md docs/VISION.md
+```
+
 ## Security Checklist
 
 Every USDC-moving instruction must validate:
@@ -941,6 +1100,7 @@ Track decisions that remain outside the locked Pre-Milestone 3 core rewrite gate
 - Whether the x402 settlement vault can safely use a PDA owner with the current facilitator implementation.
 - Whether `settle.payer` from the x402 facilitator is reliable enough to derive the on-chain `Purchase` PDA buyer.
 - Retry and refund policy when x402 settles but `settle_x402_purchase` fails.
+- Whether escrowed author proceeds and purchaser refund claims should ship before mainnet, or remain a post-`v0.2.0` protocol upgrade.
 - Exact ERC-8004 / Solana Agent Registry binding shape: which fields the protocol stores on-chain (`agent_registry`, `agent_id`, `agent_uri`, or opaque `registry_ref`) and which it derives off-chain at the indexer layer.
 
 ## v1.0.0 Mainnet Readiness
@@ -954,6 +1114,7 @@ The `v0.2.0` devnet migration is not mainnet-ready until these are complete:
 - Incident response runbook for stuck settlement vault funds, bad config, compromised authority, failed indexer, and erroneous dispute resolution.
 - Monitoring for program events, vault balances, indexing lag, x402 settlement failures, authority rotations, and unexpected treasury movement.
 - Mainnet launch checklist that confirms `web/public/skill.md`, docs, CLI, generated client, IDL, pitch deck, and Vercel env all reference the same program/config.
+- Decision on whether direct author payout is acceptable for mainnet or whether paid-skill proceeds must first move through escrowed author withdrawal and purchaser refund claims.
 - Decision on whether upgrade authority remains active, is time-locked, or is eventually frozen after sufficient production hardening.
 
 ## Non-Goals
@@ -983,6 +1144,6 @@ The migration is complete when:
 - Direct on-chain purchases are indexed into download entitlements through verified API submission plus reconciliation.
 - Active-dispute freeze invariants, vault close/refund rules, reward-index math, and listing-removal behavior are covered by tests.
 - Governance, treasury, authority rotation, pause, and mainnet readiness policies are documented even if `v0.2.0` remains devnet-only.
-- `web/public/skill.md`, `docs/ARCHITECTURE.md`, and `AGENTS.md` describe the live USDC-native protocol; pitch deck alignment is handled in Milestone 13.
+- `web/public/skill.md`, `docs/ARCHITECTURE.md`, and `AGENTS.md` describe the live USDC-native protocol; pitch deck alignment is handled in Milestone 14.
 - `NO_DNA=1 anchor build`, program tests, and `npm run build --workspace @agentvouch/web` pass.
 
