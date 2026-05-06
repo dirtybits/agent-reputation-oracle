@@ -9,6 +9,7 @@ import {
 import {
   buildTransactionSendRequest,
   getConnectedAuthorAddress,
+  getBondConfigClusterGuardError,
   getOpenAuthorDisputeClusterGuardError,
   getRegisterAgentClusterGuardError,
   getResolveAuthorDisputeClusterGuardError,
@@ -219,6 +220,33 @@ describe("useReputationOracle send helpers", () => {
     });
 
     expect(error).toBeNull();
+  });
+
+  it("does not block author bond actions when config data has trailing allocation bytes", () => {
+    const error = getBondConfigClusterGuardError({
+      configExists: true,
+      configReadable: true,
+      configDataLength: 465,
+      expectedConfigDataLength: 457,
+      configuredChainLabel: "Solana Devnet",
+      configuredRpcTarget: "devnet",
+    });
+
+    expect(error).toBeNull();
+  });
+
+  it("reports undersized author bond config accounts as stale", () => {
+    const error = getBondConfigClusterGuardError({
+      configExists: true,
+      configReadable: false,
+      configDataLength: 449,
+      expectedConfigDataLength: 457,
+      configuredChainLabel: "Solana Devnet",
+      configuredRpcTarget: "devnet",
+    });
+
+    expect(error).toContain("at least 457");
+    expect(error).toContain("configured Solana Devnet (devnet RPC)");
   });
 
   it("reports when the AgentVouch program is not deployed", () => {

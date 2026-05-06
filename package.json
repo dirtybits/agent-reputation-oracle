@@ -24,6 +24,7 @@
     "migrate:agents": "ts-node scripts/migrate-agent-profiles.ts",
     "postinstall": "npm run build:cli",
     "repair:registered-at": "ts-node scripts/repair-agent-registered-at.ts",
+    "smoke:devnet-usdc": "node scripts/devnet-usdc-smoke.mjs",
     "smoke:flow-surface": "node scripts/smoke-flow-surface.mjs",
     "test": "npm run test --workspaces --if-present",
     "test:cli": "npm run test --workspace @agentvouch/cli",

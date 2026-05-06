@@ -103,7 +103,7 @@ const ENDPOINT =
 const rpc = createSolanaRpc(ENDPOINT);
 const SIGNATURE_CONFIRMATION_TIMEOUT_MS = 45_000;
 const SIGNATURE_CONFIRMATION_POLL_MS = 1_000;
-const REPUTATION_CONFIG_SIZE = 457;
+const MIN_REPUTATION_CONFIG_SIZE = 457;
 const AGENT_PROFILE_ACCOUNT_SPACE = 301;
 const REGISTRATION_FEE_BUFFER_LAMPORTS = 10_000n;
 
@@ -417,7 +417,9 @@ export function getBondConfigClusterGuardError(
     const layoutDetail =
       assessment.configDataLength == null
         ? "its layout could not be read"
-        : `it is ${assessment.configDataLength} bytes instead of the expected ${assessment.expectedConfigDataLength}`;
+        : assessment.configDataLength < assessment.expectedConfigDataLength
+          ? `it is ${assessment.configDataLength} bytes instead of at least ${assessment.expectedConfigDataLength}`
+          : "its layout could not be decoded";
     return `The protocol config on the configured ${configuredNetwork} is outdated or unreadable because ${layoutDetail}. An operator must run the config migration on this cluster before author bond actions can proceed.`;
   }
 
@@ -836,14 +838,14 @@ async function assertBondConfigClusterReady() {
   try {
     const configPda = await getConfigPDA();
     const encodedConfig = await fetchEncodedAccount(rpc, configPda);
-    const expectedConfigDataLength = REPUTATION_CONFIG_SIZE;
+    const expectedConfigDataLength = MIN_REPUTATION_CONFIG_SIZE;
 
     let configReadable = false;
     let configDataLength: number | null = null;
 
     if (encodedConfig.exists) {
       configDataLength = encodedConfig.data.length;
-      if (configDataLength === expectedConfigDataLength) {
+      if (configDataLength >= expectedConfigDataLength) {
         try {
           decodeReputationConfig(encodedConfig);
           configReadable = true;
