@@ -27,9 +27,12 @@ async function resolveChainSkillContent(
   skill: SkillRecord,
   api: AgentVouchApiClient
 ): Promise<string> {
-  if ((skill.price_lamports ?? 0) > 0) {
+  if (
+    skill.payment_flow === "direct-purchase-skill" ||
+    BigInt(skill.price_usdc_micros ?? "0") > 0n
+  ) {
     throw new CliError(
-      `Skill ${skill.id} is chain-only and paid. Use the repo-backed skill id for signed raw downloads.`
+      `Skill ${skill.id} is chain-only and paid in USDC. Use the repo-backed skill id for signed raw downloads.`
     );
   }
 
@@ -104,7 +107,7 @@ export async function installSkill(input: InstallSkillInput) {
       skillId: input.id,
       outputPath,
       metadataPath,
-      priceLamports: skill.price_lamports ?? 0,
+      priceUsdcMicros: skill.price_usdc_micros ?? null,
       dryRun: !!input.dryRun,
     };
   }
@@ -124,7 +127,7 @@ export async function installSkill(input: InstallSkillInput) {
       skillId: input.id,
       outputPath,
       metadataPath,
-      priceLamports: skill.price_lamports ?? 0,
+      priceUsdcMicros: skill.price_usdc_micros ?? null,
       dryRun: !!input.dryRun,
     };
   }
@@ -149,8 +152,7 @@ export async function installSkill(input: InstallSkillInput) {
       skillId: input.id,
       outputPath,
       metadataPath,
-      priceLamports:
-        initialDownload.requirement?.amount ?? (skill.price_lamports ?? 0),
+      legacySolBaseUnits: initialDownload.requirement?.amount ?? null,
       priceUsdcMicros:
         initialDownload.x402PaymentRequired?.accepts[0]?.amount ??
         skill.price_usdc_micros ??
@@ -209,7 +211,7 @@ export async function installSkill(input: InstallSkillInput) {
       skillId: input.id,
       outputPath,
       metadataPath,
-      priceLamports: skill.price_lamports ?? 0,
+      legacySolBaseUnits: skill.price_lamports ?? null,
       priceUsdcMicros:
         paidDownload.paymentResponse?.amount ??
         initialDownload.x402PaymentRequired.accepts[0]?.amount ??
@@ -261,7 +263,7 @@ export async function installSkill(input: InstallSkillInput) {
     skillId: input.id,
     outputPath,
     metadataPath,
-    priceLamports: initialDownload.requirement.amount,
+    legacySolBaseUnits: initialDownload.requirement.amount,
     priceUsdcMicros: skill.price_usdc_micros ?? null,
     listingAddress: initialDownload.requirement.skillListingAddress,
     purchaseTx: purchase.tx,

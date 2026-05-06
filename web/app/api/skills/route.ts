@@ -40,6 +40,10 @@ import {
   AGENTVOUCH_PROTOCOL_VERSION,
   getAgentVouchProgramId,
 } from "@/lib/protocolMetadata";
+import {
+  getSkillPaymentFlow,
+  normalizeUsdcMicros,
+} from "@/lib/listingContract";
 
 const PAGE_SIZE = 20;
 const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
@@ -142,7 +146,7 @@ function mergeSkills(
         s.source === "repo" && s.on_chain_address === chain.on_chain_address
     );
     if (existing) {
-      existing.price_lamports = chain.price_lamports;
+      existing.price_usdc_micros ??= chain.price_usdc_micros;
       existing.total_downloads = chain.total_downloads;
       existing.total_revenue = chain.total_revenue;
       existing.skill_uri = chain.skill_uri;
@@ -155,13 +159,6 @@ function mergeSkills(
   }
 
   return merged;
-}
-
-function getSkillPaymentFlow(skill: MergedSkillRow) {
-  if (skill.price_usdc_micros) {
-    return skill.on_chain_address ? "direct-purchase-skill" : "x402-usdc";
-  }
-  return (skill.price_lamports ?? 0) > 0 ? "legacy-sol" : "free";
 }
 
 function normalizePriceUsdcMicros(value: unknown): string | null {
@@ -286,10 +283,17 @@ export async function GET(request: NextRequest) {
     const enriched = allSkills.map((skill) => {
       const authorTrust = trustMap.get(skill.author_pubkey) || null;
       const authorIdentity = identityMap.get(skill.author_pubkey) || null;
+      const priceUsdcMicros = normalizeUsdcMicros(skill.price_usdc_micros);
 
       return {
         ...skill,
-        payment_flow: getSkillPaymentFlow(skill),
+        price_usdc_micros: priceUsdcMicros,
+        payment_flow: getSkillPaymentFlow({
+          priceUsdcMicros,
+          onChainAddress: skill.on_chain_address,
+          legacySolLamports: skill.price_lamports,
+          allowLegacySol: true,
+        }),
         author_trust: authorTrust,
         author_trust_summary: authorTrust
           ? buildAgentTrustSummary({
@@ -337,25 +341,35 @@ export async function GET(request: NextRequest) {
     });
     const pagedWithPricing = await Promise.all(
       paged.map(async (skill) => {
-        const creatorPriceUsdcMicros = skill.price_usdc_micros
-          ? BigInt(skill.price_usdc_micros)
-          : 0n;
+        const creatorPriceUsdcMicros = normalizeUsdcMicros(
+          skill.price_usdc_micros
+        );
         const preflight = serializePurchasePreflight(
           assessPurchasePreflight({
             context: preflightContext,
-            priceUsdcMicros: creatorPriceUsdcMicros,
+            priceUsdcMicros: creatorPriceUsdcMicros
+              ? BigInt(creatorPriceUsdcMicros)
+              : 0n,
             author: null,
           })
         );
         const buyerHasPurchased = buyerAddress
-          ? skill.price_usdc_micros
-            ? skill.source === "repo"
+          ? creatorPriceUsdcMicros
+            ? skill.source === "repo" && !skill.on_chain_address
               ? await hasUsdcPurchaseEntitlement(
                   skill.id,
                   String(buyerAddress)
                 ).catch(() => false)
+              : skill.on_chain_address
+              ? await hasOnChainPurchase(
+                  String(buyerAddress),
+                  String(skill.on_chain_address)
+                ).catch(() => false)
               : false
-            : skill.on_chain_address && (skill.price_lamports ?? 0) > 0
+            : getSkillPaymentFlow({
+                  legacySolLamports: skill.price_lamports,
+                  allowLegacySol: true,
+                }) === "legacy-sol" && skill.on_chain_address
               ? await hasOnChainPurchase(
                   String(buyerAddress),
                   String(skill.on_chain_address)

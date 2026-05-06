@@ -103,6 +103,8 @@ Every upgrade needs fresh proof:
 - A valid USDC vouch succeeds and updates profile aggregates.
 - `purchase_skill` simulation or smoke transaction preserves the configured 60/40 split.
 - The web build passes after IDL/client sync.
+- Vercel preview or production env points at the intended Neon branch and Solana RPC.
+- Public API smoke checks pass after redeploy.
 
 ## Stop Criteria
 
@@ -129,6 +131,13 @@ A rollback is another same-ID upgrade using the previous known-good binary and t
 - prior deploy artifact or reproducible build input
 - failing validation evidence
 - post-rollback `solana program show` output
+
+If the upgrade changed IDL, generated client behavior, or public app flow, roll back the web app in the same incident window:
+
+1. Promote the last known-good Vercel deployment or redeploy the prior commit.
+2. Restore matching env vars if the incident included a Neon/RPC/config cutover.
+3. Confirm `web/agentvouch.json`, public docs, and `skill.md` match the active program.
+4. Run the production smoke checks in `docs/PRODUCTION_RUNBOOK.md`.
 
 ## Legacy v0.1 Note
 

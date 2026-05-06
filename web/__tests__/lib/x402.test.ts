@@ -65,7 +65,7 @@ describe("generatePaymentRequirement", () => {
   it("returns correct structure with all fields", () => {
     const req = generatePaymentRequirement({
       skillId: "test-skill",
-      priceLamports: 50_000_000,
+      legacySolLamports: 50_000_000,
       skillListingAddress: "SkillAddr123",
       resourcePath: "/api/skills/123/raw",
     });
@@ -87,7 +87,7 @@ describe("generatePaymentRequirement", () => {
     const before = Math.floor(Date.now() / 1000);
     const req = generatePaymentRequirement({
       skillId: "x",
-      priceLamports: 1,
+      legacySolLamports: 1,
       skillListingAddress: "x",
       resourcePath: "/x",
     });
@@ -100,7 +100,7 @@ describe("generatePaymentRequirement", () => {
   it("generates unique nonces per call", () => {
     const opts = {
       skillId: "x",
-      priceLamports: 1,
+      legacySolLamports: 1,
       skillListingAddress: "x",
       resourcePath: "/x",
     };
@@ -112,7 +112,7 @@ describe("generatePaymentRequirement", () => {
   it("does not include recipient field", () => {
     const req = generatePaymentRequirement({
       skillId: "x",
-      priceLamports: 1,
+      legacySolLamports: 1,
       skillListingAddress: "x",
       resourcePath: "/x",
     });

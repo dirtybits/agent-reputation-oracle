@@ -49,7 +49,11 @@ export interface SkillRecord {
   price_lamports?: number | null;
   price_usdc_micros?: string | null;
   currency_mint?: string | null;
-  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
+  payment_flow?:
+    | "free"
+    | "legacy-sol"
+    | "x402-usdc"
+    | "direct-purchase-skill";
   total_installs: number;
   total_downloads?: number | null;
   total_revenue?: number | null;
@@ -75,10 +79,14 @@ export interface SkillUpdateCheckResponse {
   latest_version: number;
   latest_updated_at: string;
   on_chain_address: string | null;
-  price_lamports: number;
+  price_lamports?: number | null;
   price_usdc_micros?: string | null;
   currency_mint?: string | null;
-  payment_flow?: "free" | "legacy-sol" | "x402-usdc";
+  payment_flow?:
+    | "free"
+    | "legacy-sol"
+    | "x402-usdc"
+    | "direct-purchase-skill";
   requires_purchase: boolean;
   listing_changed: boolean;
 }

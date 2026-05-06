@@ -46,8 +46,7 @@ interface SkillPreviewCardSkill {
 interface SkillPreviewCardProps {
   skill: SkillPreviewCardSkill;
   hasAccessPath: boolean;
-  creatorPriceLamports: number;
-  estimatedTotalLamports: number;
+  legacySolLamports: number;
   downloads: number;
   connected: boolean;
   isOwn: boolean;
@@ -153,8 +152,7 @@ function AuthorMetricRow({ authorPubkey }: { authorPubkey: string }) {
 export default function SkillPreviewCard({
   skill,
   hasAccessPath,
-  creatorPriceLamports,
-  estimatedTotalLamports,
+  legacySolLamports,
   downloads,
   connected,
   isOwn,
@@ -183,7 +181,7 @@ export default function SkillPreviewCard({
     ? primaryUsdcPrice
       ? `Primary price: ${primaryUsdcPrice} USDC via x402.`
       : "Primary price is settled in USDC via x402."
-    : creatorPriceLamports > 0
+    : legacySolLamports > 0
       ? "Legacy SOL pricing is no longer a primary purchase path."
       : "No on-chain purchase required.";
 
@@ -305,7 +303,7 @@ export default function SkillPreviewCard({
               <UsdcIcon className="h-3.5 w-3.5" />
               {primaryUsdcPrice ? `${primaryUsdcPrice} USDC` : "USDC"}
             </span>
-          ) : creatorPriceLamports > 0 ? (
+          ) : legacySolLamports > 0 ? (
             <span
               className="shrink-0 rounded-sm border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-300"
               title={priceTooltip}
@@ -348,7 +346,7 @@ export default function SkillPreviewCard({
               <UsdcIcon className="h-3.5 w-3.5" />
               {connected ? "Pay with USDC" : "Connect Wallet to Pay"}
             </Link>
-          ) : creatorPriceLamports === 0 ? (
+          ) : legacySolLamports === 0 ? (
             <Link
               href={`/skills/${skill.id}`}
               className={`w-full border border-[var(--sea-accent-border)] bg-[var(--sea-accent-soft)] text-center font-medium text-[var(--sea-accent-strong)] transition hover:bg-[var(--sea-accent-soft-hover)] ${navButtonFlexClass}`}

@@ -33,9 +33,9 @@ export function formatSkillSummary(skill: SkillRecord): string[] {
   const paymentFlow =
     skill.payment_flow ??
     (skill.price_usdc_micros
-      ? "x402-usdc"
-      : (skill.price_lamports ?? 0) > 0
-      ? "legacy-sol"
+      ? skill.on_chain_address
+        ? "direct-purchase-skill"
+        : "x402-usdc"
       : "free");
 
   return [
@@ -48,9 +48,6 @@ export function formatSkillSummary(skill: SkillRecord): string[] {
     `payment_flow: ${paymentFlow}`,
     `price_usdc_micros: ${skill.price_usdc_micros ?? "none"}`,
     `currency_mint: ${skill.currency_mint ?? "none"}`,
-    ...(skill.price_lamports
-      ? [`historical_sol_price_base_units: ${skill.price_lamports}`]
-      : []),
     `listing: ${skill.on_chain_address ?? "none"}`,
     `registered: ${trust.isRegistered ? "yes" : "no"}`,
     ...(trust.recommendedAction

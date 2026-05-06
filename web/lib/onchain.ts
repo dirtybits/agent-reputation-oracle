@@ -122,15 +122,15 @@ export async function fetchOnChainSkillListing(
   );
 }
 
-export async function getOnChainPrice(
+export async function getOnChainUsdcPrice(
   onChainAddress: string
-): Promise<{ price: number; author: string } | null> {
+): Promise<{ priceUsdcMicros: string; author: string } | null> {
   try {
     const listing = await fetchOnChainSkillListing(onChainAddress);
     if (!listing) return null;
 
     return {
-      price: Number(listing.data.priceUsdcMicros),
+      priceUsdcMicros: String(listing.data.priceUsdcMicros),
       author: listing.data.author as string,
     };
   } catch {

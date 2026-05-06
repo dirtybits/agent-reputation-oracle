@@ -20,9 +20,8 @@ import {
   navButtonPrimaryFlexClass,
   navButtonPrimaryInlineClass,
 } from "@/lib/buttonStyles";
-import { formatSolAmount, formatUsdcMicros } from "@/lib/pricing";
+import { formatUsdcMicros } from "@/lib/pricing";
 import SkillPreviewCard from "@/components/SkillPreviewCard";
-import { SolAmount } from "@/components/SolAmount";
 import type { TrustData } from "@/components/TrustBadge";
 import type { Purchase } from "../../generated/agentvouch/src/generated/accounts/purchase";
 import type { SkillListing } from "../../generated/agentvouch/src/generated/accounts/skillListing";
@@ -78,7 +77,6 @@ interface SkillRow {
   source?: "repo" | "chain";
   created_at: string;
   author_trust: TrustData | null;
-  creatorPriceLamports?: number;
   estimatedPurchaseRentLamports?: number;
   feeBufferLamports?: number;
   estimatedBuyerTotalLamports?: number;
@@ -140,15 +138,11 @@ type FeedItem = {
   skillRepoId: string | null;
   author: string | null;
   timestamp: number;
-  priceLamports: number | null;
+  legacySolLamports: number | null;
   priceUsdcMicros: string | null;
 };
 
 type SortOption = "newest" | "installs" | "trusted" | "name";
-
-function formatSol(lamports: number): string {
-  return formatSolAmount(lamports);
-}
 
 function formatUsdc(micros: number | bigint | string | null | undefined): string {
   return formatUsdcMicros(micros) ?? "0";
@@ -301,7 +295,7 @@ export default function MarketplacePage() {
             skillRepoId: repoListing?.id ?? null,
             author: repoListing?.author_pubkey ?? String(listing?.account.author ?? ""),
             timestamp: Number(purchase.account.purchasedAt),
-            priceLamports: null,
+            legacySolLamports: null,
             priceUsdcMicros: String(purchase.account.pricePaidUsdcMicros),
           };
         });
@@ -317,9 +311,7 @@ export default function MarketplacePage() {
             skillRepoId: repoListing?.id ?? null,
             author: repoListing?.author_pubkey ?? String(listing.account.author),
             timestamp: Number(listing.account.createdAt),
-            priceLamports: repoListing?.price_usdc_micros
-              ? null
-              : null,
+            legacySolLamports: null,
             priceUsdcMicros:
               repoListing?.price_usdc_micros ??
               String(listing.account.priceUsdcMicros),
@@ -337,7 +329,7 @@ export default function MarketplacePage() {
             timestamp: Math.floor(
               new Date(purchase.verified_at).getTime() / 1000
             ),
-            priceLamports: null,
+            legacySolLamports: null,
             priceUsdcMicros: purchase.amount_micros,
           })
         );
@@ -781,18 +773,17 @@ export default function MarketplacePage() {
                       const isPurchasing = listing
                         ? purchasing === (listing.publicKey as string)
                         : false;
-                      const creatorPrice =
-                        skill.creatorPriceLamports ??
-                        (listing
-                          ? Number(listing.account.priceUsdcMicros)
-                          : skill.price_lamports ?? 0);
-                      const estimatedTotal =
-                        skill.estimatedBuyerTotalLamports ?? creatorPrice;
+                      const legacySolLamports =
+                        skill.price_usdc_micros || listing
+                          ? 0
+                          : skill.price_lamports ?? 0;
                       const purchasePreflightStatus =
                         skill.purchasePreflightStatus ??
-                        (creatorPrice > 0 ? "estimateUnavailable" : "ok");
+                        (skill.price_usdc_micros || listing
+                          ? "estimateUnavailable"
+                          : "ok");
                       const purchaseBlocked =
-                        creatorPrice > 0 &&
+                        Boolean(skill.price_usdc_micros || listing) &&
                         isBlockingPurchaseStatus(purchasePreflightStatus);
                       const hasAccessPath =
                         skill.source === "repo" || Boolean(listing);
@@ -801,8 +792,7 @@ export default function MarketplacePage() {
                           key={skill.id}
                           skill={skill}
                           hasAccessPath={hasAccessPath}
-                          creatorPriceLamports={creatorPrice}
-                          estimatedTotalLamports={estimatedTotal}
+                          legacySolLamports={legacySolLamports}
                           downloads={downloads}
                           connected={connected}
                           isOwn={Boolean(isOwn)}
@@ -922,13 +912,10 @@ export default function MarketplacePage() {
                               <UsdcIcon className="w-3 h-3" />
                               {formatUsdcMicros(item.priceUsdcMicros)} USDC
                             </span>
-                          ) : item.priceLamports && item.priceLamports > 0 ? (
+                          ) : item.legacySolLamports &&
+                            item.legacySolLamports > 0 ? (
                             <span className="text-xs font-mono text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
-                              Legacy
-                              <SolAmount
-                                amount={formatSol(item.priceLamports)}
-                                iconClassName="w-3 h-3"
-                              />
+                              Legacy SOL
                             </span>
                           ) : null}
                         </div>

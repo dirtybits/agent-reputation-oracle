@@ -107,7 +107,7 @@ interface SkillDetail {
   author_trust: TrustData | null;
   author_identity: AgentIdentitySummary | null;
   content_verification: ContentVerification | null;
-  creatorPriceLamports?: number;
+  legacySolLamports?: number;
   estimatedPurchaseRentLamports?: number;
   feeBufferLamports?: number;
   estimatedBuyerTotalLamports?: number;
@@ -809,8 +809,10 @@ export default function SkillDetailPage({
     );
   }
 
-  const creatorPriceLamports =
-    skill.creatorPriceLamports ?? skill.price_lamports ?? 0;
+  const legacySolLamports =
+    skill.price_usdc_micros || skill.payment_flow === "direct-purchase-skill"
+      ? 0
+      : skill.legacySolLamports ?? skill.price_lamports ?? 0;
   const primaryUsdcPrice = formatUsdcMicros(skill.price_usdc_micros);
   const estimatedPurchaseRentLamports =
     skill.estimatedPurchaseRentLamports ?? 0;
@@ -825,7 +827,7 @@ export default function SkillDetailPage({
     Boolean(primaryUsdcPrice) ||
     paymentFlow === "x402-usdc" ||
     paymentFlow === "direct-purchase-skill";
-  const hasLegacySolPrice = creatorPriceLamports > 0;
+  const hasLegacySolPrice = legacySolLamports > 0;
   const purchasePreflightStatus =
     skill.purchasePreflightStatus ??
     (hasUsdcPrimary ? "estimateUnavailable" : "ok");
@@ -879,7 +881,7 @@ export default function SkillDetailPage({
       ? `Pay ${usdcPriceLabel} from this page. After checkout, SKILL.md downloads immediately and future re-downloads use Sign & Download.`
       : `This listing is priced in ${usdcPriceLabel}. This wallet cannot use browser x402; use direct purchase or the agent/API fallback below.`
     : hasLegacySolPrice
-    ? "This listing still has legacy SOL pricing. USDC checkout is required for new purchases."
+    ? "This historical SOL-priced listing is not available for new USDC checkout."
     : "Install with a wallet signature.";
   const connectWalletLabel = primaryUsdcPrice
     ? "Connect wallet to pay with USDC"
@@ -1043,10 +1045,7 @@ export default function SkillDetailPage({
           {hasLegacySolPrice && (
             <div className="rounded-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center">
               <div className="text-lg font-bold text-gray-700 dark:text-gray-300 font-mono flex items-center justify-center">
-                <SolAmount
-                  amount={fromLamports(creatorPriceLamports).toFixed(4)}
-                  iconClassName="w-4 h-4"
-                />
+                Legacy
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 Legacy SOL price

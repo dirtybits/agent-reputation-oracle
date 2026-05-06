@@ -11,16 +11,24 @@ const PURCHASE_RENT_LAMPORTS = 1_510_320n;
 const SYSTEM_RENT_LAMPORTS = 890_880n;
 const AUTHOR = address("2DGYWtztLvPB6GxgGXT16gjCoEf56jEmwSxjMwK21Pg3");
 const BUYER = address("asuavUDGmrVHr4oD1b4QtnnXgtnEcBa8qdkfZz7WZgw");
+const BUYER_USDC = address("7dHbWXmci3dT7Hcq2UYGfWYJ7Zdn4cUrAEZHbmVQSNhz");
 
 function createContext({
   buyerBalanceLamports = 10_000_000n,
+  buyerUsdcBalanceMicros = 10_000_000n,
+  buyerUsdcAccountExists = true,
   authorBalanceLamports = 0n,
 }: {
   buyerBalanceLamports?: bigint;
+  buyerUsdcBalanceMicros?: bigint | null;
+  buyerUsdcAccountExists?: boolean | null;
   authorBalanceLamports?: bigint;
 }): PurchasePreflightContext {
   return {
     buyer: BUYER,
+    buyerUsdcAccount: buyerUsdcAccountExists ? BUYER_USDC : null,
+    buyerUsdcBalanceMicros,
+    buyerUsdcAccountExists,
     buyerBalanceLamports,
     purchaseRentLamports: PURCHASE_RENT_LAMPORTS,
     systemAccountRentExemptLamports: SYSTEM_RENT_LAMPORTS,
@@ -34,7 +42,7 @@ describe("purchase preflight", () => {
   it("treats free listings as immediately purchasable", () => {
     const result = assessPurchasePreflight({
       context: createContext({}),
-      priceLamports: 0n,
+      priceUsdcMicros: 0n,
       author: AUTHOR,
     });
 
@@ -43,56 +51,57 @@ describe("purchase preflight", () => {
     expect(result.purchasePreflightMessage).toBeNull();
   });
 
-  it("accepts a 0.001 SOL listing when buyer and author are both rent-safe", () => {
+  it("accepts a USDC listing when buyer has enough USDC and SOL for receipt rent", () => {
     const result = assessPurchasePreflight({
       context: createContext({
         buyerBalanceLamports: 5_000_000n,
-        authorBalanceLamports: 1_000_000n,
+        buyerUsdcBalanceMicros: 2_000_000n,
       }),
-      priceLamports: 1_000_000n,
+      priceUsdcMicros: 1_000_000n,
       author: AUTHOR,
     });
 
     expect(result.purchasePreflightStatus).toBe("ok");
     expect(result.estimatedBuyerTotalLamports).toBe(
-      1_000_000n + PURCHASE_RENT_LAMPORTS + PURCHASE_FEE_BUFFER_LAMPORTS
+      PURCHASE_RENT_LAMPORTS + PURCHASE_FEE_BUFFER_LAMPORTS
     );
   });
 
-  it("blocks a 0.001 SOL listing when the author payout would stay below rent minimum", () => {
+  it("blocks a USDC listing when buyer has no USDC token account", () => {
     const result = assessPurchasePreflight({
       context: createContext({
         buyerBalanceLamports: 50_000_000n,
-        authorBalanceLamports: 0n,
+        buyerUsdcBalanceMicros: null,
+        buyerUsdcAccountExists: false,
       }),
-      priceLamports: 1_000_000n,
+      priceUsdcMicros: 1_000_000n,
       author: AUTHOR,
     });
 
-    expect(result.purchasePreflightStatus).toBe("authorPayoutRentBlocked");
+    expect(result.purchasePreflightStatus).toBe("buyerMissingUsdcAccount");
     expect(result.purchasePreflightMessage).toContain(
-      "author's payout wallet is empty"
+      "does not have a USDC associated token account"
     );
 
     const serialized = serializePurchasePreflight(result);
     expect(serialized.purchaseBlocked).toBe(true);
     expect(serialized.purchaseBlockError).toEqual({
-      code: "authorPayoutRentBlocked",
+      code: "buyerMissingUsdcAccount",
       message: result.purchasePreflightMessage,
     });
   });
 
-  it("allows a 0.1 SOL listing even if the author wallet starts empty", () => {
+  it("blocks a USDC listing when buyer has insufficient USDC", () => {
     const result = assessPurchasePreflight({
       context: createContext({
-        buyerBalanceLamports: 500_000_000n,
-        authorBalanceLamports: 0n,
+        buyerBalanceLamports: 50_000_000n,
+        buyerUsdcBalanceMicros: 500_000n,
       }),
-      priceLamports: 100_000_000n,
+      priceUsdcMicros: 1_000_000n,
       author: AUTHOR,
     });
 
-    expect(result.purchasePreflightStatus).toBe("ok");
-    expect(result.authorShareLamports).toBe(60_000_000n);
+    expect(result.purchasePreflightStatus).toBe("buyerInsufficientBalance");
+    expect(result.purchasePreflightMessage).toContain("USDC available");
   });
 });

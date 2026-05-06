@@ -28,7 +28,7 @@ vi.mock(
           author: "Author1",
           name: "Test Skill",
           description: "A skill",
-          priceLamports: 1000000n,
+          priceUsdcMicros: 1000000n,
           totalDownloads: 5n,
           totalRevenue: 2000000n,
           status: actual.SkillStatus.Active,

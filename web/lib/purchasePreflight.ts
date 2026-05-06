@@ -29,7 +29,6 @@ export type SerializedPurchaseBlockError = {
 
 export type SerializedPurchasePreflight = {
   creatorPriceUsdcMicros: number;
-  creatorPriceLamports: number;
   estimatedPurchaseRentLamports: number;
   feeBufferLamports: number;
   estimatedBuyerTotalLamports: number;
@@ -42,7 +41,6 @@ export type SerializedPurchasePreflight = {
 
 export type PurchasePreflightAssessment = {
   creatorPriceUsdcMicros: bigint;
-  creatorPriceLamports: bigint;
   estimatedPurchaseRentLamports: bigint;
   feeBufferLamports: bigint;
   estimatedBuyerTotalLamports: bigint;
@@ -106,7 +104,6 @@ function buildBuyerInsufficientMessage(
 export function createFreePurchasePreflight(): PurchasePreflightAssessment {
   return {
     creatorPriceUsdcMicros: 0n,
-    creatorPriceLamports: 0n,
     estimatedPurchaseRentLamports: 0n,
     feeBufferLamports: 0n,
     estimatedBuyerTotalLamports: 0n,
@@ -220,7 +217,6 @@ export function assessPurchasePreflight({
   if (context.buyerUsdcAccountExists === false) {
     return {
       creatorPriceUsdcMicros,
-      creatorPriceLamports: 0n,
       estimatedPurchaseRentLamports,
       feeBufferLamports: PURCHASE_FEE_BUFFER_LAMPORTS,
       estimatedBuyerTotalLamports,
@@ -244,7 +240,6 @@ export function assessPurchasePreflight({
   ) {
     return {
       creatorPriceUsdcMicros,
-      creatorPriceLamports: 0n,
       estimatedPurchaseRentLamports,
       feeBufferLamports: 0n,
       estimatedBuyerTotalLamports,
@@ -267,7 +262,6 @@ export function assessPurchasePreflight({
   ) {
     return {
       creatorPriceUsdcMicros,
-      creatorPriceLamports: 0n,
       estimatedPurchaseRentLamports,
       feeBufferLamports: PURCHASE_FEE_BUFFER_LAMPORTS,
       estimatedBuyerTotalLamports,
@@ -288,7 +282,6 @@ export function assessPurchasePreflight({
 
   return {
     creatorPriceUsdcMicros,
-    creatorPriceLamports: 0n,
     estimatedPurchaseRentLamports,
     feeBufferLamports: PURCHASE_FEE_BUFFER_LAMPORTS,
     estimatedBuyerTotalLamports,
@@ -324,7 +317,6 @@ export function serializePurchasePreflight(
     creatorPriceUsdcMicros: toSafeLamportsNumber(
       assessment.creatorPriceUsdcMicros
     ),
-    creatorPriceLamports: toSafeLamportsNumber(assessment.creatorPriceLamports),
     estimatedPurchaseRentLamports: toSafeLamportsNumber(
       assessment.estimatedPurchaseRentLamports
     ),

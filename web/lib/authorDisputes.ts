@@ -54,7 +54,7 @@ export interface AuthorDisputeRecord {
   liabilityScope: AuthorDisputeLiabilityScope;
   liabilityScopeLabel: string;
   skillListing: string;
-  skillPriceLamportsSnapshot: number;
+  skillPriceUsdcMicrosSnapshot: number;
   purchase: string | null;
   backingVouchCountSnapshot: number;
   linkedVouchCount: number;
@@ -271,7 +271,7 @@ export async function listAuthorDisputesByAuthor(
           dispute.account.liabilityScope
         ),
         skillListing,
-        skillPriceLamportsSnapshot: Number(
+        skillPriceUsdcMicrosSnapshot: Number(
           dispute.account.skillPriceUsdcMicrosSnapshot
         ),
         purchase,

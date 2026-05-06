@@ -43,8 +43,6 @@ type MarketplaceListingRow = {
   description: string | null;
   on_chain_address?: string | null;
   price_usdc_micros?: string | null;
-  creatorPriceLamports?: number;
-  estimatedBuyerTotalLamports?: number;
   purchasePreflightStatus?: PurchasePreflightStatus;
   purchasePreflightMessage?: string | null;
   total_installs: number;

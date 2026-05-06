@@ -181,6 +181,23 @@ After deploy and config bootstrap:
 6. Simulate or execute `purchase_skill`.
 7. Verify raw download entitlement through the API.
 
+## Web And Vercel Alignment
+
+After any program, IDL, generated-client, or env change:
+
+1. Sync `target/idl/agentvouch.json` to `web/agentvouch.json`.
+2. Run `npm run generate:client`.
+3. Confirm Vercel preview and production env vars match the intended Neon branch and Solana devnet RPC:
+   - `DATABASE_URL`
+   - `DATABASE_URL_UNPOOLED`
+   - `SOLANA_RPC_URL`
+   - `NEXT_PUBLIC_SOLANA_RPC_URL`
+   - `SOLANA_CHAIN_CONTEXT`
+   - `NEXT_PUBLIC_SOLANA_CHAIN_CONTEXT`
+4. Run `npm run build --workspace @agentvouch/web`.
+5. Redeploy or promote in the `agentvouch` Vercel project.
+6. Follow `docs/PRODUCTION_RUNBOOK.md` for deployed smoke checks and rollback.
+
 ## Common Failure Modes
 
 ### `DeclaredProgramIdMismatch`

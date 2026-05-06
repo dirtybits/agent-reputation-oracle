@@ -43,6 +43,13 @@ export function isValidListingPriceLamports(
   );
 }
 
+export function isValidListingPriceMicros(micros: number): boolean {
+  return (
+    Number.isFinite(micros) &&
+    (micros === 0 || micros >= getMinPriceLamports("USDC"))
+  );
+}
+
 export function formatSolAmount(
   lamports: number,
   minimumFractionDigits = 2,

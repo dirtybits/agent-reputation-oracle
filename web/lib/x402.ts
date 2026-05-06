@@ -76,10 +76,13 @@ export interface PaymentProof {
 
 export function generatePaymentRequirement(opts: {
   skillId: string;
-  priceLamports: number;
+  legacySolLamports: number;
   skillListingAddress: string;
   resourcePath: string;
 }): PaymentRequirement {
+  if (!Number.isFinite(opts.legacySolLamports) || opts.legacySolLamports <= 0) {
+    throw new Error("Legacy SOL payment requirements require a positive amount");
+  }
   const expirySeconds = 300;
   return {
     scheme: "exact",
@@ -89,13 +92,13 @@ export function generatePaymentRequirement(opts: {
     instruction: "purchaseSkill",
     skillListingAddress: opts.skillListingAddress,
     mint: SOL_NATIVE_MINT,
-    amount: opts.priceLamports,
+    amount: opts.legacySolLamports,
     resource: hashResource(opts.resourcePath),
     expiry: Math.floor(Date.now() / 1000) + expirySeconds,
     nonce: randomBytes(16).toString("hex"),
     metadata: {
       skill_id: opts.skillId,
-      display_price: `${(opts.priceLamports / 1e9).toFixed(4)} SOL`,
+      display_price: `${(opts.legacySolLamports / 1e9).toFixed(4)} SOL`,
     },
   };
 }

@@ -331,8 +331,8 @@ addRpcUrlOption(
               ...(result.priceUsdcMicros
                 ? [`price_usdc_micros: ${result.priceUsdcMicros}`]
                 : []),
-              ...(result.priceLamports
-                ? [`historical_sol_price_base_units: ${result.priceLamports}`]
+              ...(result.legacySolBaseUnits
+                ? [`historical_sol_price_base_units: ${result.legacySolBaseUnits}`]
                 : []),
               ...(result.listingAddress
                 ? [`listing: ${result.listingAddress}`]

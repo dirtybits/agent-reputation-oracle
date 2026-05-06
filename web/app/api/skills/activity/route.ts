@@ -6,6 +6,7 @@ import {
   PUBLIC_ROUTE_STALE_SECONDS,
 } from "@/lib/cachePolicy";
 import { getErrorMessage } from "@/lib/errors";
+import { getSkillPaymentFlow } from "@/lib/listingContract";
 
 type RepoListingActivityRow = {
   id: string;
@@ -36,13 +37,6 @@ type UsdcPurchaseActivityRow = {
   chain_context: string | null;
   purchase_pda: string | null;
 };
-
-function getPaymentFlow(skill: RepoListingActivityRow) {
-  if (skill.price_usdc_micros) {
-    return skill.on_chain_address ? "direct-purchase-skill" : "x402-usdc";
-  }
-  return "free";
-}
 
 export async function GET() {
   try {
@@ -92,7 +86,10 @@ export async function GET() {
       {
         repoListings: repoListings.map((skill) => ({
           ...skill,
-          payment_flow: getPaymentFlow(skill),
+          payment_flow: getSkillPaymentFlow({
+            priceUsdcMicros: skill.price_usdc_micros,
+            onChainAddress: skill.on_chain_address,
+          }),
         })),
         usdcPurchases,
       },

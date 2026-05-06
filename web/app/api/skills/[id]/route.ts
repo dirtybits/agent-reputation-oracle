@@ -17,7 +17,7 @@ import {
   PUBLIC_ROUTE_STALE_SECONDS,
 } from "@/lib/cachePolicy";
 import { getErrorMessage } from "@/lib/errors";
-import { fetchOnChainSkillListing, getOnChainPrice } from "@/lib/onchain";
+import { fetchOnChainSkillListing, getOnChainUsdcPrice } from "@/lib/onchain";
 import {
   assessPurchasePreflight,
   createPurchasePreflightContext,
@@ -29,21 +29,14 @@ import {
   AGENTVOUCH_PROTOCOL_VERSION,
   getAgentVouchProgramId,
 } from "@/lib/protocolMetadata";
+import {
+  getSkillPaymentFlow,
+  normalizeUsdcMicros,
+} from "@/lib/listingContract";
 
 const CHAIN_PREFIX = "chain-";
 const rpc = createSolanaRpc(DEFAULT_SOLANA_RPC_URL);
 const configuredSolanaChainContext = getConfiguredSolanaChainContext();
-
-function getSkillPaymentFlow(skill: {
-  price_usdc_micros?: string | null;
-  price_lamports?: number | null;
-  on_chain_address?: string | null;
-}) {
-  if (skill.price_usdc_micros) {
-    return skill.on_chain_address ? "direct-purchase-skill" : "x402-usdc";
-  }
-  return (skill.price_lamports ?? 0) > 0 ? "legacy-sol" : "free";
-}
 
 type SkillRow = {
   id: string;
@@ -217,10 +210,13 @@ export async function GET(
     const skill = rows[0];
     skill.chain_context = normalizePersistedChainContext(skill.chain_context);
 
-    if (skill.on_chain_address && !skill.price_usdc_micros) {
-      const listing = await getOnChainPrice(skill.on_chain_address);
+    if (skill.on_chain_address && !normalizeUsdcMicros(skill.price_usdc_micros)) {
+      const listing = await getOnChainUsdcPrice(skill.on_chain_address);
       if (listing) {
-        skill.price_lamports = listing.price;
+        skill.price_usdc_micros = listing.priceUsdcMicros;
+        skill.currency_mint ??= getConfiguredUsdcMint();
+        skill.on_chain_protocol_version ??= AGENTVOUCH_PROTOCOL_VERSION;
+        skill.on_chain_program_id ??= getAgentVouchProgramId();
       }
     }
 
@@ -274,21 +270,28 @@ export async function GET(
       usdcMint: address(getConfiguredUsdcMint()),
       authors: [],
     });
+    const priceUsdcMicros = normalizeUsdcMicros(skill.price_usdc_micros);
     const preflight = serializePurchasePreflight(
       assessPurchasePreflight({
         context: preflightContext,
-        priceUsdcMicros: skill.price_usdc_micros
-          ? BigInt(skill.price_usdc_micros)
-          : 0n,
+        priceUsdcMicros: priceUsdcMicros ? BigInt(priceUsdcMicros) : 0n,
         author: null,
       })
     );
     const buyerHasPurchased = buyerAddress
-      ? skill.price_usdc_micros
-        ? await hasUsdcPurchaseEntitlement(id, String(buyerAddress)).catch(
-            () => false
-          )
-        : skill.on_chain_address && (skill.price_lamports ?? 0) > 0
+      ? priceUsdcMicros
+        ? skill.on_chain_address
+          ? await hasOnChainPurchase(
+              String(buyerAddress),
+              String(skill.on_chain_address)
+            ).catch(() => false)
+          : await hasUsdcPurchaseEntitlement(id, String(buyerAddress)).catch(
+              () => false
+            )
+        : getSkillPaymentFlow({
+              legacySolLamports: skill.price_lamports,
+              allowLegacySol: true,
+            }) === "legacy-sol" && skill.on_chain_address
         ? await hasOnChainPurchase(
             String(buyerAddress),
             String(skill.on_chain_address)
@@ -306,7 +309,13 @@ export async function GET(
     return NextResponse.json(
       {
         ...skill,
-        payment_flow: getSkillPaymentFlow(skill),
+        price_usdc_micros: priceUsdcMicros,
+        payment_flow: getSkillPaymentFlow({
+          priceUsdcMicros,
+          onChainAddress: skill.on_chain_address,
+          legacySolLamports: skill.price_lamports,
+          allowLegacySol: true,
+        }),
         content: latestContent,
         versions: versionsWithoutContent,
         author_trust,
@@ -376,10 +385,21 @@ export async function PATCH(
       );
     }
 
+    const listing = await getOnChainUsdcPrice(on_chain_address);
+    if (!listing) {
+      return NextResponse.json(
+        { error: "On-chain listing not found or unreadable" },
+        { status: 404 }
+      );
+    }
+    const priceUsdcMicros = normalizeUsdcMicros(listing?.priceUsdcMicros);
+
     const [updated] = await sql()<SkillRow>`
       UPDATE skills
       SET
         on_chain_address = ${on_chain_address},
+        price_usdc_micros = ${priceUsdcMicros},
+        currency_mint = ${priceUsdcMicros ? getConfiguredUsdcMint() : null},
         on_chain_protocol_version = ${AGENTVOUCH_PROTOCOL_VERSION},
         on_chain_program_id = ${getAgentVouchProgramId()},
         updated_at = NOW()

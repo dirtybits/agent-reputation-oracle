@@ -34,9 +34,8 @@ import {
   VouchStatus,
 } from "@/generated/agentvouch/src/generated";
 import type { SolanaRegistryCandidate } from "@/lib/solanaAgentRegistry";
-import { SolAmount } from "@/components/SolAmount";
 import TrustBadge, { type TrustData } from "@/components/TrustBadge";
-import { formatSolAmount, formatUsdcMicros } from "@/lib/pricing";
+import { formatUsdcMicros } from "@/lib/pricing";
 import {
   FiAlertTriangle,
   FiArrowLeft,
@@ -62,10 +61,6 @@ function getSolanaFmTxUrl(tx: string): string {
 
 function shortAddr(addr: string): string {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
-}
-
-function formatSol(lamports: number): string {
-  return formatSolAmount(lamports);
 }
 
 function formatUsdc(micros: number | bigint | string | null | undefined): string {
@@ -1203,8 +1198,8 @@ export default function AuthorProfilePage() {
                     </p>
                     <p>Liability: {dispute.liabilityScopeLabel}</p>
                     <p>
-                      Legacy skill price at dispute open:{" "}
-                      {formatSol(dispute.skillPriceLamportsSnapshot)} SOL
+                      Skill price at dispute open:{" "}
+                      {formatUsdc(dispute.skillPriceUsdcMicrosSnapshot)} USDC
                     </p>
                     <p>
                       Snapshot scope: {dispute.linkedVouchCount} backing{" "}
@@ -1708,11 +1703,7 @@ export default function AuthorProfilePage() {
                         </span>
                       ) : skill.price_lamports && skill.price_lamports > 0 ? (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-gray-300 shrink-0">
-                          Legacy
-                          <SolAmount
-                            amount={formatSol(skill.price_lamports)}
-                            iconClassName="w-3 h-3"
-                          />
+                          Legacy SOL
                         </span>
                       ) : null}
                     </div>
@@ -1746,7 +1737,7 @@ export default function AuthorProfilePage() {
                 )
                 .map((skill) => {
                   const downloads = skill.total_downloads ?? 0;
-                  const price = skill.price_lamports ?? 0;
+                  const legacySolPrice = skill.price_lamports ?? 0;
                   const priceUsdcMicros = skill.price_usdc_micros ?? null;
                   return (
                     <Link
@@ -1762,13 +1753,9 @@ export default function AuthorProfilePage() {
                           <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">
                             {formatUsdc(priceUsdcMicros)} USDC
                           </span>
-                        ) : price > 0 ? (
+                        ) : legacySolPrice > 0 ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 dark:text-gray-300 shrink-0">
-                            Legacy
-                            <SolAmount
-                              amount={formatSol(price)}
-                              iconClassName="w-3 h-3"
-                            />
+                            Legacy SOL
                           </span>
                         ) : null}
                       </div>

@@ -6,7 +6,7 @@ import {
   type Address,
 } from "@solana/kit";
 import { initializeDatabase, sql } from "@/lib/db";
-import { getOnChainPrice } from "@/lib/onchain";
+import { getOnChainUsdcPrice } from "@/lib/onchain";
 import {
   verifyWalletSignature,
   buildDownloadRawMessage,
@@ -18,9 +18,8 @@ import {
   decodeX402PaymentSignatureHeader,
   encodeX402PaymentRequiredHeader,
   encodeX402PaymentResponseHeader,
-  generatePaymentRequirement,
   generateX402UsdcRequirement,
-  hasOnChainPurchase,
+  getConfiguredUsdcMint,
   settleX402Payment,
   verifySettledUsdcTransfer,
   verifyX402Payment,
@@ -37,6 +36,7 @@ import {
   getAgentVouchChainContext,
   getAgentVouchProgramId,
 } from "@/lib/protocolMetadata";
+import { normalizeUsdcMicros } from "@/lib/listingContract";
 
 type RawSkillContentRow = {
   id: string;
@@ -236,7 +236,7 @@ async function handleUsdcDirect(
       {
         error: "Direct purchase required",
         message:
-          "This protocol-listed skill requires the on-chain purchase_skill flow. After the wallet transaction confirms, POST the signature to /api/skills/{id}/purchase/verify, then retry with X-AgentVouch-Auth.",
+          "This protocol-listed skill requires the on-chain purchase_skill flow. After the wallet transaction confirms, POST the signature to /api/skills/{id}/purchase/verify, then retry with X-AgentVouch-Auth. See /docs#paid-skill-download.",
         payment_flow: "direct-purchase-skill",
         amount_micros: priceMicros.toString(),
         currency_mint: skill.currency_mint,
@@ -378,81 +378,30 @@ async function handleUsdcDirect(
   }
 }
 
-async function handleLegacySolGate(
-  request: NextRequest,
+async function handleUnpricedSkill(
   skillDbId: string,
-  skill: RawSkillContentRow
+  skill: RawSkillContentRow,
+  onChainPriceResolved: boolean
 ) {
   if (!skill.on_chain_address) {
     await incrementInstalls(skillDbId);
     return serveContent(skill.content);
   }
 
-  const listing = await getOnChainPrice(skill.on_chain_address);
-  if (!listing || listing.price <= 0) {
+  if (onChainPriceResolved && !normalizeUsdcMicros(skill.price_usdc_micros)) {
     await incrementInstalls(skillDbId);
     return serveContent(skill.content);
   }
-
-  const authHeader = request.headers.get("x-agentvouch-auth");
-
-  if (authHeader) {
-    const authResult = validateDownloadAuth(
-      authHeader,
-      skillDbId,
-      skill.on_chain_address
-    );
-    if ("response" in authResult) {
-      return authResult.response;
-    }
-
-    const purchased = await hasOnChainPurchase(
-      authResult.buyerPubkey,
-      skill.on_chain_address
-    ).catch(() => false);
-
-    if (!purchased) {
-      const requirement = generatePaymentRequirement({
-        skillId: skill.skill_id,
-        priceLamports: listing.price,
-        skillListingAddress: skill.on_chain_address,
-        resourcePath: `/api/skills/${skillDbId}/raw`,
-      });
-      return NextResponse.json(
-        {
-          error: "Purchase not found on-chain for this wallet",
-          requirement,
-        },
-        {
-          status: 402,
-          headers: { "X-Payment": JSON.stringify(requirement) },
-        }
-      );
-    }
-
-    await incrementInstalls(skillDbId);
-    return serveContent(skill.content);
-  }
-
-  const requirement = generatePaymentRequirement({
-    skillId: skill.skill_id,
-    priceLamports: listing.price,
-    skillListingAddress: skill.on_chain_address,
-    resourcePath: `/api/skills/${skillDbId}/raw`,
-  });
 
   return NextResponse.json(
     {
-      error: "Payment required",
-      message: `This skill costs ${(listing.price / 1e9).toFixed(
-        4
-      )} SOL. Call purchaseSkill on-chain, then retry with X-AgentVouch-Auth header. See https://agentvouch.xyz/docs#paid-skill-download for the signed message format.`,
-      requirement,
+      error: "Legacy paid download disabled",
+      message:
+        "This listing is linked on-chain but has no readable USDC price. Legacy SOL payment fallback is disabled for v0.2.0; the author must relink or republish the listing with price_usdc_micros.",
+      payment_flow: "unpriced-linked-listing",
+      on_chain_address: skill.on_chain_address,
     },
-    {
-      status: 402,
-      headers: { "X-Payment": JSON.stringify(requirement) },
-    }
+    { status: 409 }
   );
 }
 
@@ -489,12 +438,23 @@ export async function GET(
     }
 
     const skill = rows[0];
+    let onChainPriceResolved = false;
+    if (skill.on_chain_address && !normalizeUsdcMicros(skill.price_usdc_micros)) {
+      const listing = await getOnChainUsdcPrice(skill.on_chain_address);
+      if (listing) {
+        onChainPriceResolved = true;
+        skill.price_usdc_micros = listing.priceUsdcMicros;
+        skill.currency_mint ??= getConfiguredUsdcMint();
+        skill.on_chain_program_id ??= getAgentVouchProgramId();
+        skill.on_chain_protocol_version ??= AGENTVOUCH_PROTOCOL_VERSION;
+      }
+    }
 
-    if (skill.price_usdc_micros && skill.currency_mint) {
+    if (normalizeUsdcMicros(skill.price_usdc_micros) && skill.currency_mint) {
       return handleUsdcDirect(request, id, skill);
     }
 
-    return handleLegacySolGate(request, id, skill);
+    return handleUnpricedSkill(id, skill, onChainPriceResolved);
   } catch (error: unknown) {
     console.error("GET /api/skills/[id]/raw error:", error);
     return new NextResponse(getErrorMessage(error, "Internal server error"), {
