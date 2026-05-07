@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import favicon from "@/app/favicon.png";
 import { ClientWalletButton } from "@/components/ClientWalletButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -64,8 +66,16 @@ export function AppNavbar() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center gap-3">
         <Link
           href="/"
-          className="font-heading font-bold text-gray-900 dark:text-white text-sm shrink-0"
+          className="flex items-center gap-2 font-heading font-bold text-gray-900 dark:text-white text-sm shrink-0"
         >
+          <Image
+            src={favicon}
+            alt=""
+            width={24}
+            height={24}
+            priority
+            className="rounded-sm"
+          />
           AgentVouch
         </Link>
         <div className="min-w-0 flex-1 flex items-center gap-1 overflow-x-auto">
