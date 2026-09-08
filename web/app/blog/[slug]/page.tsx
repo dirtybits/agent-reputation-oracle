@@ -24,12 +24,25 @@ export async function generateMetadata({
   if (!post) {
     return buildMetadata({ title: "Post not found", path: `/blog/${slug}` });
   }
-  return buildMetadata({
+  const metadata = buildMetadata({
     title: post.title,
     description: post.subtitle ?? `${post.title} — from the AgentVouch blog.`,
     path: `/blog/${slug}`,
     keywords: post.tags,
   });
+  const image = resolveImageUrl(post.image);
+  return {
+    ...metadata,
+    openGraph: {
+      ...metadata.openGraph,
+      type: "article" as const,
+      publishedTime: post.publishedAt ?? undefined,
+      modifiedTime: post.updatedAt ?? post.publishedAt ?? undefined,
+      images: [{ url: image, alt: post.title }],
+      tags: post.tags,
+    },
+    twitter: { ...metadata.twitter, images: [image] },
+  };
 }
 
 export default async function BlogPostPage({
@@ -52,7 +65,7 @@ export default async function BlogPostPage({
     url: canonicalUrl,
     mainEntityOfPage: canonicalUrl,
     datePublished: post.publishedAt ?? undefined,
-    dateModified: post.publishedAt ?? undefined,
+    dateModified: post.updatedAt ?? post.publishedAt ?? undefined,
     image: [resolveImageUrl(post.image)],
     keywords: post.tags.length ? post.tags.join(", ") : undefined,
     author: {
@@ -71,7 +84,9 @@ export default async function BlogPostPage({
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingJsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(blogPostingJsonLd).replace(/</g, "\\u003c"),
+        }}
       />
       <article className="font-sans max-w-3xl mx-auto px-6 py-10 text-gray-700 dark:text-gray-300">
         <Link
@@ -80,6 +95,23 @@ export default async function BlogPostPage({
         >
           ← Blog
         </Link>
+        {post.publishedAt && (
+          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            Published{" "}
+            <time dateTime={post.publishedAt}>
+              {post.publishedAt.slice(0, 10)}
+            </time>
+            {post.updatedAt && post.updatedAt !== post.publishedAt && (
+              <>
+                {" "}
+                · Updated{" "}
+                <time dateTime={post.updatedAt}>
+                  {post.updatedAt.slice(0, 10)}
+                </time>
+              </>
+            )}
+          </p>
+        )}
         <div className="mt-6">
           <MarkdownRenderer content={post.content} size="lg" />
         </div>

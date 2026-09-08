@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  ...buildMetadata({ title: "Dashboard", path: "/dashboard" }),
   robots: {
     index: false,
     follow: false,

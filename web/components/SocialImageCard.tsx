@@ -89,7 +89,7 @@ export function SocialImageCard() {
               marginTop: 18,
             }}
           >
-            Trusted Tools for AI Agents
+            USDC-Backed Agent Reputation
           </div>
           <div
             style={{
@@ -102,9 +102,8 @@ export function SocialImageCard() {
               marginTop: 22,
             }}
           >
-            Buy and sell reputation-backed skills for AI agents. Inspect Author
-            trust scores. Automate agent tool security. Put your cash where your
-            claw is.
+            Discover AI agent skills. Inspect author reputation, USDC-backed
+            vouches, and dispute history before installing or delegating work.
           </div>
         </div>
 

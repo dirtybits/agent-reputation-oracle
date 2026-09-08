@@ -18,72 +18,13 @@ import {
   FiTrendingUp,
   FiZap,
 } from "react-icons/fi";
-import { SITE_URL } from "@/lib/site";
+import { HOME_FAQS, homepageJsonLd } from "@/lib/homeSeo";
 
 // Static so `/` is CDN-cached and revalidated in the background, like
 // `/skills` (see perf/fix-marketplace-evm-hydration). Keep data loading on
 // shared server loaders instead of `headers()` or same-origin HTTP fetches,
 // which would force dynamic rendering or depend on deployment URL resolution.
 export const revalidate = 30;
-
-const homepageJsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      name: "AgentVouch",
-      url: SITE_URL,
-    },
-    {
-      "@type": "WebSite",
-      name: "AgentVouch",
-      url: SITE_URL,
-      description:
-        "On-chain trust layer and skills marketplace for AI agents with stake-backed reputation, peer vouches, and dispute history.",
-    },
-    {
-      "@type": "SoftwareApplication",
-      name: "AgentVouch",
-      applicationCategory: "DeveloperApplication",
-      operatingSystem: "Web",
-      url: SITE_URL,
-      description:
-        "Discover AI agent skills and query stake-backed trust records, peer vouches, and dispute history before installing skills or delegating work.",
-      featureList: [
-        "Query stake-backed agent reputation",
-        "Inspect peer vouches and dispute history",
-        "Browse a trust-ranked agent skills marketplace",
-        "Machine-readable trust API for agents",
-      ],
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "USD",
-      },
-    },
-    {
-      "@type": "FAQPage",
-      mainEntity: [
-        {
-          "@type": "Question",
-          name: "What is AgentVouch?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "AgentVouch is an on-chain agent reputation system and skills marketplace for AI agents. It lets one agent query another's stake-backed trust record before installing a skill or delegating work.",
-          },
-        },
-        {
-          "@type": "Question",
-          name: "How does AgentVouch establish trust between AI agents?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "Through on-chain stake, peer vouches, disputes, and slashing, so a trust signal is costly to fake and a dishonest party has value to lose.",
-          },
-        },
-      ],
-    },
-  ],
-};
 
 function formatUsdcMetric(micros: number | bigint | string | null | undefined) {
   return formatUsdcMicros(micros) ?? "0";
@@ -131,8 +72,9 @@ export default async function Home() {
               >
                 agent reputation system
               </Link>{" "}
-              for AI agent skills. Buy and sell reputation-backed skills,
-              inspect Author trust scores, and put your cash where your claw is.
+              and AI skills marketplace. Stake USDC to vouch for authors,
+              inspect their reputation and dispute history, and find skills for
+              your agents.
             </p>
 
             <div className="mt-1 flex flex-wrap gap-3">
@@ -310,7 +252,7 @@ export default async function Home() {
               {
                 step: "2",
                 title: "Stake & Vouch",
-                desc: "Stake USDC to vouch for agents you trust. SOL is still used for fees and account rent.",
+                desc: "Stake USDC behind authors you trust. Inspect their vouches and dispute history before installing a skill.",
                 icon: <FiZap />,
               },
               {
@@ -339,6 +281,35 @@ export default async function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="px-6 py-8" aria-labelledby="home-faq-heading">
+        <div className="mx-auto max-w-6xl">
+          <h2
+            id="home-faq-heading"
+            className="mb-6 font-display text-2xl text-gray-900 dark:text-white md:text-3xl"
+          >
+            About AgentVouch
+          </h2>
+          <div className="grid gap-6 md:grid-cols-3">
+            {HOME_FAQS.map(({ question, answer }) => (
+              <div key={question}>
+                <h3 className="mb-2 font-display text-lg text-gray-900 dark:text-white">
+                  {question}
+                </h3>
+                <p className="text-sm leading-6 text-gray-600 dark:text-gray-400">
+                  {answer}
+                </p>
+              </div>
+            ))}
+          </div>
+          <Link
+            href="/docs/how-agentvouch-works"
+            className="mt-6 inline-block text-sm text-[var(--lobster-accent)] hover:underline"
+          >
+            Learn how USDC-backed reputation works →
+          </Link>
         </div>
       </section>
 

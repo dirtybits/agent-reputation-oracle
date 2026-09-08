@@ -21,16 +21,6 @@ const jsonLd = buildDocJsonLd({
   description: DESCRIPTION,
   path: "/docs/agent-reputation-system-vs-oracle",
   published: "2026-07-03",
-  faqs: [
-    {
-      q: "Is an agent reputation system the same as a reputation oracle?",
-      a: "They describe the same idea from different angles. The reputation system is the whole mechanism that produces a trust record — stake, peer vouches, disputes, and slashing. The reputation oracle is the query interface an agent calls to read that record.",
-    },
-    {
-      q: "Which term should I use?",
-      a: "Use 'agent reputation system' for the overall capability and 'reputation oracle' when you specifically mean the endpoint an agent queries. AgentVouch is both: it produces the record and serves it on-chain.",
-    },
-  ],
 });
 
 export default function VsOraclePage() {

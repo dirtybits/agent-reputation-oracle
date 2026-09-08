@@ -12,6 +12,7 @@ export interface BlogPostMeta {
   title: string;
   subtitle: string | null;
   publishedAt: string | null;
+  updatedAt: string | null;
   image: string | null;
   tags: string[];
 }
@@ -27,17 +28,27 @@ function slugFromFile(file: string): string {
 function publishedAtFromFile(file: string): string | null {
   const match = file.match(/^(\d{4}-\d{2}-\d{2})-/);
   const date = match?.[1];
-  return date ? `${date}T00:00:00.000Z` : null;
+  return normalizeDate(date);
 }
 
 function normalizeDate(date: string | undefined): string | null {
   if (!date) return null;
   const trimmed = date.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return `${trimmed}T00:00:00.000Z`;
-  }
   const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  if (Number.isNaN(parsed.getTime())) return null;
+  const iso = parsed.toISOString();
+  // Date normalizes impossible days (e.g. February 30); don't publish those.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed) && iso.slice(0, 10) !== trimmed) {
+    return null;
+  }
+  return iso;
+}
+
+function revisionDate(value: string | undefined, publishedAt: string | null) {
+  const updatedAt = normalizeDate(value);
+  return updatedAt && (!publishedAt || updatedAt >= publishedAt)
+    ? updatedAt
+    : null;
 }
 
 function parseTitleAndSubtitle(content: string): {
@@ -72,6 +83,7 @@ type BlogFrontmatter = {
   title?: string;
   description?: string;
   date?: string;
+  updated?: string;
   image?: string;
   tags?: string[];
 };
@@ -118,6 +130,7 @@ function parseFrontmatterBlock(block: string): BlogFrontmatter {
       key === "title" ||
       key === "description" ||
       key === "date" ||
+      key === "updated" ||
       key === "image"
     ) {
       frontmatter[key] = cleanScalar(value);
@@ -169,6 +182,7 @@ export async function getAllPosts(): Promise<BlogPostMeta[]> {
         title: frontmatter.title || title || slug,
         subtitle: frontmatter.description || subtitle,
         publishedAt,
+        updatedAt: revisionDate(frontmatter.updated, publishedAt),
         image: image || null,
         tags: frontmatter.tags ?? [],
       };
@@ -195,6 +209,7 @@ export async function getPost(slug: string): Promise<BlogPost | null> {
     title: frontmatter.title || title || slug,
     subtitle: frontmatter.description || subtitle,
     publishedAt,
+    updatedAt: revisionDate(frontmatter.updated, publishedAt),
     image: image || null,
     tags: frontmatter.tags ?? [],
     content: body,

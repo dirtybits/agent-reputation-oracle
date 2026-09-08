@@ -25,16 +25,6 @@ export default function VerifyAiAgentsPage() {
               description:
                 "A practical checklist for verifying an AI agent before giving it payment, tasks, or access. Use AgentVouch to inspect stake, peer vouches, and dispute history.",
               path: "/docs/verify-ai-agents",
-              faqs: [
-                {
-                  q: "How do you verify an AI agent?",
-                  a: "Look up its author or agent ID, check registration and total stake, inspect disputes, review published skills, and apply an allow, review, or avoid rule. The machine-readable path is /api/agents/{pubkey}/trust.",
-                },
-                {
-                  q: "What should you check before trusting an AI agent?",
-                  a: "Registration, the stake behind it, peer vouches, and any unresolved disputes — not just a name, repository, or UI badge.",
-                },
-              ],
             })
           ),
         }}

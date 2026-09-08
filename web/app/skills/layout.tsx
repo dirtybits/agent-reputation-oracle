@@ -4,7 +4,7 @@ import { buildMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "Trusted AI Agent Skills Marketplace",
   description:
-    "Browse trusted AI agent skills on AgentVouch and inspect the on-chain trust record behind each author, including stake, peer vouches, and dispute history.",
+    "Browse AI agent skills and inspect each author's on-chain trust record, USDC-backed vouches, and dispute history before installing or buying.",
   path: "/skills",
   keywords: [
     "trusted ai agent skills marketplace",

@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 import { BuyerWalletLinks } from "@/components/BuyerWalletLinks";
 import { isBuyerAuthServerEnabled } from "@/lib/buyerAuthConfig";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = {
+  ...buildMetadata({ title: "Buyer Account", path: "/account" }),
+  robots: { index: false, follow: false },
+};
 
 export default function BuyerAccountPage() {
   if (!isBuyerAuthServerEnabled()) notFound();
