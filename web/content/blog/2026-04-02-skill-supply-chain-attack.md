@@ -1,7 +1,8 @@
 ---
 title: "The Skills Supply Chain Attack Nobody Is Talking About"
-description: "How AI agent skills became the new npm install, and why unsigned skill files need trust context."
+description: "How AI agent skills create supply-chain risk, and how USDC-backed author reputation, file review, and sandboxing help inform safer installation decisions."
 date: 2026-04-02
+updated: 2026-09-07
 tags:
   - skill.md security
   - ai agent supply chain security
@@ -11,6 +12,8 @@ tags:
 # The Skills Supply Chain Attack Nobody Is Talking About
 
 *How AI agent skills became the new npm install — and why you should care*
+
+*Originally published in April 2026. AgentVouch product details were corrected in September 2026. Repository counts and installation observations below describe the original experiment, not a fresh audit of those projects.*
 
 ---
 
@@ -148,22 +151,23 @@ Watch for unusual patterns:
 
 ## The Solution: Reputation-Based Trust
 
-This is exactly why we built [AgentVouch](https://agentvouch.vercel.app) — an on-chain reputation oracle for AI agents and the skills they use.
+This is why we built [AgentVouch](https://agentvouch.xyz) — an on-chain reputation oracle for AI agents and the skills they use. Reputation adds context to file review and sandboxing; it does not replace them.
 
 ### How It Works
 
 **1. Stake to Vouch**
-Agents stake SOL to vouch for skills they trust. Bad vouches get slashed when disputes arise.
+Participants stake **USDC to vouch for authors** they trust. The author's own bond is separate from an external vouch. SOL is used for Solana network fees and account rent, not for staking; Base uses ETH for network fees.
 
 **2. Economic Security**
-Want to vouch for a skill? Put your money where your mouth is. If that skill turns malicious, you lose your stake.
+Backing has value at risk, but filing a report does not automatically slash stake. On Solana devnet, upheld free-skill disputes cap slashing at the AuthorBond. Paid-skill disputes use the AuthorBond first and then linked voucher stake under the protocol's settlement rules. Check the [current documentation](/docs) for chain-specific capabilities.
 
 **3. Reputation Score**
-Skills earn reputation through:
-- Successful vouches
-- Purchase history
-- Dispute resolution
-- Time in market
+Inspect the author's trust record alongside a skill's files:
+- USDC stake and external vouches
+- Author bond
+- Active and upheld disputes
+
+Purchase and download counts can provide context, but they are not proof of safe execution. A vouch is not a per-version security certification.
 
 **4. Transparent Provenance**
 Full on-chain audit trail:
@@ -174,24 +178,16 @@ Full on-chain audit trail:
 
 ### The Marketplace
 
-AgentVouch includes a revenue-generating marketplace:
-- **60% to skill author**
-- **40% to vouchers** (weighted by stake)
+For the Solana direct-purchase flow, when external vouch stake exists, **60% goes to author proceeds and 40% to the listing reward vault**. Without external vouch stake, **100% goes to the author**. Reward settlement follows the protocol rules; these figures are not a promise of investment returns or a claim that every checkout route has the same split.
 
-Vouchers earn passive income from skills they verify. Authors get distribution. Buyers get trust.
-
-**Example:**
+**Start with the documented integration:**
 
 ```bash
-# Before AgentVouch
-npx antigravity-awesome-skills  # 857 skills, zero verification
-
-# With AgentVouch
-npx antigravity-awesome-skills --verified-only --min-reputation 4.0
-# Only skills with AgentVouch reputation > 4.0
-# Full on-chain provenance
-# Economic guarantees via stake slashing
+# Read AgentVouch's current agent-facing instructions
+curl -s https://agentvouch.xyz/skill.md
 ```
+
+Then inspect a listing's files and author trust record in the [marketplace](/skills), or follow the [agent verification checklist](/docs/verify-ai-agents). The earlier `--verified-only` and `--min-reputation` example was conceptual, not a supported integration with a third-party installer.
 
 ## The Bigger Picture
 
@@ -227,22 +223,22 @@ The irony: We verify every blockchain transaction with cryptographic proofs, but
 ### For the Ecosystem
 1. Standardize skill verification
 2. Build reputation infrastructure
-3. Enable economic guarantees
+3. Make accountable backing and its limits explicit
 4. Make trust legible
 
 ## Try It Yourself
 
-**AgentVouch is live on Solana devnet:**
-- Marketplace: [agentvouch.vercel.app](https://agentvouch.vercel.app)
-- Contract: `ELmVnLSNuwNca4PfPqeqNowoUF8aDdtfto3rF9d89wf`
-- GitHub: [github.com/dirtybits/agent-reputation-oracle](https://github.com/dirtybits/agent-reputation-oracle)
+**Explore the public AgentVouch test environment:**
+- Marketplace: [AgentVouch skills](/skills)
+- Current integration and network details: [AgentVouch documentation](/docs)
+- GitHub: [dirtybits/agentvouch](https://github.com/dirtybits/agentvouch)
 
-**See it in action:**
-First on-chain agent skill purchase: [Transaction on Solana Explorer](https://explorer.solana.com/tx/2RJ2em3yAoG9fcDauyF1SXBU2jZTjKxKWgQ23CLDisztSWxD35WebGBx3qhttsfTkJomVp2oV4FBUVUQ5jQnQK21?cluster=devnet)
+**Historical demo:**
+An early devnet purchase from the original article: [transaction on Solana Explorer](https://explorer.solana.com/tx/2RJ2em3yAoG9fcDauyF1SXBU2jZTjKxKWgQ23CLDisztSWxD35WebGBx3qhttsfTkJomVp2oV4FBUVUQ5jQnQK21?cluster=devnet). This is historical evidence, not the current deployment's contract reference.
 
 ## Conclusion
 
-The skills supply chain attack isn't theoretical — it's happening right now. Every time you install unverified skills, you're trusting anonymous contributors with instruction-level access to your AI agent.
+The supply-chain risk is concrete: installing a skill gives its author instruction-level influence over your agent. Review that access, regardless of whether the skill has a recognizable name or a reputation badge.
 
 The npm supply chain attack taught us this lesson in 2018. The PyPI supply chain attack taught us again in 2022. How many times do we need to learn it?
 

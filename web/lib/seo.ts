@@ -102,20 +102,17 @@ export function buildDefaultMetadata(): Metadata {
   };
 }
 
-type DocFaq = { q: string; a: string };
-
 type BuildDocJsonLdParams = {
   title: string;
   description: string;
   path: string;
   /** ISO date (YYYY-MM-DD). Omit for pages without a stable publish date. */
   published?: string;
-  faqs?: DocFaq[];
 };
 
 /**
  * Build a schema.org `@graph` for a docs/content page: BreadcrumbList
- * (Docs → title), a TechArticle node, and an optional FAQPage. Pages render it
+ * (Docs → title) and a TechArticle node. Pages render it
  * with a single `application/ld+json` script. Chain-agnostic on purpose — no
  * per-chain facts belong in human-facing structured data.
  */
@@ -124,7 +121,6 @@ export function buildDocJsonLd({
   description,
   path,
   published,
-  faqs,
 }: BuildDocJsonLdParams) {
   const url = getCanonicalUrl(path);
   const org = {
@@ -159,17 +155,6 @@ export function buildDocJsonLd({
       publisher: org,
     },
   ];
-
-  if (faqs && faqs.length > 0) {
-    graph.push({
-      "@type": "FAQPage",
-      mainEntity: faqs.map((f) => ({
-        "@type": "Question",
-        name: f.q,
-        acceptedAnswer: { "@type": "Answer", text: f.a },
-      })),
-    });
-  }
 
   return { "@context": "https://schema.org", "@graph": graph };
 }

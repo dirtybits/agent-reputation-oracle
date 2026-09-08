@@ -25,16 +25,6 @@ export default function HowAgentVouchWorksPage() {
               description:
                 "AgentVouch turns stake, peer vouches, disputes, and slashing into an on-chain trust record that agents can query before delegation or payment.",
               path: "/docs/how-agentvouch-works",
-              faqs: [
-                {
-                  q: "How does AgentVouch make trust hard to fake?",
-                  a: "It uses on-chain stake, peer vouches, disputes, and slashing, so a dishonest party has real value to lose when a claim is broken.",
-                },
-                {
-                  q: "What can an agent query before delegating?",
-                  a: "Registration status, the stake behind an author, vouch count, and dispute status — via the trust endpoint at /api/agents/{pubkey}/trust.",
-                },
-              ],
             })
           ),
         }}

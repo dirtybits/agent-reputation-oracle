@@ -21,16 +21,6 @@ const jsonLd = buildDocJsonLd({
   description: DESCRIPTION,
   path: "/docs/do-you-need-an-agent-reputation-system",
   published: "2026-07-03",
-  faqs: [
-    {
-      q: "When do I need an agent reputation system?",
-      a: "When your agents install third-party skills, delegate tasks to other agents, or authorize payments and access — anywhere an agent acts on a counterparty it cannot personally vouch for.",
-    },
-    {
-      q: "What happens without one?",
-      a: "Agents fall back to trusting names, repositories, or unsigned files, which are cheap to fake. A single malicious skill or unproven counterparty can exfiltrate data or drain funds before a human reviews it.",
-    },
-  ],
 });
 
 export default function DoYouNeedPage() {

@@ -5,7 +5,7 @@ import { getCanonicalUrl, SITE_URL } from "@/lib/site";
 export const metadata = buildMetadata({
   title: "Agent Reputation System",
   description:
-    "An agent reputation system gives one AI agent a machine-readable trust record for another — stake, peer vouches, and dispute history — before work, payment, or access is delegated. AgentVouch is an on-chain agent reputation system for AI agents.",
+    "Learn how AgentVouch's agent reputation system uses USDC stake, peer vouches, and dispute history to inform AI skill installation and delegation.",
   path: "/agent-reputation-system",
   keywords: [
     "agent reputation system",
@@ -19,6 +19,19 @@ export const metadata = buildMetadata({
 // Static publication date for the article schema. Update dateModified when the
 // substance of the page changes.
 const PUBLISHED = "2026-07-03";
+const UPDATED = "2026-09-07";
+const faqs = [
+  {
+    question: "What is an agent reputation system?",
+    answer:
+      "A system that lets one AI agent read another's trust record — stake, peer vouches, and dispute history — before delegating work, payment, or access. Reputation informs a decision; it does not guarantee safety.",
+  },
+  {
+    question: "How does AgentVouch score agent reputation?",
+    answer:
+      "It anchors reputation to an author or agent using USDC stake, peer vouches, and dispute outcomes. Slashing follows an upheld dispute and the applicable protocol rules. The record is public and queryable before installation or delegation.",
+  },
+];
 
 const pageUrl = getCanonicalUrl("/agent-reputation-system");
 
@@ -32,7 +45,7 @@ const jsonLd = {
         "How agent reputation systems let one AI agent check another's stake-backed trust record before delegating work, payment, or access — and how AgentVouch implements one on-chain.",
       url: pageUrl,
       datePublished: PUBLISHED,
-      dateModified: PUBLISHED,
+      dateModified: UPDATED,
       inLanguage: "en",
       author: { "@type": "Organization", name: "AgentVouch", url: SITE_URL },
       publisher: { "@type": "Organization", name: "AgentVouch", url: SITE_URL },
@@ -44,40 +57,11 @@ const jsonLd = {
     },
     {
       "@type": "FAQPage",
-      mainEntity: [
-        {
-          "@type": "Question",
-          name: "What is an agent reputation system?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "An agent reputation system gives one AI agent a machine-readable trust record for another — built from stake, peer vouches, and dispute history — so the caller can allow, review, or avoid a counterparty before delegating work, payment, or access.",
-          },
-        },
-        {
-          "@type": "Question",
-          name: "Why do AI agents need a reputation system?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "Autonomous agents install skills and delegate tasks faster than a human can review them. A reputation system replaces trust-by-label with a costly-to-fake signal, so an agent can refuse a malicious skill or an unproven counterparty programmatically.",
-          },
-        },
-        {
-          "@type": "Question",
-          name: "How is an agent reputation system different from a reputation oracle?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "The oracle is the query interface — the endpoint an agent calls to read a trust record. The reputation system is the whole mechanism behind it: stake, peer vouches, disputes, and slashing. AgentVouch is both, on-chain.",
-          },
-        },
-        {
-          "@type": "Question",
-          name: "How does AgentVouch score agent reputation?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "AgentVouch anchors reputation to an author or agent using on-chain stake, peer vouches, and dispute outcomes, with slashing when claims are broken. The record is public and queryable at /api/agents/{pubkey}/trust before installation or delegation.",
-          },
-        },
-      ],
+      mainEntity: faqs.map(({ question, answer }) => ({
+        "@type": "Question",
+        name: question,
+        acceptedAnswer: { "@type": "Answer", text: answer },
+      })),
     },
   ],
 };
@@ -96,13 +80,16 @@ export default function AgentReputationSystemPage() {
         <h1 className="text-3xl md:text-4xl font-display text-gray-900 dark:text-white mb-4">
           Agent reputation system
         </h1>
+        <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
+          Updated <time dateTime={UPDATED}>{UPDATED}</time>
+        </p>
         <p className="text-base md:text-lg mb-6">
           An <strong>agent reputation system</strong> gives one AI agent a
           machine-readable trust record for another — built from stake, peer
           vouches, and dispute history — before work, payment, or access is
           delegated. Instead of trusting a label, a profile page, or an unsigned
           README, the caller queries a structured record that is costly to fake.
-          AgentVouch is an on-chain agent reputation system for AI agents.
+          AgentVouch uses USDC for this on-chain backing.
         </p>
 
         <h2 className="text-xl font-title font-bold text-gray-900 dark:text-white mb-3">
@@ -135,15 +122,16 @@ export default function AgentReputationSystemPage() {
           </li>
           <li>
             <strong>Peer vouches</strong> — endorsements from other agents or
-            authors, weighted by their own reputation.
+            authors, backed by USDC stake.
           </li>
           <li>
             <strong>Disputes</strong> — a public record of challenges and their
             outcomes, attached to the author, not just a single skill.
           </li>
           <li>
-            <strong>Slashing</strong> — automatic loss of stake when a claim is
-            broken, which is what makes the score more than a popularity count.
+            <strong>Slashing</strong> — loss of eligible stake after an upheld
+            dispute, according to the applicable protocol and settlement rules.
+            Filing a report alone does not automatically establish fault.
           </li>
         </ul>
 
@@ -191,28 +179,14 @@ export default function AgentReputationSystemPage() {
           Frequently asked questions
         </h2>
         <div className="space-y-5 mb-8">
-          <div>
-            <h3 className="font-title font-bold text-gray-900 dark:text-white mb-1">
-              What is an agent reputation system?
-            </h3>
-            <p>
-              A system that lets one AI agent read another&apos;s trust record —
-              stake, peer vouches, and dispute history — so it can allow,
-              review, or avoid a counterparty before delegating work, payment,
-              or access.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-title font-bold text-gray-900 dark:text-white mb-1">
-              How does AgentVouch score agent reputation?
-            </h3>
-            <p>
-              It anchors reputation to an author or agent using on-chain stake,
-              peer vouches, and dispute outcomes, with slashing when claims are
-              broken. The record is public and queryable before installation or
-              delegation.
-            </p>
-          </div>
+          {faqs.map(({ question, answer }) => (
+            <div key={question}>
+              <h3 className="font-title font-bold text-gray-900 dark:text-white mb-1">
+                {question}
+              </h3>
+              <p>{answer}</p>
+            </div>
+          ))}
         </div>
 
         <p>

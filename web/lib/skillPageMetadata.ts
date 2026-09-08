@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { getSkillMetadataSummary } from "@/lib/metadataData";
-import { truncateDescription } from "@/lib/site";
+import { formatUsdcMicros } from "@/lib/pricing";
 import type { SkillRouteRecord } from "@/lib/skillRouteResolver";
 import { getCanonicalSkillPath } from "@/lib/skillRouteResolver";
 
@@ -27,14 +27,16 @@ export async function buildSkillPageMetadata(
   }
 
   const authorContext = skill.trustSummary
-    ? `Author recommendation: ${skill.trustSummary.recommended_action}. ${skill.trustSummary.totalStakedFor} USDC micros of trust capital behind this author.`
+    ? `${
+        formatUsdcMicros(skill.trustSummary.totalStakedFor) ?? "0"
+      } USDC staked behind this author. Inspect vouches and dispute history.`
     : skill.authorHandle
     ? `Published by unverified @${skill.authorHandle}.`
     : "Published by an unverified AgentVouch publisher.";
 
   return buildMetadata({
     title: `${skill.name} Trust Record`,
-    description: truncateDescription(`${skill.description} ${authorContext}`),
+    description: `${skill.description} ${authorContext}`,
     path: getCanonicalSkillPath(route),
     keywords: [
       skill.name,

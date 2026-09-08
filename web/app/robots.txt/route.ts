@@ -17,8 +17,7 @@ export function GET() {
     "Allow: /openapi.json",
     "Allow: /.well-known/",
     "Disallow: /api/",
-    "Disallow: /dashboard",
-    "Disallow: /settings",
+    // Utility pages must remain crawlable for their noindex tags to be seen.
     "",
     "# Content Signals (https://contentsignals.org/)",
     "# AgentVouch content is published for agent discovery and use.",
