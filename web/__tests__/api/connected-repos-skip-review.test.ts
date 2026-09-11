@@ -52,7 +52,7 @@ import {
   POST as connectPost,
 } from "@/app/api/agents/[pubkey]/repos/route";
 
-const PUBKEY = "WalletPubkey1111111111111111111111111111111";
+const PUBKEY = "AGNtBjLEHFnssPzQjZJnnqiaUgtkaxj4fFaWoKD6yVdg";
 const REPO_ID = "00000000-0000-4000-8000-000000000001";
 
 const fakeRepo = {
@@ -118,6 +118,29 @@ describe("POST /api/agents/[pubkey]/repos/[id]/sync — skip_review bypass", () 
     mockVerifyConnectAuth.mockReturnValue({ ok: true, pubkey: PUBKEY });
     mockGetConnectedRepo.mockResolvedValue(fakeRepo);
     mockSyncConnectedRepo.mockResolvedValue([]);
+  });
+
+  it("rejects malformed wallet paths before parsing or downstream work", async () => {
+    const request = {
+      json: vi.fn(),
+    } as unknown as NextRequest;
+
+    const response = await syncPost(request, {
+      params: Promise.resolve({
+        pubkey: "not-a-solana-address",
+        id: REPO_ID,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Agent routes require a valid Solana address",
+    });
+    expect(request.json).not.toHaveBeenCalled();
+    expect(mockVerifyConnectAuth).not.toHaveBeenCalled();
+    expect(mockInitializeDatabase).not.toHaveBeenCalled();
+    expect(mockGetConnectedRepo).not.toHaveBeenCalled();
+    expect(mockSyncConnectedRepo).not.toHaveBeenCalled();
   });
 
   it("ignores skip_review: true and always calls sync with skipReview: false", async () => {
@@ -198,6 +221,28 @@ describe("POST /api/agents/[pubkey]/repos/[id]/sync — skip_review bypass", () 
 describe("DELETE /api/agents/[pubkey]/repos/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("rejects malformed wallet paths before parsing or downstream work", async () => {
+    const request = {
+      json: vi.fn(),
+    } as unknown as NextRequest;
+
+    const response = await disconnectDelete(request, {
+      params: Promise.resolve({
+        pubkey: "not-a-solana-address",
+        id: REPO_ID,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Agent routes require a valid Solana address",
+    });
+    expect(request.json).not.toHaveBeenCalled();
+    expect(mockVerifyConnectAuth).not.toHaveBeenCalled();
+    expect(mockInitializeDatabase).not.toHaveBeenCalled();
+    expect(mockDeleteConnectedRepo).not.toHaveBeenCalled();
   });
 
   it("rejects malformed repository IDs before auth or database work", async () => {
